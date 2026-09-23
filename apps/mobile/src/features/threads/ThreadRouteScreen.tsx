@@ -61,6 +61,7 @@ import {
 } from "../terminal/terminalLaunchContext";
 import { terminalDebugLog } from "../terminal/terminalDebugLog";
 import { ThreadDetailScreen, type ThreadDetailScreenProps } from "./ThreadDetailScreen";
+import { ImageCiteProvider } from "../imageCite/ImageCiteProvider";
 import { GitOverviewSheet } from "./git/GitOverviewSheet";
 import { useAtomCommand } from "../../state/use-atom-command";
 import { useSelectedThreadGitActions } from "../../state/use-selected-thread-git-actions";
@@ -992,7 +993,7 @@ function ThreadRouteContent(
         });
   const serverConfig = routeEnvironmentRuntime?.serverConfig ?? null;
   const renderThreadRouteBody = () => (
-    <>
+    <ImageCiteProvider environmentId={selectedThread.environmentId} threadId={selectedThread.id}>
       <GitActionProgressOverlay progress={gitActionProgress} onDismiss={dismissGitActionResult} />
 
       <View className="flex-1 bg-screen android:overflow-hidden android:rounded-t-[28px] android:bg-thread-canvas">
@@ -1087,7 +1088,7 @@ function ThreadRouteContent(
           onDismissUserInput={requests.onDismissUserInput}
         />
       </View>
-    </>
+    </ImageCiteProvider>
   );
 
   return (
