@@ -49,7 +49,7 @@ describe("runArchivedThreadBatch", () => {
     await expect(runArchivedThreadBatch(targets, run)).resolves.toBeNull();
 
     expect(run).toHaveBeenCalledOnce();
-    expect(refreshArchivedThreadsForEnvironment).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(refreshArchivedThreadsForEnvironment).mock.calls).toEqual([[local]]);
   });
 });
 

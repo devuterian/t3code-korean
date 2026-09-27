@@ -196,7 +196,7 @@ export async function navigateAfterThreadDeletion(navigate: () => Promise<void>)
 }
 
 /**
- * Runs one command per archived thread in order, then refreshes each touched
+ * Runs one command per archived thread in order, then refreshes each reached
  * environment's archive once instead of once per thread. Stops at the first
  * interruption and reports the first failure.
  */
@@ -205,13 +205,15 @@ export async function runArchivedThreadBatch(
   run: (target: ScopedThreadRef) => Promise<AtomCommandResult<unknown, unknown>>,
 ) {
   let firstFailure: AsyncResult.Failure<unknown, unknown> | null = null;
+  const reachedEnvironmentIds = new Set<EnvironmentId>();
   for (const target of targets) {
+    reachedEnvironmentIds.add(target.environmentId);
     const result = await run(target);
     if (result._tag === "Success") continue;
     if (isAtomCommandInterrupted(result)) break;
     firstFailure ??= result;
   }
-  for (const environmentId of new Set(targets.map((target) => target.environmentId))) {
+  for (const environmentId of reachedEnvironmentIds) {
     refreshArchivedThreadsForEnvironment(environmentId);
   }
   return firstFailure;
