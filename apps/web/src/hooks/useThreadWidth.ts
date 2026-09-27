@@ -19,7 +19,7 @@ export function threadWidthStyle(expansion: number): CSSProperties {
   // panel takes space. w-full keeps narrow panes at their original width.
   const ratio = normalizeThreadWidth(expansion) / 100;
   return {
-    "--thread-content-max-width": `calc(48rem * ${1 - ratio} + 100% * ${ratio})`,
+    "--chat-max-width": `calc(48rem * ${1 - ratio} + 100% * ${ratio})`,
   } as CSSProperties;
 }
 
