@@ -13,6 +13,7 @@ import { SymbolView } from "../../components/AppSymbol";
 import { environmentCatalog } from "../../connection/catalog";
 import { useAtomCommand } from "../../state/use-atom-command";
 import { SettingsSection } from "../settings/components/SettingsSection";
+import { useTranslate } from "../../i18n/translate";
 
 const options: ReadonlyArray<{
   value: GitHubRoutingPermission;
@@ -33,6 +34,7 @@ const options: ReadonlyArray<{
 ];
 
 export function GitHubRoutingSettings() {
+  const t = useTranslate();
   const catalog = useAtomValue(environmentCatalog.catalogValueAtom);
   const permissions = useAtomValue(environmentCatalog.githubRoutingPermissionsValueAtom);
   const update = useAtomCommand(environmentCatalog.setGitHubRoutingPermission);
@@ -42,7 +44,7 @@ export function GitHubRoutingSettings() {
 
   return (
     <View className="mt-5 gap-3">
-      <SettingsSection title="GitHub routing">
+      <SettingsSection title={t("GitHub routing")}>
         {[...catalog.entries.values()].map((entry) => {
           const environmentId = entry.target.environmentId;
           const selected = gitHubRoutingPermissionFor(entry, permissions);
@@ -51,7 +53,7 @@ export function GitHubRoutingSettings() {
             <View key={environmentId}>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={`${entry.target.label} GitHub routing`}
+                accessibilityLabel={t("{name} GitHub routing", { name: entry.target.label })}
                 accessibilityState={{ expanded: expanded === environmentId }}
                 className="flex-row items-center gap-3 p-4"
                 onPress={() => setExpanded(expanded === environmentId ? null : environmentId)}
@@ -65,7 +67,7 @@ export function GitHubRoutingSettings() {
                   </Text>
                 </View>
                 <Text className="text-sm text-foreground-muted">
-                  {options.find((option) => option.value === selected)?.label}
+                  {t(options.find((option) => option.value === selected)?.label ?? "")}
                 </Text>
                 <SymbolView
                   name={expanded === environmentId ? "chevron.up" : "chevron.down"}
@@ -87,16 +89,16 @@ export function GitHubRoutingSettings() {
                           setSaving(false);
                           if (result._tag === "Failure")
                             Alert.alert(
-                              "Could not save GitHub routing permission",
-                              "Try again before leaving this screen.",
+                              t("Could not save GitHub routing permission"),
+                              t("Try again before leaving this screen."),
                             );
                         });
                       }}
                     >
                       <View className="min-w-0 flex-1 gap-1">
-                        <Text className="text-base text-foreground">{option.label}</Text>
+                        <Text className="text-base text-foreground">{t(option.label)}</Text>
                         <Text className="text-sm leading-normal text-foreground-muted">
-                          {option.description}
+                          {t(option.description)}
                         </Text>
                       </View>
                       {selected === option.value ? (
@@ -115,8 +117,9 @@ export function GitHubRoutingSettings() {
         })}
       </SettingsSection>
       <Text className="px-2 text-sm text-foreground-muted">
-        Choose environments you trust to share PR data and use each other's GitHub access. Enable
-        both environments. This applies only to this client.
+        {t(
+          "Choose environments you trust to share PR data and use each other's GitHub access. Enable both environments. This applies only to this client.",
+        )}
       </Text>
     </View>
   );

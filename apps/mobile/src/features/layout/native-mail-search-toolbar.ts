@@ -1,6 +1,7 @@
 import type { HeaderBarButtonMailSearchToolbarItem } from "react-native-screens";
 
 import { NATIVE_LIQUID_GLASS_SUPPORTED } from "../../native/native-glass";
+import { translate } from "../../i18n/translate";
 
 /**
  * The patched mail-style toolbar is built natively from iOS 26 Liquid Glass
@@ -31,7 +32,7 @@ export function createNativeMailSearchToolbarItem(
   input: NativeMailSearchToolbarInput,
 ): HeaderBarButtonMailSearchToolbarItem {
   return {
-    placeholder: "Search",
+    placeholder: translate("Search"),
     ...input,
     type: "mailSearchToolbar",
     useFallbackSearchField: true,

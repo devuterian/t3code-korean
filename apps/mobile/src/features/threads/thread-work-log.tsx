@@ -39,7 +39,9 @@ import { AppText as Text } from "../../components/AppText";
 import { T3Wordmark } from "../../components/T3Wordmark";
 import { cn } from "../../lib/cn";
 import { THREAD_WORK_ROW_MIN_HEIGHT, type deriveThreadWorkLogSizing } from "../../lib/layout";
+import { useTranslate } from "../../i18n/translate";
 import {
+  agentStatusLabel,
   type AgentSpawnSummary,
   type ThreadFeedActivity,
   workEntryRowLabel,
@@ -745,6 +747,7 @@ const ThreadWorkLogRow = memo(function ThreadWorkLogRow(
     readonly expanded: boolean;
   },
 ) {
+  const t = useTranslate();
   const { row, expanded } = props;
   const canExpand = row.canExpand;
   const fullDetail = expanded ? row.getFullDetail() : null;
@@ -769,11 +772,15 @@ const ThreadWorkLogRow = memo(function ThreadWorkLogRow(
     >
       <Pressable
         accessibilityRole={canExpand ? "button" : undefined}
-        accessibilityLabel={failed ? `${accessiblePreview}, tool call failed` : accessiblePreview}
+        accessibilityLabel={
+          failed ? t("{label}, tool call failed", { label: accessiblePreview }) : accessiblePreview
+        }
         accessibilityHint={
           canExpand
-            ? `Double tap to ${expanded ? "hide" : "show"} full details. Long press to copy.`
-            : "Long press to copy."
+            ? expanded
+              ? t("Double tap to hide full details. Long press to copy.")
+              : t("Double tap to show full details. Long press to copy.")
+            : t("Long press to copy.")
         }
         accessibilityState={canExpand ? { expanded } : undefined}
         hitSlop={4}
@@ -848,7 +855,7 @@ const ThreadWorkLogRow = memo(function ThreadWorkLogRow(
           <View className="shrink-0 flex-row items-center gap-px">
             {props.copied ? (
               <Text className="pr-1 font-t3-medium text-3xs text-adaptive-emerald-600-400">
-                Copied
+                {t("Copied")}
               </Text>
             ) : null}
             {failed && toolIcon !== undefined ? (
@@ -930,9 +937,18 @@ export function ThreadWorkGroupToggle(props: {
   readonly shimmer: boolean;
   readonly onToggle: () => void;
 }) {
+  const t = useTranslate();
   const accessibilityLabel = props.hasFailure
-    ? `${props.summary}, tool call failed`
+    ? t("{label}, tool call failed", { label: props.summary })
     : props.summary;
+  const toolCallParams = { count: props.hiddenCount };
+  const accessibilityHint = props.expanded
+    ? props.hiddenCount === 1
+      ? t("Double tap to hide {count} tool call.", toolCallParams)
+      : t("Double tap to hide {count} tool calls.", toolCallParams)
+    : props.hiddenCount === 1
+      ? t("Double tap to show {count} tool call.", toolCallParams)
+      : t("Double tap to show {count} tool calls.", toolCallParams);
   const icon =
     props.summaryToolIcon ??
     (props.toolSurface
@@ -945,7 +961,7 @@ export function ThreadWorkGroupToggle(props: {
         accessibilityRole="button"
         accessibilityState={{ expanded: props.expanded }}
         accessibilityLabel={accessibilityLabel}
-        accessibilityHint={`Double tap to ${props.expanded ? "hide" : "show"} ${props.hiddenCount} tool ${props.hiddenCount === 1 ? "call" : "calls"}.`}
+        accessibilityHint={accessibilityHint}
         hitSlop={4}
         onPress={() => {
           void Haptics.selectionAsync();
@@ -1017,6 +1033,7 @@ export const ThreadAgentSpawnCard = memo(function ThreadAgentSpawnCard(props: {
   readonly onToggle: () => void;
   readonly onCopy: () => void;
 }) {
+  const t = useTranslate();
   const { summary, expanded } = props;
   const working = summary.tone === "working";
   const memberCount = summary.members.length;
@@ -1029,8 +1046,22 @@ export const ThreadAgentSpawnCard = memo(function ThreadAgentSpawnCard(props: {
         accessibilityLabel={`${summary.title}, ${summary.status}`}
         accessibilityHint={
           canExpand
-            ? `Double tap to ${expanded ? "hide" : "show"} ${memberCount} ${memberCount === 1 ? "subagent" : "subagents"}. Long press to copy.`
-            : "Long press to copy."
+            ? expanded
+              ? memberCount === 1
+                ? t("Double tap to hide {count} subagent. Long press to copy.", {
+                    count: memberCount,
+                  })
+                : t("Double tap to hide {count} subagents. Long press to copy.", {
+                    count: memberCount,
+                  })
+              : memberCount === 1
+                ? t("Double tap to show {count} subagent. Long press to copy.", {
+                    count: memberCount,
+                  })
+                : t("Double tap to show {count} subagents. Long press to copy.", {
+                    count: memberCount,
+                  })
+            : t("Long press to copy.")
         }
         hitSlop={4}
         onPress={() => {
@@ -1110,7 +1141,9 @@ export const ThreadAgentSpawnCard = memo(function ThreadAgentSpawnCard(props: {
                   <Text className="min-w-0 flex-1 text-xs text-foreground" numberOfLines={1}>
                     {member.title}
                   </Text>
-                  <Text className="shrink-0 text-2xs text-foreground-muted">{member.status}</Text>
+                  <Text className="shrink-0 text-2xs text-foreground-muted">
+                    {agentStatusLabel(member.status)}
+                  </Text>
                 </View>
                 {member.detail ? (
                   <Text
@@ -1134,10 +1167,11 @@ export function ThreadThinkingRow(props: {
   readonly rowSizing: ReturnType<typeof deriveThreadWorkLogSizing>;
   readonly iconSubtleColor: ColorValue;
 }) {
+  const t = useTranslate();
   return (
     <View
       accessible
-      accessibilityLabel="Thinking"
+      accessibilityLabel={t("Thinking")}
       className="-mx-1 min-h-8 flex-row items-center px-1.5 py-0"
       style={{ minHeight: props.rowSizing.estimatedRowHeight }}
     >
@@ -1145,7 +1179,7 @@ export function ThreadThinkingRow(props: {
         key={props.rowSizing.textSizeKey}
         icon="brain"
         iconSubtleColor={props.iconSubtleColor}
-        label="Thinking"
+        label={t("Thinking")}
         showIcon
       />
     </View>
@@ -1166,13 +1200,18 @@ export function ThreadReasoningRow(props: {
   readonly onToggle: () => void;
   readonly children: ReactNode;
 }) {
+  const t = useTranslate();
   return (
     <View className={cn("-mx-1 px-1 py-0", props.expanded && "pb-1.5")}>
       <Pressable
         accessibilityRole="button"
         accessibilityState={{ expanded: props.expanded }}
         accessibilityLabel={props.label}
-        accessibilityHint={`Double tap to ${props.expanded ? "hide" : "show"} the thinking trace.`}
+        accessibilityHint={
+          props.expanded
+            ? t("Double tap to hide the thinking trace.")
+            : t("Double tap to show the thinking trace.")
+        }
         hitSlop={4}
         onPress={() => {
           void Haptics.selectionAsync();

@@ -10,8 +10,10 @@ import {
 import { useAppearancePreferences } from "../features/settings/appearance/AppearancePreferencesProvider";
 import { useScaledTextRole } from "../features/settings/appearance/useScaledTextRole";
 import type { MaterialConfirmDialogProps } from "./MaterialConfirmDialog";
+import { useTranslate } from "../i18n/translate";
 
 export function MaterialConfirmDialog(props: MaterialConfirmDialogProps) {
+  const t = useTranslate();
   const { themeAppearance, themeVariables: colors } = useAppearancePreferences();
   const titleTypography = useScaledTextRole("title");
   const bodyTypography = useScaledTextRole("footnote");
@@ -78,7 +80,7 @@ export function MaterialConfirmDialog(props: MaterialConfirmDialogProps) {
             onClick={props.onCancel}
             colors={{ contentColor: colors["--color-primary-text"] }}
           >
-            <Text style={bodyTypography}>{props.request.cancelText ?? "Cancel"}</Text>
+            <Text style={bodyTypography}>{props.request.cancelText ?? t("Cancel")}</Text>
           </TextButton>
         </AlertDialog.DismissButton>
         <AlertDialog.ConfirmButton>

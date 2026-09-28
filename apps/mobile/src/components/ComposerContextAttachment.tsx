@@ -8,6 +8,7 @@ import { loadLocalAttachmentPreview } from "../lib/localAttachmentPreview";
 import { downloadAndShareAttachment } from "../lib/attachmentDownload";
 import { useAssetUrlState, useRefreshAssetUrl } from "../state/assets";
 import { AppText as Text } from "./AppText";
+import { translate, useTranslate } from "../i18n/translate";
 import { FilePreviewModal } from "./FilePreviewModal";
 import { PresentationSource } from "./NativePresentation";
 
@@ -16,6 +17,7 @@ export function ComposerContextAttachment(props: {
   environmentId?: EnvironmentId;
   attachment?: DraftComposerAttachment;
 }) {
+  const t = useTranslate();
   const { record, attachment } = props;
   const shareSourceIdentifier = useId();
   const resource = useMemo(
@@ -82,8 +84,8 @@ export function ComposerContextAttachment(props: {
       }
     } catch (cause) {
       Alert.alert(
-        "Could not open attachment",
-        cause instanceof Error ? cause.message : "Try again.",
+        translate("Could not open attachment"),
+        cause instanceof Error ? translate(cause.message) : translate("Try again."),
       );
     } finally {
       setSharing(false);
@@ -94,7 +96,7 @@ export function ComposerContextAttachment(props: {
       {record.kind === "image" && uri ? (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`Preview ${record.name}`}
+          accessibilityLabel={t("Preview {name}", { name: record.name })}
           onPress={() => setPreviewOpen(true)}
         >
           <Image
@@ -107,7 +109,7 @@ export function ComposerContextAttachment(props: {
       ) : null}
       {error || (!local && asset._tag === "Failure") ? (
         <Text className="text-foreground-muted">
-          {error ?? "Attachment unavailable. Reconnect and try again."}
+          {error !== null ? t(error) : t("Attachment unavailable. Reconnect and try again.")}
         </Text>
       ) : null}
       <PresentationSource identifier={shareSourceIdentifier}>
@@ -118,7 +120,7 @@ export function ComposerContextAttachment(props: {
           className="rounded-xl bg-subtle p-4"
         >
           <Text className="text-foreground">
-            {sharing ? "Opening attachment…" : "Open or share attachment"}
+            {sharing ? t("Opening attachment…") : t("Open or share attachment")}
           </Text>
         </Pressable>
       </PresentationSource>

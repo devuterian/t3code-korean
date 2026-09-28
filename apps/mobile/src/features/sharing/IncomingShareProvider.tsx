@@ -25,6 +25,7 @@ import {
   removeIncomingShareDraft,
   writeIncomingShareDraft,
 } from "./incoming-share-storage";
+import { translate } from "../../i18n/translate";
 
 type IncomingShareContextValue = {
   readonly pendingShare: IncomingShareDraft | null;
@@ -278,10 +279,10 @@ export function IncomingShareProvider(props: React.PropsWithChildren) {
     if (!error) {
       return;
     }
-    Alert.alert("Could not import shared content", error.message, [
-      { text: "Dismiss", style: "cancel", onPress: () => setError(null) },
+    Alert.alert(translate("Could not import shared content"), translate(error.message), [
+      { text: translate("Dismiss"), style: "cancel", onPress: () => setError(null) },
       {
-        text: "Retry",
+        text: translate("Retry"),
         onPress: () => {
           setError(null);
           void refresh();

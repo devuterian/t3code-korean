@@ -14,6 +14,7 @@ import type { ResolvedSharePayload, SharePayload } from "expo-sharing";
 import { DraftComposerAttachmentSchema } from "../../lib/composer-image-schema";
 import type { DraftComposerAttachment } from "../../lib/composerImages";
 import { estimateBase64ByteSize } from "../../lib/base64";
+import { translate } from "../../i18n/translate";
 
 export interface IncomingShareDraft {
   readonly schemaVersion: 1;
@@ -279,7 +280,13 @@ export async function buildIncomingShareDraft(input: {
     if (attachments.length >= PROVIDER_SEND_TURN_MAX_ATTACHMENTS) {
       if (!warnedAttachmentLimit) {
         warnings.push(
-          `Only the first ${PROVIDER_SEND_TURN_MAX_ATTACHMENTS} shared ${payload.shareType === "image" ? "images" : "files"} were attached.`,
+          payload.shareType === "image"
+            ? translate("Only the first {count} shared images were attached.", {
+                count: PROVIDER_SEND_TURN_MAX_ATTACHMENTS,
+              })
+            : translate("Only the first {count} shared files were attached.", {
+                count: PROVIDER_SEND_TURN_MAX_ATTACHMENTS,
+              }),
         );
         warnedAttachmentLimit = true;
       }
@@ -301,7 +308,7 @@ export async function buildIncomingShareDraft(input: {
           : undefined;
       const name = resolved?.originalName ?? sharedFileName ?? fallbackName(uri, index, mimeType);
       if (!uri) {
-        warnings.push("One shared file could not be read.");
+        warnings.push(translate("One shared file could not be read."));
         continue;
       }
       let persistedFileUri: string | undefined;
@@ -316,7 +323,7 @@ export async function buildIncomingShareDraft(input: {
           sizeBytes = (await input.fileReader.readSize?.(persistedFileUri)) ?? null;
         }
         if (sizeBytes === null) {
-          warnings.push(`The size of '${name}' could not be determined.`);
+          warnings.push(translate("The size of '{name}' could not be determined.", { name }));
           if (persistedFileUri) {
             await releaseOwnedFiles(input.fileReader, [persistedFileUri]);
           }
@@ -367,7 +374,9 @@ export async function buildIncomingShareDraft(input: {
         });
         retainedFileUri = persistedFileUri ?? uri;
       } catch (error) {
-        warnings.push(error instanceof Error ? error.message : `Could not read '${name}'.`);
+        warnings.push(
+          error instanceof Error ? error.message : translate("Could not read '{name}'.", { name }),
+        );
         // A copy persisted before the failure has no attachment referencing
         // it; release it or it leaks in the app's attachment directory.
         if (persistedFileUri !== undefined) {
@@ -382,7 +391,7 @@ export async function buildIncomingShareDraft(input: {
       continue;
     }
     if (!uri || !mimeType.startsWith("image/")) {
-      warnings.push("One shared item was not a supported image.");
+      warnings.push(translate("One shared item was not a supported image."));
       await releaseOwnedFiles(input.fileReader, [uri, payload.value]);
       continue;
     }
@@ -427,7 +436,9 @@ export async function buildIncomingShareDraft(input: {
         previewUri: dataUrl,
       });
     } catch {
-      warnings.push(`Could not read '${fallbackName(uri, index, mimeType)}'.`);
+      warnings.push(
+        translate("Could not read '{name}'.", { name: fallbackName(uri, index, mimeType) }),
+      );
     } finally {
       await releaseOwnedFiles(input.fileReader, [uri, payload.value]);
     }

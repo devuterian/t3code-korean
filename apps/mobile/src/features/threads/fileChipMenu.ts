@@ -9,6 +9,7 @@ import {
   resolveWorkspaceFilePath,
   resolveWorkspaceRelativeFilePath,
 } from "../files/filePath";
+import { translate } from "../../i18n/translate";
 
 export type FileChipAction = "copy-full-path" | "copy-relative-path" | "open-file" | "save";
 
@@ -65,14 +66,16 @@ export function fileChipMenu(target: FileChipTarget): MarkdownFileContextMenu {
   return {
     title: target.fullPath ?? target.relativePath ?? "",
     actions: [
-      ...(target.fullPath ? [{ id: "copy-full-path", title: "Copy full path" }] : []),
-      ...(target.relativePath ? [{ id: "copy-relative-path", title: "Copy relative path" }] : []),
-      { id: "open-file", title: "Open in file viewer" },
+      ...(target.fullPath ? [{ id: "copy-full-path", title: translate("Copy full path") }] : []),
+      ...(target.relativePath
+        ? [{ id: "copy-relative-path", title: translate("Copy relative path") }]
+        : []),
+      { id: "open-file", title: translate("Open in file viewer") },
       ...(fileChipMetadata(target)
         ? [
             {
               id: "save",
-              title: "Save or share",
+              title: translate("Save or share"),
             },
           ]
         : []),

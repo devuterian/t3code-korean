@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 import { ActivityIndicator, AppState, Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText as Text } from "../../components/AppText";
+import { useTranslate } from "../../i18n/translate";
 import { SymbolView, type AppSymbolName } from "../../components/AppSymbol";
 import { WorktreeSetupSheet } from "./worktree-setup-sheet";
 import { ShimmeringWorkContent } from "./thread-work-log";
@@ -39,31 +40,32 @@ const icons: Record<WorktreeSetupStage["status"], AppSymbolName> = {
 /** Setup stages collapse into the working header once the agent's turn is live. */
 export function WorktreeSetupCard(props: WorktreeSetupCardProps) {
   const { snapshot, turnStarted, turnStartedAt, working } = props;
+  const t = useTranslate();
   const handedOff = turnStarted && worktreeSetupAgentStarted(snapshot);
   const running = snapshot.phase === "running";
   const backgroundSetup = handedOff && running;
-  const scriptName = snapshot.setupScript?.name ?? "Setup script";
+  const scriptName = snapshot.setupScript?.name ?? t("Setup script");
   const [detailsOpen, setDetailsOpen] = useState(false);
   const now = useSetupClock(running || working);
   const failed =
     snapshot.phase === "failed" || snapshot.stages.some((stage) => stage.status === "failed");
   const label =
     handedOff && working
-      ? `Working for ${elapsed(turnStartedAt, null, now) ?? "0s"}`
+      ? t("Working for {duration}", { duration: elapsed(turnStartedAt, null, now) ?? "0s" })
       : running
         ? handedOff
-          ? "Setup continues…"
-          : "Setting up worktree…"
+          ? t("Setup continues…")
+          : t("Setting up worktree…")
         : snapshot.phase === "cancelled"
-          ? "Worktree setup cancelled"
+          ? t("Worktree setup cancelled")
           : snapshot.phase === "failed"
-            ? "Worktree setup failed"
+            ? t("Worktree setup failed")
             : failed
-              ? "Setup script failed"
-              : "Worktree ready";
+              ? t("Setup script failed")
+              : t("Worktree ready");
 
   return (
-    <View accessibilityLabel="Worktree setup" className="py-1">
+    <View accessibilityLabel={t("Worktree setup")} className="py-1">
       <View className="min-h-11 flex-row items-center gap-2 border-b border-border px-1">
         <HeaderLabel
           label={label}
@@ -82,8 +84,8 @@ export function WorktreeSetupCard(props: WorktreeSetupCardProps) {
           accessibilityRole="button"
           accessibilityLabel={
             backgroundSetup
-              ? `${scriptName} is still running. Show setup progress.`
-              : "Worktree setup details"
+              ? t("{name} is still running. Show setup progress.", { name: scriptName })
+              : t("Worktree setup details")
           }
           accessibilityState={{ expanded: detailsOpen }}
           onPress={() => setDetailsOpen(true)}
@@ -110,7 +112,7 @@ export function WorktreeSetupCard(props: WorktreeSetupCardProps) {
               />
             ) : null}
             <Text numberOfLines={1} className="shrink text-2xs text-foreground-secondary">
-              {backgroundSetup ? scriptName : "Details"}
+              {backgroundSetup ? scriptName : t("Details")}
             </Text>
             {!backgroundSetup ? (
               <SymbolView name="chevron.right" size={10} tintColorClassName="accent-icon-muted" />
@@ -143,10 +145,14 @@ export function WorktreeSetupCard(props: WorktreeSetupCardProps) {
 
 export function WorktreeWorkingHeader({ startedAt }: { startedAt: string }) {
   const now = useSetupClock(true);
+  const t = useTranslate();
   return (
     <View className="py-1">
       <View className="min-h-11 flex-row items-center border-b border-border px-1">
-        <HeaderLabel label={`Working for ${elapsed(startedAt, null, now) ?? "0s"}`} active />
+        <HeaderLabel
+          label={t("Working for {duration}", { duration: elapsed(startedAt, null, now) ?? "0s" })}
+          active
+        />
       </View>
     </View>
   );
@@ -207,6 +213,7 @@ function SetupDetailsSheet({
   now,
 }: WorktreeSetupCardProps & { onClose: () => void; now: number }) {
   const insets = useSafeAreaInsets();
+  const t = useTranslate();
   const [bodyHeight, setBodyHeight] = useState(0);
   const canCancel = snapshot.phase === "running" && !turnStarted;
   return (
@@ -241,14 +248,14 @@ function SetupDetailsSheet({
           <View className="mt-3 flex-row items-center justify-end gap-4 border-t border-border pt-1">
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Cancel worktree setup"
+              accessibilityLabel={t("Cancel worktree setup")}
               onPress={() => {
                 onClose();
                 onCancel();
               }}
               className="min-h-11 justify-center px-2"
             >
-              <Text className="text-sm text-danger-foreground">Cancel setup</Text>
+              <Text className="text-sm text-danger-foreground">{t("Cancel setup")}</Text>
             </Pressable>
             {onWorkLocally ? (
               <Pressable
@@ -259,7 +266,7 @@ function SetupDetailsSheet({
                 }}
                 className="min-h-11 justify-center px-2"
               >
-                <Text className="text-sm text-foreground">Work locally</Text>
+                <Text className="text-sm text-foreground">{t("Work locally")}</Text>
               </Pressable>
             ) : null}
           </View>
@@ -282,21 +289,22 @@ function StageRow({
   compact?: boolean;
   animate?: boolean;
 }) {
+  const t = useTranslate();
   const label =
     stage.id === "setup-script"
-      ? (scriptName ?? worktreeSetupStageLabel(stage.id))
-      : worktreeSetupStageLabel(stage.id);
+      ? (scriptName ?? t(worktreeSetupStageLabel(stage.id)))
+      : t(worktreeSetupStageLabel(stage.id));
   const detail =
     stage.status === "pending"
       ? null
       : stage.status === "skipped"
-        ? (stage.detail ?? "skipped")
+        ? (stage.detail ?? t("skipped"))
         : stage.id === "checkout" && stage.status === "running" && stage.percent !== null
           ? `${stage.percent}%`
           : stage.detail;
   return (
     <View
-      accessibilityLabel={`${label}, ${stage.status}`}
+      accessibilityLabel={`${label}, ${t(stage.status)}`}
       className={compact ? "min-h-8 flex-row items-center" : "min-h-11 flex-row items-center"}
       style={{ columnGap: 8, opacity: stage.status === "pending" ? 0.4 : 1 }}
     >
@@ -361,9 +369,10 @@ const OUTPUT_TAIL_SLOTS = [0, 1, 2, 3] as const;
 
 /** Fixed four-line output window, shown only in Details. */
 function OutputTail({ lines, failed }: { lines: ReadonlyArray<string>; failed: boolean }) {
+  const t = useTranslate();
   return (
     <View
-      accessibilityLabel="Setup script output"
+      accessibilityLabel={t("Setup script output")}
       className={
         failed
           ? "mb-2 ml-8 rounded-md border border-danger-border bg-danger px-3 py-2"

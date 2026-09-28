@@ -7,6 +7,7 @@ import { resolveActiveThreadSortOrder } from "@t3tools/client-runtime/state/shar
 import { environmentServerConfigsAtom, serverEnvironment } from "../../state/server";
 import { useEnvironments } from "../../state/environments";
 import { useAtomCommand } from "../../state/use-atom-command";
+import { translate } from "../../i18n/translate";
 
 /** Reads the shared sort preference and writes changes to connected capable servers.
  * With no live target, cached settings preserve the visible order but saving is disabled.
@@ -37,7 +38,10 @@ export function useActiveThreadSort() {
         ),
       ).then((results) => {
         if (results.some((result) => !AsyncResult.isSuccess(result))) {
-          Alert.alert("Thread order not saved", "Could not save to all environments. Try again.");
+          Alert.alert(
+            translate("Thread order not saved"),
+            translate("Could not save to all environments. Try again."),
+          );
         }
       });
     },

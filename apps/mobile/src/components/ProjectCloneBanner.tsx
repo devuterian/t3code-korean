@@ -6,6 +6,7 @@ import {
 import { ActivityIndicator, Pressable, View } from "react-native";
 
 import { cn } from "../lib/cn";
+import { useTranslate } from "../i18n/translate";
 import { AppText as Text } from "./AppText";
 
 /**
@@ -20,6 +21,7 @@ export function ProjectCloneBanner(props: {
   readonly onRemove: () => void;
 }) {
   const { clone } = props;
+  const t = useTranslate();
   const name = projectCloneDisplayName(clone);
   if (clone.phase === "running") {
     return (
@@ -27,13 +29,13 @@ export function ProjectCloneBanner(props: {
         <ActivityIndicator size="small" />
         <View className="min-w-0 flex-1">
           <Text className="font-t3-medium text-sm" numberOfLines={1}>
-            Cloning {name}
+            {t("Cloning {name}", { name })}
           </Text>
           <Text className="text-xs text-foreground-muted" numberOfLines={1}>
-            {projectCloneProgressSummary(clone)}
+            {localizedCloneProgressSummary(clone, t)}
           </Text>
         </View>
-        <BannerAction label="Cancel" onPress={props.onCancel} />
+        <BannerAction label={t("Cancel")} onPress={props.onCancel} />
       </View>
     );
   }
@@ -52,7 +54,9 @@ export function ProjectCloneBanner(props: {
         )}
         numberOfLines={1}
       >
-        {cancelled ? `Cancelled cloning ${name}` : `Failed to clone ${name}`}
+        {cancelled
+          ? t("Cancelled cloning {name}", { name })
+          : t("Failed to clone {name}", { name })}
       </Text>
       {clone.error ? (
         <Text className="mt-0.5 text-xs text-danger-foreground" numberOfLines={3}>
@@ -60,11 +64,20 @@ export function ProjectCloneBanner(props: {
         </Text>
       ) : null}
       <View className="mt-2 flex-row justify-end gap-2">
-        <BannerAction label="Remove project" onPress={props.onRemove} />
-        <BannerAction label="Retry" onPress={props.onRetry} />
+        <BannerAction label={t("Remove project")} onPress={props.onRemove} />
+        <BannerAction label={t("Retry")} onPress={props.onRetry} />
       </View>
     </View>
   );
+}
+
+/** The shared summary leads with a fixed English stage label; only that part is translated. */
+function localizedCloneProgressSummary(
+  clone: ProjectCloneSnapshot,
+  t: (source: string) => string,
+): string {
+  const [stage = "", ...rest] = projectCloneProgressSummary(clone).split(" · ");
+  return [t(stage), ...rest].join(" · ");
 }
 
 function BannerAction(props: { readonly label: string; readonly onPress: () => void }) {

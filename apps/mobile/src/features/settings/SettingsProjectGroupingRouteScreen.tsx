@@ -14,6 +14,7 @@ import {
 } from "../../state/project-grouping";
 import { mobilePreferencesAtom, updateMobilePreferencesAtom } from "../../state/preferences";
 import { SettingsSection } from "./components/SettingsSection";
+import { useTranslate } from "../../i18n/translate";
 
 const GROUPING_OPTIONS: ReadonlyArray<{
   readonly mode: SidebarProjectGroupingMode;
@@ -38,6 +39,7 @@ const GROUPING_OPTIONS: ReadonlyArray<{
 ];
 
 export function SettingsProjectGroupingRouteScreen() {
+  const t = useTranslate();
   const insets = useSafeAreaInsets();
   const preferencesResult = useAtomValue(mobilePreferencesAtom);
   const savePreferences = useAtomSet(updateMobilePreferencesAtom);
@@ -47,7 +49,7 @@ export function SettingsProjectGroupingRouteScreen() {
     : null;
 
   return (
-    <SettingsScreen title="Organization">
+    <SettingsScreen title={t("Organization")}>
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         showsVerticalScrollIndicator={false}
@@ -55,7 +57,7 @@ export function SettingsProjectGroupingRouteScreen() {
         contentContainerClassName="gap-3 px-5 pt-4"
         contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 18) + 18 }}
       >
-        <SettingsSection title="Project grouping">
+        <SettingsSection title={t("Project grouping")}>
           {GROUPING_OPTIONS.map((option, index) => (
             <Pressable
               key={option.mode}
@@ -73,9 +75,9 @@ export function SettingsProjectGroupingRouteScreen() {
               }
             >
               <View className="min-w-0 flex-1 gap-1">
-                <Text className="text-lg text-foreground">{option.label}</Text>
+                <Text className="text-lg text-foreground">{t(option.label)}</Text>
                 <Text className="text-sm leading-normal text-foreground-muted">
-                  {option.description}
+                  {t(option.description)}
                 </Text>
               </View>
               {selectedMode === option.mode ? (

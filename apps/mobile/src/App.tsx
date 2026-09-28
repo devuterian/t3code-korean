@@ -1,6 +1,6 @@
 import * as Linking from "expo-linking";
 import * as SplashScreen from "expo-splash-screen";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { StatusBar, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
@@ -17,6 +17,8 @@ import {
   AppearancePreferencesProvider,
   useAppearancePreferences,
 } from "./features/settings/appearance/AppearancePreferencesProvider";
+import { InterfaceLanguageSync } from "./i18n/InterfaceLanguageSync";
+import { useInterfaceLanguage } from "./i18n/translate";
 import { RootStack } from "./Stack";
 import { appAtomRegistry } from "./state/atom-registry";
 import { OverlayPortalHost } from "./components/OverlayPortal";
@@ -67,11 +69,19 @@ export default function App() {
 
 function AppContent() {
   const { themeAppearance } = useAppearancePreferences();
-  const navigationTheme = useMobileNavigationTheme();
+  const baseNavigationTheme = useMobileNavigationTheme();
+  const interfaceLanguage = useInterfaceLanguage();
+  // Navigators re-evaluate screen option functions (translated header titles)
+  // when the theme context changes, so hand them a fresh object per language.
+  const navigationTheme = useMemo(
+    () => ({ ...baseNavigationTheme, interfaceLanguage }),
+    [baseNavigationTheme, interfaceLanguage],
+  );
 
   return (
     <>
       <SplashScreenCoordinator />
+      <InterfaceLanguageSync />
       <SubscriptionUsageCoordinator />
       <GestureHandlerRootView className="flex-1">
         <KeyboardProvider statusBarTranslucent>

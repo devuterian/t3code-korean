@@ -2,6 +2,7 @@ import { useActiveThreadSort } from "../threads/use-active-thread-sort";
 import { ACTIVE_THREAD_SORT_OPTIONS } from "@t3tools/client-runtime/state/shared-settings";
 import type { MenuAction } from "@react-native-menu/menu";
 import { useCallback, useMemo } from "react";
+import { useTranslate } from "../../i18n/translate";
 import { NativeStackScreenOptions } from "../../native/StackHeader";
 import { MaterialThreadListToolbar } from "./MaterialThreadListToolbar";
 import type { HomeHeaderProps } from "./HomeHeader.types";
@@ -15,6 +16,7 @@ function checkedMenuState(checked: boolean) {
 /** Android thread-list controls. Filters stay local to this view; active
  * sorting follows the preference shared through the connected environments. */
 export function HomeHeader(props: HomeHeaderProps) {
+  const t = useTranslate();
   const { order, setOrder, available } = useActiveThreadSort();
   const hasCustomListOptions =
     props.selectedEnvironmentId !== null || props.selectedProjectKey !== null || order !== "manual";
@@ -24,10 +26,10 @@ export function HomeHeader(props: HomeHeaderProps) {
         ? [
             {
               id: "active-sort",
-              title: "Sort active threads",
+              title: t("Sort active threads"),
               subactions: ACTIVE_THREAD_SORT_OPTIONS.map((option) => ({
                 id: `active-sort:${option.value}`,
-                title: option.label,
+                title: t(option.label),
                 state: checkedMenuState(order === option.value),
               })),
             },
@@ -35,11 +37,11 @@ export function HomeHeader(props: HomeHeaderProps) {
         : []),
       {
         id: "environment",
-        title: "Environment",
+        title: t("Environment"),
         subactions: [
           {
             id: "environment:all",
-            title: "All environments",
+            title: t("All environments"),
             state: checkedMenuState(props.selectedEnvironmentId === null),
           },
           ...props.environments.map((environment) => ({
@@ -54,11 +56,11 @@ export function HomeHeader(props: HomeHeaderProps) {
         : ([
             {
               id: "project",
-              title: "Project",
+              title: t("Project"),
               subactions: [
                 {
                   id: "project:all",
-                  title: "All projects",
+                  title: t("All projects"),
                   state: checkedMenuState(props.selectedProjectKey === null),
                 },
                 ...props.projects.map((project) => ({
@@ -71,6 +73,7 @@ export function HomeHeader(props: HomeHeaderProps) {
           ] satisfies MenuAction[])),
     ],
     [
+      t,
       order,
       available,
       props.environments,

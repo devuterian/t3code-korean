@@ -1,0 +1,26 @@
+/** Shared UI vocabulary used across screens. */
+export const KO_COMMON: Readonly<Record<string, string>> = {
+  Cancel: "취소",
+  Close: "닫기",
+  Done: "완료",
+  Save: "저장",
+  Delete: "삭제",
+  Retry: "다시 시도",
+  "Try again": "다시 시도",
+  OK: "확인",
+  Copy: "복사",
+  Copied: "복사됨",
+  "Loading…": "불러오는 중…",
+  Settings: "설정",
+  Language: "언어",
+  Device: "기기 설정",
+  "Interface language": "인터페이스 언어",
+  "Follow device": "기기 설정 따르기",
+  "Thread order not saved": "스레드 순서가 저장되지 않음",
+  "Could not save to all environments. Try again.":
+    "일부 환경에 저장하지 못했습니다. 다시 시도하세요.",
+  "Sort active threads": "활성 스레드 정렬",
+  "Configured order": "지정한 순서",
+  "Last message": "마지막 메시지",
+  "Thread list options": "스레드 목록 옵션",
+};

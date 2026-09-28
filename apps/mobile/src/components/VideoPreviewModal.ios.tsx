@@ -7,6 +7,7 @@ import { loadLocalAttachmentPreview } from "../lib/localAttachmentPreview";
 import { mediaVideoPreviewUri, type VideoPreviewSource } from "../lib/videoPreviewSource";
 import { useAssetUrlState, useRefreshAssetUrl } from "../state/assets";
 import { usePreparedConnection } from "../state/session";
+import { translate } from "../i18n/translate";
 
 export type { VideoPreviewSource } from "../lib/videoPreviewSource";
 
@@ -56,7 +57,7 @@ function NativeVideoPreview(props: {
   }, [playbackUrl, resolvedUrl]);
   useEffect(() => {
     if (!loadError) return;
-    Alert.alert("Could not open video", loadError);
+    Alert.alert(translate("Could not open video"), translate(loadError));
     onRequestClose();
   }, [loadError]);
 
@@ -89,12 +90,14 @@ function NativeVideoPreview(props: {
       // AVKit gives no retry, so re-mint now; the cached URL may simply have expired.
       if (ready) void refreshAssetUrl();
       Alert.alert(
-        "Could not open video",
+        translate("Could not open video"),
         ready
-          ? "This video couldn't be loaded or played. Check the connection, or touch and hold the video to save or share the original."
+          ? translate(
+              "This video couldn't be loaded or played. Check the connection, or touch and hold the video to save or share the original.",
+            )
           : error instanceof Error
             ? error.message
-            : "Could not load this video.",
+            : translate("Could not load this video."),
       );
       onRequestClose();
     });

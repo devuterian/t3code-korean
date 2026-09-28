@@ -24,6 +24,7 @@ import { importComposerContextClipboard } from "../lib/composerContextClipboard"
 import { mobilePreferencesAtom } from "../state/preferences";
 import { ComposerContextSheet } from "./ComposerContextSheet";
 import { AppText as Text } from "./AppText";
+import { translate, useTranslate } from "../i18n/translate";
 import {
   composerDocumentAttachment,
   composerMentionPath,
@@ -55,6 +56,7 @@ export function ComposerEditor({
   onInertChipPress,
   ...props
 }: ComposerEditorProps) {
+  const t = useTranslate();
   const draft = useComposerDraft(draftKey ?? null);
   const preferencesResult = useAtomValue(mobilePreferencesAtom);
   const preferredEnterBehavior = AsyncResult.isSuccess(preferencesResult)
@@ -107,21 +109,23 @@ export function ComposerEditor({
       }
       if (!insertComposerDraftContext(draftKey, result, insertion)) {
         Alert.alert(
-          "Could not paste context",
-          "Remove some attachments or context items from the draft, then paste again.",
+          translate("Could not paste context"),
+          translate("Remove some attachments or context items from the draft, then paste again."),
         );
         return;
       }
       if (result.failures.length > 0)
         Alert.alert(
-          "Some attachments could not be copied",
-          "Reconnect to the source environment and copy them again. References without their files are marked unavailable.",
+          translate("Some attachments could not be copied"),
+          translate(
+            "Reconnect to the source environment and copy them again. References without their files are marked unavailable.",
+          ),
         );
     } catch (error) {
       if (!controller.signal.aborted)
         Alert.alert(
-          "Could not paste context",
-          error instanceof Error ? error.message : "Try copying again.",
+          translate("Could not paste context"),
+          error instanceof Error ? translate(error.message) : translate("Try copying again."),
         );
     } finally {
       setComposerContextImporting(draftKey, false);
@@ -201,12 +205,15 @@ export function ComposerEditor({
         }}
       />
       {importing ? (
-        <Text className="py-2 text-xs text-foreground-muted">Copying context…</Text>
+        <Text className="py-2 text-xs text-foreground-muted">{t("Copying context…")}</Text>
       ) : null}
       {selected && (selectedReference || selectedSkill) ? (
         <ComposerContextSheet
           label={
-            selectedReference?.label ?? selectedSkill?.displayName ?? selectedSkill?.name ?? "Skill"
+            selectedReference?.label ??
+            selectedSkill?.displayName ??
+            selectedSkill?.name ??
+            t("Skill")
           }
           record={
             record ??

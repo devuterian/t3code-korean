@@ -5,6 +5,7 @@ import { Platform, View } from "react-native";
 import { AppText as Text } from "./AppText";
 import { T3Wordmark } from "./T3Wordmark";
 import { IPAD_HOME_TITLE_OFFSET } from "../lib/layoutMetrics";
+import { translate, useTranslate } from "../i18n/translate";
 import { resolveMobileStageLabel } from "../lib/mobileBranding";
 import { useAndroidControlSizing } from "./useAndroidControlSizing";
 
@@ -27,12 +28,13 @@ export function CompactBrandTitle(
 ) {
   const stageLabel = resolveMobileStageLabel(Constants.expoConfig?.extra?.appVariant);
   const titleOffset = brandTitleOffset();
+  const t = useTranslate();
   const { scale } = useAndroidControlSizing();
 
   return (
     <View
       aria-level={1}
-      accessibilityLabel="T3 Code, Threads"
+      accessibilityLabel={t("T3 Code, Threads")}
       accessible
       role="heading"
       className="flex-row items-center gap-1.5"
@@ -76,7 +78,7 @@ export function getCompactBrandHeaderOptions(
   return {
     headerTitle: renderCompactBrandTitle,
     headerTitleStyle: fallbackTitleStyle,
-    title: "Threads",
+    title: translate("Threads"),
     unstable_headerLeftItems: undefined,
   };
 }

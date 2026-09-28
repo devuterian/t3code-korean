@@ -47,6 +47,7 @@ import { dismissGitActionResult, useGitActionProgress } from "../../state/use-vc
 import { vcsEnvironment } from "../../state/vcs";
 import { EmptyState } from "../../components/EmptyState";
 import { LoadingScreen } from "../../components/LoadingScreen";
+import { useTranslate } from "../../i18n/translate";
 import { scopedThreadKey } from "../../lib/scopedEntities";
 import { NATIVE_LIQUID_GLASS_SUPPORTED } from "../../native/native-glass";
 import { connectionTone } from "../connection/connectionTone";
@@ -104,6 +105,7 @@ function ThreadHeader(
   },
 ) {
   const navigation = useNavigation();
+  const t = useTranslate();
   const { layout, panes, toggleAuxiliaryPane } = useAdaptiveWorkspaceLayout();
   const { onOpenTerminal } = props.gitControls;
   const native = useThreadHeaderOptions(props);
@@ -111,7 +113,7 @@ function ThreadHeader(
     const actions: ScreenHeaderAction[] = [];
     if (props.onReturnToThread) {
       actions.push({
-        accessibilityLabel: "Return to chat",
+        accessibilityLabel: t("Return to chat"),
         icon: "chevron.left",
         onPress: props.onReturnToThread,
       });
@@ -119,7 +121,7 @@ function ThreadHeader(
     if (props.hasThreadCwd) {
       const filesVisible = props.inspectorMode === "files" && panes.auxiliaryPaneVisible;
       actions.push({
-        accessibilityLabel: filesVisible ? "Close files" : "Open files",
+        accessibilityLabel: filesVisible ? t("Close files") : t("Open files"),
         selected: filesVisible,
         icon: "folder",
         onPress: filesVisible ? toggleAuxiliaryPane : props.onOpenFilesInspector,
@@ -127,13 +129,13 @@ function ThreadHeader(
     }
     if (props.hasWorkspaceRoot) {
       actions.push({
-        accessibilityLabel: "Open terminal",
+        accessibilityLabel: t("Open terminal"),
         icon: "terminal",
         onPress: () => onOpenTerminal(null),
       });
     }
     actions.push({
-      accessibilityLabel: "Open git controls",
+      accessibilityLabel: t("Open git controls"),
       icon: "point.topleft.down.curvedto.point.bottomright.up",
       onPress: props.onOpenGitInspector,
     });
@@ -148,6 +150,7 @@ function ThreadHeader(
     props.onReturnToThread,
     props.hasThreadCwd,
     props.hasWorkspaceRoot,
+    t,
   ]);
 
   return (
@@ -163,8 +166,8 @@ function ThreadHeader(
             <ScreenHeaderButton
               accessibilityLabel={
                 props.inspectorMode !== null && panes.auxiliaryPaneVisible
-                  ? "Hide inspector"
-                  : "Show inspector"
+                  ? t("Hide inspector")
+                  : t("Show inspector")
               }
               icon="sidebar.right"
               selected={props.inspectorMode !== null && panes.auxiliaryPaneVisible}
@@ -209,7 +212,8 @@ function firstRouteParam(value: string | string[] | undefined): string | null {
 }
 
 function OpeningThreadLoadingScreen() {
-  return <LoadingScreen message="Opening thread…" messagePlacement="above-spinner" />;
+  const t = useTranslate();
+  return <LoadingScreen message={t("Opening thread…")} messagePlacement="above-spinner" />;
 }
 
 type ThreadRouteScreenRouteProps = StaticScreenProps<{
@@ -227,6 +231,7 @@ function ThreadUnavailableScreen(props: {
   readonly actionLabel: string;
   readonly onAction: () => void;
 }) {
+  const t = useTranslate();
   return (
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
@@ -239,8 +244,8 @@ function ThreadUnavailableScreen(props: {
       className="bg-screen flex-1"
     >
       <EmptyState
-        title="Thread unavailable"
-        detail="This thread is not available in the current mobile snapshot."
+        title={t("Thread unavailable")}
+        detail={t("This thread is not available in the current mobile snapshot.")}
         actionLabel={props.actionLabel}
         onAction={props.onAction}
       />
@@ -249,6 +254,7 @@ function ThreadUnavailableScreen(props: {
 }
 
 export function ThreadRouteScreen(props: ThreadRouteScreenProps) {
+  const t = useTranslate();
   const { state: workspaceState } = useWorkspaceState();
   const { connectionState } = useRemoteConnectionStatus();
   const { selectedThread } = useThreadSelection();
@@ -301,7 +307,7 @@ export function ThreadRouteScreen(props: ThreadRouteScreenProps) {
   return (
     <ThreadUnavailableScreen
       actionLabel={
-        routeEnvironmentRuntime === null ? "Manage environments" : "Reconnect environment"
+        routeEnvironmentRuntime === null ? t("Manage environments") : t("Reconnect environment")
       }
       onAction={() => {
         if (routeEnvironmentRuntime !== null) {
@@ -322,6 +328,7 @@ function ThreadRouteContent(
     readonly selectedThreadDetailState: ReturnType<typeof useSelectedThreadDetailState>;
   },
 ) {
+  const t = useTranslate();
   const { themeVariables } = useAppearancePreferences();
   const headerColor = themeVariables["--color-header"];
   const { fileInspector, layout, panes, showAuxiliaryPane, toggleAuxiliaryPane } =
@@ -765,7 +772,7 @@ function ThreadRouteContent(
     auxiliaryPaneControl:
       !layout.usesSplitView && fileInspector.supported && selectedThreadCwd !== null
         ? {
-            accessibilityLabel: "Toggle inspector",
+            accessibilityLabel: t("Toggle inspector"),
             onPress: handleToggleInspector,
           }
         : undefined,
@@ -803,7 +810,7 @@ function ThreadRouteContent(
       await recoverFailedThreadDraft(creation);
     } catch (error) {
       Alert.alert(
-        "Could not restore draft",
+        t("Could not restore draft"),
         error instanceof Error ? error.message : String(error),
       );
       return;
@@ -820,7 +827,7 @@ function ThreadRouteContent(
         },
       }),
     );
-  }, [navigation, routeThreadIdentity, selectedThreadCreation, selectedThreadProject]);
+  }, [navigation, routeThreadIdentity, selectedThreadCreation, selectedThreadProject, t]);
   const worktreeSetup = useWorktreeSetup({
     environmentId: selectedThread?.environmentId ?? null,
     threadId: selectedThread?.id ?? null,
@@ -910,11 +917,11 @@ function ThreadRouteContent(
       })
       .catch((error) =>
         Alert.alert(
-          "Could not work locally",
+          t("Could not work locally"),
           error instanceof Error ? error.message : String(error),
         ),
       );
-  }, [localResendMessageId, navigation, selectedThreadCreation]);
+  }, [localResendMessageId, navigation, selectedThreadCreation, t]);
   const creationState = ((): ThreadDetailScreenProps["creationState"] => {
     if (selectedThreadCreation === null) {
       return awaitingBootstrapTurn ? { kind: "preparing", preparingWorktree: true } : null;

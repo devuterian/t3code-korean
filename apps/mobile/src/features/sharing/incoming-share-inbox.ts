@@ -6,6 +6,7 @@ import {
   type IncomingShareDestination,
   type IncomingShareDraft,
 } from "./incoming-share-model";
+import { translate } from "../../i18n/translate";
 
 export interface IncomingShareInboxDependencies {
   readonly loadDrafts: () => Promise<ReadonlyArray<IncomingShareDraft>>;
@@ -110,7 +111,7 @@ export class IncomingShareInbox {
         await this.cleanup(built.cleanup);
         this.clearNativePayloads();
         throw new Error(
-          draft.warnings[0] ?? "The shared content is not supported by the composer.",
+          draft.warnings[0] ?? translate("The shared content is not supported by the composer."),
         );
       }
 

@@ -5,11 +5,13 @@ import { AppText as Text } from "../../components/AppText";
 import { MaterialNewThreadButton } from "../../components/MaterialNewThreadButton";
 import { MaterialFloatingActionButton } from "../../components/MaterialFloatingActionButton";
 import { EmptyState } from "../../components/EmptyState";
+import { useTranslate } from "../../i18n/translate";
 
 export function WorkspaceEmptyDetail(props: {
   readonly onStartNewTask?: () => void;
   readonly onAddConnection?: () => void;
 }) {
+  const t = useTranslate();
   return (
     <View
       className={
@@ -21,12 +23,12 @@ export function WorkspaceEmptyDetail(props: {
       {props.onAddConnection ? (
         <View className="w-full max-w-[430px]">
           <EmptyState
-            title="No environments connected"
-            detail="Add an environment to load projects and start coding sessions."
+            title={t("No environments connected")}
+            detail={t("Add an environment to load projects and start coding sessions.")}
             variant="plain"
             action={
               <MaterialFloatingActionButton
-                label="Add environment"
+                label={t("Add environment")}
                 icon="plus"
                 variant="extended"
                 tone="primary"
@@ -43,11 +45,11 @@ export function WorkspaceEmptyDetail(props: {
             tintColorClassName="accent-icon-subtle"
             type="hierarchical"
           />
-          <Text className="text-center text-xl font-t3-bold">Select a thread</Text>
+          <Text className="text-center text-xl font-t3-bold">{t("Select a thread")}</Text>
           <Text className="text-center text-base text-foreground-muted">
             {Platform.OS === "android"
-              ? "Choose a thread from the sidebar or start a new thread."
-              : "Choose a thread from the sidebar or start a new task."}
+              ? t("Choose a thread from the sidebar or start a new thread.")
+              : t("Choose a thread from the sidebar or start a new task.")}
           </Text>
           {props.onStartNewTask ? (
             Platform.OS === "android" ? (
@@ -58,7 +60,9 @@ export function WorkspaceEmptyDetail(props: {
                 className="mt-2 flex-row items-center gap-2 rounded-full bg-primary px-5 py-3 active:opacity-70"
                 onPress={props.onStartNewTask}
               >
-                <Text className="text-base font-t3-bold text-primary-foreground">New Task</Text>
+                <Text className="text-base font-t3-bold text-primary-foreground">
+                  {t("New Task")}
+                </Text>
               </Pressable>
             )
           ) : null}

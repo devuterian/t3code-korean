@@ -3,6 +3,7 @@ import type { NavigationState } from "@react-navigation/native";
 import { EnvironmentId, ThreadId, type ScopedThreadRef } from "@t3tools/contracts";
 
 import type { RecentThreadShortcut } from "../../persistence/imperative";
+import { translate } from "../../i18n/translate";
 
 // Launchers cap visible shortcuts around 4; one slot is the static
 // "New task" entry, the rest rotate through recently opened threads.
@@ -68,7 +69,7 @@ export function activeThreadRef(state: NavigationState): ScopedThreadRef | null 
 
 function threadShortcutLabel(thread: RecentThreadShortcut): string {
   const title = thread.title.trim();
-  return title.length > 0 ? title : "Thread";
+  return title.length > 0 ? title : translate("Thread");
 }
 
 /**
@@ -118,7 +119,7 @@ export function buildShortcutActions(recents: ReadonlyArray<RecentThreadShortcut
   return [
     {
       id: NEW_TASK_SHORTCUT_ID,
-      title: "New task",
+      title: translate("New task"),
       icon: SHORTCUT_ICON,
       params: { href: NEW_TASK_SHORTCUT_HREF },
     },

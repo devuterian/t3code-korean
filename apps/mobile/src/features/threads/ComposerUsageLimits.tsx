@@ -3,6 +3,7 @@ import { Pressable, ScrollView, useWindowDimensions, View } from "react-native";
 
 import { SymbolView } from "../../components/AppSymbol";
 import { AppText as Text } from "../../components/AppText";
+import { useTranslate } from "../../i18n/translate";
 import { AccountLimits, ResetCredits } from "../usage/UsageLimitsSection";
 
 const DRIVER_LABEL: Partial<Record<string, string>> = { codex: "Codex", claudeAgent: "Claude" };
@@ -21,11 +22,12 @@ export function ComposerUsageLimits({
   readonly environmentId: EnvironmentId;
   readonly onClose: () => void;
 }) {
+  const t = useTranslate();
   const now = Date.parse(report.createdAt);
   const { height } = useWindowDimensions();
   const close = (
     <Pressable
-      accessibilityLabel="Dismiss usage limits"
+      accessibilityLabel={t("Dismiss usage limits")}
       accessibilityRole="button"
       hitSlop={12}
       onPress={onClose}
@@ -84,7 +86,7 @@ export function ComposerUsageLimits({
         {report.accounts.length === 0 ? (
           // Nothing but notices, so the close control needs a row of its own.
           <View className="flex-row items-center gap-3 px-4 pt-3">
-            <Text className="min-w-0 flex-1 text-base text-foreground">Usage limits</Text>
+            <Text className="min-w-0 flex-1 text-base text-foreground">{t("Usage limits")}</Text>
             {close}
           </View>
         ) : null}

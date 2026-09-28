@@ -11,6 +11,7 @@ import {
 import { useAppearancePreferences } from "../features/settings/appearance/AppearancePreferencesProvider";
 import type { ScreenHeaderMenuItem, ScreenHeaderProps } from "./ScreenHeader.types";
 import type { AppSymbolName } from "./AppSymbol";
+import { useTranslate } from "../i18n/translate";
 
 function iosIcon(icon: AppSymbolName) {
   return typeof icon === "string" ? icon : icon.ios;
@@ -32,6 +33,7 @@ function mailMenuItems(items: ReadonlyArray<ScreenHeaderMenuItem>): MailMenu["it
 }
 
 export function ScreenHeader(props: ScreenHeaderProps) {
+  const t = useTranslate();
   const headerId = useId();
   const { layout, panes, togglePrimarySidebar } = useAdaptiveWorkspaceLayout();
   const { themeVariables } = useAppearancePreferences();
@@ -115,8 +117,8 @@ export function ScreenHeader(props: ScreenHeaderProps) {
             <ScreenHeaderButton
               accessibilityLabel={
                 panes.primarySidebarVisible
-                  ? `Maximize ${props.title.toLowerCase()}`
-                  : "Show threads"
+                  ? t("Maximize {name}", { name: props.title.toLowerCase() })
+                  : t("Show threads")
               }
               icon={
                 panes.primarySidebarVisible ? "arrow.up.left.and.arrow.down.right" : "sidebar.left"

@@ -34,6 +34,7 @@ import { appAtomRegistry } from "./atom-registry";
 import { useSelectedThreadDetail } from "./use-thread-detail";
 import { useThreadSelection } from "./use-thread-selection";
 import { useAtomCommand } from "./use-atom-command";
+import { translate } from "../i18n/translate";
 
 const userInputDraftsByRequestKeyAtom = Atom.make<
   Record<string, Record<string, PendingUserInputDraftAnswer>>
@@ -267,8 +268,8 @@ export function useSelectedThreadRequests() {
         )
       ) {
         Alert.alert(
-          "Attachments are not ready",
-          "Wait for uploads to finish, or retry failed uploads.",
+          translate("Attachments are not ready"),
+          translate("Wait for uploads to finish, or retry failed uploads."),
         );
         return;
       }

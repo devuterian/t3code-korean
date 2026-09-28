@@ -11,6 +11,7 @@ import { threadDragGapOffset } from "./threadDragGap";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppText as Text } from "../../components/AppText";
+import { useTranslate } from "../../i18n/translate";
 import { SymbolView } from "../../components/AppSymbol";
 import { scopedThreadKey } from "../../lib/scopedEntities";
 import { environmentServerConfigsAtom } from "../../state/server";
@@ -78,6 +79,13 @@ function ArrangementRow(props: {
   );
 }
 
+const SECTION_LABELS = {
+  pinned: "Pinned",
+  active: "Active",
+  snoozed: "Snoozed",
+  settled: "Settled",
+} as const;
+
 /** Native pan recognition wins over list scrolling only inside the handle. */
 function DragHandle(props: {
   title: string;
@@ -91,6 +99,7 @@ function DragHandle(props: {
   canMoveUp: boolean;
   canMoveDown: boolean;
 }) {
+  const t = useTranslate();
   const latest = useRef(props);
   latest.current = props;
   const gesture = useMemo(
@@ -112,13 +121,15 @@ function DragHandle(props: {
         collapsable={false}
         accessible
         accessibilityRole="adjustable"
-        accessibilityLabel={`Reorder ${props.title}`}
-        accessibilityHint="Move up and Move down reorder within this section. Other actions move between sections."
+        accessibilityLabel={t("Reorder {title}", { title: props.title })}
+        accessibilityHint={t(
+          "Move up and Move down reorder within this section. Other actions move between sections.",
+        )}
         accessibilityState={{ disabled: props.disabled }}
         accessibilityActions={[
           ...props.sectionActions,
-          ...(props.canMoveUp ? [{ name: "decrement", label: "Move up" }] : []),
-          ...(props.canMoveDown ? [{ name: "increment", label: "Move down" }] : []),
+          ...(props.canMoveUp ? [{ name: "decrement", label: t("Move up") }] : []),
+          ...(props.canMoveDown ? [{ name: "increment", label: t("Move down") }] : []),
         ]}
         onAccessibilityAction={({ nativeEvent }) => {
           if (props.disabled) return;
@@ -150,6 +161,7 @@ function DragHandle(props: {
 /** Shows the same section order as the thread list. Active placement is disabled
  * in message mode so a drag cannot overwrite the saved configured arrangement. */
 export function ThreadArrangementSheet(props: { onClose: () => void }) {
+  const t = useTranslate();
   const insets = useSafeAreaInsets();
   const threads = useAtomValue(environmentThreadShells.threadShellsAtom);
   const configs = useAtomValue(environmentServerConfigsAtom);
@@ -379,17 +391,17 @@ export function ThreadArrangementSheet(props: { onClose: () => void }) {
           style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}
         >
           <View className="flex-row items-center justify-between gap-3 px-5 py-3">
-            <Text className="flex-1 text-xl font-t3-semibold">Arrange threads</Text>
+            <Text className="flex-1 text-xl font-t3-semibold">{t("Arrange threads")}</Text>
             <Pressable
               accessibilityRole="button"
               onPress={props.onClose}
               className="min-h-11 justify-center px-3"
             >
-              <Text className="text-base text-primary-text">Done</Text>
+              <Text className="text-base text-primary-text">{t("Done")}</Text>
             </Pressable>
           </View>
           <Text className="px-5 pb-3 text-sm text-foreground-muted">
-            Drag to reorder, pin, or settle. Changes save when you drop.
+            {t("Drag to reorder, pin, or settle. Changes save when you drop.")}
           </Text>
           <View
             onLayout={(event) => {
@@ -427,8 +439,9 @@ export function ThreadArrangementSheet(props: { onClose: () => void }) {
                       label: string;
                     }>((section) => {
                       if (section === item.section) return [];
-                      const label = threadDragAction(item.section, section);
-                      if (!label) return [];
+                      const dragAction = threadDragAction(item.section, section);
+                      if (!dragAction) return [];
+                      const label = t(dragAction);
                       if (section === "settled")
                         return capabilities?.threadSettlement ? [{ name: section, label }] : [];
                       if (
@@ -524,8 +537,7 @@ export function ThreadArrangementSheet(props: { onClose: () => void }) {
                         }}
                       >
                         <Text className="text-sm font-t3-semibold text-foreground-muted">
-                          {item.section[0]!.toUpperCase() + item.section.slice(1)} (
-                          {sections[item.section].length})
+                          {t(SECTION_LABELS[item.section])} ({sections[item.section].length})
                         </Text>
                       </Pressable>
                     )}
@@ -547,9 +559,11 @@ export function ThreadArrangementSheet(props: { onClose: () => void }) {
                 </Text>
                 {visiblePreview.destination?.section ? (
                   <Text className="text-xs text-foreground-muted">
-                    {threadDragAction(
-                      visiblePreview.sourceSection,
-                      visiblePreview.destination.section,
+                    {t(
+                      threadDragAction(
+                        visiblePreview.sourceSection,
+                        visiblePreview.destination.section,
+                      ) ?? "",
                     )}
                   </Text>
                 ) : null}

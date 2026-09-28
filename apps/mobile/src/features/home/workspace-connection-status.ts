@@ -1,5 +1,7 @@
 import type { WorkspaceState } from "../../state/workspaceModel";
 
+import { translate } from "../../i18n/translate";
+
 export interface WorkspaceConnectionStatusPresentation {
   readonly label: string;
   /** True while actively working (connecting/syncing) — render a spinner. False for offline/error/idle states — render a wifi-slash icon. */
@@ -17,18 +19,24 @@ function shouldShowWorkspaceConnectionStatus(state: WorkspaceState): boolean {
 }
 
 function workspaceConnectionStatusLabel(state: WorkspaceState): string {
-  if (state.networkStatus === "offline") return "You are offline";
+  if (state.networkStatus === "offline") return translate("You are offline");
   if (state.connectingEnvironments.length === 1) {
-    return `Reconnecting to ${state.connectingEnvironments[0]!.environmentLabel}`;
+    return translate("Reconnecting to {environment}", {
+      environment: state.connectingEnvironments[0]!.environmentLabel,
+    });
   }
   if (state.connectingEnvironments.length > 1) {
-    return `Reconnecting ${state.connectingEnvironments.length} environments`;
+    return translate("Reconnecting {count} environments", {
+      count: state.connectingEnvironments.length,
+    });
   }
   if (state.connectionError !== null) return state.connectionError;
   if (state.hasPendingShellSnapshot) {
-    return state.hasLoadedShellSnapshot ? "Syncing threads..." : "Loading threads...";
+    return state.hasLoadedShellSnapshot
+      ? translate("Syncing threads...")
+      : translate("Loading threads...");
   }
-  return "Not connected";
+  return translate("Not connected");
 }
 
 /** Header-title presentation of the connection state, or null while connected. */

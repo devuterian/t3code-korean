@@ -15,6 +15,7 @@ import { environmentSession } from "./session";
 import { environmentCatalog } from "../connection/catalog";
 import { createRemoteEnvironmentProjectionAtoms } from "./remote-environment-projections";
 import { serverEnvironment } from "./server";
+import { translate } from "../i18n/translate";
 
 const connectionPairingUrlAtom = Atom.make("").pipe(
   Atom.keepAlive,
@@ -127,14 +128,16 @@ export function useRemoteConnections() {
       if (AsyncResult.isFailure(result)) {
         const error = Cause.squash(result.cause);
         const message =
-          error instanceof Error ? error.message : "Failed to pair with the environment.";
+          error instanceof Error
+            ? error.message
+            : translate("Failed to pair with the environment.");
         if (
           error !== null &&
           typeof error === "object" &&
           "reason" in error &&
           error.reason === "unsupported"
         ) {
-          Alert.alert("Client not supported", message);
+          Alert.alert(translate("Client not supported"), message);
         } else {
           setPendingConnectionError(message);
         }
@@ -172,12 +175,15 @@ export function useRemoteConnections() {
         return;
       }
       Alert.alert(
-        "Remove from this device?",
-        `Forget ${environment.environmentLabel} and its cached threads on this device. Switch it off instead to keep it saved.`,
+        translate("Remove from this device?"),
+        translate(
+          "Forget {name} and its cached threads on this device. Switch it off instead to keep it saved.",
+          { name: environment.environmentLabel },
+        ),
         [
-          { text: "Cancel", style: "cancel" },
+          { text: translate("Cancel"), style: "cancel" },
           {
-            text: "Remove",
+            text: translate("Remove"),
             style: "destructive",
             onPress: () => {
               void controller.removeEnvironment(environmentId);
