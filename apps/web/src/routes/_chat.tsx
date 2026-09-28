@@ -7,7 +7,17 @@ import { ThreadRouteView } from "../components/ThreadRouteView";
 import { resolveThreadRouteTarget } from "../threadRoutes";
 import { useClientSettings, useLegacySidebarEnabled } from "../hooks/useSettings";
 import { openCommandPalette } from "../commandPaletteBus";
-import { useProjects } from "../state/entities";
+import {
+  readEnvironmentSupportsSettlement,
+  readThreadShells,
+  useProjects,
+} from "../state/entities";
+import { threadEnvironment } from "../state/threads";
+import { useAtomCommand } from "../state/use-atom-command";
+import {
+  isAtomCommandInterrupted,
+  squashAtomCommandFailure,
+} from "@t3tools/client-runtime/state/runtime";
 import { usePrimaryEnvironmentId } from "../state/environments";
 import { selectProjectGroupingSettings } from "../logicalProject";
 import { buildSidebarProjectSnapshots } from "../sidebarProjectGrouping";
@@ -28,6 +38,7 @@ import { stackedThreadToast, toastManager } from "~/components/ui/toast";
 import { primaryServerKeybindingsAtom } from "~/state/server";
 
 function ChatRouteGlobalShortcuts() {
+  const unsettleThread = useAtomCommand(threadEnvironment.unsettle, { reportFailure: false });
   const clearSelection = useThreadSelectionStore((state) => state.clearSelection);
   const selectedThreadKeysSize = useThreadSelectionStore((state) => state.selectedThreadKeys.size);
   const { activeDraftThread, activeThread, defaultProjectRef, handleNewThread, routeThreadRef } =
@@ -84,6 +95,39 @@ function ChatRouteGlobalShortcuts() {
           event.preventDefault();
           event.stopPropagation();
         }
+        return;
+      }
+
+      if (command === "thread.unsettleLast") {
+        event.preventDefault();
+        event.stopPropagation();
+        if (event.repeat) return;
+        const latest = readThreadShells()
+          .filter(
+            (thread) =>
+              thread.archivedAt === null &&
+              readEnvironmentSupportsSettlement(thread.environmentId) &&
+              thread.settledOverride === "settled" &&
+              thread.settledAt !== null &&
+              Number.isFinite(Date.parse(thread.settledAt)),
+          )
+          .toSorted((left, right) => Date.parse(right.settledAt!) - Date.parse(left.settledAt!))[0];
+        if (!latest) return;
+        void unsettleThread({
+          environmentId: latest.environmentId,
+          input: { threadId: latest.id, reason: "user" },
+        }).then((result) => {
+          if (result._tag === "Failure" && !isAtomCommandInterrupted(result)) {
+            const error = squashAtomCommandFailure(result);
+            toastManager.add(
+              stackedThreadToast({
+                type: "error",
+                title: "Failed to un-settle thread",
+                description: error instanceof Error ? error.message : "An error occurred.",
+              }),
+            );
+          }
+        });
         return;
       }
 
@@ -185,6 +229,7 @@ function ChatRouteGlobalShortcuts() {
     selectedThreadKeysSize,
     legacySidebarEnabled,
     terminalOpen,
+    unsettleThread,
   ]);
 
   return null;
