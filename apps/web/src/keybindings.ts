@@ -9,7 +9,7 @@ import {
   type ThreadJumpKeybindingCommand,
 } from "@t3tools/contracts";
 import { isElectron } from "./env";
-import { isMacPlatform } from "./lib/utils";
+import { isMacPlatform, isWindowsPlatform } from "./lib/utils";
 
 export interface ShortcutEventLike {
   getModifierState?: (key: "AltGraph") => boolean;
@@ -39,6 +39,9 @@ export interface ShortcutMatchContext {
   /** A text field, textarea, select or rich-text editor owns the keyboard.
       Optional: only chords that collide with native editing consult it. */
   editableFocus?: boolean;
+  isMac: boolean;
+  isWindows: boolean;
+  isLinux: boolean;
   [key: string]: boolean;
 }
 
@@ -145,6 +148,7 @@ function resolvePlatform(options: ShortcutMatchOptions | undefined): string {
 }
 
 function resolveContext(options: ShortcutMatchOptions | undefined): ShortcutMatchContext {
+  const platform = resolvePlatform(options);
   return {
     terminalFocus: false,
     terminalOpen: false,
@@ -153,6 +157,9 @@ function resolveContext(options: ShortcutMatchOptions | undefined): ShortcutMatc
     isWeb: !isElectron,
     isDesktop: isElectron,
     editableFocus: false,
+    isMac: isMacPlatform(platform),
+    isWindows: isWindowsPlatform(platform),
+    isLinux: /linux/i.test(platform),
     ...options?.context,
   };
 }
