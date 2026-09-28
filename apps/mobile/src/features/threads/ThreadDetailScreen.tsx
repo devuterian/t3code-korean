@@ -80,6 +80,7 @@ import { threadDevicePreviews } from "../devices/threadDevicePreviews";
 import type { QueuedThreadMessage } from "../../state/thread-outbox-model";
 import { scopedThreadKey } from "../../lib/scopedEntities";
 import { useDelayedStatus } from "../../lib/useDelayedStatus";
+import { useTranslate } from "../../i18n/translate";
 import type {
   PendingApproval,
   PendingUserInput,
@@ -266,6 +267,7 @@ const USER_INPUT_TOGGLE_TIMING = {
 
 export const ThreadDetailScreen = memo(function ThreadDetailScreen(props: ThreadDetailScreenProps) {
   const navigation = useNavigation();
+  const t = useTranslate();
   const deviceState = useEnvironmentQuery(
     deviceEnvironment.state({ environmentId: props.environmentId, input: {} }),
   );
@@ -361,9 +363,9 @@ export const ThreadDetailScreen = memo(function ThreadDetailScreen(props: Thread
       case "cached":
       case "synchronizing":
         if (contentPresentationKind === "ready") {
-          return "Syncing messages...";
+          return t("Syncing messages...");
         }
-        return contentPresentationKind === "loading" ? "Loading messages..." : null;
+        return contentPresentationKind === "loading" ? t("Loading messages...") : null;
       default:
         return null;
     }
@@ -392,7 +394,7 @@ export const ThreadDetailScreen = memo(function ThreadDetailScreen(props: Thread
       if (props.worktreeSetup) return null;
       return {
         kind: "preparing",
-        label: props.creationState.preparingWorktree ? "Setting up worktree…" : "Starting…",
+        label: props.creationState.preparingWorktree ? t("Setting up worktree…") : t("Starting…"),
       };
     }
     if (props.creationState?.kind === "failed") {
@@ -804,21 +806,24 @@ export const ThreadDetailScreen = memo(function ThreadDetailScreen(props: Thread
     selectedThreadKey,
   ]);
 
-  const handleEditPendingMessage = useCallback(async (message: QueuedThreadMessage) => {
-    try {
-      if (
-        (await editPendingThreadMessage(message)) &&
-        selectedThreadKeyRef.current === scopedThreadKey(message.environmentId, message.threadId)
-      ) {
-        composerEditorRef.current?.focus();
+  const handleEditPendingMessage = useCallback(
+    async (message: QueuedThreadMessage) => {
+      try {
+        if (
+          (await editPendingThreadMessage(message)) &&
+          selectedThreadKeyRef.current === scopedThreadKey(message.environmentId, message.threadId)
+        ) {
+          composerEditorRef.current?.focus();
+        }
+      } catch (error) {
+        Alert.alert(
+          t("Could not edit message"),
+          error instanceof Error ? error.message : t("Please try again."),
+        );
       }
-    } catch (error) {
-      Alert.alert(
-        "Could not edit message",
-        error instanceof Error ? error.message : "Please try again.",
-      );
-    }
-  }, []);
+    },
+    [t],
+  );
 
   const collapseComposer = useCallback(() => {
     composerEditorRef.current?.blur();
@@ -905,7 +910,7 @@ export const ThreadDetailScreen = memo(function ThreadDetailScreen(props: Thread
             renderFallback={(fallback) => (
               <RenderFailureView
                 {...fallback}
-                title="The conversation couldn't be displayed"
+                title={t("The conversation couldn't be displayed")}
                 bottomInset={estimatedOverlayHeight}
               />
             )}
@@ -1075,7 +1080,7 @@ export const ThreadDetailScreen = memo(function ThreadDetailScreen(props: Thread
                   editorRef={composerEditorRef}
                   draftMessage={props.draftMessage}
                   draftAttachments={props.draftAttachments}
-                  placeholder="Ask the repo agent, or run a command…"
+                  placeholder={t("Ask the repo agent, or run a command…")}
                   contentMaxWidth={contentMaxWidth}
                   connectionState={props.connectionStateLabel}
                   environmentLabel={props.environmentLabel}
@@ -1089,7 +1094,7 @@ export const ThreadDetailScreen = memo(function ThreadDetailScreen(props: Thread
                   // them against a thread id the server may still reject
                   // would strand them in the outbox.
                   sendBlockedReason={
-                    props.creationState?.kind === "preparing" ? "Starting the task…" : null
+                    props.creationState?.kind === "preparing" ? t("Starting the task…") : null
                   }
                   bottomInset={composerBottomInset}
                   onChangeDraftMessage={props.onChangeDraftMessage}

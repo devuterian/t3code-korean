@@ -15,6 +15,7 @@ import type {
   UserInputQuestion,
 } from "@t3tools/contracts";
 import { formatDuration } from "@t3tools/shared/orchestrationTiming";
+import { formatCompactDuration, getInterfaceLanguage, translate } from "../i18n/translate";
 import {
   commandDetailRepeatsCommand,
   extractCommandOutputText,
@@ -999,7 +1000,7 @@ function buildWorkEntryExpandedBody(entry: WorkLogEntry): string | null {
   };
 
   if (entry.itemType === "mcp_tool_call" && entry.toolData !== undefined) {
-    appendBlock(`MCP call\n${JSON.stringify(entry.toolData, null, 2)}`);
+    appendBlock(`${translate("MCP call")}\n${JSON.stringify(entry.toolData, null, 2)}`);
   }
   appendBlock(entry.rawCommand ?? entry.command);
   appendBlock(entry.detail);
@@ -1038,7 +1039,7 @@ export function workEntryRowLabel(entry: WorkLogEntry, expanded = false): string
   if (entry.agentSpawn) return agentSpawnLabel(entry.agentSpawn);
   const presentation = resolveWorkEntryToolPresentation(entry);
   if (presentation) return presentation.displayName;
-  if (expanded && entry.command?.trim()) return "Command";
+  if (expanded && entry.command?.trim()) return translate("Command");
   const preview = workEntryPreview(entry);
   if (expanded) return preview?.trim() || workEntryHeading(entry);
   const compactPreview = preview === null ? null : collapseWhitespace(stripShellWrapper(preview));
@@ -1067,7 +1068,10 @@ function workEntryPreview(
   if (!firstPath) return null;
   return workEntry.changedFiles!.length === 1
     ? firstPath
-    : `${firstPath} +${workEntry.changedFiles!.length - 1} more`;
+    : translate("{path} +{count} more", {
+        path: firstPath,
+        count: workEntry.changedFiles!.length - 1,
+      });
 }
 
 function capitalizePhrase(value: string): string {
@@ -1087,17 +1091,51 @@ function capitalizePhrase(value: string): string {
 export function agentSpawnLabel(spawn: NonNullable<WorkLogEntry["agentSpawn"]>): string {
   const members = agentSpawnMembers(spawn);
   const count = Math.max(members.length, 1);
-  const subjects = `${count} subagent${count === 1 ? "" : "s"}`;
+  const subjects = subagentCountLabel(count);
   const working = members.filter(
     (agent) => agent.status === undefined || agent.status === "inProgress",
   ).length;
   const failed = members.filter((agent) => agent.status === "failed").length;
   const stopped = members.filter((agent) => agent.status === "stopped").length;
   if (working > 0) {
-    return `Kicked off ${subjects} · ${working} working`;
+    return translate("Kicked off {subjects} · {count} working", { subjects, count: working });
   }
-  const status = failed > 0 ? `${failed} failed` : stopped > 0 ? `${stopped} stopped` : "completed";
-  return `Ran ${subjects} · ${status}`;
+  const status =
+    failed > 0
+      ? translate("{count} failed", { count: failed })
+      : stopped > 0
+        ? translate("{count} stopped", { count: stopped })
+        : translate("completed");
+  return translate("Ran {subjects} · {status}", { subjects, status });
+}
+
+function subagentCountLabel(count: number): string {
+  return count === 1
+    ? translate("{count} subagent", { count })
+    : translate("{count} subagents", { count });
+}
+
+/** Display text for a subagent lifecycle status (`working`, `completed`, ...). */
+export function agentStatusLabel(status: string): string {
+  switch (status) {
+    case "working":
+    case "completed":
+    case "failed":
+    case "declined":
+    case "stopped":
+      return translate(status);
+    default:
+      return status;
+  }
+}
+
+/** Durations from `formatDuration` (`1h 5m 3s`), with Korean units when Korean is active. */
+function localizeDurationUnits(duration: string): string {
+  if (getInterfaceLanguage() !== "ko") return duration;
+  return duration.replace(
+    /(\d+(?:\.\d+)?)(h|m|s)\b/g,
+    (_match, amount: string, unit: "h" | "m" | "s") => formatCompactDuration(Number(amount), unit),
+  );
 }
 
 /** Workflow coordinators sit in their own batch but are not a member. */
@@ -1145,10 +1183,10 @@ export function agentSpawnSummary(
   // batch has none.
   const title =
     members.length === 0
-      ? "Subagents"
+      ? translate("Subagents")
       : members.length === 1
         ? members[0]!.title
-        : `${members.length} subagents`;
+        : translate("{count} subagents", { count: members.length });
   if (tone === "working") {
     const working = members.filter((member) => member.tone === "working");
     const latest = working
@@ -1160,7 +1198,12 @@ export function agentSpawnSummary(
       );
     const status =
       latest?.detail ??
-      (members.length > 1 ? `${working.length} of ${members.length} working` : "Working");
+      (members.length > 1
+        ? translate("{count} of {total} working", {
+            count: working.length,
+            total: members.length,
+          })
+        : translate("Working"));
     return { title, status, tone, members };
   }
   // The batch tone covers a coordinator that failed or stopped on its own.
@@ -1168,10 +1211,14 @@ export function agentSpawnSummary(
   const stopped = members.filter((member) => member.tone === "stopped").length;
   const outcome =
     tone === "failed" || failed > 0
-      ? `${members.length > 1 && failed > 0 ? `${failed} ` : ""}failed`
+      ? members.length > 1 && failed > 0
+        ? translate("{count} failed", { count: failed })
+        : translate("failed")
       : tone === "stopped" || stopped > 0
-        ? `${members.length > 1 && stopped > 0 ? `${stopped} ` : ""}stopped`
-        : "completed";
+        ? members.length > 1 && stopped > 0
+          ? translate("{count} stopped", { count: stopped })
+          : translate("stopped")
+        : translate("completed");
   return { title, status: outcome, tone, members };
 }
 
@@ -1179,7 +1226,7 @@ function agentSpawnExpandedBody(spawn: NonNullable<WorkLogEntry["agentSpawn"]>):
   const lines = agentSpawnMembers(spawn).map((agent) => {
     const status =
       agent.status === undefined || agent.status === "inProgress" ? "working" : agent.status;
-    return `${agent.title} · ${status}${agent.detail ? `\n  ${agent.detail}` : ""}`;
+    return `${agent.title} · ${agentStatusLabel(status)}${agent.detail ? `\n  ${agent.detail}` : ""}`;
   });
   return lines.length > 0 ? lines.join("\n") : null;
 }
@@ -1754,15 +1801,15 @@ function deriveThreadFeedTurnFolds(
               lastEntryEnd,
             ) ?? lastEntryEnd,
           );
-    const duration = elapsedMs === null ? null : formatDuration(elapsedMs);
+    const duration = elapsedMs === null ? null : localizeDurationUnits(formatDuration(elapsedMs));
     const interrupted = latestTurnMatches && latestTurn.state === "interrupted";
     const label = interrupted
       ? duration
-        ? `You stopped after ${duration}`
-        : "You stopped this response"
+        ? translate("You stopped after {duration}", { duration })
+        : translate("You stopped this response")
       : duration
-        ? `Worked for ${duration}`
-        : "Worked";
+        ? translate("Worked for {duration}", { duration })
+        : translate("Worked");
 
     foldsByAnchorId.set(firstHiddenEntry.id, {
       turnId,
@@ -1982,8 +2029,11 @@ function appendMixedActivityRun(
     hiddenCount: activities.length + thoughtCount,
     expanded,
     summary: thinking
-      ? "Thinking"
-      : (toolSummary?.summary ?? `Thought${thoughtCount > 1 ? ` (×${thoughtCount})` : ""}`),
+      ? translate("Thinking")
+      : (toolSummary?.summary ??
+        (thoughtCount > 1
+          ? translate("Thought (×{count})", { count: thoughtCount })
+          : translate("Thought"))),
     summaryKind: toolSummary?.summaryKind ?? "other",
     ...(thinking || !toolSummary
       ? { summaryToolIcon: "brain" as const }
@@ -2301,17 +2351,16 @@ function liveToolActivitySummary(activity: ThreadFeedActivity, presentTense: boo
   const command = activity.workEntry.command?.trim();
   if (command) {
     const program = commandProgramName(command);
-    const verb =
-      status === "inProgress"
-        ? "Running"
-        : status === "failed"
-          ? "Failed"
-          : status === "declined"
-            ? "Declined"
-            : status === "stopped"
-              ? "Stopped"
-              : "Ran";
-    return `${verb} ${program ?? "command"}`;
+    const params = { program: program ?? translate("command") };
+    return status === "inProgress"
+      ? translate("Running {program}", params)
+      : status === "failed"
+        ? translate("Failed {program}", params)
+        : status === "declined"
+          ? translate("Declined {program}", params)
+          : status === "stopped"
+            ? translate("Stopped {program}", params)
+            : translate("Ran {program}", params);
   }
   return activity.detail ?? activity.summary;
 }

@@ -2,6 +2,7 @@ import { useEffect, useState, type ComponentType, type ReactNode } from "react";
 import { View } from "react-native";
 
 import { RenderErrorBoundary, RenderFailureView } from "../../components/RenderErrorBoundary";
+import { useTranslate } from "../../i18n/translate";
 
 export type ThreadInspectorMode = "route" | "git" | "files";
 
@@ -13,6 +14,7 @@ function InspectorContentPane(props: {
   readonly resetKeys: readonly [string | null, string | null];
   readonly visible: boolean;
 }) {
+  const t = useTranslate();
   if (!props.mounted) {
     return null;
   }
@@ -33,7 +35,7 @@ function InspectorContentPane(props: {
       <RenderErrorBoundary
         resetKeys={props.resetKeys}
         renderFallback={(fallback) => (
-          <RenderFailureView {...fallback} title="The inspector couldn't be displayed" />
+          <RenderFailureView {...fallback} title={t("The inspector couldn't be displayed")} />
         )}
       >
         {props.children}
