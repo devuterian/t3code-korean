@@ -15,8 +15,17 @@ import { shortcutKeyFromEvent } from "../../keybindings";
 import { isMacPlatform } from "../../lib/utils";
 import { METRIC_OPTIONS, WINDOW_OPTIONS } from "../usage/usageShortcuts";
 
+// Every usage.* command needs a slot here: mixing ordered and unordered
+// commands in one comparator is not transitive, so the result would depend on
+// input order once other default bindings are added.
+const [firstUsageMetric, ...otherUsageMetrics] = METRIC_OPTIONS;
 const usageCommandOrder = new Map<KeybindingCommand, number>(
-  [...METRIC_OPTIONS, ...WINDOW_OPTIONS].map((option, index) => [option.command, index]),
+  [
+    ...(firstUsageMetric ? [firstUsageMetric.command] : []),
+    "usage.open" as const,
+    ...otherUsageMetrics.map((option) => option.command),
+    ...WINDOW_OPTIONS.map((option) => option.command),
+  ].map((command, index) => [command, index]),
 );
 
 function compareUsageCommands(left: KeybindingCommand, right: KeybindingCommand): number | null {
