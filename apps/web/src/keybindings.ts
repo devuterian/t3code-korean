@@ -9,7 +9,6 @@ import {
   type ThreadJumpKeybindingCommand,
 } from "@t3tools/contracts";
 import {
-  isMacPlatform,
   matchesKeybindingShortcut,
   matchesKeybindingShortcutModifiers,
   normalizeEventKey,
