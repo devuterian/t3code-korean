@@ -69,7 +69,7 @@ export function shortcutKeyFromEvent(event: Pick<ShortcutEventLike, "key" | "cod
   return physicalKey ?? layoutKey;
 }
 
-function resolveEventKeys(event: ShortcutEventLike): Set<string> {
+export function resolveEventKeys(event: ShortcutEventLike): Set<string> {
   const layoutKey = normalizeEventKey(event.key);
   const keys = new Set([layoutKey]);
   const letterCode = event.code?.match(/^Key([A-Z])$/)?.[1];

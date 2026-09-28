@@ -26,6 +26,7 @@ import { shellEnvironment } from "./state/shell";
 import { useAtomCommand } from "./state/use-atom-command";
 import { resolvePathLinkTarget } from "./terminal-links";
 import { toastManager } from "./components/ui/toast";
+import { translate } from "./i18n/translate";
 import { useAtomValue } from "@effect/atom-react";
 
 export type FileContextMenuAction =
@@ -88,7 +89,7 @@ export function buildFileContextMenuItems(input: {
   if (!input.hasAbsolutePath) return [];
   const items: ContextMenuItem<FileContextMenuAction>[] = [];
   if (input.capabilities.canOpenDefault) {
-    items.push({ id: "open", label: "Open", icon: "pencil" });
+    items.push({ id: "open", label: translate("Open"), icon: "pencil" });
   }
   if (input.capabilities.revealLabel !== undefined) {
     items.push({
@@ -101,14 +102,14 @@ export function buildFileContextMenuItems(input: {
   if (editorIds.length > 0) {
     items.push({
       id: "open-with",
-      label: "Open with",
+      label: translate("Open with"),
       children: editorIds.map((editorId) => ({
         id: `editor:${editorId}` as FileContextMenuAction,
         label: EDITOR_LABEL_BY_ID.get(editorId) ?? editorId,
       })),
     });
   }
-  items.push({ id: "copy-full-path", label: "Copy full path" });
+  items.push({ id: "copy-full-path", label: translate("Copy full path") });
   return items;
 }
 
@@ -148,11 +149,15 @@ export function useFileContextMenu(environmentId: EnvironmentId | null) {
       if (action === "copy-full-path") {
         try {
           await writeTextToClipboard(absolutePath, "full path");
-          toastManager.add({ type: "success", title: "Path copied", description: absolutePath });
+          toastManager.add({
+            type: "success",
+            title: translate("Path copied"),
+            description: absolutePath,
+          });
         } catch {
           toastManager.add({
             type: "error",
-            title: "Failed to copy path",
+            title: translate("Failed to copy path"),
             description: absolutePath,
           });
         }

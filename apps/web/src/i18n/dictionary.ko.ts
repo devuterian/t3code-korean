@@ -1278,4 +1278,82 @@ export const KO_DICTIONARY: Readonly<Record<string, string>> = {
   "The hub's management key is deleted from this server. Its accounts leave the Limits view; the hub itself is untouched. Add it again with the URL and key to bring them back.":
     "이 서버에서 허브의 관리 키가 삭제됩니다. 해당 계정들은 한도 보기에서 사라지지만 허브 자체는 그대로입니다. 다시 표시하려면 URL과 키로 허브를 다시 추가하세요.",
   use: "회 사용",
+
+  // --- korean-qol: strings from upstream PRs merged on top of `korean` ---
+  // Sidebar sort menu
+  "Sort threads": "스레드 정렬",
+  "Sort active threads": "활성 스레드 정렬",
+  "Configured order": "설정한 순서",
+  "Last message": "마지막 메시지",
+  "Thread order not saved": "스레드 순서가 저장되지 않았습니다",
+  "Could not save to all environments. Try again.":
+    "일부 환경에 저장하지 못했습니다. 다시 시도하세요.",
+  // Working shelf
+  "Working section": "작업 중 섹션",
+  "Working section (beta)": "작업 중 섹션 (베타)",
+  "working section": "작업 중 섹션",
+  "Fold working and monitoring threads into a Working section. They return to the top of the inbox when they need you.":
+    "작업 중이거나 모니터링 중인 스레드를 작업 중 섹션으로 접습니다. 확인이 필요해지면 받은 편지함 맨 위로 돌아옵니다.",
+  // Thread auto-switch
+  "Thread auto-switch": "스레드 자동 전환",
+  "thread auto-switch": "스레드 자동 전환",
+  "Switch to a background thread that needs input or approval, fails, or (optionally) finishes, while this window is focused.":
+    "이 창에 포커스가 있는 동안 백그라운드 스레드가 입력이나 승인을 기다리거나, 실패하거나, (선택 시) 완료되면 해당 스레드로 전환합니다.",
+  "Needs input or failed": "입력 필요 또는 실패",
+  "Needs input, failed, or done": "입력 필요, 실패 또는 완료",
+  // Conversation text size
+  "Conversation size": "대화 글자 크기",
+  "conversation size": "대화 글자 크기",
+  "Conversation font size": "대화 글꼴 크기",
+  "Messages in a thread. Auto follows the interface size.":
+    "스레드의 메시지에 적용됩니다. 자동은 인터페이스 크기를 따릅니다.",
+  // Archived threads bulk actions
+  "Unarchive all": "모두 보관 해제",
+  "Delete all": "모두 삭제",
+  "Unarchive all in project": "프로젝트의 모든 스레드 보관 해제",
+  "Delete all in project": "프로젝트의 모든 스레드 삭제",
+  "This permanently clears conversation history for these threads.":
+    "이 스레드들의 대화 기록이 영구적으로 삭제됩니다.",
+  "Failed to unarchive threads": "스레드 보관을 해제하지 못했습니다",
+  "Failed to delete threads": "스레드를 삭제하지 못했습니다",
+  "An error occurred.": "오류가 발생했습니다.",
+  // Chat find bar
+  "Find in thread": "스레드에서 찾기",
+  "Find text": "찾을 텍스트",
+  "No results": "결과 없음",
+  "Load earlier": "이전 항목 불러오기",
+  "Loading…": "불러오는 중…",
+  "Previous match": "이전 일치 항목",
+  "Next match": "다음 일치 항목",
+  "Close find": "찾기 닫기",
+  // Thread width / fit tables
+  "Thread width": "스레드 너비",
+  Width: "너비",
+  "Decrease thread width": "스레드 너비 줄이기",
+  "Increase thread width": "스레드 너비 늘리기",
+  "Fit tables": "표 맞춤",
+  // Project / thread switcher
+  "Switch thread": "스레드 전환",
+  "Switch project": "프로젝트 전환",
+  "Nothing to switch to": "전환할 항목이 없습니다",
+  Current: "현재",
+  "No active threads in this project.": "이 프로젝트에 활성 스레드가 없습니다.",
+  "No projects yet.": "아직 프로젝트가 없습니다.",
+  "Release to switch · Esc to cancel": "키를 놓으면 전환 · Esc로 취소",
+  // Reopen closed tab, copy full path, unsettle last thread
+  "Could not reopen view": "보기를 다시 열 수 없습니다",
+  "Open with": "다음으로 열기",
+  "Copy full path": "전체 경로 복사",
+  "Path copied": "경로 복사됨",
+  "Failed to copy path": "경로를 복사하지 못했습니다",
+  "Failed to un-settle thread": "스레드 정리를 해제하지 못했습니다",
+  // Keybinding command labels
+  "Chat: Find": "채팅: 찾기",
+  "Project: Switcher": "프로젝트: 전환기",
+  "Project: Switcher Previous": "프로젝트: 전환기 (이전)",
+  "Thread: Switcher": "스레드: 전환기",
+  "Thread: Switcher Previous": "스레드: 전환기 (이전)",
+  "Thread: Unsettle Last": "스레드: 마지막 정리 해제",
+  "Thread: Stop": "스레드: 중지",
+  "Reopen Closed Tab": "닫은 탭 다시 열기",
 };

@@ -1,4 +1,5 @@
 import { useActiveThreadSort } from "../hooks/useActiveThreadSort";
+import { ACTIVE_THREAD_SORT_OPTIONS } from "@t3tools/client-runtime/state/shared-settings";
 import { requestCustomSnooze } from "./CustomSnoozeDialog";
 import { useSupportsMultiplePullRequests } from "~/hooks/useSupportsMultiplePullRequests";
 import { resolveThreadCurrentPullRequestLink } from "@t3tools/shared/threadPullRequests";
@@ -4764,13 +4765,13 @@ export default function Sidebar() {
                 <Menu>
                   <MenuTrigger
                     disabled={!sortAvailable}
-                    render={<SidebarHeaderIconButton label="Sort threads" />}
+                    render={<SidebarHeaderIconButton label={t("Sort threads")} />}
                   >
                     <ArrowUpDownIcon />
                   </MenuTrigger>
                   <MenuPopup align="end" side="bottom" className="min-w-48">
                     <div className="px-2 py-1 text-xs font-medium text-muted-foreground">
-                      Sort active threads
+                      {t("Sort active threads")}
                     </div>
                     <MenuRadioGroup
                       value={activeThreadSortOrder}
@@ -4781,8 +4782,11 @@ export default function Sidebar() {
                         }
                       }}
                     >
-                      <MenuRadioItem value="manual">Configured order</MenuRadioItem>
-                      <MenuRadioItem value="last_message">Last message</MenuRadioItem>
+                      {ACTIVE_THREAD_SORT_OPTIONS.map((option) => (
+                        <MenuRadioItem key={option.value} value={option.value}>
+                          {t(option.label)}
+                        </MenuRadioItem>
+                      ))}
                     </MenuRadioGroup>
                   </MenuPopup>
                 </Menu>

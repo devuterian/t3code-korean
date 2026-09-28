@@ -100,6 +100,18 @@ const LANGUAGE_PACKS: Partial<Record<InterfaceLanguage, LanguagePack>> = {
       [/^Worked for (.+)$/, (d) => `${d} 동안 작업함`],
       [/^Model Picker: Jump: (\d+)$/, (n) => `모델 선택기: 이동: ${n}`],
       [/^Thread: Jump: (\d+)$/, (n) => `스레드: 이동: ${n}`],
+      [/^Working \((\d+)\)$/, (n) => `작업 중 (${n})`],
+      [/^(\d+) archived threads?$/, (n) => `보관된 스레드 ${n}개`],
+      [/^Archived thread actions for (.+)$/, (project) => `${project}의 보관된 스레드 작업`],
+      [
+        /^(Delete \d+ archived threads?(?: in .+)?)\?$/,
+        (text) => {
+          const [, n, project] = /^Delete (\d+) archived threads?(?: in (.+))?$/.exec(text) ?? [];
+          return project
+            ? `${project}의 보관된 스레드 ${n}개를 삭제할까요?`
+            : `보관된 스레드 ${n}개를 삭제할까요?`;
+        },
+      ],
     ],
   },
 };

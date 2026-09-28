@@ -1,4 +1,5 @@
 import { cn } from "../lib/utils";
+import { useTranslate } from "../i18n/translate";
 import {
   CYCLE_SWITCHER_MODE,
   resolveCycleSwitcherOffsetForIndex,
@@ -50,6 +51,7 @@ function OpenCycleSwitcher({
   closeSwitcher,
   commitModifiersReleased,
 }: OpenCycleSwitcherProps) {
+  const t = useTranslate();
   const liveEntries = useCycleSwitcherEntries(mode);
   const { entries, activeIndex } = useCycleSwitcherSession({
     liveEntries,
@@ -65,7 +67,7 @@ function OpenCycleSwitcher({
 
   return (
     <div
-      aria-label={isThreadMode ? "Switch thread" : "Switch project"}
+      aria-label={isThreadMode ? t("Switch thread") : t("Switch project")}
       className="fixed inset-0 z-100 flex flex-col items-center justify-center gap-3 p-6"
       data-cycle-switcher={mode}
       onMouseDown={(event) => {
@@ -76,8 +78,8 @@ function OpenCycleSwitcher({
       role="dialog"
     >
       <div className="max-w-[92vw] truncate rounded-full bg-popover/95 px-3.5 py-1 text-xs font-medium text-popover-foreground shadow-lg backdrop-blur-md">
-        {activeEntry ? activeEntry.label : "Nothing to switch to"}
-        {activeEntry?.isCurrent ? " · Current" : ""}
+        {activeEntry ? activeEntry.label : t("Nothing to switch to")}
+        {activeEntry?.isCurrent ? ` · ${t("Current")}` : ""}
       </div>
       <div
         className={cn(
@@ -93,7 +95,7 @@ function OpenCycleSwitcher({
       >
         {entries.length === 0 ? (
           <p className="px-6 py-4 text-sm text-muted-foreground">
-            {isThreadMode ? "No active threads in this project." : "No projects yet."}
+            {isThreadMode ? t("No active threads in this project.") : t("No projects yet.")}
           </p>
         ) : (
           entries.map((entry, index) => {
@@ -140,7 +142,7 @@ function OpenCycleSwitcher({
                     </span>
                     {entry.isCurrent ? (
                       <span className="text-3xs shrink-0 rounded-full bg-foreground/10 px-1.5 py-0.5 font-medium uppercase tracking-wide">
-                        Current
+                        {t("Current")}
                       </span>
                     ) : null}
                   </>
@@ -159,7 +161,7 @@ function OpenCycleSwitcher({
           })
         )}
       </div>
-      <div className="text-2xs text-muted-foreground">Release to switch · Esc to cancel</div>
+      <div className="text-2xs text-muted-foreground">{t("Release to switch · Esc to cancel")}</div>
     </div>
   );
 }

@@ -35,6 +35,7 @@ import { isPreviewSupportedInRuntime } from "../previewStateStore";
 import { selectActiveRightPanel, useRightPanelStore } from "../rightPanelStore";
 import { useThreadSelectionStore } from "../threadSelectionStore";
 import { stackedThreadToast, toastManager } from "~/components/ui/toast";
+import { translate } from "~/i18n/translate";
 import { primaryServerKeybindingsAtom } from "~/state/server";
 
 function ChatRouteGlobalShortcuts() {
@@ -122,8 +123,9 @@ function ChatRouteGlobalShortcuts() {
             toastManager.add(
               stackedThreadToast({
                 type: "error",
-                title: "Failed to un-settle thread",
-                description: error instanceof Error ? error.message : "An error occurred.",
+                title: translate("Failed to un-settle thread"),
+                description:
+                  error instanceof Error ? error.message : translate("An error occurred."),
               }),
             );
           }

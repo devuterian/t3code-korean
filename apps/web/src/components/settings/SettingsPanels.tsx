@@ -1580,6 +1580,7 @@ function InterfaceFontRow({ preview }: { preview?: ReactNode }) {
 
 /** Conversation text size; "Auto" (null) keeps it on the interface size. */
 function ConversationFontSizeRow() {
+  const t = useTranslate();
   const settings = useScopedSettings();
   const updateSettings = useUpdateScopedSettings();
   const value = settings.fontSizeConversation;
@@ -1618,12 +1619,16 @@ function ConversationFontSizeRow() {
             }
           }}
         >
-          <SelectTrigger size="sm" className="w-22 shrink-0" aria-label="Conversation font size">
-            <SelectValue>{value === null ? "Auto" : `${value} px`}</SelectValue>
+          <SelectTrigger
+            size="sm"
+            className="w-22 shrink-0"
+            aria-label={t("Conversation font size")}
+          >
+            <SelectValue>{value === null ? t("Auto") : `${value} px`}</SelectValue>
           </SelectTrigger>
           <SelectPopup align="end" alignItemWithTrigger={false}>
             <SelectItem hideIndicator value="auto">
-              Auto ({settings.fontSizeInterface} px)
+              {t("Auto")} ({settings.fontSizeInterface} px)
             </SelectItem>
             {Array.from(
               { length: MAX_INTERFACE_FONT_SIZE - MIN_INTERFACE_FONT_SIZE + 1 },
@@ -2401,7 +2406,7 @@ export function GeneralSettingsPanel() {
               onCheckedChange={(checked) =>
                 updateSettings({ sidebarWorkingShelfEnabled: Boolean(checked) })
               }
-              aria-label="Working section (beta)"
+              aria-label={t("Working section (beta)")}
             />
           }
         />
@@ -2525,15 +2530,19 @@ export function GeneralSettingsPanel() {
                 }
               }}
             >
-              <SelectTrigger size="sm" className="w-full sm:w-40" aria-label="Thread auto-switch">
+              <SelectTrigger
+                size="sm"
+                className="w-full sm:w-40"
+                aria-label={t("Thread auto-switch")}
+              >
                 <SelectValue>
-                  {THREAD_AUTO_SWITCH_MODE_LABELS[settings.threadAutoSwitchMode]}
+                  {t(THREAD_AUTO_SWITCH_MODE_LABELS[settings.threadAutoSwitchMode])}
                 </SelectValue>
               </SelectTrigger>
               <SelectPopup align="end" alignItemWithTrigger={false}>
                 {Object.entries(THREAD_AUTO_SWITCH_MODE_LABELS).map(([value, label]) => (
                   <SelectItem key={value} hideIndicator value={value}>
-                    {label}
+                    {t(label)}
                   </SelectItem>
                 ))}
               </SelectPopup>
@@ -3638,8 +3647,10 @@ export function ArchivedThreadsPanel() {
         const confirmed = await settlePromise(() =>
           api.dialogs.confirm(
             [
-              `Delete ${threads.length} archived thread${threads.length === 1 ? "" : "s"}${scopeLabel}?`,
-              "This permanently clears conversation history for these threads.",
+              t(
+                `Delete ${threads.length} archived thread${threads.length === 1 ? "" : "s"}${scopeLabel}?`,
+              ),
+              t("This permanently clears conversation history for these threads."),
             ].join("\n"),
             { variant: "destructive" },
           ),
@@ -3657,14 +3668,15 @@ export function ArchivedThreadsPanel() {
         toastManager.add(
           stackedThreadToast({
             type: "error",
-            title:
+            title: t(
               action === "unarchive" ? "Failed to unarchive threads" : "Failed to delete threads",
-            description: error instanceof Error ? error.message : "An error occurred.",
+            ),
+            description: error instanceof Error ? error.message : t("An error occurred."),
           }),
         );
       }
     },
-    [deleteArchivedThreads, unarchiveThreads],
+    [deleteArchivedThreads, t, unarchiveThreads],
   );
 
   return (
@@ -3672,7 +3684,7 @@ export function ArchivedThreadsPanel() {
       {archivedGroups.length > 0 ? (
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-3 sm:px-4">
           <p className="text-sm text-muted-foreground">
-            {archivedThreadCount} archived thread{archivedThreadCount === 1 ? "" : "s"}
+            {t(`${archivedThreadCount} archived thread${archivedThreadCount === 1 ? "" : "s"}`)}
           </p>
           <div className="flex items-center gap-1.5">
             <Button
@@ -3689,7 +3701,7 @@ export function ArchivedThreadsPanel() {
               }}
             >
               <ArchiveX className="size-3.5" />
-              <span>Unarchive all</span>
+              <span>{t("Unarchive all")}</span>
             </Button>
             <Button
               type="button"
@@ -3705,7 +3717,7 @@ export function ArchivedThreadsPanel() {
               }}
             >
               <Trash2Icon className="size-3.5" />
-              <span>Delete all</span>
+              <span>{t("Delete all")}</span>
             </Button>
           </div>
         </div>
@@ -3753,7 +3765,7 @@ export function ArchivedThreadsPanel() {
                       variant="ghost-muted"
                       size="icon-xs"
                       disabled={isBulkActionPending}
-                      aria-label={`Archived thread actions for ${project.title}`}
+                      aria-label={t(`Archived thread actions for ${project.title}`)}
                     />
                   }
                 >
@@ -3766,7 +3778,7 @@ export function ArchivedThreadsPanel() {
                     }}
                   >
                     <ArchiveX />
-                    Unarchive all in project
+                    {t("Unarchive all in project")}
                   </MenuItem>
                   <MenuItem
                     variant="destructive"
@@ -3779,7 +3791,7 @@ export function ArchivedThreadsPanel() {
                     }}
                   >
                     <Trash2Icon />
-                    Delete all in project
+                    {t("Delete all in project")}
                   </MenuItem>
                 </MenuPopup>
               </Menu>

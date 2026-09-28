@@ -12,6 +12,7 @@ import {
   matchesKeybindingShortcut,
   matchesKeybindingShortcutModifiers,
   normalizeEventKey,
+  resolveEventKeys,
   type ShortcutEventLike,
   type ShortcutModifierStateLike,
 } from "@t3tools/shared/keybindings";

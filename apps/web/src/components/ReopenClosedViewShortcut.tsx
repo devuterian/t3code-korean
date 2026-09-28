@@ -42,6 +42,7 @@ import {
   resolveThreadRouteTarget,
 } from "../threadRoutes";
 import { toastManager } from "./ui/toast";
+import { translate } from "../i18n/translate";
 
 const isGlobalPullRequests = (ref: ScopedThreadRef) =>
   scopedThreadKey(ref) === scopedThreadKey(PULL_REQUESTS_PANEL_REF);
@@ -130,7 +131,7 @@ export function ReopenClosedViewShortcut() {
       .catch((error: unknown) => {
         toastManager.add({
           type: "error",
-          title: "Could not reopen view",
+          title: translate("Could not reopen view"),
           description: error instanceof Error ? error.message : String(error),
         });
       });

@@ -2,6 +2,7 @@ import { ChevronDownIcon, ChevronUpIcon, XIcon } from "lucide-react";
 import { useEffect, useRef } from "react";
 
 import { Button } from "../ui/button";
+import { useTranslate } from "../../i18n/translate";
 import { formatChatFindCount } from "./ChatFind.logic";
 import type { CitationHistoryPage } from "./useAssistantCitationTarget";
 
@@ -39,6 +40,7 @@ export function ChatFindBar({
   /** Non-null when older turns exist beyond the loaded window. */
   loadEarlier: CitationHistoryPage | null;
 }) {
+  const t = useTranslate();
   const inputRef = useRef<HTMLInputElement>(null);
   const handledFocusRequestRef = useRef<number | null>(null);
 
@@ -57,7 +59,7 @@ export function ChatFindBar({
   return (
     <div
       role="search"
-      aria-label="Find in thread"
+      aria-label={t("Find in thread")}
       className="surface-glass absolute top-2 right-4 z-30 flex items-center gap-0.5 rounded-lg border border-border/60 p-1 shadow-sm"
       onKeyDown={(event) => {
         if (event.nativeEvent.isComposing || event.keyCode === 229) return;
@@ -77,8 +79,8 @@ export function ChatFindBar({
         type="text"
         value={query}
         onChange={(event) => onQueryChange(event.target.value)}
-        placeholder="Find in thread"
-        aria-label="Find text"
+        placeholder={t("Find in thread")}
+        aria-label={t("Find text")}
         autoComplete="off"
         spellCheck={false}
         className="h-7 w-40 bg-transparent px-2 text-sm outline-none placeholder:text-placeholder sm:w-48"
@@ -87,7 +89,7 @@ export function ChatFindBar({
         aria-live="polite"
         className="min-w-12 px-1 text-right text-muted-foreground text-xs tabular-nums"
       >
-        {hasQuery ? formatChatFindCount(activeIndex, matchCount) : null}
+        {hasQuery ? t(formatChatFindCount(activeIndex, matchCount)) : null}
       </span>
       {loadEarlier ? (
         <Button
@@ -97,14 +99,14 @@ export function ChatFindBar({
           disabled={loadEarlier.loading}
           onClick={loadEarlier.onLoadEarlier}
         >
-          {loadEarlier.loading ? "Loading…" : "Load earlier"}
+          {loadEarlier.loading ? t("Loading…") : t("Load earlier")}
         </Button>
       ) : null}
       <Button
         type="button"
         size="icon-sm"
         variant="ghost-muted"
-        aria-label="Previous match"
+        aria-label={t("Previous match")}
         disabled={matchCount === 0}
         onClick={() => onStep(-1)}
       >
@@ -114,7 +116,7 @@ export function ChatFindBar({
         type="button"
         size="icon-sm"
         variant="ghost-muted"
-        aria-label="Next match"
+        aria-label={t("Next match")}
         disabled={matchCount === 0}
         onClick={() => onStep(1)}
       >
@@ -124,7 +126,7 @@ export function ChatFindBar({
         type="button"
         size="icon-sm"
         variant="ghost-muted"
-        aria-label="Close find"
+        aria-label={t("Close find")}
         onClick={onClose}
       >
         <XIcon />

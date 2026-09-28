@@ -1,4 +1,5 @@
 import { toastManager } from "../components/ui/toast";
+import { translate } from "../i18n/translate";
 import { AsyncResult } from "effect/unstable/reactivity";
 import { useAtomValue } from "@effect/atom-react";
 import { useCallback, useMemo } from "react";
@@ -39,8 +40,8 @@ export function useActiveThreadSort() {
         if (results.some((result) => !AsyncResult.isSuccess(result))) {
           toastManager.add({
             type: "error",
-            title: "Thread order not saved",
-            description: "Could not save to all environments. Try again.",
+            title: translate("Thread order not saved"),
+            description: translate("Could not save to all environments. Try again."),
           });
         }
       });

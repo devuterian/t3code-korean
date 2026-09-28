@@ -207,7 +207,7 @@ describe("collectChatFindMatches", () => {
   });
 
   it("reuses the normalized text while an entry is unchanged", () => {
-    const entry = message("m1", "**bold** text");
+    const entry = message("m1", "**bold** text") as Extract<TimelineEntry, { kind: "message" }>;
     const first = chatFindEntrySource(entry)!.text;
     expect(chatFindEntrySource(entry)!.text).toBe(first);
     expect(
