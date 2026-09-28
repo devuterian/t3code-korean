@@ -10,6 +10,7 @@ import { Button } from "../ui/button";
 import { Popover, PopoverClose, PopoverPopup, PopoverTrigger } from "../ui/popover";
 import { normalizeProviderAccentColor } from "../../providerInstances";
 import { cn } from "../../lib/utils";
+import { useTranslate } from "../../i18n/translate";
 
 const FALLBACK_ACCENT_COLOR = "#2563eb";
 
@@ -17,6 +18,7 @@ function ProviderCustomColorPanel(props: {
   readonly value: string;
   readonly onCommit: (value: string) => void;
 }) {
+  const t = useTranslate();
   const { onCommit } = props;
   const [hsv, setHsv] = useState(() => hexToHsv(props.value));
   const currentColor = hsvToHex(hsv.h, hsv.s, hsv.v);
@@ -33,14 +35,14 @@ function ProviderCustomColorPanel(props: {
   return (
     <div className="w-56 bg-popover">
       <ColorSaturationValuePlane
-        label="Accent color"
+        label={t("Accent color")}
         value={hsv}
         onChange={commitHsv}
         variant="edge"
       />
       <div className="grid gap-3 p-3">
         <ColorHueSlider
-          label="Accent color hue"
+          label={t("Accent color hue")}
           value={hsv.h}
           onChange={(h) => commitHsv({ ...hsv, h })}
         />
@@ -57,7 +59,7 @@ function ProviderCustomColorPanel(props: {
           }}
           onBlur={() => setHexDraft(null)}
           font="mono"
-          aria-label="Custom hex accent color"
+          aria-label={t("Custom hex accent color")}
           spellCheck={false}
         />
       </div>
@@ -71,6 +73,7 @@ function ProviderCustomColorPicker(props: {
   readonly onCommit: (value: string) => void;
   readonly onClear: () => void;
 }) {
+  const t = useTranslate();
   const normalized = normalizeProviderAccentColor(props.value) ?? FALLBACK_ACCENT_COLOR;
 
   return (
@@ -104,7 +107,7 @@ function ProviderCustomColorPicker(props: {
                 disabled={!props.value}
               >
                 <XIcon aria-hidden />
-                Clear color
+                {t("Clear color")}
               </Button>
             }
           />
@@ -131,6 +134,7 @@ export function ProviderAccentColorPicker(props: {
     onCommit,
     value,
   } = props;
+  const t = useTranslate();
   const [optimisticValue, setOptimisticValue] = useState(() => value ?? "");
   const commitTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingCommitRef = useRef<string | null>(null);
@@ -204,7 +208,7 @@ export function ProviderAccentColorPicker(props: {
 
   return (
     <div className="grid gap-2">
-      <span className="text-xs font-medium text-foreground">Accent color</span>
+      <span className="text-xs font-medium text-foreground">{t("Accent color")}</span>
       {picker}
       {description ? <span className="text-xs text-muted-foreground">{description}</span> : null}
     </div>

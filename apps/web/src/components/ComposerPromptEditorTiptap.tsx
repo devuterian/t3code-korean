@@ -66,6 +66,7 @@ import { getTimelinePageScrollKey } from "./chat/pageScrollController";
 import { ContextChipPopover } from "./contextChipParts";
 import { Button } from "./ui/button";
 import { ContextChip } from "./ContextChip";
+import { useTranslate } from "../i18n/translate";
 import {
   ComposerContextActionsContext,
   ComposerContextReferenceChip,
@@ -271,6 +272,7 @@ const ComposerSkillExtension = Node.create({
 });
 
 function ComposerSkillNodeView({ node }: NodeViewProps) {
+  const t = useTranslate();
   const actions = use(ComposerContextActionsContext);
   const skills = use(RichComposerSkillsContext);
   const skillName = (node.attrs.skillName as string) ?? "";
@@ -283,18 +285,18 @@ function ComposerSkillNodeView({ node }: NodeViewProps) {
         kind="skill"
         icon={<SkillChipIcon />}
         label={skillLabel}
-        accessibleLabel={`Skill ${skillLabel}`}
+        accessibleLabel={`${t("Skill")} ${skillLabel}`}
       >
         <div className="space-y-3 p-2 text-sm">
           <p className="font-medium">{skillLabel}</p>
           <p>
             {skill?.description ??
               skillDescription ??
-              "No description is available for this skill."}
+              t("No description is available for this skill.")}
           </p>
           {skill?.path ? (
             <Button variant="outline" size="sm" onClick={() => actions.openMention(skill.path)}>
-              View instructions
+              {t("View instructions")}
             </Button>
           ) : null}
         </div>

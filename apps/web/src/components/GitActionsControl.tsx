@@ -50,6 +50,7 @@ import { RadioGroup } from "~/components/ui/radio-group";
 import { Spinner } from "~/components/ui/spinner";
 import { Toggle, ToggleGroup } from "~/components/ui/toggle-group";
 import { cn } from "~/lib/utils";
+import { useTranslate } from "~/i18n/translate";
 import {
   buildGitActionProgressStages,
   buildMenuItems,
@@ -949,6 +950,7 @@ export default function GitActionsControl({
   draftId,
   onOpenPullRequest,
 }: GitActionsControlProps) {
+  const t = useTranslate();
   const updateThreadMetadata = useAtomCommand(
     threadEnvironment.updateMetadata,
     "thread branch metadata update",
@@ -1663,7 +1665,7 @@ export default function GitActionsControl({
             <div key={`${item.id}-${item.label}`}>
               <MenuItem density={presentation === "menu" ? "touch" : "default"} disabled>
                 <GitActionItemIcon icon={item.icon} SourceControlIcon={SourceControlIcon} />
-                <MenuItemLabel>{item.label}</MenuItemLabel>
+                <MenuItemLabel>{t(item.label)}</MenuItemLabel>
               </MenuItem>
               <p className="max-w-64 px-2 pb-2 text-xs text-muted-foreground">{disabledReason}</p>
             </div>
@@ -1683,7 +1685,7 @@ export default function GitActionsControl({
                   disabled
                 >
                   <GitActionItemIcon icon={item.icon} SourceControlIcon={SourceControlIcon} />
-                  <MenuItemLabel>{item.label}</MenuItemLabel>
+                  <MenuItemLabel>{t(item.label)}</MenuItemLabel>
                 </MenuItem>
               </PopoverTrigger>
               <PopoverPopup tooltipStyle side="left" align="center">
@@ -1703,7 +1705,7 @@ export default function GitActionsControl({
             }}
           >
             <GitActionItemIcon icon={item.icon} SourceControlIcon={SourceControlIcon} />
-            <MenuItemLabel>{item.label}</MenuItemLabel>
+            <MenuItemLabel>{t(item.label)}</MenuItemLabel>
           </MenuItem>
         );
       })}
@@ -1749,7 +1751,7 @@ export default function GitActionsControl({
           >
             <GitBranchPlusIcon className="size-4" />
             <MenuItemLabel>
-              {initAction.isPending ? "Initializing..." : "Initialize Git"}
+              {initAction.isPending ? t("Initializing...") : t("Initialize Git")}
             </MenuItemLabel>
           </MenuItem>
         ) : (
@@ -1765,7 +1767,7 @@ export default function GitActionsControl({
                 quickAction={quickAction}
                 SourceControlIcon={SourceControlIcon}
               />
-              <MenuItemLabel>{quickAction.label}</MenuItemLabel>
+              <MenuItemLabel>{t(quickAction.label)}</MenuItemLabel>
             </MenuItem>
             {quickActionDisabledReason && (
               <p className="max-w-64 px-2 py-1.5 text-xs text-warning">
@@ -1779,7 +1781,7 @@ export default function GitActionsControl({
             >
               <MenuSubTrigger density="touch" disabled={isGitActionRunning}>
                 <SourceControlIcon className="size-4" />
-                <MenuItemLabel>Git actions</MenuItemLabel>
+                <MenuItemLabel>{t("Git actions")}</MenuItemLabel>
               </MenuSubTrigger>
               <MenuSubPopup>{gitItems}</MenuSubPopup>
             </MenuSub>
@@ -1789,11 +1791,11 @@ export default function GitActionsControl({
         <Button variant="outline" size="xs" disabled={initAction.isPending} onClick={initializeGit}>
           <GitBranchPlusIcon className="size-3.5" aria-hidden />
           <span className="ml-0.5">
-            {initAction.isPending ? "Initializing..." : "Initialize Git"}
+            {initAction.isPending ? t("Initializing...") : t("Initialize Git")}
           </span>
         </Button>
       ) : (
-        <Group aria-label="Git actions" className="shrink-0">
+        <Group aria-label={t("Git actions")} className="shrink-0">
           {quickActionDisabledReason ? (
             <Popover>
               <PopoverTrigger
@@ -1805,7 +1807,7 @@ export default function GitActionsControl({
                   SourceControlIcon={SourceControlIcon}
                 />
                 <span className="sr-only @3xl/header-actions:not-sr-only @3xl/header-actions:ml-0.5">
-                  {quickAction.label}
+                  {t(quickAction.label)}
                 </span>
               </PopoverTrigger>
               <PopoverPopup tooltipStyle side="bottom" align="start">
@@ -1821,7 +1823,7 @@ export default function GitActionsControl({
             >
               <GitQuickActionIcon quickAction={quickAction} SourceControlIcon={SourceControlIcon} />
               <span className="sr-only @3xl/header-actions:not-sr-only @3xl/header-actions:ml-0.5">
-                {quickAction.label}
+                {t(quickAction.label)}
               </span>
             </Button>
           )}
@@ -1834,7 +1836,9 @@ export default function GitActionsControl({
             }}
           >
             <MenuTrigger
-              render={<Button aria-label="Git action options" size="icon-xs" variant="outline" />}
+              render={
+                <Button aria-label={t("Git action options")} size="icon-xs" variant="outline" />
+              }
               disabled={isGitActionRunning}
             >
               <ChevronDownIcon aria-hidden="true" className="size-4" />
@@ -1977,7 +1981,7 @@ export default function GitActionsControl({
               </div>
             </div>
             <div className="space-y-1">
-              <p className="text-sm font-medium">Commit message (optional)</p>
+              <p className="text-sm font-medium">{t("Commit message (optional)")}</p>
               <Textarea
                 value={dialogCommitMessage}
                 onChange={(event) => setDialogCommitMessage(event.target.value)}

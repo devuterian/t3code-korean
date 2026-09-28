@@ -38,6 +38,7 @@ import {
   MenuSubPopup,
 } from "./ui/menu";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "./ui/tooltip";
+import { useTranslate } from "../i18n/translate";
 
 export type { NewProjectScriptInput, ProjectScriptActionResult };
 
@@ -72,6 +73,7 @@ export default function ProjectScriptsControl({
   onUpdateScript,
   onDeleteScript,
 }: ProjectScriptsControlProps) {
+  const t = useTranslate();
   const [actionsMenuOpen, setActionsMenuOpen] = useState({
     presentation,
     scripts: false,
@@ -146,7 +148,7 @@ export default function ProjectScriptsControl({
     <>
       {primaryScript && <MenuSeparator />}
       <MenuGroup>
-        <MenuGroupLabel>From t3.json</MenuGroupLabel>
+        <MenuGroupLabel>{t("From t3.json")}</MenuGroupLabel>
         {importableScripts.map((fileScript) => (
           <MenuItem
             density={presentation === "menu" ? "touch" : "default"}
@@ -156,7 +158,7 @@ export default function ProjectScriptsControl({
             <ScriptIcon icon={fileScript.icon ?? "play"} className="size-4" />
             <MenuItemLabel>{fileScript.name}</MenuItemLabel>
             <MenuShortcut>
-              <DownloadIcon className="size-3.5" aria-label="Import" />
+              <DownloadIcon className="size-3.5" aria-label={t("Import")} />
             </MenuShortcut>
           </MenuItem>
         ))}
@@ -221,7 +223,7 @@ export default function ProjectScriptsControl({
       {importMenuItems}
       <MenuItem density={presentation === "menu" ? "touch" : "default"} onClick={openAddDialog}>
         <PlusIcon className="size-4" />
-        <MenuItemLabel>Add action</MenuItemLabel>
+        <MenuItemLabel>{t("Add action")}</MenuItemLabel>
       </MenuItem>
     </>
   );
@@ -251,7 +253,7 @@ export default function ProjectScriptsControl({
             >
               <MenuSubTrigger density="touch">
                 <ScriptIcon icon="play" className="size-4" />
-                <MenuItemLabel>Project actions</MenuItemLabel>
+                <MenuItemLabel>{t("Project actions")}</MenuItemLabel>
               </MenuSubTrigger>
               <MenuSubPopup>{scriptItems}</MenuSubPopup>
             </MenuSub>
@@ -261,12 +263,12 @@ export default function ProjectScriptsControl({
               onClick={openAddDialog}
             >
               <PlusIcon className="size-4" />
-              <MenuItemLabel>Add project action…</MenuItemLabel>
+              <MenuItemLabel>{t("Add project action…")}</MenuItemLabel>
             </MenuItem>
           )}
         </>
       ) : primaryScript ? (
-        <Group aria-label="Project scripts">
+        <Group aria-label={t("Project scripts")}>
           <Tooltip>
             <TooltipTrigger
               render={
@@ -311,10 +313,12 @@ export default function ProjectScriptsControl({
             setActionsMenuOpen({ presentation, scripts: false, imports: open })
           }
         >
-          <MenuTrigger render={<Button size="xs" variant="outline" aria-label="Project actions" />}>
+          <MenuTrigger
+            render={<Button size="xs" variant="outline" aria-label={t("Project actions")} />}
+          >
             <PlusIcon className="size-3.5" />
             <span className="sr-only @3xl/header-actions:not-sr-only @3xl/header-actions:ml-0.5">
-              Add action
+              {t("Add action")}
             </span>
             <ChevronDownIcon className="size-3.5" />
           </MenuTrigger>
@@ -322,7 +326,7 @@ export default function ProjectScriptsControl({
             {importMenuItems}
             <MenuItem onClick={openAddDialog}>
               <PlusIcon className="size-4" />
-              Add action
+              {t("Add action")}
             </MenuItem>
           </MenuPopup>
         </Menu>
@@ -334,7 +338,7 @@ export default function ProjectScriptsControl({
                 size="xs"
                 variant="outline"
                 className="w-7 sm:w-6 @3xl/header-actions:w-auto!"
-                aria-label="Add action"
+                aria-label={t("Add action")}
                 // The tooltip wrapper replaces data-slot="button", so themed
                 // toolbar styling needs its own hook.
                 data-toolbar-control=""
@@ -344,10 +348,10 @@ export default function ProjectScriptsControl({
           >
             <PlusIcon className="size-3.5" />
             <span className="sr-only @3xl/header-actions:not-sr-only @3xl/header-actions:ml-0.5">
-              Add action
+              {t("Add action")}
             </span>
           </TooltipTrigger>
-          <TooltipPopup side="top">Add action</TooltipPopup>
+          <TooltipPopup side="top">{t("Add action")}</TooltipPopup>
         </Tooltip>
       )}
 

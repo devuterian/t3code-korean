@@ -46,6 +46,7 @@ import {
   type ProviderInstanceEntry,
 } from "../../providerInstances";
 import { providerModelKey, sortProviderModelItems } from "../../modelOrdering";
+import { useTranslate } from "../../i18n/translate";
 
 type ModelPickerItem = {
   slug: string;
@@ -182,6 +183,7 @@ export const ModelPickerContent = memo(function ModelPickerContent(props: {
   getModelDisabledReason?: (instanceId: ProviderInstanceId, model: string) => string | null;
   onInstanceModelChange: (instanceId: ProviderInstanceId, model: string) => void;
 }) {
+  const t = useTranslate();
   const {
     keybindings: providedKeybindings,
     modelOptionsByInstance,
@@ -884,7 +886,7 @@ export const ModelPickerContent = memo(function ModelPickerContent(props: {
           >
             <ComboboxSearchInput
               ref={searchInputRef}
-              placeholder="Search models..."
+              placeholder={t("Search models...")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => {
@@ -958,9 +960,11 @@ export const ModelPickerContent = memo(function ModelPickerContent(props: {
                           className="group w-full cursor-pointer"
                         >
                           <div className="min-w-0 flex-1 text-left">
-                            <div className="text-xs font-medium leading-snug">Legacy models</div>
+                            <div className="text-xs font-medium leading-snug">
+                              {t("Legacy models")}
+                            </div>
                             <div className="mt-1 text-xs font-normal leading-snug text-muted-foreground/70">
-                              {legacySection.legacyModels.length} models
+                              {legacySection.legacyModels.length} {t("models")}
                             </div>
                           </div>
                           <ChevronRightIcon
@@ -1040,13 +1044,13 @@ export const ModelPickerContent = memo(function ModelPickerContent(props: {
                     >
                       {providerSetupEntries.length > 1
                         ? `Set up ${entry.displayName}`
-                        : "Open provider setup"}
+                        : t("Open provider setup")}
                     </InlineButton>
                   </div>
                 ))}
               </div>
             ) : (
-              <ComboboxEmpty className="empty:h-0">No models found</ComboboxEmpty>
+              <ComboboxEmpty className="empty:h-0">{t("No models found")}</ComboboxEmpty>
             )}
           </div>
         </Combobox>
