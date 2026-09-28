@@ -24,6 +24,7 @@ import { AppText as Text } from "../../components/AppText";
 import { SymbolView } from "../../components/AppSymbol";
 import { ControlPill } from "../../components/ControlPill";
 import { NATIVE_LIQUID_GLASS_SUPPORTED } from "../../native/native-glass";
+import { formatCompactDuration, translate, useTranslate } from "../../i18n/translate";
 import { DevicePreviewButton } from "../devices/device-preview-button";
 import type { FloatingWorkingStatus } from "./floating-working-status";
 import { ShimmeringWorkContent } from "./thread-work-log";
@@ -226,7 +227,7 @@ export function FloatingWorkingControl(props: {
             style={[arrowTransformStyle, arrowContentStyle]}
           >
             <ControlPill
-              accessibilityLabel="Scroll to end"
+              accessibilityLabel={translate("Scroll to end")}
               activateOnPressIn
               className="h-11 w-11 border border-border bg-glass-fallback shadow-md shadow-black/10"
               disabled={!props.showScrollToEnd}
@@ -246,7 +247,7 @@ export function FloatingWorkingControl(props: {
         </UniwindGlassView>
       ) : (
         <ControlPill
-          accessibilityLabel="Scroll to end"
+          accessibilityLabel={translate("Scroll to end")}
           activateOnPressIn
           className="h-11 w-11 border border-border bg-glass-fallback shadow-md shadow-black/10"
           icon={{ ios: "chevron.down", android: "keyboard_arrow_down" }}
@@ -258,15 +259,20 @@ export function FloatingWorkingControl(props: {
 }
 
 function CompactingLabel(props: { readonly onLayout: (event: LayoutChangeEvent) => void }) {
+  const t = useTranslate();
   return (
-    <StatusLabelRow accessibilityLabel="Compacting" className="gap-1.5" onLayout={props.onLayout}>
+    <StatusLabelRow
+      accessibilityLabel={t("Compacting")}
+      className="gap-1.5"
+      onLayout={props.onLayout}
+    >
       <SymbolView
         name="arrow.down.right.and.arrow.up.left"
         size={13}
         tintColorClassName="foreground"
         type="monochrome"
       />
-      <Text className="font-t3-medium text-xs text-foreground">Compacting…</Text>
+      <Text className="font-t3-medium text-xs text-foreground">{t("Compacting…")}</Text>
     </StatusLabelRow>
   );
 }
@@ -389,6 +395,7 @@ function WorkingDuration(props: {
   readonly startedAt: string;
   readonly onLayout: (event: LayoutChangeEvent) => void;
 }) {
+  const t = useTranslate();
   const [nowMs, setNowMs] = useState(() => Date.now());
 
   useEffect(() => {
@@ -398,44 +405,54 @@ function WorkingDuration(props: {
   }, [props.startedAt]);
 
   const duration = formatWorkingDuration(props.startedAt, nowMs);
-  const label = `Working for ${duration}`;
+  const label = t("Working for {duration}", { duration });
+  // The duration keeps tabular digits, so render the translated words around it.
+  const [prefix = "", suffix = ""] = t("Working for {duration}").split("{duration}");
 
   return (
     <StatusLabelRow accessibilityLabel={label} onLayout={props.onLayout}>
-      <Text className="font-t3-medium text-xs text-foreground">Working for </Text>
+      {prefix ? <Text className="font-t3-medium text-xs text-foreground">{prefix}</Text> : null}
       <SystemText
         className="text-xs text-foreground"
         style={{ fontVariant: ["tabular-nums"], fontWeight: "500" }}
       >
         {duration}
       </SystemText>
+      {suffix ? <Text className="font-t3-medium text-xs text-foreground">{suffix}</Text> : null}
     </StatusLabelRow>
+  );
+}
+
+/** Compact `1h 5m 3s` units, spelled in the interface language. */
+function localizeDurationUnits(duration: string): string {
+  return duration.replace(/(\d+)(h|m|s)\b/g, (_match, amount: string, unit: "h" | "m" | "s") =>
+    formatCompactDuration(Number(amount), unit),
   );
 }
 
 function formatWorkingDuration(startedAt: string, nowMs: number): string {
   const startedAtMs = Date.parse(startedAt);
   if (!Number.isFinite(startedAtMs) || nowMs <= startedAtMs) {
-    return "0s";
+    return localizeDurationUnits("0s");
   }
 
   const totalSeconds = Math.floor((nowMs - startedAtMs) / 1_000);
   if (totalSeconds < 60) {
-    return `${totalSeconds}s`;
+    return localizeDurationUnits(`${totalSeconds}s`);
   }
   if (totalSeconds >= 3_600) {
-    return formatDuration(totalSeconds * 1_000);
+    return localizeDurationUnits(formatDuration(totalSeconds * 1_000));
   }
 
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = String(totalSeconds % 60).padStart(2, "0");
-  return `${minutes}m ${seconds}s`;
+  return localizeDurationUnits(`${minutes}m ${seconds}s`);
 }
 
 function ScrollToEndButton(props: { readonly disabled?: boolean; readonly onPress: () => void }) {
   return (
     <ControlPill
-      accessibilityLabel="Scroll to end"
+      accessibilityLabel={translate("Scroll to end")}
       activateOnPressIn
       className="h-11 w-11 bg-transparent"
       disabled={props.disabled}

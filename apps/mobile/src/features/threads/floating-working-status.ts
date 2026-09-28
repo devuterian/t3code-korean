@@ -1,5 +1,7 @@
 import type { EnvironmentConnectionPhase } from "@t3tools/client-runtime/connection";
 
+import { translate } from "../../i18n/translate";
+
 /**
  * What the floating pill says. Connection, syncing, and working share one
  * element so the label swaps in place instead of one pill fading out for
@@ -29,7 +31,7 @@ export function connectionFloatingStatus(input: {
   readonly environmentLabel: string | null;
   readonly onReconnect: () => void;
 }): FloatingWorkingStatus | null {
-  const environmentLabel = input.environmentLabel ?? "Environment";
+  const environmentLabel = input.environmentLabel ?? translate("Environment");
   const unavailable = (label: string): FloatingWorkingStatus => ({
     kind: "connection",
     tone: "unavailable",
@@ -45,22 +47,29 @@ export function connectionFloatingStatus(input: {
         tone: "reconnecting",
         label:
           input.connectionError === null
-            ? `Reconnecting to ${environmentLabel}...`
-            : `Failed to connect. Retrying ${environmentLabel}...`,
+            ? translate("Reconnecting to {environment}...", { environment: environmentLabel })
+            : translate("Failed to connect. Retrying {environment}...", {
+                environment: environmentLabel,
+              }),
         onPress: input.onReconnect,
       };
     case "offline":
-      return unavailable("You are offline");
+      return unavailable(translate("You are offline"));
     case "unsupported":
-      return unavailable("Client not supported");
+      return unavailable(translate("Client not supported"));
     case "error":
       return unavailable(
         input.connectionError
-          ? `Failed to connect to ${environmentLabel}: ${input.connectionError}`
-          : `Failed to connect to ${environmentLabel}`,
+          ? translate("Failed to connect to {environment}: {error}", {
+              environment: environmentLabel,
+              error: input.connectionError,
+            })
+          : translate("Failed to connect to {environment}", { environment: environmentLabel }),
       );
     case "available":
-      return unavailable(`${environmentLabel} is not connected`);
+      return unavailable(
+        translate("{environment} is not connected", { environment: environmentLabel }),
+      );
     case "connected":
       return null;
   }

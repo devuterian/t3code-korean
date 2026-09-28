@@ -30,6 +30,7 @@ import { useEffect, useState } from "react";
 import { AppState, useWindowDimensions } from "react-native";
 
 import { OverlayPortal } from "../../components/OverlayPortal";
+import { getFormattingLocale, useTranslate } from "../../i18n/translate";
 import { useAppearancePreferences } from "../settings/appearance/AppearancePreferencesProvider";
 import { useScaledTextRole } from "../settings/appearance/useScaledTextRole";
 import type { CustomSnoozeSheet as SharedCustomSnoozeSheet } from "./CustomSnoozeSheet.shared";
@@ -58,6 +59,8 @@ function systemUses24HourClock() {
 }
 
 export function CustomSnoozeSheet(props: Props) {
+  const t = useTranslate();
+  const locale = getFormattingLocale();
   const { themeAppearance, themeVariables: colors } = useAppearancePreferences();
   const [is24Hour, setIs24Hour] = useState(systemUses24HourClock);
   useEffect(() => {
@@ -83,7 +86,9 @@ export function CustomSnoozeSheet(props: Props) {
     const snoozedUntil = resolveCustomSnooze(input, new Date());
     if (!snoozedUntil) {
       setError(
-        mode === "date" ? "Choose a date and time in the future." : "Enter a positive duration.",
+        mode === "date"
+          ? t("Choose a date and time in the future.")
+          : t("Enter a positive duration."),
       );
       return;
     }
@@ -140,9 +145,9 @@ export function CustomSnoozeSheet(props: Props) {
                 verticalArrangement={{ spacedBy: 16 }}
                 modifiers={[fillMaxWidth(), padding(24, 24, 24, 16)]}
               >
-                <Text style={titleTypography}>Custom snooze</Text>
+                <Text style={titleTypography}>{t("Custom snooze")}</Text>
                 <MaterialSegmentedButtons
-                  options={modes}
+                  options={modes.map((option) => ({ ...option, label: t(option.label) }))}
                   selected={mode}
                   onSelect={(value) => {
                     setMode(value);
@@ -154,11 +159,11 @@ export function CustomSnoozeSheet(props: Props) {
                     options={[
                       {
                         value: "date",
-                        label: date.toLocaleDateString([], { month: "short", day: "numeric" }),
+                        label: date.toLocaleDateString(locale, { month: "short", day: "numeric" }),
                       },
                       {
                         value: "time",
-                        label: date.toLocaleTimeString([], {
+                        label: date.toLocaleTimeString(locale, {
                           hour: "numeric",
                           minute: "2-digit",
                           hourCycle: is24Hour ? "h23" : "h12",
@@ -224,7 +229,11 @@ export function CustomSnoozeSheet(props: Props) {
                       <Text style={titleTypography}>+</Text>
                     </FilledTonalIconButton>
                   </Row>
-                  <MaterialSegmentedButtons options={units} selected={unit} onSelect={setUnit} />
+                  <MaterialSegmentedButtons
+                    options={units.map((option) => ({ ...option, label: t(option.label) }))}
+                    selected={unit}
+                    onSelect={setUnit}
+                  />
                 </Column>
               )}
               <Column
@@ -241,13 +250,13 @@ export function CustomSnoozeSheet(props: Props) {
                     onClick={props.onClose}
                     colors={{ contentColor: colors["--color-foreground"] }}
                   >
-                    <Text style={bodyTypography}>Cancel</Text>
+                    <Text style={bodyTypography}>{t("Cancel")}</Text>
                   </TextButton>
                   <TextButton
                     onClick={submit}
                     colors={{ contentColor: colors["--color-foreground"] }}
                   >
-                    <Text style={bodyTypography}>Snooze</Text>
+                    <Text style={bodyTypography}>{t("Snooze")}</Text>
                   </TextButton>
                 </Row>
               </Column>

@@ -1,0 +1,250 @@
+/** Home thread list, sidebar, archive, snooze sheet, and root navigation. */
+export const KO_HOME: Readonly<Record<string, string>> = {
+  // Root navigation titles
+  "Project overview": "프로젝트 개요",
+  "Client Storage": "클라이언트 저장소",
+  Diagnostics: "진단",
+  Account: "계정",
+  "Open source licenses": "오픈 소스 라이선스",
+  "License notice": "라이선스 고지",
+  "Add Project": "프로젝트 추가",
+  Legal: "법률 정보",
+  "Set up T3 Connect": "T3 Connect 설정",
+  "Route not found": "경로를 찾을 수 없음",
+  "Return home": "홈으로 돌아가기",
+  "Open settings": "설정 열기",
+
+  // Thread list filters
+  Environment: "환경",
+  "All environments": "모든 환경",
+  "Show threads from every environment": "모든 환경의 스레드 표시",
+  Project: "프로젝트",
+  "All projects": "모든 프로젝트",
+  "Show threads from every project": "모든 프로젝트의 스레드 표시",
+  Search: "검색",
+  "Search threads": "스레드 검색",
+  "Clear search": "검색어 지우기",
+  "Close search": "검색 닫기",
+  "Filter threads": "스레드 필터",
+  Threads: "스레드",
+  "T3 Code, Threads": "T3 Code, 스레드",
+  "New thread": "새 스레드",
+  "Opens environment settings": "환경 설정을 엽니다",
+
+  // Pending tasks
+  "Discard draft?": "초안을 삭제할까요?",
+  "“{title}” will be removed.": "“{title}”이(가) 삭제됩니다.",
+  Discard: "삭제",
+  "Delete pending task?": "대기 중인 작업을 삭제할까요?",
+  "“{title}” has not been sent yet and will be removed from the outbox.":
+    "“{title}”은(는) 아직 전송되지 않았으며 보낼 편지함에서 삭제됩니다.",
+  "Could not delete pending task": "대기 중인 작업을 삭제할 수 없음",
+  "The pending task could not be removed.": "대기 중인 작업을 삭제할 수 없습니다.",
+
+  // Thread actions
+  "Could not archive thread": "스레드를 보관할 수 없음",
+  "Could not unarchive thread": "스레드 보관을 해제할 수 없음",
+  "Could not settle thread": "스레드를 정리할 수 없음",
+  "Could not un-settle thread": "스레드 정리를 해제할 수 없음",
+  "Could not delete thread": "스레드를 삭제할 수 없음",
+  "The thread could not be archived.": "스레드를 보관할 수 없습니다.",
+  "The thread could not be unarchived.": "스레드 보관을 해제할 수 없습니다.",
+  "The thread could not be deleted.": "스레드를 삭제할 수 없습니다.",
+  "The thread could not be settled.": "스레드를 정리할 수 없습니다.",
+  "The thread could not be un-settled.": "스레드 정리를 해제할 수 없습니다.",
+  "This environment's server does not support settling yet. Update the server to use Settle.":
+    "이 환경의 서버는 아직 정리를 지원하지 않습니다. 정리를 사용하려면 서버를 업데이트하세요.",
+  "This thread is working. Interrupt it first, then try again.":
+    "이 스레드는 작업 중입니다. 먼저 중단한 후 다시 시도하세요.",
+  "Delete thread?": "스레드를 삭제할까요?",
+  "“{title}” will be permanently deleted, including its terminal history.":
+    "“{title}”이(가) 터미널 기록을 포함해 영구적으로 삭제됩니다.",
+  "Could not snooze thread": "스레드를 미룰 수 없음",
+  "This environment's server does not support snoozing yet. Update the server to use Snooze.":
+    "이 환경의 서버는 아직 미루기를 지원하지 않습니다. 미루기를 사용하려면 서버를 업데이트하세요.",
+  "This thread is waiting on you. Respond to the pending request before snoozing it.":
+    "이 스레드는 응답을 기다리고 있습니다. 미루기 전에 대기 중인 요청에 응답하세요.",
+  "This thread is still starting a turn. Try again once it's running.":
+    "이 스레드는 아직 턴을 시작하는 중입니다. 실행되면 다시 시도하세요.",
+  "The thread could not be snoozed.": "스레드를 미룰 수 없습니다.",
+  "Could not wake thread": "스레드를 깨울 수 없음",
+  "This environment's server does not support snoozing yet. Update the server to wake this thread.":
+    "이 환경의 서버는 아직 미루기를 지원하지 않습니다. 이 스레드를 깨우려면 서버를 업데이트하세요.",
+  "The thread could not be woken.": "스레드를 깨울 수 없습니다.",
+  "Could not pin thread": "스레드를 고정할 수 없음",
+  "This environment's server does not support pinning yet. Update the server to use Pin.":
+    "이 환경의 서버는 아직 고정을 지원하지 않습니다. 고정을 사용하려면 서버를 업데이트하세요.",
+  "The thread could not be pinned.": "스레드를 고정할 수 없습니다.",
+  "Could not unpin thread": "스레드 고정을 해제할 수 없음",
+  "The thread could not be unpinned.": "스레드 고정을 해제할 수 없습니다.",
+  "Could not update auto-settle": "자동 정리를 변경할 수 없음",
+  "This environment's server does not support turning auto-settle off per thread yet. Update the server to use it.":
+    "이 환경의 서버는 아직 스레드별 자동 정리 끄기를 지원하지 않습니다. 사용하려면 서버를 업데이트하세요.",
+  "The auto-settle setting could not be changed.": "자동 정리 설정을 변경할 수 없습니다.",
+  "Could not regenerate title": "제목을 다시 생성할 수 없음",
+  "This environment's server does not support title regeneration yet. Update the server to regenerate thread titles.":
+    "이 환경의 서버는 아직 제목 다시 생성을 지원하지 않습니다. 스레드 제목을 다시 생성하려면 서버를 업데이트하세요.",
+  "The thread title could not be regenerated.": "스레드 제목을 다시 생성할 수 없습니다.",
+  "Could not rename thread": "스레드 이름을 변경할 수 없음",
+  "Thread title cannot be empty.": "스레드 제목은 비워 둘 수 없습니다.",
+  "The thread could not be renamed.": "스레드 이름을 변경할 수 없습니다.",
+  "Rename thread": "스레드 이름 변경",
+  Rename: "이름 변경",
+  "Could not move thread": "스레드를 이동할 수 없음",
+  "This environment's server does not support reordering these threads. Update the server to arrange them.":
+    "이 환경의 서버는 이 스레드의 순서 변경을 지원하지 않습니다. 정렬하려면 서버를 업데이트하세요.",
+  "The thread could not be moved.": "스레드를 이동할 수 없습니다.",
+  "Delete {title}": "{title} 삭제",
+
+  // Connection status
+  "You are offline": "오프라인 상태입니다",
+  "Reconnecting to {environment}": "{environment}에 다시 연결 중",
+  "Reconnecting {count} environments": "환경 {count}개에 다시 연결 중",
+  "Syncing threads...": "스레드 동기화 중...",
+  "Loading threads...": "스레드 불러오는 중...",
+  "Not connected": "연결되지 않음",
+  "Reconnecting to {environment}...": "{environment}에 다시 연결 중...",
+  "Failed to connect. Retrying {environment}...":
+    "연결하지 못했습니다. {environment}에 다시 시도 중...",
+  "Failed to connect to {environment}: {error}": "{environment}에 연결하지 못했습니다: {error}",
+  "Failed to connect to {environment}": "{environment}에 연결하지 못했습니다",
+  "{environment} is not connected": "{environment}이(가) 연결되지 않았습니다",
+
+  // Empty states
+  "Add an environment to load projects and start coding sessions.":
+    "환경을 추가하면 프로젝트를 불러오고 코딩 세션을 시작할 수 있습니다.",
+  "Loading projects and threads from the saved environment.":
+    "저장된 환경에서 프로젝트와 스레드를 불러오고 있습니다.",
+  "No threads yet": "아직 스레드가 없습니다",
+  "Create a task to start a new coding session in one of your connected projects.":
+    "작업을 만들어 연결된 프로젝트에서 새 코딩 세션을 시작하세요.",
+  "this environment": "이 환경",
+  "No results": "결과 없음",
+  'No threads matching "{query}".': '"{query}"와(과) 일치하는 스레드가 없습니다.',
+  "No threads in {name}": "{name}에 스레드가 없습니다",
+  "Choose another project or create a new task.": "다른 프로젝트를 선택하거나 새 작업을 만드세요.",
+  "Choose another environment or create a new task.": "다른 환경을 선택하거나 새 작업을 만드세요.",
+  "Create a task to start a new coding session.": "작업을 만들어 새 코딩 세션을 시작하세요.",
+  "Loading threads…": "스레드 불러오는 중…",
+  "Searching thread messages…": "스레드 메시지 검색 중…",
+  "No matching threads": "일치하는 스레드 없음",
+
+  // Archive
+  "Archived threads": "보관된 스레드",
+  "Search archived threads": "보관된 스레드 검색",
+  "Archived thread options": "보관된 스레드 옵션",
+  "Sort by archived date": "보관한 날짜순 정렬",
+  "Newest first": "최신순",
+  "Oldest first": "오래된 순",
+  "Refresh archived threads": "보관된 스레드 새로 고침",
+  "Unarchive {title}": "{title} 보관 해제",
+  Unarchive: "보관 해제",
+  "Could not load every archive": "일부 보관 항목을 불러올 수 없음",
+  "Loading archive...": "보관 항목 불러오는 중...",
+  "Try another search or environment.": "다른 검색어나 환경을 사용해 보세요.",
+  "Threads you archive will appear here.": "보관한 스레드가 여기에 표시됩니다.",
+  "No archived threads": "보관된 스레드 없음",
+
+  // Thread list rows and sections
+  Approval: "승인",
+  Input: "입력",
+  Working: "작업 중",
+  Failed: "실패",
+  Pinned: "고정됨",
+  Active: "활성",
+  Snoozed: "미뤄 둠",
+  Settled: "정리됨",
+  "{count} snoozed thread": "미뤄 둔 스레드 {count}개",
+  "{count} snoozed threads": "미뤄 둔 스레드 {count}개",
+  "{count} settled thread": "정리된 스레드 {count}개",
+  "{count} settled threads": "정리된 스레드 {count}개",
+  "Collapses the snoozed threads.": "미뤄 둔 스레드를 접습니다.",
+  "Expands the snoozed threads.": "미뤄 둔 스레드를 펼칩니다.",
+  "Collapses the settled threads.": "정리된 스레드를 접습니다.",
+  "Expands the settled threads.": "정리된 스레드를 펼칩니다.",
+  "Show {count} more settled threads": "정리된 스레드 {count}개 더 보기",
+  "Show more ({count} settled hidden)": "더 보기 (정리된 스레드 {count}개 숨겨짐)",
+  "Sends on reconnect": "다시 연결되면 전송",
+  Unsent: "전송되지 않음",
+  "Opens the draft in the new task composer": "새 작업 입력창에서 초안을 엽니다",
+  "Sends when the environment reconnects. Opens the task for editing":
+    "환경이 다시 연결되면 전송됩니다. 작업을 편집하려면 엽니다",
+  "{title}, messages queued to send": "{title}, 전송 대기 중인 메시지 있음",
+  "Copy thread ID": "스레드 ID 복사",
+  "New thread on branch": "브랜치에서 새 스레드",
+  "Regenerate title": "제목 다시 생성",
+  "Regenerating…": "다시 생성하는 중…",
+
+  // Thread menus and swipe actions
+  "Custom…": "사용자 지정…",
+  "Arrange threads…": "스레드 정렬…",
+  "Move up": "위로 이동",
+  "Move down": "아래로 이동",
+  Pin: "고정",
+  Unpin: "고정 해제",
+  "Auto-settle behavior": "자동 정리 동작",
+  Enabled: "사용",
+  Disabled: "사용 안 함",
+  Settle: "정리",
+  "Un-settle": "정리 해제",
+  Snooze: "미루기",
+  Archive: "보관",
+  Wake: "깨우기",
+  "Wake thread": "스레드 깨우기",
+  "That snooze time has passed. Choose another time.":
+    "해당 미루기 시간이 이미 지났습니다. 다른 시간을 선택하세요.",
+  "Archive {title}": "{title} 보관",
+  "Wake {title} now": "{title} 지금 깨우기",
+  "Un-settle {title}": "{title} 정리 해제",
+  "Settle {title}": "{title} 정리",
+  "Choose when to snooze {title}": "{title}을(를) 미룰 시간 선택",
+  "Snooze until": "미루기 종료 시간",
+  "Opens the thread. Swipe left to {action}.":
+    "스레드를 엽니다. 왼쪽으로 밀면 {action} 작업을 할 수 있습니다.",
+  "Opens the thread. Swipe left for {action} and snooze actions.":
+    "스레드를 엽니다. 왼쪽으로 밀면 {action} 및 미루기 작업이 표시됩니다.",
+  "In 1 hour": "1시간 후",
+  "In 3 hours": "3시간 후",
+  "This evening": "오늘 저녁",
+  Tomorrow: "내일",
+  "Next week": "다음 주",
+  now: "지금",
+
+  // Arrange threads sheet
+  "Reorder {title}": "{title} 순서 변경",
+  "Move up and Move down reorder within this section. Other actions move between sections.":
+    "위로 이동과 아래로 이동은 이 섹션 안에서 순서를 바꿉니다. 다른 작업은 섹션 간에 이동합니다.",
+  "Arrange threads": "스레드 정렬",
+  "Drag to reorder, pin, or settle. Changes save when you drop.":
+    "드래그하여 순서를 바꾸거나 고정 또는 정리하세요. 놓으면 변경 사항이 저장됩니다.",
+  Reorder: "순서 변경",
+  Unsettle: "정리 해제",
+  Unsnooze: "깨우기",
+
+  // Custom snooze sheet
+  "Custom snooze": "사용자 지정 미루기",
+  "Choose when snoozed threads return to your inbox.":
+    "미뤄 둔 스레드가 목록으로 돌아올 시간을 선택하세요.",
+  "Date and time": "날짜 및 시간",
+  Duration: "기간",
+  "Choose date": "날짜 선택",
+  "Choose time": "시간 선택",
+  Date: "날짜",
+  Time: "시간",
+  "Snooze for": "미룰 기간",
+  Minutes: "분",
+  Hours: "시간",
+  Days: "일",
+  "Choose a date and time in the future.": "미래의 날짜와 시간을 선택하세요.",
+  "Enter a positive duration.": "0보다 큰 기간을 입력하세요.",
+  "Snooze mode": "미루기 방식",
+  "Duration amount": "기간 값",
+  "Duration unit": "기간 단위",
+  "Cancel custom snooze": "사용자 지정 미루기 취소",
+
+  // Floating working pill
+  "Scroll to end": "맨 아래로 스크롤",
+  Compacting: "압축 중",
+  "Compacting…": "압축 중…",
+  "Working for {duration}": "{duration} 동안 작업 중",
+};
