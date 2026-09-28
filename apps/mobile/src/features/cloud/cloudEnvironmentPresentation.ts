@@ -3,6 +3,7 @@ import {
   orchestrationProtocolCompatibilityError,
   type EnvironmentConnectionPhase,
 } from "@t3tools/client-runtime/connection";
+import { translate } from "../../i18n/translate";
 
 export interface AvailableCloudEnvironmentPresentation {
   readonly connectionError: string | null;
@@ -26,7 +27,7 @@ export function availableCloudEnvironmentPresentation(input: {
       connectionError: compatibilityError.message,
       connectionErrorTraceId: null,
       connectionState: "unsupported",
-      statusText: "Client not supported",
+      statusText: translate("Client not supported"),
     };
   }
   if (input.status?.status === "online") {
@@ -34,12 +35,12 @@ export function availableCloudEnvironmentPresentation(input: {
       connectionError: null,
       connectionErrorTraceId: null,
       connectionState: "available",
-      statusText: "Available · Relay online",
+      statusText: translate("Available · Relay online"),
     };
   }
 
   if (input.status?.status === "offline") {
-    const connectionError = input.status.error ?? "Relay is offline.";
+    const connectionError = input.status.error ?? translate("Relay is offline.");
     return {
       connectionError,
       connectionErrorTraceId: input.status.traceId ?? null,
@@ -62,7 +63,7 @@ export function availableCloudEnvironmentPresentation(input: {
     connectionErrorTraceId: null,
     connectionState: "available",
     statusText: input.isStatusPending
-      ? "Available · Checking relay status..."
-      : "Available · Relay status unknown",
+      ? translate("Available · Checking relay status...")
+      : translate("Available · Relay status unknown"),
   };
 }

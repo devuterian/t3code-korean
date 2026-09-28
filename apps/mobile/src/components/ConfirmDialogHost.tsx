@@ -5,6 +5,7 @@ import { cn } from "../lib/cn";
 import { AppText } from "./AppText";
 import { MaterialConfirmDialog } from "./MaterialConfirmDialog";
 import type { ConfirmDialogRequest, TextInputDialogRequest } from "./ConfirmDialog.types";
+import { useTranslate } from "../i18n/translate";
 
 export type { ConfirmDialogRequest, TextInputDialogRequest } from "./ConfirmDialog.types";
 
@@ -35,6 +36,7 @@ export function showTextInputDialog(request: TextInputDialogRequest): void {
  * button color and a dimmer message than the title.
  */
 export function ConfirmDialogHost() {
+  const t = useTranslate();
   const [presented, setPresented] = useState<DialogRequest | null>(null);
   const [inputValue, setInputValue] = useState("");
   useEffect(() => {
@@ -119,7 +121,7 @@ export function ConfirmDialogHost() {
                   onPress={handleCancel}
                 >
                   <AppText className="text-base font-t3-medium">
-                    {presented.request.cancelText ?? "Cancel"}
+                    {presented.request.cancelText ?? t("Cancel")}
                   </AppText>
                 </Pressable>
               </View>

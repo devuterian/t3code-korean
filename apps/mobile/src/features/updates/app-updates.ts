@@ -7,6 +7,7 @@ import {
   settlePromise,
   squashAtomCommandFailure,
 } from "@t3tools/client-runtime/state/runtime";
+import { translate } from "../../i18n/translate";
 
 export type AppUpdateCheckState =
   | "idle"
@@ -449,11 +450,13 @@ async function defaultConfirmInstallNow(): Promise<boolean> {
   const { Alert } = await import("react-native");
   return new Promise<boolean>((resolve) => {
     Alert.alert(
-      "Update ready",
-      "A new version has been downloaded and installs automatically the next time you leave the app. Install it now instead?",
+      translate("Update ready"),
+      translate(
+        "A new version has been downloaded and installs automatically the next time you leave the app. Install it now instead?",
+      ),
       [
-        { onPress: () => resolve(false), style: "cancel", text: "Later" },
-        { onPress: () => resolve(true), text: "Install Now" },
+        { onPress: () => resolve(false), style: "cancel", text: translate("Later") },
+        { onPress: () => resolve(true), text: translate("Install Now") },
       ],
       { cancelable: true, onDismiss: () => resolve(false) },
     );
@@ -548,7 +551,7 @@ function reportUpdateFailure(
   if (isAppUpdateUnavailableError(error)) return;
 
   reportAtomCommandResult(result, { label: "app update check" });
-  onFailure?.(error instanceof Error ? error.message : fallback);
+  onFailure?.(error instanceof Error ? error.message : translate(fallback));
 }
 
 function isAppUpdateUnavailableError(error: unknown): boolean {
