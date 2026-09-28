@@ -1,5 +1,7 @@
 import { sanitizeNewRefName } from "@t3tools/shared/git";
 
+import { translate } from "../../i18n/translate";
+
 type WorkspaceMode = "local" | "worktree";
 
 export function resolveNewTaskWorkspaceLabel(input: {
@@ -65,7 +67,7 @@ export function resolveNewTaskBranchLabel(input: {
   readonly workspaceMode: WorkspaceMode;
 }): string {
   if (!input.branchName) {
-    return "Choose branch";
+    return translate("Choose branch");
   }
 
   if (input.workspaceMode === "local") {
@@ -73,7 +75,7 @@ export function resolveNewTaskBranchLabel(input: {
   }
 
   const baseRef = input.startFromOrigin ? `origin/${input.branchName}` : input.branchName;
-  return `From ${baseRef}`;
+  return translate("From {ref}", { ref: baseRef });
 }
 
 export function shouldCheckoutNewTaskBranch(input: {
