@@ -12,8 +12,10 @@ import { MaterialSearchField } from "./MaterialSearchField";
 import { androidHeaderMenuActions, findHeaderMenuAction } from "./headerMenu.android";
 import type { ScreenHeaderProps } from "./ScreenHeader.types";
 import { useAndroidControlSizing } from "./useAndroidControlSizing";
+import { useTranslate } from "../i18n/translate";
 
 export function ScreenHeader(props: ScreenHeaderProps) {
+  const t = useTranslate();
   const { search } = props;
   const { paddingTop, paddingBottom } = useMaterialToolbarLayout();
   const { scale, buttonSize, iconSize, smallIconSize } = useAndroidControlSizing();
@@ -93,7 +95,7 @@ export function ScreenHeader(props: ScreenHeaderProps) {
           <View className="flex-row items-center gap-2" style={{ minHeight: buttonSize }}>
             {props.onBack ? (
               <Pressable
-                accessibilityLabel="Navigate up"
+                accessibilityLabel={t("Navigate up")}
                 accessibilityRole="button"
                 hitSlop={8}
                 onPress={props.onBack}
@@ -162,7 +164,7 @@ export function ScreenHeader(props: ScreenHeaderProps) {
               ...(search.refreshInToolbar && search.onRefresh
                 ? [
                     {
-                      accessibilityLabel: search.refreshAccessibilityLabel ?? "Refresh",
+                      accessibilityLabel: search.refreshAccessibilityLabel ?? t("Refresh"),
                       icon: "arrow.clockwise" as const,
                       onPress: search.onRefresh,
                     },
@@ -197,14 +199,14 @@ export function ScreenHeader(props: ScreenHeaderProps) {
             <View className="absolute inset-0 bg-header px-2" style={{ paddingTop, paddingBottom }}>
               <View className="flex-1 flex-row items-center gap-1">
                 <ScreenHeaderButton
-                  accessibilityLabel={search.closeAccessibilityLabel ?? "Close search"}
+                  accessibilityLabel={search.closeAccessibilityLabel ?? t("Close search")}
                   icon="arrow.left"
                   onPress={closeSearch}
                 />
                 <MaterialSearchField
                   inputRef={inputRef}
                   accessibilityLabel={search.placeholder}
-                  clearAccessibilityLabel={search.clearAccessibilityLabel ?? "Clear search"}
+                  clearAccessibilityLabel={search.clearAccessibilityLabel ?? t("Clear search")}
                   placeholder={search.placeholder}
                   value={search.value}
                   onChangeText={search.onChangeText}

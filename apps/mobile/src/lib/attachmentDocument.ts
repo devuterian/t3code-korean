@@ -12,6 +12,7 @@ import { loadLocalAttachmentPreview } from "./localAttachmentPreview";
 import { downloadAndShareAttachment, shareLocalAttachment } from "./attachmentDownload";
 import { useRefreshAssetUrl } from "../state/assets";
 import { attachmentDocumentPresentation } from "./attachmentDocumentPresentation";
+import { translate } from "../i18n/translate";
 
 const isLocalUri = (uri: string) => /^(file|content):/.test(uri);
 
@@ -81,13 +82,15 @@ export function useAttachmentDocument(input: {
     void refresh()
       .then((url) => {
         if (cancelled) return;
-        if (!url) throw new Error("Reconnect to this environment and try again.");
+        if (!url) throw new Error(translate("Reconnect to this environment and try again."));
         textReadUrl.current = { uri: url, authorizedAt: Date.now() };
         setRemoteUri(url);
       })
       .catch((cause: unknown) => {
         if (!cancelled)
-          setError(cause instanceof Error ? cause.message : "The attachment is unavailable.");
+          setError(
+            cause instanceof Error ? cause.message : translate("The attachment is unavailable."),
+          );
       });
     return () => {
       cancelled = true;
@@ -114,7 +117,9 @@ export function useAttachmentDocument(input: {
       })
       .catch((cause: unknown) => {
         if (!controller.signal.aborted)
-          setError(cause instanceof Error ? cause.message : "The local file is unavailable.");
+          setError(
+            cause instanceof Error ? cause.message : translate("The local file is unavailable."),
+          );
       });
     return () => {
       controller.abort();
@@ -139,7 +144,8 @@ export function useAttachmentDocument(input: {
           let target = authorized?.uri ?? uri;
           if (!authorized || Date.now() - authorized.authorizedAt > STALE_URL_MS) {
             const refreshed = await refresh();
-            if (!refreshed) throw new Error("Reconnect to this environment and try again.");
+            if (!refreshed)
+              throw new Error(translate("Reconnect to this environment and try again."));
             target = refreshed;
             if (!controller.signal.aborted) {
               // Keep the source-read URL and its age together without restarting active media.
@@ -161,7 +167,9 @@ export function useAttachmentDocument(input: {
       })
       .catch((cause: unknown) => {
         if (!controller.signal.aborted)
-          setContentError(cause instanceof Error ? cause.message : "Could not read this file.");
+          setContentError(
+            cause instanceof Error ? cause.message : translate("Could not read this file."),
+          );
       });
     return () => controller.abort();
   }, [uri, needsText, revision, sizeBytes, refresh]);
@@ -180,8 +188,8 @@ export function useAttachmentDocument(input: {
     } catch (cause) {
       if (controller.signal.aborted) return;
       Alert.alert(
-        "Could not share file",
-        cause instanceof Error ? cause.message : "Please try again.",
+        translate("Could not share file"),
+        cause instanceof Error ? cause.message : translate("Please try again."),
       );
     } finally {
       if (shareController.current === controller) shareController.current = null;

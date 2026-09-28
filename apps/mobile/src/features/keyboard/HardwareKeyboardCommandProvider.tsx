@@ -27,6 +27,7 @@ import {
   subscribeToHardwareKeyboardCommandRegistrations,
   type HardwareKeyboardCommand,
 } from "./hardwareKeyboardCommands";
+import { translate } from "../../i18n/translate";
 
 const EMPTY_COPY_FEEDBACK: GitActionProgress = {
   phase: "idle",
@@ -134,13 +135,13 @@ export function HardwareKeyboardCommandProvider({
             didCopy
               ? {
                   phase: "success",
-                  label: copyTarget.successTitle,
+                  label: translate(copyTarget.successTitle),
                   description: copyTarget.value,
                 }
               : {
                   phase: "error",
-                  label: copyTarget.failureTitle,
-                  description: "Try again.",
+                  label: translate(copyTarget.failureTitle),
+                  description: translate("Try again."),
                 },
           );
         });

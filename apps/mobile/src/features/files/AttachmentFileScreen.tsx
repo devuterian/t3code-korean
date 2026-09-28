@@ -24,6 +24,7 @@ import { FileMarkdownPreview } from "./FileMarkdownPreview";
 import { useAppearancePreferences } from "../settings/appearance/AppearancePreferencesProvider";
 import { SourceFileSurface } from "./SourceFileSurface";
 import { WorkspaceFileWebPreview } from "./WorkspaceFileWebPreview";
+import { useTranslate } from "../../i18n/translate";
 
 /**
  * Both the thread stack and the new-task sheet stack register this screen, so a chip in a
@@ -58,39 +59,40 @@ function AttachmentDocumentBody(props: {
   readonly nativeError: string | null;
   readonly onOpenNative: () => void;
 }) {
+  const t = useTranslate();
   const { document } = props;
   if (document.error) {
     return (
       <View className="flex-1 items-center justify-center bg-sheet px-6">
         <EmptyState
-          title="File unavailable"
+          title={t("File unavailable")}
           detail={document.error}
-          actionLabel="Try again"
+          actionLabel={t("Try again")}
           onAction={document.retry}
         />
       </View>
     );
   }
   if (props.nativeViewer !== null && props.nativeViewer !== "unavailable") {
-    return <FilePreviewLoading message="Opening in file viewer..." />;
+    return <FilePreviewLoading message={t("Opening in file viewer...")} />;
   }
   if (!document.uri || (document.needsText && !document.content)) {
-    return <FilePreviewLoading message="Loading file..." />;
+    return <FilePreviewLoading message={t("Loading file...")} />;
   }
   if (document.needsText && document.content) {
     const { content, table } = document;
     return (
       <View className="flex-1 bg-sheet">
         {content.truncated ? (
-          <FilePreviewNotice title="Partial file">
-            Preview limited to the first 1 MB. Save or share the file to read it in full.
+          <FilePreviewNotice title={t("Partial file")}>
+            {t("Preview limited to the first 1 MB. Save or share the file to read it in full.")}
           </FilePreviewNotice>
         ) : null}
         {table && document.activeMode === "table" ? (
           <ScrollView className="flex-1">
             {table.truncated ? (
               <FilePreviewNotice>
-                Table limited to the first 100 rows and 30 columns. Source shows the rest.
+                {t("Table limited to the first 100 rows and 30 columns. Source shows the rest.")}
               </FilePreviewNotice>
             ) : null}
             <ScrollView horizontal>
@@ -146,12 +148,12 @@ function AttachmentDocumentBody(props: {
   return (
     <View className="flex-1 items-center justify-center bg-sheet px-6">
       <EmptyState
-        title="No preview for this file"
+        title={t("No preview for this file")}
         detail={
           props.nativeError ??
-          "No app on this device can show this format. Save or share it to open it elsewhere."
+          t("No app on this device can show this format. Save or share it to open it elsewhere.")
         }
-        actionLabel="Try again"
+        actionLabel={t("Try again")}
         onAction={props.onOpenNative}
       />
     </View>
@@ -159,6 +161,7 @@ function AttachmentDocumentBody(props: {
 }
 
 export function AttachmentFileScreen(props: AttachmentFileScreenProps) {
+  const t = useTranslate();
   const navigation = useNavigation();
   const { appearance, setCodeWordBreak } = useAppearancePreferences();
   const iconColor = useUniwindTheme()["--color-icon"];
@@ -218,7 +221,7 @@ export function AttachmentFileScreen(props: AttachmentFileScreenProps) {
     pendingNativeError.current = null;
     if (nativeViewer === null) {
       // A file this screen renders itself: an explicit viewer failure is worth a word.
-      if (message) Alert.alert("Could not open document", message);
+      if (message) Alert.alert(t("Could not open document"), message);
       return;
     }
     if (message) {
@@ -228,7 +231,7 @@ export function AttachmentFileScreen(props: AttachmentFileScreenProps) {
     }
     // The viewer was the whole visit: return to the conversation rather than a blank screen.
     handleBack();
-  }, [handleBack, nativeViewer]);
+  }, [handleBack, nativeViewer, t]);
   const removeFromDraft = useCallback(() => {
     if (!draftKey) return;
     removeComposerDraftAttachment(draftKey, params.attachmentId);
@@ -242,7 +245,7 @@ export function AttachmentFileScreen(props: AttachmentFileScreenProps) {
         renderedMode
           ? ({
               id: "preview",
-              title: renderedMode === "table" ? "Table" : "Preview",
+              title: renderedMode === "table" ? t("Table") : t("Preview"),
               icon: renderedMode === "table" ? "tablecells" : "eye",
               inline: true,
               onPress: () => setRendered(true),
@@ -251,7 +254,7 @@ export function AttachmentFileScreen(props: AttachmentFileScreenProps) {
         renderedMode
           ? ({
               id: "source",
-              title: "Source",
+              title: t("Source"),
               icon: "doc.text",
               inline: true,
               onPress: () => setRendered(false),
@@ -260,7 +263,7 @@ export function AttachmentFileScreen(props: AttachmentFileScreenProps) {
         content && activeMode === "source"
           ? ({
               id: "word-wrap",
-              title: appearance.codeWordBreak ? "Disable word wrap" : "Enable word wrap",
+              title: appearance.codeWordBreak ? t("Disable word wrap") : t("Enable word wrap"),
               icon: "text.alignleft",
               inline: false,
               onPress: () => setCodeWordBreak(!appearance.codeWordBreak),
@@ -269,7 +272,7 @@ export function AttachmentFileScreen(props: AttachmentFileScreenProps) {
         content
           ? ({
               id: "copy",
-              title: content.truncated ? "Copy preview" : "Copy contents",
+              title: content.truncated ? t("Copy preview") : t("Copy contents"),
               icon: "doc.on.doc",
               inline: false,
               onPress: () => copyTextWithHaptic(content.text),
@@ -278,7 +281,7 @@ export function AttachmentFileScreen(props: AttachmentFileScreenProps) {
         uri
           ? ({
               id: "share",
-              title: sharing ? "Opening share sheet…" : "Save or share",
+              title: sharing ? t("Opening share sheet…") : t("Save or share"),
               icon: "square.and.arrow.up",
               inline: false,
               onPress: () => void share(),
@@ -287,7 +290,7 @@ export function AttachmentFileScreen(props: AttachmentFileScreenProps) {
         uri
           ? ({
               id: "open-viewer",
-              title: "Open in file viewer",
+              title: t("Open in file viewer"),
               icon: "arrow.up.left.and.arrow.down.right",
               inline: false,
               onPress: () => {
@@ -299,7 +302,7 @@ export function AttachmentFileScreen(props: AttachmentFileScreenProps) {
         draftKey
           ? ({
               id: "remove",
-              title: "Remove from draft",
+              title: t("Remove from draft"),
               icon: "trash",
               inline: false,
               destructive: true,
@@ -318,6 +321,7 @@ export function AttachmentFileScreen(props: AttachmentFileScreenProps) {
       setRendered,
       share,
       sharing,
+      t,
       uri,
     ],
   );
@@ -339,7 +343,7 @@ export function AttachmentFileScreen(props: AttachmentFileScreenProps) {
     },
     [menuActions],
   );
-  const subtitle = `${draftKey ? "Draft attachment" : "Attachment"} · ${formatAttachmentSize(sizeBytes)}`;
+  const subtitle = `${draftKey ? t("Draft attachment") : t("Attachment")} · ${formatAttachmentSize(sizeBytes)}`;
 
   return (
     <View className="flex-1 bg-sheet">
@@ -361,16 +365,16 @@ export function AttachmentFileScreen(props: AttachmentFileScreenProps) {
             <ControlPillMenu
               actions={androidMenuActions}
               isAnchoredToRight
-              title="File actions"
+              title={t("File actions")}
               onPressAction={handleAndroidMenuAction}
             >
-              <AndroidHeaderIconButton accessibilityLabel="File actions" icon="ellipsis" />
+              <AndroidHeaderIconButton accessibilityLabel={t("File actions")} icon="ellipsis" />
             </ControlPillMenu>
           }
         />
       ) : null}
       <NativeHeaderToolbar placement="right">
-        <NativeHeaderToolbar.Menu accessibilityLabel="File actions" icon="ellipsis">
+        <NativeHeaderToolbar.Menu accessibilityLabel={t("File actions")} icon="ellipsis">
           {renderedMode ? (
             <NativeHeaderToolbar.Menu inline>
               {menuActions

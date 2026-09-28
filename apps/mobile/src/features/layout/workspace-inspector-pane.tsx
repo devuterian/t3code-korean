@@ -11,6 +11,7 @@ import { constrainAuxiliaryPaneWidth, type WorkspacePaneLayout } from "../../lib
 import { RenderErrorBoundary, RenderFailureView } from "../../components/RenderErrorBoundary";
 import { WORKSPACE_PANE_TIMING } from "./workspace-pane-animation";
 import { WorkspacePaneDivider } from "./workspace-pane-divider";
+import { translate } from "../../i18n/translate";
 
 /**
  * The trailing inspector column: resize divider + animated reveal.
@@ -123,7 +124,7 @@ export function WorkspaceInspectorPane(props: {
     <>
       {inspectorVisible ? (
         <WorkspacePaneDivider
-          accessibilityLabel="Resize detail pane"
+          accessibilityLabel={translate("Resize detail pane")}
           currentWidth={inspectorWidth ?? 0}
           resizeDirection={-1}
           onResizeStart={beginResize}
@@ -144,7 +145,10 @@ export function WorkspaceInspectorPane(props: {
             <RenderErrorBoundary
               resetKeys={[props.pathname]}
               renderFallback={(fallback) => (
-                <RenderFailureView {...fallback} title="The inspector couldn't be displayed" />
+                <RenderFailureView
+                  {...fallback}
+                  title={translate("The inspector couldn't be displayed")}
+                />
               )}
             >
               <InspectorRenderer render={props.renderInspector} />

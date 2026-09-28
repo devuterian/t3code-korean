@@ -6,6 +6,7 @@ import { normalizeNativeMarkdownUrl } from "@t3tools/mobile-markdown-text/links"
 import { useEffect, useRef, useState } from "react";
 import { Alert } from "react-native";
 
+import { translate, useTranslate } from "../i18n/translate";
 import { useRefreshAssetUrl } from "../state/assets";
 import { downloadAndShareAttachment, shareLocalAttachment } from "./attachmentDownload";
 import type { FileBackedComposerAttachment } from "./composerImages";
@@ -30,6 +31,7 @@ export type MediaActionsSource = {
 );
 
 export function useMediaActions(source: MediaActionsSource | undefined, onOpenFile?: () => void) {
+  const t = useTranslate();
   const navigation = useNavigation();
   const refresh = useRefreshAssetUrl(
     source && "environmentId" in source ? source.environmentId : null,
@@ -57,7 +59,8 @@ export function useMediaActions(source: MediaActionsSource | undefined, onOpenFi
       }
       const uri = "uri" in source ? normalizeNativeMarkdownUrl(source.uri) : await refresh();
       if (request.signal.aborted) return;
-      if (uri === null) throw new Error("The file could not be loaded. Reconnect and try again.");
+      if (uri === null)
+        throw new Error(translate("The file could not be loaded. Reconnect and try again."));
       const input = {
         attachment: { name: source.name, mimeType: source.mimeType },
         signal: request.signal,
@@ -69,8 +72,8 @@ export function useMediaActions(source: MediaActionsSource | undefined, onOpenFi
       .catch((error: unknown) => {
         if (!request.signal.aborted) {
           Alert.alert(
-            "Could not share file",
-            error instanceof Error ? error.message : "Try again.",
+            translate("Could not share file"),
+            error instanceof Error ? error.message : translate("Try again."),
           );
         }
       })
@@ -92,7 +95,7 @@ export function useMediaActions(source: MediaActionsSource | undefined, onOpenFi
             ? [
                 {
                   id: "copy-full-path" as const,
-                  title: "Copy full path",
+                  title: t("Copy full path"),
                   run: () => copyTextWithHaptic(reference.path),
                 },
               ]
@@ -101,7 +104,7 @@ export function useMediaActions(source: MediaActionsSource | undefined, onOpenFi
             ? [
                 {
                   id: "copy-relative-path" as const,
-                  title: "Copy relative path",
+                  title: t("Copy relative path"),
                   run: () => copyTextWithHaptic(relativePath),
                 },
               ]
@@ -110,7 +113,7 @@ export function useMediaActions(source: MediaActionsSource | undefined, onOpenFi
             ? [
                 {
                   id: "copy-url" as const,
-                  title: "Copy URL",
+                  title: t("Copy URL"),
                   run: () => copyTextWithHaptic(reference.url),
                 },
               ]
@@ -119,7 +122,7 @@ export function useMediaActions(source: MediaActionsSource | undefined, onOpenFi
             ? [
                 {
                   id: "open-file" as const,
-                  title: "Open in file viewer",
+                  title: t("Open in file viewer"),
                   run: () => {
                     onOpenFile?.();
                     navigation.navigate("ThreadFile", {
@@ -133,7 +136,7 @@ export function useMediaActions(source: MediaActionsSource | undefined, onOpenFi
             : []),
           {
             id: "save" as const,
-            title: sharing ? "Opening share sheet…" : "Save or share",
+            title: sharing ? t("Opening share sheet…") : t("Save or share"),
             run: share,
             disabled: sharing,
           },
