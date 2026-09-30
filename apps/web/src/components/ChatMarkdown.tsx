@@ -2215,6 +2215,9 @@ const MarkdownFileLink = memo(function MarkdownFileLink({
     [showFileContextMenu],
   );
 
+  const revealOnClick =
+    useClientSettings((settings) => settings.fileLinkClickAction) === "reveal" &&
+    onReveal !== undefined;
   const canOpenInEditor = onOpen !== undefined;
   const canOpenInBrowser = onOpenInBrowser !== undefined;
   const canOpenInPanel = threadRef !== undefined && Boolean(panelPath);
@@ -2248,6 +2251,10 @@ const MarkdownFileLink = memo(function MarkdownFileLink({
                   handleOpenInEditor();
                   return;
                 }
+                if (revealOnClick) {
+                  handleRevealInFileManager();
+                  return;
+                }
                 if (useBrowserPrimaryAction) {
                   handleOpenInBrowser();
                   return;
@@ -2263,10 +2270,10 @@ const MarkdownFileLink = memo(function MarkdownFileLink({
               kind="mention"
               render={<button type="button" />}
               aria-label={`File options for ${label}`}
-              aria-haspopup="menu"
+              aria-haspopup={revealOnClick ? undefined : "menu"}
               className={cn(MARKDOWN_FILE_LINK_CLASS_NAME, "select-text")}
               data-markdown-copy={copyMarkdown}
-              onClick={handleContextMenu}
+              onClick={revealOnClick ? handleRevealInFileManager : handleContextMenu}
               onContextMenu={handleContextMenu}
             >
               <FileTagChipContent path={iconPath} label={label} theme={theme} />

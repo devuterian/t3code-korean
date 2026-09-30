@@ -1356,4 +1356,10 @@ export const KO_DICTIONARY: Readonly<Record<string, string>> = {
   "Thread: Unsettle Last": "스레드: 마지막 정리 해제",
   "Thread: Stop": "스레드: 중지",
   "Reopen Closed Tab": "닫은 탭 다시 열기",
+  "File link click": "파일 링크 클릭",
+  "file link click": "파일 링크 클릭",
+  "Preview in app": "앱에서 미리보기",
+  "Reveal in file manager": "Finder/탐색기에서 보기",
+  "What clicking a file in the chat does. ⌘ or Ctrl-click still opens it in your editor, and right-click shows every option.":
+    "채팅에서 파일을 클릭했을 때의 동작입니다. ⌘ 또는 Ctrl+클릭은 여전히 에디터로 열고, 우클릭하면 모든 옵션이 표시됩니다.",
 };

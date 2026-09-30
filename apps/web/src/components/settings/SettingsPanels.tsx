@@ -35,6 +35,7 @@ import {
   type ChatWidth,
   type DiffLayout,
   type EnvironmentIdentificationMode,
+  type FileLinkClickAction,
   MAX_APPEARANCE_CONTRAST,
   MAX_CODE_FONT_SIZE,
   MAX_GLASS_OPACITY,
@@ -221,6 +222,11 @@ const CHAT_WIDTH_LABELS: Record<ChatWidth, string> = {
 const DIFF_LAYOUT_LABELS: Record<DiffLayout, string> = {
   stacked: "Stacked",
   split: "Split",
+};
+
+const FILE_LINK_CLICK_ACTION_LABELS: Record<FileLinkClickAction, string> = {
+  preview: "Preview in app",
+  reveal: "Reveal in file manager",
 };
 
 const THREAD_AUTO_SWITCH_MODE_LABELS: Record<ThreadAutoSwitchMode, string> = {
@@ -610,6 +616,9 @@ export function useSettingsRestore(onRestored?: () => void) {
         ? ["Diff whitespace changes"]
         : []),
       ...(settings.diffLayout !== DEFAULT_UNIFIED_SETTINGS.diffLayout ? ["Diff layout"] : []),
+      ...(settings.fileLinkClickAction !== DEFAULT_UNIFIED_SETTINGS.fileLinkClickAction
+        ? ["File link click"]
+        : []),
       ...(settings.proactivePanelsEnabled !== DEFAULT_UNIFIED_SETTINGS.proactivePanelsEnabled
         ? ["Proactive panels"]
         : []),
@@ -697,6 +706,7 @@ export function useSettingsRestore(onRestored?: () => void) {
       settings.diffIgnoreWhitespace,
       settings.diffLayout,
       settings.proactivePanelsEnabled,
+      settings.fileLinkClickAction,
       settings.environmentIdentificationMode,
       settings.contextWindowMeterEnabled,
       settings.fontFamilyCode,
@@ -805,6 +815,7 @@ export function useSettingsRestore(onRestored?: () => void) {
       diffIgnoreWhitespace: DEFAULT_UNIFIED_SETTINGS.diffIgnoreWhitespace,
       diffLayout: DEFAULT_UNIFIED_SETTINGS.diffLayout,
       proactivePanelsEnabled: DEFAULT_UNIFIED_SETTINGS.proactivePanelsEnabled,
+      fileLinkClickAction: DEFAULT_UNIFIED_SETTINGS.fileLinkClickAction,
       showSkillsInSlashMenu: DEFAULT_UNIFIED_SETTINGS.showSkillsInSlashMenu,
       composerCollapseOnScroll: DEFAULT_UNIFIED_SETTINGS.composerCollapseOnScroll,
       composerRichTextEnabled: DEFAULT_UNIFIED_SETTINGS.composerRichTextEnabled,
@@ -2803,6 +2814,47 @@ export function GeneralSettingsPanel() {
                 </SelectItem>
                 <SelectItem hideIndicator value="split">
                   {t(DIFF_LAYOUT_LABELS.split)}
+                </SelectItem>
+              </SelectPopup>
+            </Select>
+          }
+        />
+
+        <SettingsRow
+          {...searchableSetting("file-link-click")}
+          description="What clicking a file in the chat does. ⌘ or Ctrl-click still opens it in your editor, and right-click shows every option."
+          resetAction={
+            settings.fileLinkClickAction !== DEFAULT_UNIFIED_SETTINGS.fileLinkClickAction ? (
+              <SettingResetButton
+                label="file link click"
+                onClick={() =>
+                  updateSettings({
+                    fileLinkClickAction: DEFAULT_UNIFIED_SETTINGS.fileLinkClickAction,
+                  })
+                }
+              />
+            ) : null
+          }
+          control={
+            <Select
+              value={settings.fileLinkClickAction}
+              onValueChange={(value) => {
+                if (value === "preview" || value === "reveal") {
+                  updateSettings({ fileLinkClickAction: value });
+                }
+              }}
+            >
+              <SelectTrigger size="sm" className="w-full sm:w-40" aria-label="File link click">
+                <SelectValue>
+                  {t(FILE_LINK_CLICK_ACTION_LABELS[settings.fileLinkClickAction])}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectPopup align="end" alignItemWithTrigger={false}>
+                <SelectItem hideIndicator value="preview">
+                  {t(FILE_LINK_CLICK_ACTION_LABELS.preview)}
+                </SelectItem>
+                <SelectItem hideIndicator value="reveal">
+                  {t(FILE_LINK_CLICK_ACTION_LABELS.reveal)}
                 </SelectItem>
               </SelectPopup>
             </Select>

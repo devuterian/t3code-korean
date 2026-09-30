@@ -1208,4 +1208,10 @@ export const ZH_CN_DICTIONARY: Readonly<Record<string, string>> = {
   "Not installed": "未安装",
   Unavailable: "不可用",
   value: "值",
+  "File link click": "文件链接点击",
+  "file link click": "文件链接点击",
+  "Preview in app": "在应用中预览",
+  "Reveal in file manager": "在文件管理器中显示",
+  "What clicking a file in the chat does. ⌘ or Ctrl-click still opens it in your editor, and right-click shows every option.":
+    "点击聊天中的文件时执行的操作。⌘ 或 Ctrl 点击仍会在编辑器中打开，右键点击会显示所有选项。",
 };

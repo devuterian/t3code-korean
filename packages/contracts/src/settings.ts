@@ -306,6 +306,15 @@ export const BrowserLinkTarget = Schema.Literals(["system", "app"]);
 export type BrowserLinkTarget = typeof BrowserLinkTarget.Type;
 export const DEFAULT_BROWSER_LINK_TARGET: BrowserLinkTarget = "system";
 
+/**
+ * What a plain click on a file chip in the chat does: open it in the files
+ * panel ("preview", the original behavior) or reveal it in the OS file
+ * manager ("reveal"). ⌘/Ctrl-click still opens the preferred editor.
+ */
+export const FileLinkClickAction = Schema.Literals(["preview", "reveal"]);
+export type FileLinkClickAction = typeof FileLinkClickAction.Type;
+export const DEFAULT_FILE_LINK_CLICK_ACTION: FileLinkClickAction = "preview";
+
 export const LoadBalancingWeights = Schema.Record(
   TrimmedNonEmptyString,
   Schema.Int.check(Schema.isBetween({ minimum: 0, maximum: 100 })),
@@ -483,6 +492,9 @@ export const ClientSettingsSchema = Schema.Struct({
     Schema.withDecodingDefault(Effect.succeed("queue")),
   ),
   proactivePanelsEnabled: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(false))),
+  fileLinkClickAction: FileLinkClickAction.pipe(
+    Schema.withDecodingDefault(Effect.succeed(DEFAULT_FILE_LINK_CLICK_ACTION)),
+  ),
   showSkillsInSlashMenu: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(true))),
   // Legacy sidebar (the original per-project tree). Deliberately a fresh key
   // (was `sidebarV2Enabled` + `sidebarV2ConfiguredByUser`): decoding drops the
@@ -1681,6 +1693,7 @@ export const ClientSettingsPatch = Schema.Struct({
   sendShortcut: Schema.optionalKey(Schema.Literals(["enter", "mod-enter-multiline", "mod-enter"])),
   followUpBehavior: Schema.optionalKey(Schema.Literals(["queue", "steer"])),
   proactivePanelsEnabled: Schema.optionalKey(Schema.Boolean),
+  fileLinkClickAction: Schema.optionalKey(FileLinkClickAction),
   showSkillsInSlashMenu: Schema.optionalKey(Schema.Boolean),
   legacySidebarEnabled: Schema.optionalKey(Schema.Boolean),
   sidebarWorkingShelfEnabled: Schema.optionalKey(Schema.Boolean),

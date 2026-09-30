@@ -366,6 +366,12 @@ export const SETTINGS_SEARCH_ITEMS = [
     searchTerms: ["stacked split side by side unified inline view"],
   },
   {
+    id: "file-link-click",
+    title: "File link click",
+    to: "/settings/general",
+    searchTerms: ["file chip path open reveal finder explorer folder preview click"],
+  },
+  {
     id: "proactive-panels",
     title: "Proactive panels",
     to: "/settings/general",
