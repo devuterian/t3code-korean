@@ -1,5 +1,7 @@
 import type { VoiceInputState } from "@t3tools/client-runtime/voice-input";
 
+import { translate } from "../../i18n/translate";
+
 export type VoiceComposerPresentation = {
   readonly leadingAction: "cancel" | null;
   readonly trailingAction: "mic" | "confirm";
@@ -29,7 +31,7 @@ export function resolveVoiceComposerPresentation(
         trailingAction: "mic",
         showsSend: true,
         statusKind: "error",
-        statusLabel: state.error,
+        statusLabel: state.error === null ? null : translate(state.error),
         confirmationEnabled: false,
       };
     case "preparing":
@@ -38,7 +40,7 @@ export function resolveVoiceComposerPresentation(
         trailingAction: "confirm",
         showsSend: false,
         statusKind: "active",
-        statusLabel: "Preparing",
+        statusLabel: translate("Preparing"),
         confirmationEnabled: false,
       };
     case "recording": {
@@ -48,7 +50,9 @@ export function resolveVoiceComposerPresentation(
         trailingAction: "confirm",
         showsSend: false,
         statusKind: "active",
-        statusLabel: `Recording ${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`,
+        statusLabel: translate("Recording {time}", {
+          time: `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`,
+        }),
         confirmationEnabled: true,
       };
     }
@@ -58,7 +62,7 @@ export function resolveVoiceComposerPresentation(
         trailingAction: "confirm",
         showsSend: false,
         statusKind: "active",
-        statusLabel: "Transcribing",
+        statusLabel: translate("Transcribing"),
         confirmationEnabled: false,
       };
   }

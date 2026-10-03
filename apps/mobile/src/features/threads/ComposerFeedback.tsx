@@ -7,6 +7,7 @@ import { Pressable, View } from "react-native";
 import { AppText as Text } from "../../components/AppText";
 import { SymbolView } from "../../components/AppSymbol";
 import { copyTextWithHaptic } from "../../lib/copyTextWithHaptic";
+import { useTranslate } from "../../i18n/translate";
 
 export function ComposerFeedback({
   submission,
@@ -15,6 +16,7 @@ export function ComposerFeedback({
   readonly submission: CodexFeedbackSubmission;
   readonly onDismiss: () => void;
 }) {
+  const t = useTranslate();
   const notice = codexFeedbackNotice(submission);
   if (!notice) return null;
   return (
@@ -22,11 +24,11 @@ export function ComposerFeedback({
       <View className="gap-2 rounded-[20px] border-continuous bg-card p-4">
         <View className="flex-row items-center gap-3">
           <Text accessibilityLiveRegion="polite" className="min-w-0 flex-1 text-sm text-foreground">
-            {notice.title}
+            {t(notice.title)}
           </Text>
           {submission.status !== "uploading" ? (
             <Pressable
-              accessibilityLabel="Dismiss feedback notice"
+              accessibilityLabel={t("Dismiss feedback notice")}
               accessibilityRole="button"
               hitSlop={12}
               onPress={onDismiss}
@@ -43,7 +45,9 @@ export function ComposerFeedback({
         </View>
         {notice.description ? (
           <Text selectable className="text-xs text-foreground-muted">
-            {notice.description}
+            {submission.status === "sent"
+              ? t("Thread ID: {id}", { id: submission.feedbackId })
+              : notice.description}
           </Text>
         ) : null}
         {submission.status === "sent" ? (
@@ -54,7 +58,7 @@ export function ComposerFeedback({
             }
             className="self-start py-1 active:opacity-60"
           >
-            <Text className="text-sm text-foreground">Copy ID</Text>
+            <Text className="text-sm text-foreground">{t("Copy ID")}</Text>
           </Pressable>
         ) : null}
       </View>

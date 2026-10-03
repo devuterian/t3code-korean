@@ -5,6 +5,7 @@ import * as DateTime from "effect/DateTime";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
 import { AppText as Text } from "../../components/AppText";
+import { getFormattingLocale, useTranslate } from "../../i18n/translate";
 import { threadEnvironment } from "../../state/threads";
 import { useAtomCommand } from "../../state/use-atom-command";
 
@@ -15,6 +16,7 @@ export function UsageLimitRecoveryCard({
   thread: EnvironmentThreadShell;
   environmentId: EnvironmentId;
 }) {
+  const t = useTranslate();
   const updateMetadata = useAtomCommand(threadEnvironment.updateMetadata);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -42,7 +44,7 @@ export function UsageLimitRecoveryCard({
   async function toggle(action: "resume" | "snooze") {
     if (!resetAt || !runId || !canSchedule) return;
     if (action === "snooze" && !snoozed && Date.parse(resetAt) <= Date.now()) {
-      setError("The reset time has passed. Retry the thread manually.");
+      setError(t("The reset time has passed. Retry the thread manually."));
       return;
     }
     setPending(true);
@@ -61,7 +63,7 @@ export function UsageLimitRecoveryCard({
       });
       if (result._tag === "Failure") throw squashAtomCommandFailure(result);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Could not change limit recovery.");
+      setError(cause instanceof Error ? cause.message : t("Could not change limit recovery."));
     } finally {
       setPending(false);
     }
@@ -70,8 +72,14 @@ export function UsageLimitRecoveryCard({
     <View className="mx-3 mb-2 gap-2 rounded-xl border border-warning-foreground/25 bg-background p-3">
       <Text className="text-sm text-warning-foreground">
         {resetAt
-          ? `Usage limit resets ${DateTime.toDateUtc(DateTime.makeUnsafe(resetAt)).toLocaleString()}.`
-          : "The provider did not report a reset time. Retry manually when your limit is available."}
+          ? t("Usage limit resets {time}.", {
+              time: DateTime.toDateUtc(DateTime.makeUnsafe(resetAt)).toLocaleString(
+                getFormattingLocale(),
+              ),
+            })
+          : t(
+              "The provider did not report a reset time. Retry manually when your limit is available.",
+            )}
       </Text>
       {canSchedule ? (
         <View className="flex-row flex-wrap gap-2">
@@ -82,7 +90,7 @@ export function UsageLimitRecoveryCard({
             className="self-start rounded-lg bg-subtle px-3 py-2 active:opacity-70"
           >
             <Text className="text-sm text-foreground">
-              {scheduled ? "Cancel auto-resume" : "Resume at reset"}
+              {scheduled ? t("Cancel auto-resume") : t("Resume at reset")}
             </Text>
           </Pressable>
           <Pressable
@@ -92,7 +100,7 @@ export function UsageLimitRecoveryCard({
             className="self-start rounded-lg bg-subtle px-3 py-2 active:opacity-70"
           >
             <Text className="text-sm text-foreground">
-              {snoozed ? "Wake now" : "Snooze until reset"}
+              {snoozed ? t("Wake now") : t("Snooze until reset")}
             </Text>
           </Pressable>
         </View>

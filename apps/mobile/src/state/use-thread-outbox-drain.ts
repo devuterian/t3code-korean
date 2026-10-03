@@ -84,6 +84,7 @@ import {
   setPendingConnectionError,
   useRemoteConnectionStatus,
 } from "./use-remote-environment-registry";
+import { translate } from "../i18n/translate";
 
 // Ordinary offline behavior (a socket dropping mid-request, a retryable
 // attachment upload failure) must not spam `console.warn` on every backoff
@@ -468,7 +469,10 @@ export async function restoreRejectedQueuedMessage(
     ).length;
     if (existingAttachmentIds.size + addedAttachmentCount > PROVIDER_SEND_TURN_MAX_ATTACHMENTS) {
       setPendingConnectionError(
-        `Remove attachments from the draft before restoring this message. Messages can contain at most ${PROVIDER_SEND_TURN_MAX_ATTACHMENTS} attachments.`,
+        translate(
+          "Remove attachments from the draft before restoring this message. Messages can contain at most {max} attachments.",
+          { max: PROVIDER_SEND_TURN_MAX_ATTACHMENTS },
+        ),
       );
       return "blocked";
     }
@@ -547,7 +551,7 @@ export async function restoreRejectedQueuedMessage(
         reason: message,
       });
     }
-    setPendingConnectionError(message);
+    setPendingConnectionError(translate(message));
     return "restored";
   } catch (error) {
     if (rollback !== null) {
@@ -562,7 +566,9 @@ export async function restoreRejectedQueuedMessage(
     }
     console.warn("[thread-outbox] failed to restore an undeliverable message", error);
     setPendingConnectionError(
-      error instanceof Error ? error.message : "The unsent message could not be restored.",
+      error instanceof Error
+        ? translate(error.message)
+        : translate("The unsent message could not be restored."),
     );
     return "retry";
   }
@@ -721,11 +727,13 @@ export function useThreadOutboxDrain(): void {
     const load = async () => {
       if ((await threadOutboxManager.load()) || !mounted) return;
       Alert.alert(
-        "Some queued messages could not be loaded",
-        "Unreadable records and attachment files are still saved. Other messages can still be sent.",
+        translate("Some queued messages could not be loaded"),
+        translate(
+          "Unreadable records and attachment files are still saved. Other messages can still be sent.",
+        ),
         [
-          { text: "Dismiss", style: "cancel" },
-          { text: "Retry", onPress: () => void load() },
+          { text: translate("Dismiss"), style: "cancel" },
+          { text: translate("Retry"), onPress: () => void load() },
         ],
       );
     };
@@ -765,7 +773,8 @@ export function useThreadOutboxDrain(): void {
       });
       return {
         action,
-        message: error instanceof Error ? error.message : "The message could not be sent.",
+        message:
+          error instanceof Error ? error.message : translate("The message could not be sent."),
       };
     };
     return { reportFailure };
@@ -781,7 +790,9 @@ export function useThreadOutboxDrain(): void {
       if (isModelSelectionUnavailable(serverConfig, settings.modelSelection)) {
         return restoreQueuedMessage(
           queuedMessage,
-          "Antigravity model unavailable. Set it up on web or desktop, or choose another model.",
+          translate(
+            "Antigravity model unavailable. Set it up on web or desktop, or choose another model.",
+          ),
         );
       }
       const { reportFailure } = makeDeliveryHelpers(queuedMessage);
@@ -844,7 +855,7 @@ export function useThreadOutboxDrain(): void {
         if (!shouldRetryThreadOutboxDelivery(error)) {
           return restoreQueuedMessage(
             queuedMessage,
-            error instanceof Error ? error.message : "An attachment could not upload.",
+            error instanceof Error ? error.message : translate("An attachment could not upload."),
           );
         }
         return false;
@@ -859,7 +870,9 @@ export function useThreadOutboxDrain(): void {
       if (isModelSelectionUnavailable(currentConfig, settings.modelSelection)) {
         return restoreQueuedMessage(
           persistedMessage,
-          "Antigravity model unavailable. Set it up on web or desktop, or choose another model.",
+          translate(
+            "Antigravity model unavailable. Set it up on web or desktop, or choose another model.",
+          ),
         );
       }
       const sendSettings = resolveQueuedThreadSettings(
@@ -951,7 +964,9 @@ export function useThreadOutboxDrain(): void {
       if (isModelSelectionUnavailable(serverConfig, settings.modelSelection)) {
         return restoreQueuedMessage(
           queuedMessage,
-          "Antigravity model unavailable. Set it up on web or desktop, or choose another model.",
+          translate(
+            "Antigravity model unavailable. Set it up on web or desktop, or choose another model.",
+          ),
         );
       }
       let prepared: PreparedTurnAttachments;
@@ -980,7 +995,7 @@ export function useThreadOutboxDrain(): void {
         if (!shouldRetryThreadOutboxDelivery(error)) {
           return restoreQueuedMessage(
             queuedMessage,
-            error instanceof Error ? error.message : "An attachment could not upload.",
+            error instanceof Error ? error.message : translate("An attachment could not upload."),
           );
         }
         return false;
@@ -995,7 +1010,9 @@ export function useThreadOutboxDrain(): void {
       if (isModelSelectionUnavailable(currentConfig, settings.modelSelection)) {
         return restoreQueuedMessage(
           persistedMessage,
-          "Antigravity model unavailable. Set it up on web or desktop, or choose another model.",
+          translate(
+            "Antigravity model unavailable. Set it up on web or desktop, or choose another model.",
+          ),
         );
       }
       const sendSettings = resolveQueuedThreadSettings(

@@ -35,6 +35,7 @@ import {
   nativeHeaderScrollEdgeEffects,
 } from "../../../native/StackHeader";
 import { tryOpenExternalUrl } from "../../../lib/openExternalUrl";
+import { useTranslate } from "../../../i18n/translate";
 import { useEnvironmentQuery } from "../../../state/query";
 import { useThreadSelection } from "../../../state/use-thread-selection";
 import { useSelectedThreadGitActions } from "../../../state/use-selected-thread-git-actions";
@@ -57,6 +58,7 @@ type GitOverviewSheetProps = StaticScreenProps<{
 export function GitOverviewSheet(props: GitOverviewSheetProps) {
   const { layout } = useAdaptiveWorkspaceLayout();
   const navigation = useNavigation();
+  const t = useTranslate();
   const insets = useSafeAreaInsets();
   const presentation = props.presentation ?? "sheet";
   const isInspector = presentation === "inspector";
@@ -123,13 +125,13 @@ export function GitOverviewSheet(props: GitOverviewSheetProps) {
   const openExistingPr = useCallback(async () => {
     const prUrl = gitStatus.data?.pr?.state === "open" ? gitStatus.data.pr.url : null;
     if (!prUrl) {
-      Alert.alert("No open PR", "This branch does not have an open pull request.");
+      Alert.alert(t("No open PR"), t("This branch does not have an open pull request."));
       return;
     }
     if (!(await tryOpenExternalUrl(prUrl, "pull-request"))) {
-      Alert.alert("Unable to open PR", "The pull request could not be opened.");
+      Alert.alert(t("Unable to open PR"), t("The pull request could not be opened."));
     }
-  }, [gitStatus.data]);
+  }, [gitStatus.data, t]);
 
   const runActionWithPrompt = useCallback(
     async (input: GitActionRequestInput) => {
@@ -202,18 +204,22 @@ export function GitOverviewSheet(props: GitOverviewSheetProps) {
       }
       if (item.dialogAction === "commit" && status.hasWorkingTreeChanges) {
         const fileCount = status.workingTree?.files.length ?? 0;
-        return `${fileCount} file${fileCount === 1 ? "" : "s"} changed`;
+        return fileCount === 1
+          ? t("{count} file changed", { count: fileCount })
+          : t("{count} files changed", { count: fileCount });
       }
       if (item.dialogAction === "push" && (status.aheadCount ?? 0) > 0) {
         const ahead = status.aheadCount ?? 0;
-        return `${ahead} commit${ahead === 1 ? "" : "s"} ahead`;
+        return ahead === 1
+          ? t("{count} commit ahead", { count: ahead })
+          : t("{count} commits ahead", { count: ahead });
       }
       if (item.kind === "open_pr" && status.pr?.number != null) {
-        return `PR #${status.pr.number} ${status.pr.state ?? "open"}`;
+        return t(`PR #{number} ${status.pr.state ?? "open"}`, { number: status.pr.number });
       }
       return undefined;
     },
-    [gitStatus.data, menuItems],
+    [gitStatus.data, menuItems, t],
   );
 
   const behindCount = gitStatus.data?.behindCount ?? 0;
@@ -259,8 +265,8 @@ export function GitOverviewSheet(props: GitOverviewSheetProps) {
             ) : null}
             <SheetListRow
               icon={menuItemIconName(item.icon)}
-              title={item.label}
-              subtitle={disabledReason ?? rowStatusDetail(item)}
+              title={t(item.label)}
+              subtitle={disabledReason !== null ? t(disabledReason) : rowStatusDetail(item)}
               disabled={item.disabled}
               onPress={() => void onPressMenuItem(item)}
             />
@@ -271,8 +277,12 @@ export function GitOverviewSheet(props: GitOverviewSheetProps) {
             {Platform.OS !== "android" ? <View className="ml-12 h-px bg-border" /> : null}
             <SheetListRow
               icon="arrow.down.circle"
-              title="Pull latest"
-              subtitle={`${behindCount} commit${behindCount === 1 ? "" : "s"} behind upstream`}
+              title={t("Pull latest")}
+              subtitle={
+                behindCount === 1
+                  ? t("{count} commit behind upstream", { count: behindCount })
+                  : t("{count} commits behind upstream", { count: behindCount })
+              }
               disabled={busy || !isRepo}
               onPress={() => void gitActions.onPullSelectedThreadBranch()}
             />
@@ -281,8 +291,8 @@ export function GitOverviewSheet(props: GitOverviewSheetProps) {
         {Platform.OS !== "android" ? <View className="ml-12 h-px bg-border" /> : null}
         <SheetListRow
           icon="text.bubble"
-          title="Review changes"
-          subtitle="Inspect changes, uncommitted edits, and turn diffs"
+          title={t("Review changes")}
+          subtitle={t("Inspect changes, uncommitted edits, and turn diffs")}
           disabled={busy || !isRepo}
           onPress={() => {
             const params = { environmentId, threadId };
@@ -296,8 +306,8 @@ export function GitOverviewSheet(props: GitOverviewSheetProps) {
         {Platform.OS !== "android" ? <View className="ml-12 h-px bg-border" /> : null}
         <SheetListRow
           icon="point.topleft.down.curvedto.point.bottomright.up"
-          title="Branches & worktrees"
-          subtitle="Switch branch, create branch, or move to a worktree"
+          title={t("Branches & worktrees")}
+          subtitle={t("Switch branch, create branch, or move to a worktree")}
           disabled={busy || !isRepo}
           onPress={() =>
             navigation.navigate("GitBranches", {
@@ -311,7 +321,7 @@ export function GitOverviewSheet(props: GitOverviewSheetProps) {
       {linkedPrChains.length > 0 ? (
         <View className="gap-2">
           <Text className="px-1 text-xs font-t3-bold text-foreground-muted">
-            Linked pull requests
+            {t("Linked pull requests")}
           </Text>
           {linkedPrChains.map((chain) => (
             <View
@@ -326,8 +336,10 @@ export function GitOverviewSheet(props: GitOverviewSheetProps) {
                     tintColorClassName="accent-foreground-muted"
                   />
                   <Text className="text-xs text-foreground-muted">
-                    {chain.kind === "native" ? "Stack" : "Branch stack"} · {chain.layers.length} PRs
-                    · bottom to top
+                    {t("{kind} · {count} PRs · bottom to top", {
+                      kind: chain.kind === "native" ? t("Stack") : t("Branch stack"),
+                      count: chain.layers.length,
+                    })}
                   </Text>
                 </View>
               ) : null}
@@ -338,12 +350,15 @@ export function GitOverviewSheet(props: GitOverviewSheetProps) {
                   ) : null}
                   <SheetListRow
                     icon="arrow.triangle.pull"
-                    title={`#${link.number} ${link.snapshot?.title ?? "Pull request"}`}
-                    subtitle={`${link.repository} · ${link.snapshot === null ? "Status pending" : link.snapshot.isDraft && link.snapshot.state === "open" ? "Draft" : link.snapshot.state}${link.watch === undefined ? "" : " · Watching"}`}
+                    title={`#${link.number} ${link.snapshot?.title ?? t("Pull request")}`}
+                    subtitle={`${link.repository} · ${link.snapshot === null ? t("Status pending") : link.snapshot.isDraft && link.snapshot.state === "open" ? t("Draft") : t(link.snapshot.state)}${link.watch === undefined ? "" : ` · ${t("Watching")}`}`}
                     onPress={() => {
                       void tryOpenExternalUrl(link.url, "pull-request").then((opened) => {
                         if (!opened)
-                          Alert.alert("Unable to open PR", "The pull request could not be opened.");
+                          Alert.alert(
+                            t("Unable to open PR"),
+                            t("The pull request could not be opened."),
+                          );
                       });
                     }}
                   />
@@ -354,7 +369,7 @@ export function GitOverviewSheet(props: GitOverviewSheetProps) {
         </View>
       ) : null}
 
-      {currentWorktreePath ? <MetaCard label="Worktree" value={currentWorktreePath} /> : null}
+      {currentWorktreePath ? <MetaCard label={t("Worktree")} value={currentWorktreePath} /> : null}
     </ScrollView>
   );
 
@@ -427,11 +442,11 @@ export function GitOverviewSheet(props: GitOverviewSheetProps) {
 
   const refreshMenu = (
     <AndroidAnchoredMenu
-      title="Repository options"
+      title={t("Repository options")}
       actions={[
         {
           id: "refresh",
-          title: "Refresh repository status",
+          title: t("Refresh repository status"),
           attributes: { disabled: busy || isPullRefreshing },
         },
       ]}
@@ -441,7 +456,7 @@ export function GitOverviewSheet(props: GitOverviewSheetProps) {
     >
       {(open) => (
         <AndroidHeaderIconButton
-          accessibilityLabel="Repository options"
+          accessibilityLabel={t("Repository options")}
           icon="ellipsis"
           onPress={open}
         />
@@ -498,7 +513,7 @@ export function GitOverviewSheet(props: GitOverviewSheetProps) {
             </Pressable>
           )}
           <Text className="text-xs font-t3-bold tracking-[1px] uppercase text-foreground-muted">
-            Repository
+            {t("Repository")}
           </Text>
           <Text className="pr-10 text-xl font-t3-bold">{currentBranchLabel}</Text>
           <Text className="text-foreground-secondary text-sm font-medium leading-normal">
@@ -517,7 +532,7 @@ export function GitOverviewSheet(props: GitOverviewSheetProps) {
               ? undefined
               : [
                   {
-                    accessibilityLabel: "Refresh repository status",
+                    accessibilityLabel: t("Refresh repository status"),
                     disabled: busy,
                     icon: "arrow.clockwise",
                     onPress: () => void gitActions.refreshSelectedThreadGitStatus(),

@@ -6,6 +6,7 @@ import {
 import { ActivityIndicator, Pressable, View } from "react-native";
 
 import { cn } from "../lib/cn";
+import { useTranslate } from "../i18n/translate";
 import { AppText as Text } from "./AppText";
 import { useTranslate } from "../i18n/translate";
 
@@ -22,6 +23,7 @@ export function ProjectCloneBanner(props: {
 }) {
   const t = useTranslate();
   const { clone } = props;
+  const t = useTranslate();
   const name = projectCloneDisplayName(clone);
   if (clone.phase === "running") {
     return (
@@ -32,7 +34,7 @@ export function ProjectCloneBanner(props: {
             {t("Cloning {name}", { name })}
           </Text>
           <Text className="text-xs text-foreground-muted" numberOfLines={1}>
-            {projectCloneProgressSummary(clone)}
+            {localizedCloneProgressSummary(clone, t)}
           </Text>
         </View>
         <BannerAction label={t("Cancel")} onPress={props.onCancel} />
@@ -69,6 +71,15 @@ export function ProjectCloneBanner(props: {
       </View>
     </View>
   );
+}
+
+/** The shared summary leads with a fixed English stage label; only that part is translated. */
+function localizedCloneProgressSummary(
+  clone: ProjectCloneSnapshot,
+  t: (source: string) => string,
+): string {
+  const [stage = "", ...rest] = projectCloneProgressSummary(clone).split(" · ");
+  return [t(stage), ...rest].join(" · ");
 }
 
 function BannerAction(props: { readonly label: string; readonly onPress: () => void }) {

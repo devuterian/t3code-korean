@@ -20,6 +20,7 @@ import { USER_INPUT_TOGGLE_DURATION_MS } from "./pendingUserInputLayout";
 import { SymbolView } from "../../components/AppSymbol";
 import { AppText as Text } from "../../components/AppText";
 import { ControlPill } from "../../components/ControlPill";
+import { useTranslate } from "../../i18n/translate";
 import { cn } from "../../lib/cn";
 import {
   isPendingUserInputOptionSelected,
@@ -91,11 +92,16 @@ const EXPANDED_CARD_IS_OVERLAY = Platform.OS === "ios";
 const CARD_LAYOUT_TRANSITION = LinearTransition.duration(200);
 
 export function PendingUserInputCard(props: PendingUserInputCardProps) {
+  const t = useTranslate();
   const questionCount = props.pendingUserInput.questions.length;
   // Message responses start a new run and remain available after the provider exits.
   const canRespond = props.pendingUserInput.responseCapability !== "not_resumable";
   const isResponding = props.respondingUserInputId === props.pendingUserInput.requestId;
   const responseDisabled = !canRespond || isResponding;
+  const questionCountLabel =
+    questionCount === 1
+      ? t("{count} question", { count: questionCount })
+      : t("{count} questions", { count: questionCount });
 
   const cardCoverage = props.cardCoverage;
   const barHeightRef = useRef(0);
@@ -174,18 +180,14 @@ export function PendingUserInputCard(props: PendingUserInputCardProps) {
     >
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`Expand user input, ${questionCount} question${
-          questionCount === 1 ? "" : "s"
-        }`}
+        accessibilityLabel={t("Expand user input, {questions}", { questions: questionCountLabel })}
         onPress={props.onToggleCollapsed}
         className="min-h-10 flex-1 flex-row items-center gap-2 active:opacity-70"
       >
         <Text className="font-t3-bold text-2xs uppercase tracking-[1.1px] text-foreground-secondary">
-          User input needed
+          {t("User input needed")}
         </Text>
-        <Text className="font-sans text-xs text-foreground-muted">
-          {questionCount} question{questionCount === 1 ? "" : "s"}
-        </Text>
+        <Text className="font-sans text-xs text-foreground-muted">{questionCountLabel}</Text>
         <View className="flex-1" />
         <SymbolView
           name="chevron.up"
@@ -196,7 +198,7 @@ export function PendingUserInputCard(props: PendingUserInputCardProps) {
       </Pressable>
       {props.onStopThread ? (
         <ControlPill
-          accessibilityLabel="Stop"
+          accessibilityLabel={t("Stop")}
           icon="stop.fill"
           variant="danger"
           className="h-9 w-9"
@@ -234,15 +236,17 @@ export function PendingUserInputCard(props: PendingUserInputCardProps) {
     >
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Collapse user input"
+        accessibilityLabel={t("Collapse user input")}
         onPress={props.onToggleCollapsed}
         className="flex-row items-start gap-2"
       >
         <View className="flex-1 gap-2.5">
           <Text className="font-t3-bold text-2xs uppercase tracking-[1.1px] text-foreground-secondary">
-            User input needed
+            {t("User input needed")}
           </Text>
-          <Text className="font-t3-bold text-lg text-foreground">Fill in the pending answers</Text>
+          <Text className="font-t3-bold text-lg text-foreground">
+            {t("Fill in the pending answers")}
+          </Text>
         </View>
         <View className="h-8 w-8 items-center justify-center rounded-full bg-subtle-strong">
           <SymbolView
@@ -264,8 +268,9 @@ export function PendingUserInputCard(props: PendingUserInputCardProps) {
       >
         {!canRespond ? (
           <Text className="font-sans text-sm leading-5 text-adaptive-neutral-600-400">
-            The provider process for this request is no longer available. Interrupt or restart the
-            run to continue.
+            {t(
+              "The provider process for this request is no longer available. Interrupt or restart the run to continue.",
+            )}
           </Text>
         ) : null}
         {props.pendingUserInput.questions.map((question) => {
@@ -339,7 +344,7 @@ export function PendingUserInputCard(props: PendingUserInputCardProps) {
         })}
       </ScrollView>
       <RequestActionButton
-        label="Submit answers"
+        label={t("Submit answers")}
         size="large"
         tone={props.answers ? "primary" : "secondary"}
         disabled={responseDisabled || props.answers === null}
@@ -353,7 +358,7 @@ export function PendingUserInputCard(props: PendingUserInputCardProps) {
           onPress={() => void props.onDismiss()}
         >
           <Text className="font-t3-bold text-sm text-foreground-muted">
-            Dismiss without answering
+            {t("Dismiss without answering")}
           </Text>
         </Pressable>
       ) : null}

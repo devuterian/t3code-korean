@@ -12,9 +12,49 @@ import { AndroidSheetHeader } from "../../../components/AndroidScreenHeader";
 import { MaterialScreenContent } from "../../../components/MaterialScreenContent";
 import { NativeStackScreenOptions } from "../../../native/StackHeader";
 import { AppText as Text } from "../../../components/AppText";
+import { translate, useTranslate } from "../../../i18n/translate";
 import { useSelectedThreadGitActions } from "../../../state/use-selected-thread-git-actions";
 import { useSelectedThreadGitState } from "../../../state/use-selected-thread-git-state";
 import { SheetActionButton } from "./gitSheetComponents";
+
+const DEFAULT_BRANCH_DIALOG_SUFFIX =
+  ' on "{branch}". You can continue on this branch or create a feature branch and run the same action there.';
+
+/**
+ * Localized default-branch dialog copy. Each template reproduces the shared
+ * English helper; if that helper's wording drifts, its English text wins.
+ */
+function localizeDefaultBranchDialogCopy(
+  t: (source: string, params?: Readonly<Record<string, string>>) => string,
+  input: {
+    readonly action: "push" | "create_pr" | "commit_push" | "commit_push_pr";
+    readonly branchName: string;
+    readonly includesCommit: boolean;
+  },
+) {
+  const english = resolveDefaultBranchActionDialogCopy(input);
+  const params = { branch: input.branchName };
+  const localize = (template: string, source: string) =>
+    translate(template, params, "en") === source ? t(template, params) : source;
+  const pushes = input.action === "push" || input.action === "commit_push";
+  const descriptionTemplate = pushes
+    ? input.includesCommit
+      ? `This action will commit and push changes${DEFAULT_BRANCH_DIALOG_SUFFIX}`
+      : `This action will push local commits${DEFAULT_BRANCH_DIALOG_SUFFIX}`
+    : input.includesCommit
+      ? `This action will commit, push, and create a PR${DEFAULT_BRANCH_DIALOG_SUFFIX}`
+      : `This action will push local commits and create a PR${DEFAULT_BRANCH_DIALOG_SUFFIX}`;
+  const continueTemplate = pushes
+    ? input.includesCommit
+      ? "Commit & push to {branch}"
+      : "Push to {branch}"
+    : english.continueLabel;
+  return {
+    title: t(english.title),
+    description: localize(descriptionTemplate, english.description),
+    continueLabel: localize(continueTemplate, english.continueLabel),
+  };
+}
 
 type GitConfirmSheetProps = StaticScreenProps<{
   readonly environmentId: string;
@@ -28,6 +68,7 @@ type GitConfirmSheetProps = StaticScreenProps<{
 
 export function GitConfirmSheet(props: GitConfirmSheetProps) {
   const navigation = useNavigation();
+  const t = useTranslate();
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
   const gitState = useSelectedThreadGitState();
@@ -49,13 +90,13 @@ export function GitConfirmSheet(props: GitConfirmSheetProps) {
   const copy = useMemo(
     () =>
       confirmAction
-        ? resolveDefaultBranchActionDialogCopy({
+        ? localizeDefaultBranchDialogCopy(t, {
             action: confirmAction,
             branchName,
             includesCommit,
           })
         : null,
-    [branchName, confirmAction, includesCommit],
+    [branchName, confirmAction, includesCommit, t],
   );
 
   const continuePendingAction = useCallback(async () => {
@@ -120,7 +161,7 @@ export function GitConfirmSheet(props: GitConfirmSheetProps) {
       ) : null}
       {Platform.OS === "android" ? (
         <AndroidSheetHeader
-          title="Confirm action"
+          title={t("Confirm action")}
           onBack={() => navigation.goBack()}
           hideBottomBorder
         />
@@ -142,14 +183,14 @@ export function GitConfirmSheet(props: GitConfirmSheetProps) {
           <View className="android:gap-2 android:rounded-[20px] android:bg-card android:p-3 ios:items-center ios:gap-1 ios:px-5 ios:pb-3 ios:pt-4">
             {Platform.OS !== "android" ? (
               <Text className="text-xs font-t3-bold tracking-[1px] uppercase text-foreground-muted">
-                Confirm
+                {t("Confirm")}
               </Text>
             ) : null}
             <Text className="android:text-xl android:font-t3-medium ios:text-center ios:text-3xl ios:font-t3-bold">
-              {copy?.title ?? "Run action on default branch?"}
+              {copy?.title ?? t("Run action on default branch?")}
             </Text>
             <Text className="text-foreground-secondary leading-normal android:text-base ios:text-center ios:text-sm ios:font-medium">
-              {copy?.description ?? "Choose how to continue."}
+              {copy?.description ?? t("Choose how to continue.")}
             </Text>
           </View>
 
@@ -163,12 +204,12 @@ export function GitConfirmSheet(props: GitConfirmSheetProps) {
           >
             <SheetActionButton
               icon="arrow.right.circle"
-              label={copy?.continueLabel ?? "Continue"}
+              label={copy?.continueLabel ?? t("Continue")}
               onPress={() => void continuePendingAction()}
             />
             <SheetActionButton
               icon="arrow.branch"
-              label="Feature branch & continue"
+              label={t("Feature branch & continue")}
               tone="primary"
               onPress={() => void movePendingActionToFeatureBranch()}
             />

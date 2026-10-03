@@ -12,6 +12,8 @@ import {
   type ThreadContextRecord,
 } from "@t3tools/contracts";
 import * as Schema from "effect/Schema";
+
+import { translate } from "../i18n/translate";
 import {
   collectComposerContextReferences,
   formatComposerContextReference,
@@ -32,10 +34,12 @@ export function composerContextSendBlockReason(
 ): string | null {
   if (!context) return null;
   if (context.records.length > COMPOSER_CONTEXT_MAX_RECORDS) {
-    return `Remove context items until there are at most ${COMPOSER_CONTEXT_MAX_RECORDS}.`;
+    return translate("Remove context items until there are at most {max}.", {
+      max: COMPOSER_CONTEXT_MAX_RECORDS,
+    });
   }
   return !isMessageContext(context) || decodeMessageContext(context)._tag === "None"
-    ? "This draft has too much context to send. Remove some context items and try again."
+    ? translate("This draft has too much context to send. Remove some context items and try again.")
     : null;
 }
 

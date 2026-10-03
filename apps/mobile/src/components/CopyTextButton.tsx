@@ -2,6 +2,7 @@ import { SymbolView } from "../components/AppSymbol";
 import { memo, useEffect, useRef, useState } from "react";
 import { Alert, Pressable, type ColorValue } from "react-native";
 
+import { useTranslate } from "../i18n/translate";
 import { tryCopyTextWithHaptic } from "../lib/copyTextWithHaptic";
 import { useTranslate } from "../i18n/translate";
 

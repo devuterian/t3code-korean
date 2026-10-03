@@ -17,6 +17,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AndroidSheetHeader } from "../../components/AndroidScreenHeader";
 import { AppText as Text } from "../../components/AppText";
+import { useTranslate } from "../../i18n/translate";
+import { localizeDurationUnits } from "../../lib/threadActivity";
 import { SymbolView } from "../../components/AppSymbol";
 import { useUniwindTheme } from "../../lib/useUniwindTheme";
 import { environmentThreadDetails } from "../../state/threads";
@@ -34,6 +36,7 @@ export function useThreadTurnSubagents(target: AgentsTarget): ThreadTurnSubagent
 }
 
 export function ThreadAgentsSheet({ route }: StaticScreenProps<AgentsTarget>) {
+  const t = useTranslate();
   const target = route.params;
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
@@ -65,7 +68,7 @@ export function ThreadAgentsSheet({ route }: StaticScreenProps<AgentsTarget>) {
     >
       {subagents.length === 0 ? (
         <Text className="pt-6 text-center text-sm text-foreground-muted">
-          No agents in this turn.
+          {t("No agents in this turn.")}
         </Text>
       ) : (
         subagents.map((subagent) => (
@@ -100,7 +103,7 @@ export function ThreadAgentsSheet({ route }: StaticScreenProps<AgentsTarget>) {
               color={theme["--color-foreground"]}
               hideBackButton
               hideShadow={false}
-              title="Agents"
+              title={t("Agents")}
               titleColor={theme["--color-foreground"]}
               titleFontSize={18}
               titleFontWeight="800"
@@ -114,7 +117,7 @@ export function ThreadAgentsSheet({ route }: StaticScreenProps<AgentsTarget>) {
 
   return (
     <View collapsable={false} className="flex-1 bg-sheet">
-      <AndroidSheetHeader title="Agents" onBack={() => navigation.goBack()} />
+      <AndroidSheetHeader title={t("Agents")} onBack={() => navigation.goBack()} />
       {content}
     </View>
   );
@@ -125,6 +128,7 @@ function AgentRow(props: {
   readonly tickSeconds: boolean;
   readonly onOpen: (childThreadId: ThreadId) => void;
 }) {
+  const t = useTranslate();
   const { subagent } = props;
   const presentation = resolveSubagentRowPresentation(subagent);
   const childThreadId = subagent.childThreadId;
@@ -155,7 +159,7 @@ function AgentRow(props: {
       <View
         accessible
         accessibilityLabel={`${presentation.title}, ${presentation.statusLabel}`}
-        accessibilityHint="Provider-managed agent. Its work appears in the transcript."
+        accessibilityHint={t("Provider-managed agent. Its work appears in the transcript.")}
       >
         {row}
       </View>
@@ -166,7 +170,7 @@ function AgentRow(props: {
     <Pressable
       accessibilityRole="link"
       accessibilityLabel={`${presentation.title}, ${presentation.statusLabel}`}
-      accessibilityHint="Opens this agent's thread"
+      accessibilityHint={t("Opens this agent's thread")}
       onPress={() => props.onOpen(childThreadId)}
       className="active:opacity-70"
     >
@@ -198,5 +202,7 @@ function useSubagentElapsed(
     },
     nowMs,
   );
-  return elapsedMs === null || elapsedMs === 0 ? null : formatDuration(elapsedMs);
+  return elapsedMs === null || elapsedMs === 0
+    ? null
+    : localizeDurationUnits(formatDuration(elapsedMs));
 }

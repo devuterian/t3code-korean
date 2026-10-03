@@ -1,6 +1,7 @@
 import { StackActions, useNavigation } from "@react-navigation/native";
 import { useMemo } from "react";
 import type { AppNativeStackNavigationOptions } from "../../native/StackHeader";
+import { useTranslate } from "../../i18n/translate";
 import { useAdaptiveWorkspaceLayout } from "../layout/AdaptiveWorkspaceLayout";
 import { withNativeGlassHeaderItem } from "../layout/native-glass-header-items";
 import {
@@ -20,6 +21,7 @@ export function useThreadHeaderOptions(props: {
   readonly onReturnToThread?: () => void;
 }) {
   const navigation = useNavigation();
+  const t = useTranslate();
   const { layout, panes, togglePrimarySidebar } = useAdaptiveWorkspaceLayout();
   const threadCenterHeaderItems = useThreadGitCenterHeaderItems(props.gitControls);
   const compactRightHeaderItems = useThreadGitRightHeaderItems(props.gitControls);
@@ -34,7 +36,7 @@ export function useThreadHeaderOptions(props: {
       ...(props.onReturnToThread
         ? [
             withNativeGlassHeaderItem({
-              accessibilityLabel: "Return to chat",
+              accessibilityLabel: t("Return to chat"),
               icon: { name: "chevron.left", type: "sfSymbol" as const },
               identifier: "thread-left-return",
               onPress: props.onReturnToThread,
@@ -44,8 +46,8 @@ export function useThreadHeaderOptions(props: {
         : []),
       withNativeGlassHeaderItem({
         accessibilityLabel: panes.primarySidebarVisible
-          ? "Maximize content"
-          : "Show thread sidebar",
+          ? t("Maximize content")
+          : t("Show thread sidebar"),
         icon: {
           name: panes.primarySidebarVisible ? "arrow.up.left.and.arrow.down.right" : "sidebar.left",
           type: "sfSymbol" as const,
@@ -55,14 +57,14 @@ export function useThreadHeaderOptions(props: {
         type: "button" as const,
       }),
       withNativeGlassHeaderItem({
-        accessibilityLabel: "New task",
+        accessibilityLabel: t("New task"),
         icon: { name: "square.and.pencil", type: "sfSymbol" as const },
         identifier: "thread-left-new-task",
         onPress: () => navigation.navigate("NewTaskSheet", { screen: "NewTask" }),
         type: "button" as const,
       }),
     ],
-    [panes.primarySidebarVisible, props.onReturnToThread, navigation, togglePrimarySidebar],
+    [panes.primarySidebarVisible, props.onReturnToThread, navigation, t, togglePrimarySidebar],
   );
   // Deep links / cold starts land with Thread as the ONLY route, where the
   // native back button does not render. Provide an explicit Home escape for
@@ -71,14 +73,14 @@ export function useThreadHeaderOptions(props: {
   const compactHomeHeaderItems = useMemo<NativeHeaderItems>(
     () => [
       withNativeGlassHeaderItem({
-        accessibilityLabel: "Go to threads list",
+        accessibilityLabel: t("Go to threads list"),
         icon: { name: "list.bullet", type: "sfSymbol" as const },
         identifier: "thread-left-home",
         onPress: () => navigation.dispatch(StackActions.replace("Home")),
         type: "button" as const,
       }),
     ],
-    [navigation],
+    [navigation, t],
   );
 
   const options: AppNativeStackNavigationOptions = {

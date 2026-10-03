@@ -10,6 +10,7 @@ import { ComposerAttachmentButton } from "../../components/ComposerAttachmentBut
 import { ComposerAttachmentStrip } from "../../components/ComposerAttachmentStrip";
 import { pickComposerFiles, pickComposerMedia } from "../../lib/composerImages";
 import { useThreadSelection } from "../../state/use-thread-selection";
+import { useTranslate } from "../../i18n/translate";
 import { useNavigation } from "@react-navigation/native";
 import { FilePreviewModal, type FilePreviewSource } from "../../components/FilePreviewModal";
 import { VideoPreviewModal, type VideoPreviewSource } from "../../components/VideoPreviewModal";
@@ -36,6 +37,7 @@ export function QuestionAttachments(props: {
   onChangeText: (value: string) => void;
   onInputFocusChange?: ((focused: boolean) => void) | undefined;
 }) {
+  const t = useTranslate();
   const { selectedThread } = useThreadSelection();
   const navigation = useNavigation();
   const [previewFile, setPreviewFile] = useState<FilePreviewSource | null>(null);
@@ -100,11 +102,14 @@ export function QuestionAttachments(props: {
           (appAtomRegistry.get(questionAttachmentPreparationAtom)[key] ?? 0) > 0
         ) {
           if (append(key, images) > 0)
-            Alert.alert("Could not paste image", "Too many attachments.");
+            Alert.alert(t("Could not paste image"), t("Too many attachments."));
         } else await releaseUnusedComposerAttachmentFiles(images);
       })
       .catch((error) =>
-        Alert.alert("Could not paste image", error instanceof Error ? error.message : "Try again."),
+        Alert.alert(
+          t("Could not paste image"),
+          error instanceof Error ? error.message : t("Try again."),
+        ),
       )
       .finally(() => changeQuestionAttachmentPreparation(key, -1));
   });
@@ -145,9 +150,12 @@ export function QuestionAttachments(props: {
       }
       const rejected = append(key, picked);
       if (result.error || rejected > 0)
-        Alert.alert("Could not attach file", result.error ?? "Too many attachments.");
+        Alert.alert(t("Could not attach file"), result.error ?? t("Too many attachments."));
     } catch (error) {
-      Alert.alert("Could not attach file", error instanceof Error ? error.message : "Try again.");
+      Alert.alert(
+        t("Could not attach file"),
+        error instanceof Error ? error.message : t("Try again."),
+      );
     } finally {
       changeQuestionAttachmentPreparation(key, -1);
     }
@@ -193,7 +201,7 @@ export function QuestionAttachments(props: {
           onChangeText={props.onChangeText}
           onFocus={() => props.onInputFocusChange?.(true)}
           onBlur={() => props.onInputFocusChange?.(false)}
-          placeholder="Or type a custom answer"
+          placeholder={t("Or type a custom answer")}
           className="min-h-[54px] rounded-2xl border border-input-border bg-input px-3.5 py-3 font-sans text-base text-foreground"
         />
       </TextInputWrapper>

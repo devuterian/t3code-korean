@@ -18,7 +18,8 @@ import { AppText as Text } from "../../components/AppText";
 import { SymbolView } from "../../components/AppSymbol";
 import { ProviderIcon } from "../../components/ProviderIcon";
 import { cn } from "../../lib/cn";
-import type { ThreadFeedActivity } from "../../lib/threadActivity";
+import { localizeDurationUnits, type ThreadFeedActivity } from "../../lib/threadActivity";
+import { useTranslate } from "../../i18n/translate";
 import { serverEnvironment } from "../../state/server";
 import { environmentThreadDetails } from "../../state/threads";
 import { SubagentStatusDot } from "./SubagentStatusDot";
@@ -47,7 +48,9 @@ function SubagentElapsed({ agents }: { readonly agents: ReadonlyArray<AgentTimin
   }, [appActive, focused, live]);
   const elapsed = subagentCardElapsed(agents, nowMs);
   return elapsed ? (
-    <Text className="shrink-0 text-2xs tabular-nums text-foreground-muted">{elapsed}</Text>
+    <Text className="shrink-0 text-2xs tabular-nums text-foreground-muted">
+      {localizeDurationUnits(elapsed)}
+    </Text>
   ) : null;
 }
 
@@ -80,6 +83,7 @@ export function ThreadSubagentGroup(props: {
   readonly iconSubtleColor: ColorValue;
   readonly onToggleRow: (rowId: string, anchorKey: string) => void;
 }) {
+  const t = useTranslate();
   const config = useAtomValue(serverEnvironment.configValueAtom(props.environmentId));
   const navigation = useNavigation();
   const members = props.activities.flatMap(({ projectedItem }) =>
@@ -102,8 +106,15 @@ export function ThreadSubagentGroup(props: {
     };
   });
   const grouped = agents.length > 1;
-  const label = `${agents.length} subagents`;
-  const summary = summarizeSubagentStatuses(agents.map((agent) => agent.status));
+  const label = t("{count} subagents", { count: agents.length });
+  const summary = summarizeSubagentStatuses(agents.map((agent) => agent.status))
+    .split(" · ")
+    .map((part) => {
+      // "2 working" -> t("{count} working"); keeps English output identical.
+      const match = /^(\d+) (\w+)$/.exec(part);
+      return match ? t(`{count} ${match[2]}`, { count: match[1]! }) : part;
+    })
+    .join(" · ");
   const expanded = props.expandedRows[props.anchorKey] ?? false;
   const iconUrl = (item: SubagentItem) =>
     config?.providers.find((provider) => provider.instanceId === item.providerInstanceId)?.iconUrl;
@@ -171,7 +182,7 @@ export function ThreadSubagentGroup(props: {
                 accessibilityRole={threadId === null ? undefined : "link"}
                 accessibilityLabel={`${presentation.title}, ${presentation.statusLabel}${detail ? `, ${detail}` : ""}`}
                 accessibilityHint={
-                  threadId === null ? "Provider-managed agent" : "Opens this agent's thread"
+                  threadId === null ? t("Provider-managed agent") : t("Opens this agent's thread")
                 }
                 disabled={threadId === null}
                 onPress={() => {

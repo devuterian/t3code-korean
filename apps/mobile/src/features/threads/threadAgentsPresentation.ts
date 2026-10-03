@@ -5,6 +5,8 @@ import {
 } from "@t3tools/client-runtime/state/subagentRuntime";
 import type { OrchestrationV2Subagent } from "@t3tools/contracts";
 
+import { translate } from "../../i18n/translate";
+
 const PROMPT_TITLE_LIMIT = 80;
 
 export type SubagentRowTone = "working" | "completed" | "failed" | "stopped";
@@ -24,7 +26,7 @@ function rowTitle(subagent: Pick<OrchestrationV2Subagent, "title" | "prompt">): 
   const title = subagent.title?.trim();
   if (title) return formatSubagentDisplayTitle(title);
   const prompt = subagent.prompt.trim();
-  if (prompt.length === 0) return "Subagent";
+  if (prompt.length === 0) return translate("Subagent");
   return prompt.length > PROMPT_TITLE_LIMIT
     ? `${prompt.slice(0, PROMPT_TITLE_LIMIT - 3)}...`
     : prompt;
@@ -41,19 +43,19 @@ function rowStatusLabel(status: OrchestrationV2Subagent["status"]): string {
   switch (status) {
     case "pending":
     case "running":
-      return "Working";
+      return translate("Working");
     case "waiting":
-      return "Waiting";
+      return translate("Waiting");
     case "idle":
-      return "Idle";
+      return translate("Idle");
     case "completed":
-      return "Completed";
+      return translate("Completed");
     case "failed":
-      return "Failed";
+      return translate("Failed");
     case "cancelled":
-      return "Cancelled";
+      return translate("Cancelled");
     case "interrupted":
-      return "Interrupted";
+      return translate("Interrupted");
   }
 }
 

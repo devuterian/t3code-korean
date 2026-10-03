@@ -16,6 +16,7 @@ import { SymbolView, type AppSymbolName } from "../../components/AppSymbol";
 import { AppText as Text } from "../../components/AppText";
 import { GlassSurface } from "../../components/GlassSurface";
 import { PierreEntryIcon } from "../../components/PierreEntryIcon";
+import { useTranslate } from "../../i18n/translate";
 export type ComposerCommandItem =
   | {
       readonly id: string;
@@ -192,6 +193,7 @@ const CommandRow = memo(function CommandRow(props: {
 export const ComposerCommandPopover = memo(function ComposerCommandPopover(
   props: ComposerCommandPopoverProps,
 ) {
+  const t = useTranslate();
   const label = groupLabel(props.triggerKind);
 
   return (
@@ -199,7 +201,7 @@ export const ComposerCommandPopover = memo(function ComposerCommandPopover(
       {label ? (
         <View className="px-3.5 pt-2.5 pb-1">
           <Text className="text-3xs font-t3-bold tracking-[0.8px] uppercase text-foreground-muted">
-            {label}
+            {t(label)}
           </Text>
         </View>
       ) : null}
@@ -222,7 +224,7 @@ export const ComposerCommandPopover = memo(function ComposerCommandPopover(
       ) : (
         <View className="px-3.5 py-2.5">
           <Text className="text-xs text-foreground-tertiary">
-            {props.error ?? emptyText(props.triggerKind, props.isLoading)}
+            {props.error ?? t(emptyText(props.triggerKind, props.isLoading))}
           </Text>
         </View>
       )}

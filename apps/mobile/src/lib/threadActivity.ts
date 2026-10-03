@@ -53,6 +53,7 @@ import {
   formatSearchToolLabel,
 } from "@t3tools/shared/toolActivity";
 import { formatDuration } from "@t3tools/shared/orchestrationTiming";
+import { getInterfaceLanguage, translate } from "../i18n/translate";
 import { compactDynamicToolOutput } from "@t3tools/shared/toolOutput";
 import * as DateTime from "effect/DateTime";
 
@@ -221,7 +222,9 @@ function compactWorkEntryText(value: string): string {
 /** Expanded work rows keep their detail while compact rows show a stable one-line label. */
 export function workEntryRowLabel(entry: WorkLogPresentationEntry, expanded = false): string {
   if (expanded && entry.itemType === "reasoning")
-    return entry.toolLifecycleStatus === "inProgress" ? "Thinking" : "Thought";
+    return entry.toolLifecycleStatus === "inProgress"
+      ? translate("Thinking")
+      : translate("Thought");
   const presentation = resolveWorkEntryToolPresentation(entry);
   if (presentation) return presentation.displayName;
   if (entry.command?.trim()) return compactWorkEntryText(commandDisplayText(entry.command));
@@ -236,15 +239,19 @@ export function workEntryRowLabel(entry: WorkLogPresentationEntry, expanded = fa
         : undefined;
     // Adapters title file searches with their target; the item keeps only the pattern.
     const searchLabel =
-      entry.itemType === "file_search" ? entry.label : formatSearchToolLabel(toolData);
+      entry.itemType === "file_search"
+        ? entry.label
+        : localizeOptionalToolLabel(formatSearchToolLabel(toolData));
     if (searchLabel) return searchLabel;
   }
   if (isToolRead) {
     const [firstPath] = entry.changedFiles ?? collectToolFilePaths(entry.toolData);
     if (firstPath) {
-      return formatReadToolLabel(firstPath, Math.max(0, (entry.changedFiles?.length ?? 1) - 1));
+      return localizeToolSummary(
+        formatReadToolLabel(firstPath, Math.max(0, (entry.changedFiles?.length ?? 1) - 1)),
+      );
     }
-    if (!expanded) return "Read file";
+    if (!expanded) return translate("Read file");
   }
   const preview =
     entry.command ??
@@ -546,35 +553,41 @@ function itemSummary(
   if (title) return toolPresentation?.displayName ?? capitalizePhrase(title);
   switch (item.type) {
     case "reasoning":
-      return "Thinking";
+      return translate("Thinking");
     case "command_execution":
-      return "Command";
+      return translate("Command");
     case "file_change":
       return item.changes !== undefined && item.changes.length > 1
-        ? `Changed ${item.changes.length} files`
-        : `Changed ${item.fileName}`;
+        ? translate("Changed {count} files", { count: item.changes.length })
+        : translate("Changed {file}", { file: item.fileName });
     case "file_search":
-      return item.title?.trim() || formatSearchToolLabel(item) || "Searched files";
+      return (
+        item.title?.trim() ||
+        localizeOptionalToolLabel(formatSearchToolLabel(item)) ||
+        translate("Searched files")
+      );
     case "web_search":
-      return "Searched the web";
+      return translate("Searched the web");
     case "approval_request":
-      return "Approval requested";
+      return translate("Approval requested");
     case "user_input_request":
-      return "Input requested";
+      return translate("Input requested");
     case "checkpoint":
-      return "Checkpoint captured";
+      return translate("Checkpoint captured");
     case "run_interrupt_request":
-      return "Interrupt requested";
+      return translate("Interrupt requested");
     case "run_interrupt_result":
-      return "Run interrupted";
+      return translate("Run interrupted");
     case "error":
-      return item.failure.class === "usage_limit" ? "Usage limit reached" : "Provider error";
+      return item.failure.class === "usage_limit"
+        ? translate("Usage limit reached")
+        : translate("Provider error");
     case "handoff":
-      return "Context handed off";
+      return translate("Context handed off");
     case "fork":
-      return "Thread forked";
+      return translate("Thread forked");
     case "thread_created":
-      return "Thread created";
+      return translate("Thread created");
     case "dynamic_tool": {
       const classified = classifyToolActivity({
         itemType: "dynamic_tool_call",
@@ -582,21 +595,25 @@ function itemSummary(
       });
       if (classified === "read") {
         const [path] = collectToolFilePaths({ input: item.input });
-        return formatReadToolLabel(path ?? "");
+        return localizeToolSummary(formatReadToolLabel(path ?? ""));
       }
       if (classified === "search") {
-        return formatSearchToolLabel({ input: item.input }) ?? item.toolName ?? "Tool call";
+        return (
+          localizeOptionalToolLabel(formatSearchToolLabel({ input: item.input })) ??
+          item.toolName ??
+          translate("Tool call")
+        );
       }
-      return toolPresentation?.displayName ?? item.toolName ?? "Tool call";
+      return toolPresentation?.displayName ?? item.toolName ?? translate("Tool call");
     }
     case "proposed_plan":
-      return "Proposed plan";
+      return translate("Proposed plan");
     case "todo_list":
-      return "Plan updated";
+      return translate("Plan updated");
     case "user_message":
-      return "User message";
+      return translate("User message");
     case "assistant_message":
-      return "Assistant message";
+      return translate("Assistant message");
   }
 }
 
@@ -787,8 +804,8 @@ function toFeedActivity(
 function singleToolCallLabel(activity: ThreadFeedActivity, expanded: boolean): string {
   if (activity.workEntry.itemType === "reasoning")
     return expanded
-      ? "Thought"
-      : compactWorkEntryText(activity.workEntry.detail ?? "") || "Thought";
+      ? translate("Thought")
+      : compactWorkEntryText(activity.workEntry.detail ?? "") || translate("Thought");
   const presentation = resolveWorkEntryToolPresentation(activity.workEntry, "completed");
   if (presentation) return presentation.displayName;
   const command = activity.workEntry.command?.trim();
@@ -1093,7 +1110,7 @@ function deriveThreadFeedRunFolds(
               lastEntryEnd,
             ) ?? lastEntryEnd,
           );
-    const duration = elapsedMs === null ? null : formatDuration(elapsedMs);
+    const duration = elapsedMs === null ? null : localizeDurationUnits(formatDuration(elapsedMs));
     const interrupted =
       latestRunMatches && (latestRun.status === "interrupted" || latestRun.status === "cancelled");
     foldsByAnchorId.set(firstHiddenEntry.id, {
@@ -1102,14 +1119,102 @@ function deriveThreadFeedRunFolds(
       hiddenEntryIds,
       label: interrupted
         ? duration
-          ? `You stopped after ${duration}`
-          : "You stopped this response"
+          ? translate("You stopped after {duration}", { duration })
+          : translate("You stopped this response")
         : duration
-          ? `Worked for ${duration}`
-          : "Worked",
+          ? translate("Worked for {duration}", { duration })
+          : translate("Worked"),
     });
   }
   return foldsByAnchorId;
+}
+
+/** Display text for a subagent lifecycle status (`working`, `completed`, ...). */
+export function agentStatusLabel(status: string): string {
+  switch (status) {
+    case "working":
+    case "completed":
+    case "failed":
+    case "declined":
+    case "stopped":
+      return translate(status);
+    default:
+      return status;
+  }
+}
+
+type KoClauseRule = readonly [pattern: RegExp, render: (...groups: string[]) => string];
+
+/** Korean renderings of the clauses `summarizeToolGroup` and the tool label helpers emit. */
+const KO_TOOL_CLAUSE_RULES: ReadonlyArray<KoClauseRule> = [
+  [/^Read (\d+) files?$/, (n) => `파일 ${n}개 읽음`],
+  [/^Changed (\d+) files?$/, (n) => `파일 ${n}개 변경`],
+  [/^Ran (\d+) commands?$/, (n) => `명령 ${n}개 실행`],
+  [/^Created (\d+) threads?$/, (n) => `스레드 ${n}개 생성`],
+  [/^Used device controls (\d+) times?$/, (n) => `기기 제어 ${n}회 사용`],
+  [/^Used browser (\d+) times?$/, (n) => `브라우저 ${n}회 사용`],
+  [/^Searched the web (\d+) times?$/, (n) => `웹 검색 ${n}회`],
+  [/^Searched code (\d+) times?$/, (n) => `코드 검색 ${n}회`],
+  [/^Used (\d+) tools?$/, (n) => `도구 ${n}개 사용`],
+  [/^Received (\d+) updates?$/, (n) => `업데이트 ${n}개 받음`],
+  [/^Used ((?:(?! and ).)+?) integrations?$/, (names) => `${names} 연동 사용`],
+  [/^Performed (\d+) other actions?$/, (n) => `기타 작업 ${n}개 수행`],
+  [/^Linked (\d+) pull requests?$/, (n) => `풀 리퀘스트 ${n}개 연결`],
+  [/^Unlinked (\d+) pull requests?$/, (n) => `풀 리퀘스트 ${n}개 연결 해제`],
+  [/^Watching (\d+) pull requests?$/, (n) => `풀 리퀘스트 ${n}개 지켜보는 중`],
+  [/^Stopped watching (\d+) pull requests?$/, (n) => `풀 리퀘스트 ${n}개 지켜보기 중지`],
+  [/^Checked linked pull requests$/, () => "연결된 풀 리퀘스트 확인"],
+  [/^Checked linked pull requests (\d+) times$/, (n) => `연결된 풀 리퀘스트 ${n}회 확인`],
+  [/^Thought$/, () => "생각함"],
+  [/^Thought \(×(\d+)\)$/, (n) => `생각함 (×${n})`],
+  [/^Read file( \+(\d+) more)?$/, (_m, n) => (n ? `파일 읽음 외 ${n}개` : "파일 읽음")],
+  [/^Read (.+?) \+(\d+) more$/, (path, n) => `${path} 외 ${n}개 읽음`],
+  [/^Read (.+)$/, (path) => `${path} 읽음`],
+  [/^Searched files (.+) in (.+)$/, (glob, target) => `${target}에서 파일 ${glob} 검색`],
+  [/^Searched files (.+)$/, (glob) => `파일 ${glob} 검색`],
+  [/^Searched in (.+)$/, (target) => `${target}에서 검색`],
+  [/^Searched (.+) in (.+)$/, (query, target) => `${target}에서 ${query} 검색`],
+  [/^Searched (.+)$/, (query) => `${query} 검색`],
+];
+
+function localizeToolClause(clause: string): string | null {
+  const normalized = clause.charAt(0).toUpperCase() + clause.slice(1);
+  for (const [pattern, render] of KO_TOOL_CLAUSE_RULES) {
+    const match = pattern.exec(normalized);
+    if (match !== null) return render(...match.slice(1).map((group) => group ?? ""));
+  }
+  return null;
+}
+
+/**
+ * Korean rendering of a work-log tool label or group summary ("Ran 2 commands
+ * and read 3 files"). Summaries with a clause we don't recognize (integration
+ * names, T3 tool summaries) stay English rather than half-translated.
+ */
+export function localizeToolSummary(summary: string): string {
+  if (getInterfaceLanguage() !== "ko") return summary;
+  const clauses = summary.split(/, and |, | and /);
+  if (clauses.length === 1) return localizeToolClause(summary) ?? summary;
+  const localized = clauses.map(localizeToolClause);
+  return localized.every((clause) => clause !== null) ? localized.join(", ") : summary;
+}
+
+function localizeOptionalToolLabel(label: string | undefined): string | undefined {
+  return label === undefined ? undefined : localizeToolSummary(label);
+}
+
+const KO_DURATION_UNITS = { h: "시간", m: "분", s: "초" } as const;
+
+/**
+ * Durations from `formatDuration` (`1h 5m 3s`), spelled with Korean units
+ * (`1시간 5분 3초`) when Korean is active. Amounts keep their exact digits.
+ */
+export function localizeDurationUnits(duration: string): string {
+  if (getInterfaceLanguage() !== "ko") return duration;
+  return duration.replace(
+    /(\d+(?:\.\d+)?)(h|m|s)\b/g,
+    (_match, amount: string, unit: "h" | "m" | "s") => `${amount}${KO_DURATION_UNITS[unit]}`,
+  );
 }
 
 const supersededReasoningGroups = new WeakMap<ThreadFeedActivityGroup, ThreadFeedActivityGroup>();
@@ -1427,8 +1532,8 @@ function appendToolGroupRows(
   const summary = live
     ? expanded && latestActivity.workEntry.itemType === "reasoning"
       ? latestActivity.lifecycleStatus === "inProgress"
-        ? "Thinking"
-        : "Thought"
+        ? translate("Thinking")
+        : translate("Thought")
       : liveToolActivitySummary(latestActivity, live)
     : singleActivity !== null &&
         singleActivity.toolLike &&
@@ -1436,7 +1541,7 @@ function appendToolGroupRows(
       ? singleToolCallLabel(singleActivity, expanded)
       : singleActivity !== null && !singleActivity.toolLike
         ? singleActivity.workEntry.label
-        : groupSummary.summary;
+        : localizeToolSummary(groupSummary.summary);
   const primarySourceActivity = activities.find(
     (activity) => activity.workEntry.toolSource !== undefined,
   );
@@ -1512,7 +1617,7 @@ function liveToolActivitySummary(activity: ThreadFeedActivity, presentTense: boo
   if (activity.workEntry.itemType === "reasoning") {
     return (
       activity.workEntry.detail?.trim().replace(/\s+/g, " ") ||
-      (status === "inProgress" ? "Thinking" : "Thought")
+      (status === "inProgress" ? translate("Thinking") : translate("Thought"))
     );
   }
   const presentation = resolveWorkEntryToolPresentation({
@@ -1523,17 +1628,16 @@ function liveToolActivitySummary(activity: ThreadFeedActivity, presentTense: boo
   const command = activity.workEntry.command?.trim();
   if (command) {
     const program = commandProgramName(command);
-    const verb =
-      status === "inProgress"
-        ? "Running"
-        : status === "failed"
-          ? "Failed"
-          : status === "declined"
-            ? "Declined"
-            : status === "stopped"
-              ? "Stopped"
-              : "Ran";
-    return `${verb} ${program ?? "command"}`;
+    const params = { program: program ?? translate("command") };
+    return status === "inProgress"
+      ? translate("Running {program}", params)
+      : status === "failed"
+        ? translate("Failed {program}", params)
+        : status === "declined"
+          ? translate("Declined {program}", params)
+          : status === "stopped"
+            ? translate("Stopped {program}", params)
+            : translate("Ran {program}", params);
   }
   return activity.detail ?? activity.summary;
 }
