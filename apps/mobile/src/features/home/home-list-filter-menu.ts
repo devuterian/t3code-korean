@@ -3,6 +3,8 @@ import type { ActiveThreadSortOrder } from "@t3tools/contracts/settings";
 import type { EnvironmentId } from "@t3tools/contracts";
 import { translate } from "../../i18n/translate";
 
+import { translate } from "../../i18n/translate";
+
 export interface HomeListFilterMenuEnvironment {
   readonly environmentId: EnvironmentId;
   readonly label: string;
@@ -53,12 +55,12 @@ export function buildHomeListFilterMenu(props: {
 
   items.push({
     type: "submenu",
-    title: "Environment",
+    title: translate("Environment"),
     items: [
       {
         type: "action",
-        title: "All environments",
-        subtitle: "Show threads from every environment",
+        title: translate("All environments"),
+        subtitle: translate("Show threads from every environment"),
         state: props.selectedEnvironmentId === null ? "on" : "off",
         onPress: () => props.onEnvironmentChange(null),
       },
@@ -77,12 +79,12 @@ export function buildHomeListFilterMenu(props: {
   if (props.projects.length > 0) {
     items.push({
       type: "submenu",
-      title: "Project",
+      title: translate("Project"),
       items: [
         {
           type: "action",
-          title: "All projects",
-          subtitle: "Show threads from every project",
+          title: translate("All projects"),
+          subtitle: translate("Show threads from every project"),
           state: props.selectedProjectKey === null ? "on" : "off",
           onPress: () => props.onProjectChange(null),
         },
@@ -111,7 +113,7 @@ export function buildHomeListFilterMenu(props: {
   }
 
   return {
-    title: "Thread list options",
+    title: translate("Thread list options"),
     items,
   };
 }

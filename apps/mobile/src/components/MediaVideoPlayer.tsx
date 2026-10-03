@@ -9,6 +9,7 @@ import { SymbolView } from "./AppSymbol";
 import { VideoThumbnailImage } from "./VideoThumbnailImage";
 import { useMediaActions, type MediaActionsSource } from "../lib/mediaActions";
 import { MediaActionsMenu } from "./MediaActionsMenu";
+import { useTranslate } from "../i18n/translate";
 
 /** Loads only after Play or opening the viewer. Source replacement never starts playback itself. */
 function LoadedMediaVideo(props: {
@@ -17,6 +18,7 @@ function LoadedMediaVideo(props: {
   readonly playRequested: boolean;
   readonly paused: boolean;
 }) {
+  const t = useTranslate();
   const focused = useIsFocused();
   const active = useRef(focused && AppState.currentState === "active");
   const fullscreen = useRef(false);
@@ -83,19 +85,19 @@ function LoadedMediaVideo(props: {
       />
       {loadState === "error" || (loadState === "complete" && status === "error") ? (
         <View className="absolute inset-0 items-center justify-center gap-2 bg-black px-4">
-          <AppText className="text-center text-sm text-white/80">Video unavailable</AppText>
+          <AppText className="text-center text-sm text-white/80">{t("Video unavailable")}</AppText>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Retry video"
+            accessibilityLabel={t("Retry video")}
             onPress={() => setAttempt((value) => value + 1)}
             className="min-h-11 justify-center px-4"
           >
-            <AppText className="text-sm text-white">Retry</AppText>
+            <AppText className="text-sm text-white">{t("Retry")}</AppText>
           </Pressable>
         </View>
       ) : loadState === "pending" || status === "loading" ? (
         <View pointerEvents="none" className="absolute inset-0 items-center justify-center">
-          <ActivityIndicator color="#ffffff" accessibilityLabel="Loading video" />
+          <ActivityIndicator color="#ffffff" accessibilityLabel={t("Loading video")} />
         </View>
       ) : null}
     </View>
@@ -116,6 +118,7 @@ interface MediaVideoPlayerProps {
 }
 
 function MediaVideoPlayerContent(props: MediaVideoPlayerProps) {
+  const t = useTranslate();
   const mediaActions = useMediaActions(props.actionsSource);
   const [playbackUri, setPlaybackUri] = useState<string | null>(props.expanded ? props.uri : null);
   // Keep an opened player mounted while signing or reconnecting temporarily has no usable URL.
@@ -138,9 +141,9 @@ function MediaVideoPlayerContent(props: MediaVideoPlayerProps) {
         <MediaActionsMenu media={mediaActions} inModal={props.expanded} style={{ flex: 1 }}>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={`Play ${props.name}`}
+            accessibilityLabel={t("Play {name}", { name: props.name })}
             accessibilityHint={
-              mediaActions.actions.length > 0 ? "Touch and hold for media actions" : undefined
+              mediaActions.actions.length > 0 ? t("Touch and hold for media actions") : undefined
             }
             accessibilityState={{ disabled: props.uri === null || props.unavailable === true }}
             // Stays pressable so the long-press menu still opens on a failed or unsigned tile.
@@ -157,9 +160,9 @@ function MediaVideoPlayerContent(props: MediaVideoPlayerProps) {
               />
             ) : null}
             {props.unavailable ? (
-              <AppText className="text-sm text-white/80">Video unavailable</AppText>
+              <AppText className="text-sm text-white/80">{t("Video unavailable")}</AppText>
             ) : props.uri === null ? (
-              <ActivityIndicator color="#ffffff" accessibilityLabel="Loading video" />
+              <ActivityIndicator color="#ffffff" accessibilityLabel={t("Loading video")} />
             ) : (
               <View className="size-12 items-center justify-center rounded-full bg-black/60">
                 <SymbolView name="play" size={28} tintColor="#ffffff" type="monochrome" />

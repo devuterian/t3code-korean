@@ -15,6 +15,7 @@ import {
   shortcutHref,
   withRecentThreadShortcut,
 } from "./appShortcuts";
+import { useInterfaceLanguage } from "../../i18n/translate";
 
 /**
  * Owns the launcher app shortcuts (Android long-press menu): keeps the
@@ -54,6 +55,8 @@ function useShortcutNavigation(): void {
 }
 
 function useRecentThreadShortcutSync(state: NavigationState): void {
+  // Launcher titles are localized, so rebuild them when the language changes.
+  const language = useInterfaceLanguage();
   // Launcher shortcuts are Android-only. A null ref on iOS keeps this hook
   // (mounted in the root stack layout) from subscribing the root to the
   // active thread's shell, which would re-render every screen on each
@@ -139,5 +142,5 @@ function useRecentThreadShortcutSync(state: NavigationState): void {
     void QuickActions.setItems(buildShortcutActions(recents)).catch((error) => {
       console.warn("[app-shortcuts] failed to update launcher shortcuts", error);
     });
-  }, [recents]);
+  }, [recents, language]);
 }

@@ -12,6 +12,7 @@ import { REVIEW_MONO_FONT_FAMILY } from "../review/reviewDiffRendering";
 import { AppText as Text } from "../../components/AppText";
 import { uuidv4 } from "../../lib/uuid";
 import { insertComposerDraftContext } from "../../state/use-composer-drafts";
+import { useTranslate } from "../../i18n/translate";
 
 /** Line numbers are relative to this frozen viewport, not the terminal's scrollback. */
 export function TerminalContextSheet(props: {
@@ -23,6 +24,7 @@ export function TerminalContextSheet(props: {
   onClose: () => void;
   onAttach: () => void;
 }) {
+  const t = useTranslate();
   const insets = useSafeAreaInsets();
   const lines = props.text.replace(/\n+$/, "").split("\n");
   const [range, setRange] = useState({ start: 0, end: lines.length - 1 });
@@ -48,7 +50,10 @@ export function TerminalContextSheet(props: {
         context: { version: 1, records: [record] },
       })
     ) {
-      Alert.alert("Too many context items", "Remove some context from the draft and try again.");
+      Alert.alert(
+        t("Too many context items"),
+        t("Remove some context from the draft and try again."),
+      );
       return;
     }
     props.onAttach();
@@ -64,20 +69,20 @@ export function TerminalContextSheet(props: {
         }
       >
         <View className="flex-row items-center justify-between p-4">
-          <Text className="text-lg text-foreground">Visible terminal output</Text>
+          <Text className="text-lg text-foreground">{t("Visible terminal output")}</Text>
           <Pressable accessibilityRole="button" onPress={props.onClose} className="p-3">
-            <Text className="text-foreground">Cancel</Text>
+            <Text className="text-foreground">{t("Cancel")}</Text>
           </Pressable>
         </View>
         <Text className="px-4 pb-3 text-foreground-muted">
-          Tap the first and last line to select a range.
+          {t("Tap the first and last line to select a range.")}
         </Text>
         <ScrollView className="flex-1" contentContainerStyle={{ padding: 16 }}>
           {lines.map((line, index) => (
             <Pressable
               key={index}
               accessibilityRole="button"
-              accessibilityLabel={`Line ${index + 1}: ${line}`}
+              accessibilityLabel={t("Line {line}: {text}", { line: index + 1, text: line })}
               accessibilityState={{ selected: index >= range.start && index <= range.end }}
               onPress={() => {
                 if (anchor === null) {
@@ -101,7 +106,7 @@ export function TerminalContextSheet(props: {
         </ScrollView>
         {tooLarge ? (
           <Text className="px-4 text-foreground-muted">
-            Select fewer lines to fit the context limit.
+            {t("Select fewer lines to fit the context limit.")}
           </Text>
         ) : null}
         <Pressable
@@ -110,7 +115,7 @@ export function TerminalContextSheet(props: {
           onPress={attach}
           className="m-4 mb-10 rounded-xl bg-subtle p-4"
         >
-          <Text className="text-center text-foreground">Attach selected output</Text>
+          <Text className="text-center text-foreground">{t("Attach selected output")}</Text>
         </Pressable>
       </View>
     </Modal>

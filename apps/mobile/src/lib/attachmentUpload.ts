@@ -30,6 +30,7 @@ import {
 } from "./composerImages";
 import { imageMimeType } from "@t3tools/shared/image";
 import { uuidv4 } from "./uuid";
+import { translate } from "../i18n/translate";
 
 /**
  * This module owns the server side of a composer attachment's lifecycle.
@@ -59,10 +60,10 @@ export function validateDraftFileAttachments(input: {
 }): string | null {
   const files = input.attachments.filter((attachment) => attachment.type === "file");
   if (files.length === 0) return null;
-  if (input.serverConfig === null) return "Server attachment support is still loading.";
+  if (input.serverConfig === null) return translate("Server attachment support is still loading.");
   const capabilities = input.serverConfig.environment.capabilities;
   if (capabilities.attachmentUploads !== true || capabilities.fileAttachments === undefined) {
-    return "This server does not support file attachments.";
+    return translate("This server does not support file attachments.");
   }
   const maxBytes = clampFileAttachmentUploadBytes(capabilities.fileAttachments.maxUploadBytes);
   const oversized = files.find((attachment) => attachment.sizeBytes > maxBytes);
@@ -180,7 +181,8 @@ function supportedImageWireMimeType(
   const mimeType = PROVIDER_SEND_TURN_SUPPORTED_IMAGE_MIME_TYPES.find(
     (type) => type === attachment.mimeType.toLowerCase() || type === inferred,
   );
-  if (!mimeType) throw new Error(`Unsupported image type for '${attachment.name}'.`);
+  if (!mimeType)
+    throw new Error(translate("Unsupported image type for '{name}'.", { name: attachment.name }));
   return mimeType;
 }
 
@@ -239,7 +241,11 @@ async function composerImageAttachmentDataUrl(
     return attachment.dataUrl;
   }
   if (!isFileBackedComposerAttachment(attachment)) {
-    throw new Error(`'${attachment.name}' is no longer available. Attach the image again.`);
+    throw new Error(
+      translate("'{name}' is no longer available. Attach the image again.", {
+        name: attachment.name,
+      }),
+    );
   }
   const release = retainComposerAttachmentFileForPreview(attachment);
   try {
@@ -261,13 +267,17 @@ async function uploadFileBytes(
   onProgress?: (progress: number) => void,
 ): Promise<void> {
   const { File, Paths, UploadType } = await import("expo-file-system");
-  if (signal.aborted) throw new Error("Upload cancelled.");
+  if (signal.aborted) throw new Error(translate("Upload cancelled."));
   // Legacy image drafts persisted inline bytes and stage them in a temp cache
   // file for the native uploader. Everything else uploads its owned copy.
   const fileUri = attachment.fileUri;
   const inlineDataUrl = attachment.type === "image" ? attachment.dataUrl : undefined;
   if (fileUri === undefined && inlineDataUrl === undefined) {
-    throw new Error(`'${attachment.name}' is no longer available. Attach the image again.`);
+    throw new Error(
+      translate("'{name}' is no longer available. Attach the image again.", {
+        name: attachment.name,
+      }),
+    );
   }
   const file =
     fileUri === undefined
@@ -294,7 +304,12 @@ async function uploadFileBytes(
         : {}),
     });
     if (result.status < 200 || result.status >= 300) {
-      throw new Error(`Upload failed for '${attachment.name}' (${result.status}).`);
+      throw new Error(
+        translate("Upload failed for '{name}' ({status}).", {
+          name: attachment.name,
+          status: result.status,
+        }),
+      );
     }
   } finally {
     if (fileUri === undefined && file.exists) file.delete();
@@ -353,7 +368,7 @@ export async function prepareTurnAttachments(input: {
     environmentSession.preparedConnectionValueAtom(environmentId),
   );
   if (Option.isNone(connection)) {
-    throw new Error("The environment is not connected.");
+    throw new Error(translate("The environment is not connected."));
   }
 
   const uploadedAttachments: UploadedMobileAttachment[] = [];
@@ -364,7 +379,7 @@ export async function prepareTurnAttachments(input: {
   input.signal?.addEventListener("abort", abort, { once: true });
   try {
     for (const attachment of input.attachments) {
-      if (controller.signal.aborted) throw new Error("Upload cancelled.");
+      if (controller.signal.aborted) throw new Error(translate("Upload cancelled."));
       if (attachment.type === "image" && !input.supportsImageUploads) {
         uploadedAttachments.push(...(await toUploadChatImageAttachments([attachment])));
         continue;
@@ -430,12 +445,12 @@ export async function prepareTurnAttachments(input: {
       if (result.status !== "uploaded") {
         throw result.status === "failed" && result.error !== undefined
           ? result.error
-          : new Error(`Upload failed for '${attachment.name}'.`);
+          : new Error(translate("Upload failed for '{name}'.", { name: attachment.name }));
       }
       uploadedAttachments.push(uploadedReference(attachment, result.attachmentId));
     }
 
-    if (controller.signal.aborted) throw new Error("Upload cancelled.");
+    if (controller.signal.aborted) throw new Error(translate("Upload cancelled."));
 
     const draftAttachments = withUploadedMobileAttachmentReferences({
       environmentId,

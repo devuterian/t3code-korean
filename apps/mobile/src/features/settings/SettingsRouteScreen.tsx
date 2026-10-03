@@ -187,7 +187,7 @@ function SettingsIndexSections() {
       <SettingsSection title={t("Server settings")}>
         <SettingsRow
           icon="person.crop.circle"
-          label="Provider accounts"
+          label={t("Provider accounts")}
           target="SettingsProviderAccounts"
           disabled={noServerTargets}
         />

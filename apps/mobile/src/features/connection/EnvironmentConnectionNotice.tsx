@@ -7,21 +7,22 @@ import { SymbolView } from "../../components/AppSymbol";
 import { ActivityIndicator, Pressable, View } from "react-native";
 
 import { AppText as Text } from "../../components/AppText";
+import { translate, useTranslate } from "../../i18n/translate";
 
 function noticeTitle(phase: EnvironmentConnectionPhase, environmentLabel: string): string {
   switch (phase) {
     case "offline":
-      return "You are offline";
+      return translate("You are offline");
     case "connecting":
-      return `Connecting to ${environmentLabel}...`;
+      return translate("Connecting to {name}...", { name: environmentLabel });
     case "reconnecting":
-      return `Reconnecting to ${environmentLabel}...`;
+      return translate("Reconnecting to {name}...", { name: environmentLabel });
     case "unsupported":
-      return "Client not supported";
+      return translate("Client not supported");
     case "error":
-      return `${environmentLabel} is unavailable`;
+      return translate("{name} is unavailable", { name: environmentLabel });
     case "available":
-      return `${environmentLabel} is disconnected`;
+      return translate("{name} is disconnected", { name: environmentLabel });
     case "connected":
       return "";
   }
@@ -33,20 +34,28 @@ function noticeDetail(
   error: string | null,
 ): string {
   if (error) {
-    return phase === "reconnecting" ? `The app will keep retrying automatically. ${error}` : error;
+    return phase === "reconnecting"
+      ? `${translate("The app will keep retrying automatically.")} ${error}`
+      : error;
   }
+  const resource = translate(resourceName);
 
   switch (phase) {
     case "offline":
-      return `Cached data remains available. The ${resourceName} will load when your connection returns.`;
+      return translate(
+        "Cached data remains available. The {resource} will load when your connection returns.",
+        { resource },
+      );
     case "connecting":
     case "reconnecting":
-      return `The ${resourceName} will load as soon as the environment is ready.`;
+      return translate("The {resource} will load as soon as the environment is ready.", {
+        resource,
+      });
     case "unsupported":
-      return "Use compatible versions of the app and server to connect.";
+      return translate("Use compatible versions of the app and server to connect.");
     case "available":
     case "error":
-      return `Reconnect the environment to load the ${resourceName}.`;
+      return translate("Reconnect the environment to load the {resource}.", { resource });
     case "connected":
       return "";
   }
@@ -58,6 +67,8 @@ export function EnvironmentConnectionNotice(props: {
   readonly resourceName: string;
   readonly onRetry: () => void;
 }) {
+  // Subscribe to language changes; the helpers above read it via `translate`.
+  const t = useTranslate();
   const isRetrying =
     props.connection.phase === "connecting" || props.connection.phase === "reconnecting";
 
@@ -91,7 +102,7 @@ export function EnvironmentConnectionNotice(props: {
             className="mt-1 rounded-full bg-subtle px-4 py-2.5 active:opacity-70"
             onPress={props.onRetry}
           >
-            <Text className="text-sm font-t3-bold text-foreground">Retry now</Text>
+            <Text className="text-sm font-t3-bold text-foreground">{t("Retry now")}</Text>
           </Pressable>
         ) : null}
       </View>

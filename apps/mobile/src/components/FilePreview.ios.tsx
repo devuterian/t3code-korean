@@ -3,6 +3,7 @@ import { useEffect, useEffectEvent, useId } from "react";
 import { Alert } from "react-native";
 
 import type { ResolvedFilePreviewSource } from "./FilePreviewModal.types";
+import { translate } from "../i18n/translate";
 
 const NativeControls = requireNativeModule<{
   presentFile(
@@ -24,12 +25,21 @@ function NativeFilePreview(props: {
   const onRequestClose = useEffectEvent(props.onRequestClose);
   const onOpenError = useEffectEvent((error: unknown) => {
     if (props.onOpenError) props.onOpenError(error);
-    else Alert.alert("Could not open preview", "The file could not be loaded. Please try again.");
+    else
+      Alert.alert(
+        translate("Could not open preview"),
+        translate("The file could not be loaded. Please try again."),
+      );
   });
 
   useEffect(() => {
     let canceled = false;
-    void NativeControls.presentFile(uri, name ?? "Preview", sourceIdentifier ?? "", identifier)
+    void NativeControls.presentFile(
+      uri,
+      name ?? translate("Preview"),
+      sourceIdentifier ?? "",
+      identifier,
+    )
       .catch((error: unknown) => {
         if (!canceled) onOpenError(error);
       })

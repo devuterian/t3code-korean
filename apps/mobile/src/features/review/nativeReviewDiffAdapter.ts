@@ -16,6 +16,7 @@ import {
   type ReviewRenderableLineRow,
 } from "./reviewModel";
 import type { ReviewInlineComment } from "./reviewCommentSelection";
+import { translate } from "../../i18n/translate";
 
 const NATIVE_REVIEW_MAX_WORD_DIFF_RANGE_COUNT = 4;
 const NATIVE_REVIEW_MAX_WORD_DIFF_COVERAGE = 0.45;
@@ -282,12 +283,18 @@ function noticeRowsForFile(file: ReviewRenderableFile): ReadonlyArray<NativeRevi
   const previewState = getReviewFilePreviewState(file);
   if (previewState.kind === "suppressed" && previewState.reason === "non-text") {
     return [
-      createNoticeRow(file.id, "non-text", "Unsupported format. Diff contents are not available."),
+      createNoticeRow(
+        file.id,
+        "non-text",
+        translate("Unsupported format. Diff contents are not available."),
+      ),
     ];
   }
 
   if (file.changeType === "rename-pure") {
-    return [createNoticeRow(file.id, "rename", "This file was renamed without modifications.")];
+    return [
+      createNoticeRow(file.id, "rename", translate("This file was renamed without modifications.")),
+    ];
   }
 
   return [];

@@ -14,6 +14,7 @@ import { checkoutNewTaskBranch } from "./checkout-new-task-branch";
 import { NativeStackScreenOptions } from "../../native/StackHeader";
 
 import { NewTaskDraftScreen } from "./NewTaskDraftScreen";
+import { translate, useTranslate } from "../../i18n/translate";
 
 type NewTaskDraftRouteParams = {
   readonly environmentId?: string | string[];
@@ -29,6 +30,7 @@ type NewTaskDraftRouteParams = {
 };
 
 export function NewTaskDraftRouteScreen({ route }: StaticScreenProps<NewTaskDraftRouteParams>) {
+  const t = useTranslate();
   const params = useMemo(() => route.params ?? {}, [route.params]);
   const pendingTaskId = Array.isArray(params.pendingTaskId)
     ? params.pendingTaskId[0]
@@ -130,8 +132,8 @@ export function NewTaskDraftRouteScreen({ route }: StaticScreenProps<NewTaskDraf
     if (!isAtomCommandInterrupted(result)) {
       const error = squashAtomCommandFailure(result);
       Alert.alert(
-        "Could not switch branch",
-        error instanceof Error ? error.message : "The branch could not be checked out.",
+        translate("Could not switch branch"),
+        error instanceof Error ? error.message : translate("The branch could not be checked out."),
       );
     }
     navigation.goBack();
@@ -151,12 +153,12 @@ export function NewTaskDraftRouteScreen({ route }: StaticScreenProps<NewTaskDraf
     <>
       <NativeStackScreenOptions
         options={{
-          title: Array.isArray(params.title) ? params.title[0] : (params.title ?? "New task"),
+          title: Array.isArray(params.title) ? params.title[0] : (params.title ?? t("New task")),
         }}
       />
       {preparingBranch ? (
         <View className="flex-1 items-center justify-center bg-screen">
-          <Text className="text-foreground">Switching branch...</Text>
+          <Text className="text-foreground">{t("Switching branch...")}</Text>
         </View>
       ) : (
         <NewTaskDraftScreen

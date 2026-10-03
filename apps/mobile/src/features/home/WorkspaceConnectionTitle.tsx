@@ -11,6 +11,7 @@ import {
   getCompactBrandHeaderOptions,
 } from "../../components/CompactBrandTitle";
 import { useWorkspaceState } from "../../state/workspace";
+import { useInterfaceLanguage, useTranslate } from "../../i18n/translate";
 import {
   workspaceConnectionStatusPresentation,
   type WorkspaceConnectionStatusPresentation,
@@ -30,6 +31,8 @@ const FADE_IN_MS = 250;
  */
 function useDelayedConnectionStatus(): WorkspaceConnectionStatusPresentation | null {
   const { state } = useWorkspaceState();
+  // Re-render the translated status label when the interface language changes.
+  useInterfaceLanguage();
   const presentation = workspaceConnectionStatusPresentation(state);
   const hasStatus = presentation !== null;
   const [visible, setVisible] = useState(false);
@@ -104,6 +107,7 @@ export function WorkspaceConnectionTitle(props: {
   /** Space available beside the native header actions. */
   readonly maxWidth?: number;
 }) {
+  const t = useTranslate();
   const status = useDelayedConnectionStatus();
   const size = props.size ?? "navbar";
   const { scale } = useAndroidControlSizing();
@@ -121,7 +125,7 @@ export function WorkspaceConnectionTitle(props: {
   return (
     <StatusFadeIn grow={props.grow} maxWidth={props.maxWidth}>
       <Pressable
-        accessibilityHint="Opens environment settings"
+        accessibilityHint={t("Opens environment settings")}
         accessibilityLabel={status.label}
         accessibilityRole="button"
         disabled={props.onPress === undefined}

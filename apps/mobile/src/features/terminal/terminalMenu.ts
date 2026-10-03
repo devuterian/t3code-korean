@@ -4,6 +4,8 @@ import { nextTerminalId, resolveTerminalSessionLabel } from "@t3tools/shared/ter
 import * as Arr from "effect/Array";
 import * as Order from "effect/Order";
 
+import { translate } from "../../i18n/translate";
+
 export {
   getTerminalLabel,
   nextTerminalId,
@@ -47,19 +49,19 @@ export function getTerminalStatusLabel(input: {
   readonly hasRunningSubprocess?: boolean;
 }): string {
   if (input.status === "running") {
-    return input.hasRunningSubprocess ? "Task running" : "Ready";
+    return input.hasRunningSubprocess ? translate("Task running") : translate("Ready");
   }
   if (input.status === "starting") {
-    return "Starting";
+    return translate("Starting");
   }
   if (input.status === "exited") {
-    return "Exited";
+    return translate("Exited");
   }
   if (input.status === "error") {
-    return "Error";
+    return translate("Error");
   }
 
-  return "Not started";
+  return translate("Not started");
 }
 
 /**
@@ -155,7 +157,9 @@ export function resolveProjectScriptTerminalId(input: {
 }
 
 export function projectScriptMenuLabel(script: ProjectScript): string {
-  return script.runOnWorktreeCreate ? `${script.name} (setup)` : script.name;
+  return script.runOnWorktreeCreate
+    ? translate("{name} (setup)", { name: script.name })
+    : script.name;
 }
 
 export function projectScriptMenuIcon(icon: ProjectScript["icon"]) {

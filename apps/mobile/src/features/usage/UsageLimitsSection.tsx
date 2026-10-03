@@ -8,14 +8,7 @@ import type {
   ServerProviderUsageWindow,
   UsageProviderKind,
 } from "@t3tools/contracts";
-import {
-  elapsedShare,
-  formatDuration,
-  formatResetsIn,
-  limitsNotice,
-  paceOf,
-  remainingPercent,
-} from "@t3tools/shared/usageLimits";
+import { elapsedShare, limitsNotice, paceOf, remainingPercent } from "@t3tools/shared/usageLimits";
 import { type ReactNode, useEffect, useEffectEvent, useRef, useState } from "react";
 import { refreshUsageLimits } from "@t3tools/client-runtime/state/usage";
 import { Alert, Linking, Pressable, View } from "react-native";
@@ -26,6 +19,8 @@ import { environmentPresentations } from "../../state/presentation";
 import { serverEnvironment } from "../../state/server";
 import { useAtomCommand } from "../../state/use-atom-command";
 import { useProviderColors } from "./usageProviders";
+import { formatUsageDuration, formatUsageResetsIn, translateUsageLabel } from "./usageLabels";
+import { translate, useTranslate } from "../../i18n/translate";
 
 const PACE_LABEL = { ahead: "ahead of pace", on: "on pace", under: "under pace" } as const;
 
@@ -50,18 +45,19 @@ function WindowRow(props: {
   readonly color: string | null;
   readonly now: number;
 }) {
+  const t = useTranslate();
   const { window, now } = props;
   const remaining = remainingPercent(window);
   const elapsed = elapsedShare(window, now);
   const timeLeft = elapsed === null ? null : Math.round((1 - elapsed) * 100);
   const pace = paceOf(window, now);
-  const resetsIn = formatResetsIn(window, now);
+  const resetsIn = formatUsageResetsIn(window, now);
   return (
     <View className="gap-1">
       <View className="flex-row items-baseline justify-between gap-3">
-        <Text className="text-sm text-foreground">{window.label}</Text>
+        <Text className="text-sm text-foreground">{translateUsageLabel(window.label)}</Text>
         <Text className="text-sm font-t3-medium tabular-nums text-foreground">
-          {remaining}% left
+          {t("{percent}% left", { percent: remaining })}
         </Text>
       </View>
       <View className="h-3 justify-center">
@@ -90,7 +86,9 @@ function WindowRow(props: {
       </View>
       {pace || resetsIn ? (
         <View className="flex-row justify-between gap-3">
-          <Text className="text-xs text-foreground-tertiary">{pace ? PACE_LABEL[pace] : ""}</Text>
+          <Text className="text-xs text-foreground-tertiary">
+            {pace ? t(PACE_LABEL[pace]) : ""}
+          </Text>
           <Text className="text-xs tabular-nums text-foreground-tertiary">{resetsIn ?? ""}</Text>
         </View>
       ) : null}
@@ -99,6 +97,7 @@ function WindowRow(props: {
 }
 
 function AccountInstanceLabel({ value }: { readonly value: string }) {
+  const t = useTranslate();
   const [revealed, setRevealed] = useState(false);
   if (!value.includes("@")) {
     return (
@@ -111,7 +110,7 @@ function AccountInstanceLabel({ value }: { readonly value: string }) {
     <Pressable
       className="shrink active:opacity-60"
       accessibilityRole="button"
-      accessibilityLabel={revealed ? "Hide account label" : "Reveal account label"}
+      accessibilityLabel={revealed ? t("Hide account label") : t("Reveal account label")}
       onPress={() => setRevealed((current) => !current)}
     >
       <Text className="text-xs text-foreground-tertiary" numberOfLines={1}>
@@ -136,6 +135,7 @@ export function AccountLimits(props: {
   readonly trailing?: ReactNode;
   readonly footer?: ReactNode;
 }) {
+  const t = useTranslate();
   const { limits, now, dense = false } = props;
   const color = useBarColor(props.driver);
   if (!limits) return null;
@@ -164,7 +164,7 @@ export function AccountLimits(props: {
         {props.trailing}
       </View>
       {notice ? (
-        <Text className="text-sm text-foreground-muted">{notice}</Text>
+        <Text className="text-sm text-foreground-muted">{t(notice)}</Text>
       ) : (
         <View className="gap-3">
           {limits.windows.map((window) => (
@@ -178,7 +178,7 @@ export function AccountLimits(props: {
           className="min-h-11 justify-center"
           onPress={() => void Linking.openURL(externalUsage.url).catch(() => undefined)}
         >
-          <Text className="text-sm font-t3-medium text-primary">Manage usage</Text>
+          <Text className="text-sm font-t3-medium text-primary">{t("Manage usage")}</Text>
         </Pressable>
       ) : null}
       {props.footer}
@@ -206,6 +206,7 @@ export function ResetCredits(props: {
   /** A smaller pill for the composer card. */
   readonly dense?: boolean;
 }) {
+  const t = useTranslate();
   const { environmentId, input, credits, now, dense = false } = props;
   const consume = useAtomCommand(serverEnvironment.consumeResetCredit, {
     reportFailure: false,
@@ -215,14 +216,17 @@ export function ResetCredits(props: {
   if (dense && credits.availableCount === 0 && status === null) return null;
 
   const expiresIn = credits.nextExpiresAt
-    ? formatDuration(Date.parse(credits.nextExpiresAt) - now)
+    ? formatUsageDuration(Date.parse(credits.nextExpiresAt) - now)
     : null;
   const summary =
     credits.availableCount === 0
-      ? "No reset credits banked"
-      : `${credits.availableCount} ${credits.availableCount === 1 ? "reset credit" : "reset credits"} banked${
-          expiresIn ? ` · next expires in ${expiresIn}` : ""
-        }`;
+      ? t("No reset credits banked")
+      : `${t(
+          credits.availableCount === 1
+            ? "{count} reset credit banked"
+            : "{count} reset credits banked",
+          { count: credits.availableCount },
+        )}${expiresIn ? ` · ${t("next expires in {duration}", { duration: expiresIn })}` : ""}`;
 
   const redeem = async () => {
     setBusy(true);
@@ -230,23 +234,25 @@ export function ResetCredits(props: {
     const result = await consume({ environmentId, input });
     setBusy(false);
     if (result._tag === "Success") {
-      setStatus(result.value.warning ?? OUTCOME_TEXT[result.value.outcome]);
+      setStatus(result.value.warning ?? translate(OUTCOME_TEXT[result.value.outcome]));
       return;
     }
     setStatus(
       "error" in result.cause && result.cause.error instanceof Error
         ? result.cause.error.message
-        : "Could not use the reset credit.",
+        : translate("Could not use the reset credit."),
     );
   };
 
   const confirm = () => {
     Alert.alert(
-      "Use a reset credit?",
-      "This redeems one credit on your account and clears the current rate-limit windows. It cannot be undone.",
+      t("Use a reset credit?"),
+      t(
+        "This redeems one credit on your account and clears the current rate-limit windows. It cannot be undone.",
+      ),
       [
-        { text: "Cancel", style: "cancel" },
-        { text: "Use credit", onPress: () => void redeem() },
+        { text: t("Cancel"), style: "cancel" },
+        { text: t("Use credit"), onPress: () => void redeem() },
       ],
     );
   };
@@ -273,7 +279,7 @@ export function ResetCredits(props: {
                 : "text-sm font-t3-medium text-foreground"
             }
           >
-            {busy ? "Using…" : "Use reset"}
+            {busy ? t("Using…") : t("Use reset")}
           </Text>
         </Pressable>
       ) : null}

@@ -111,6 +111,7 @@ import {
 } from "./new-task-context-presentation";
 import { resolveEnvironmentProjectMatch } from "./new-task-project-selection";
 import { resolveProjectThreadCreationBranch } from "./projectThreadCreationValidation";
+import { translate } from "../../i18n/translate";
 
 type WorkspaceMode = "local" | "worktree";
 
@@ -327,7 +328,7 @@ export function NewTaskFlowProvider(props: React.PropsWithChildren) {
     return {
       environmentId: editingPendingTask.environmentId,
       id: creation.projectId,
-      title: creation.projectTitle ?? "Unknown project",
+      title: creation.projectTitle ?? translate("Unknown project"),
       // Deliberately empty when the snapshot has no cwd — downstream consumers
       // (branch queries, worktree bootstrap) must skip it, not receive a
       // fabricated path.

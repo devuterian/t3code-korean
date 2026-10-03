@@ -3,6 +3,7 @@ import { ACTIVE_THREAD_SORT_OPTIONS } from "@t3tools/client-runtime/state/shared
 import type { MenuAction } from "@react-native-menu/menu";
 import { useTranslate } from "../../i18n/translate";
 import { useCallback, useMemo } from "react";
+import { useTranslate } from "../../i18n/translate";
 import { NativeStackScreenOptions } from "../../native/StackHeader";
 import { MaterialThreadListToolbar } from "./MaterialThreadListToolbar";
 import type { HomeHeaderProps } from "./HomeHeader.types";
@@ -37,11 +38,11 @@ export function HomeHeader(props: HomeHeaderProps) {
         : []),
       {
         id: "environment",
-        title: "Environment",
+        title: t("Environment"),
         subactions: [
           {
             id: "environment:all",
-            title: "All environments",
+            title: t("All environments"),
             state: checkedMenuState(props.selectedEnvironmentId === null),
           },
           ...props.environments.map((environment) => ({
@@ -56,11 +57,11 @@ export function HomeHeader(props: HomeHeaderProps) {
         : ([
             {
               id: "project",
-              title: "Project",
+              title: t("Project"),
               subactions: [
                 {
                   id: "project:all",
-                  title: "All projects",
+                  title: t("All projects"),
                   state: checkedMenuState(props.selectedProjectKey === null),
                 },
                 ...props.projects.map((project) => ({

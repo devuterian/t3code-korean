@@ -21,6 +21,7 @@ import { RegistryContext, useAtomValue } from "@effect/atom-react";
 import * as AsyncResult from "effect/unstable/reactivity/AsyncResult";
 import * as Atom from "effect/unstable/reactivity/Atom";
 import { reviewEnvironment } from "../../state/review";
+import { translate } from "../../i18n/translate";
 
 const EMPTY_INLINE_REVIEW_COMMENTS = Object.freeze([]);
 type ParsedFilePatch = AsyncResult.AsyncResult<
@@ -68,15 +69,17 @@ function getCachedReviewFile(
     deletions: stat.deletions,
     ...(patch?._tag === "Success"
       ? patch.value.source.truncated
-        ? { notice: "File preview exceeds the size limit. Counts include all changes." }
+        ? {
+            notice: translate("File preview exceeds the size limit. Counts include all changes."),
+          }
         : loaded
           ? {}
-          : { notice: "Could not display file preview." }
+          : { notice: translate("Could not display file preview.") }
       : {
           notice:
             patch?._tag === "Failure"
-              ? "Could not load diff. Select the file to retry."
-              : "Loading diff…",
+              ? translate("Could not load diff. Select the file to retry.")
+              : translate("Loading diff…"),
         }),
   };
   if (patch) normalizedFiles.set(patch, { stat, diffHash, file });

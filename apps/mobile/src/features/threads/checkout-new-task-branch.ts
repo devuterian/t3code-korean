@@ -8,6 +8,7 @@ import type { VcsSwitchRefInput, VcsSwitchRefResult } from "@t3tools/contracts";
 import * as Cause from "effect/Cause";
 import { AsyncResult } from "effect/unstable/reactivity";
 
+import { translate } from "../../i18n/translate";
 import { shouldCheckoutNewTaskBranch } from "./new-task-context-presentation";
 
 /** Resolve a composer branch only after its checkout succeeds. Existing worktrees
@@ -23,7 +24,9 @@ export async function checkoutNewTaskBranch<E>(input: {
 }): Promise<AtomCommandResult<VcsRef, E | Error>> {
   if (!input.project) {
     return AsyncResult.failure(
-      Cause.fail(new Error("The selected project is unavailable. Reconnect and try again.")),
+      Cause.fail(
+        new Error(translate("The selected project is unavailable. Reconnect and try again.")),
+      ),
     );
   }
   if (

@@ -128,6 +128,7 @@ import { selectIncomingShareAttachmentsForServer } from "../sharing/incoming-sha
 import { appAtomRegistry } from "../../state/atom-registry";
 import { serverEnvironment } from "../../state/server";
 import { fileRoutePathSegments } from "../files/filePath";
+import { translate, useTranslate } from "../../i18n/translate";
 
 function NewTaskWorkspaceIcon(props: {
   readonly workspaceMode: "local" | "worktree";
@@ -190,6 +191,7 @@ export function NewTaskDraftScreen(props: {
   /** Durable native share inbox item to merge into this project draft. */
   readonly incomingShareId?: string;
 }) {
+  const t = useTranslate();
   const projects = useProjects();
   const flow = useNewTaskFlow();
   const navigation = useNavigation();
@@ -249,7 +251,7 @@ export function NewTaskDraftScreen(props: {
     const result = await action();
     if (AsyncResult.isFailure(result)) {
       const error = Cause.squash(result.cause);
-      Alert.alert(title, error instanceof Error ? error.message : "An error occurred.");
+      Alert.alert(title, error instanceof Error ? error.message : translate("An error occurred."));
     }
   };
   const deleteProject = useAtomCommand(projectEnvironment.delete, { reportFailure: false });
@@ -269,8 +271,8 @@ export function NewTaskDraftScreen(props: {
     if (AsyncResult.isFailure(result)) {
       const error = Cause.squash(result.cause);
       Alert.alert(
-        "Failed to remove project",
-        error instanceof Error ? error.message : "An error occurred.",
+        translate("Failed to remove project"),
+        error instanceof Error ? error.message : translate("An error occurred."),
       );
       return;
     }
@@ -767,8 +769,10 @@ export function NewTaskDraftScreen(props: {
       if (isIncomingShareUnavailable && alertedUnavailableIncomingShareIdRef.current !== shareId) {
         alertedUnavailableIncomingShareIdRef.current = shareId;
         Alert.alert(
-          "Shared content unavailable",
-          "The shared content is no longer in the inbox. You can continue editing this task draft.",
+          translate("Shared content unavailable"),
+          translate(
+            "The shared content is no longer in the inbox. You can continue editing this task draft.",
+          ),
         );
       }
       return;
@@ -815,7 +819,7 @@ export function NewTaskDraftScreen(props: {
         ),
       });
       if (selectedAttachments.status === "pending") {
-        throw new Error("Server attachment support is still loading.");
+        throw new Error(translate("Server attachment support is still loading."));
       }
       needsDraftRestore = true;
       const { skippedAttachmentCount } = await mergeComposerDraftContent(draftKey, {
@@ -853,11 +857,18 @@ export function NewTaskDraftScreen(props: {
       const warnings = [...incomingShare.warnings, ...selectedAttachments.warnings];
       if (skippedAttachmentCount > 0) {
         warnings.push(
-          `${skippedAttachmentCount} shared file${skippedAttachmentCount === 1 ? " was" : "s were"} skipped because this draft reached the attachment limit.`,
+          skippedAttachmentCount === 1
+            ? translate(
+                "1 shared file was skipped because this draft reached the attachment limit.",
+              )
+            : translate(
+                "{count} shared files were skipped because this draft reached the attachment limit.",
+                { count: skippedAttachmentCount },
+              ),
         );
       }
       if (warnings.length > 0) {
-        Alert.alert("Some shared content was skipped", warnings.join("\n"));
+        Alert.alert(translate("Some shared content was skipped"), warnings.join("\n"));
       }
       shareImportDraftBackupRef.current.delete(importKey);
     })()
@@ -866,11 +877,13 @@ export function NewTaskDraftScreen(props: {
           return;
         }
         Alert.alert(
-          "Could not import shared content",
-          error instanceof Error ? error.message : "The shared content could not be saved.",
+          translate("Could not import shared content"),
+          error instanceof Error
+            ? error.message
+            : translate("The shared content could not be saved."),
           [
             {
-              text: "Cancel import",
+              text: translate("Cancel import"),
               style: "cancel",
               onPress: () => {
                 const cancelImport = async (): Promise<void> => {
@@ -911,13 +924,13 @@ export function NewTaskDraftScreen(props: {
                       return;
                     }
                     Alert.alert(
-                      "Could not cancel import",
+                      translate("Could not cancel import"),
                       cancelError instanceof Error
                         ? cancelError.message
-                        : "The shared content could not be restored safely.",
+                        : translate("The shared content could not be restored safely."),
                       [
                         {
-                          text: "Retry import",
+                          text: translate("Retry import"),
                           onPress: () => {
                             cancellingShareImportKeyRef.current = null;
                             setIsCancellingShareImport(false);
@@ -925,7 +938,7 @@ export function NewTaskDraftScreen(props: {
                           },
                         },
                         {
-                          text: "Retry cancel",
+                          text: translate("Retry cancel"),
                           onPress: () => void cancelImport(),
                         },
                       ],
@@ -937,7 +950,7 @@ export function NewTaskDraftScreen(props: {
               },
             },
             {
-              text: "Retry",
+              text: translate("Retry"),
               onPress: () => setShareImportAttempt((attempt) => attempt + 1),
             },
           ],
@@ -976,7 +989,7 @@ export function NewTaskDraftScreen(props: {
   const selectedEnvironmentLabel =
     flow.environments.find(
       (environment) => environment.environmentId === flow.selectedEnvironmentId,
-    )?.environmentLabel ?? "Environment";
+    )?.environmentLabel ?? t("Environment");
   const availableCurrentBranchName =
     flow.availableBranches.find((branch) => branch.current)?.name ??
     flow.availableBranches.find((branch) => branch.isDefault)?.name ??
@@ -993,10 +1006,12 @@ export function NewTaskDraftScreen(props: {
     startFromOrigin: flow.startFromOrigin,
     workspaceMode: flow.workspaceMode,
   });
-  const workspaceLabel = resolveNewTaskWorkspaceLabel({
-    workspaceMode: flow.workspaceMode,
-    worktreePath: flow.selectedWorktreePath,
-  });
+  const workspaceLabel = t(
+    resolveNewTaskWorkspaceLabel({
+      workspaceMode: flow.workspaceMode,
+      worktreePath: flow.selectedWorktreePath,
+    }),
+  );
   const showBranchLoading = flow.branchesLoading && flow.availableBranches.length === 0;
 
   async function handlePickMedia(): Promise<void> {
@@ -1020,11 +1035,15 @@ export function NewTaskDraftScreen(props: {
     const problems = [
       ...(result.error ? [result.error] : []),
       ...(rejectedCount > 0
-        ? [`You can attach up to ${PROVIDER_SEND_TURN_MAX_ATTACHMENTS} attachments per message.`]
+        ? [
+            translate("You can attach up to {count} attachments per message.", {
+              count: PROVIDER_SEND_TURN_MAX_ATTACHMENTS,
+            }),
+          ]
         : []),
     ];
     if (problems.length > 0) {
-      Alert.alert("Could not attach photo or video", problems.join("\n\n"));
+      Alert.alert(translate("Could not attach photo or video"), problems.join("\n\n"));
     }
   }
 
@@ -1035,7 +1054,7 @@ export function NewTaskDraftScreen(props: {
     const maxBytes =
       selectedEnvironmentServerConfig?.environment.capabilities.fileAttachments?.maxUploadBytes;
     if (maxBytes === undefined) {
-      Alert.alert("File attachments are not available on this server.");
+      Alert.alert(translate("File attachments are not available on this server."));
       return;
     }
     const insertion = flow.draftKey ? captureComposerDraftInsertion(flow.draftKey) : undefined;
@@ -1053,11 +1072,15 @@ export function NewTaskDraftScreen(props: {
     const problems = [
       ...(result.error ? [result.error] : []),
       ...(rejectedCount > 0
-        ? [`You can attach up to ${PROVIDER_SEND_TURN_MAX_ATTACHMENTS} files per message.`]
+        ? [
+            translate("You can attach up to {count} files per message.", {
+              count: PROVIDER_SEND_TURN_MAX_ATTACHMENTS,
+            }),
+          ]
         : []),
     ];
     if (problems.length > 0) {
-      Alert.alert("Could not attach file", problems.join("\n\n"));
+      Alert.alert(translate("Could not attach file"), problems.join("\n\n"));
     }
   }
 
@@ -1144,14 +1167,16 @@ export function NewTaskDraftScreen(props: {
             if (flow.appendAttachments([attachment], insertion) > 0) {
               await removePersistedComposerAttachmentFile(attachment.fileUri);
               Alert.alert(
-                "Could not attach pasted text",
-                `You can attach up to ${PROVIDER_SEND_TURN_MAX_ATTACHMENTS} files per message.`,
+                translate("Could not attach pasted text"),
+                translate("You can attach up to {count} files per message.", {
+                  count: PROVIDER_SEND_TURN_MAX_ATTACHMENTS,
+                }),
               );
             }
           } catch (error) {
             Alert.alert(
-              "Could not attach pasted text",
-              error instanceof Error ? error.message : "Try again.",
+              translate("Could not attach pasted text"),
+              error instanceof Error ? error.message : translate("Try again."),
             );
           } finally {
             pendingPastedTextAttachmentCountRef.current = Math.max(
@@ -1165,11 +1190,11 @@ export function NewTaskDraftScreen(props: {
         } else {
           Alert.alert(
             wouldExceedInputLimit
-              ? "Pasted text is too large for this message"
-              : "Could not attach pasted text",
+              ? translate("Pasted text is too large for this message")
+              : translate("Could not attach pasted text"),
             wouldExceedInputLimit
-              ? "Remove some text or an attachment, then paste again."
-              : "Remove an attachment or use a smaller paste, then try again.",
+              ? translate("Remove some text or an attachment, then paste again.")
+              : translate("Remove an attachment or use a smaller paste, then try again."),
           );
         }
         return;
@@ -1214,8 +1239,8 @@ export function NewTaskDraftScreen(props: {
       isModelSelectionUnavailable(selectedEnvironmentServerConfig, modelSelection)
     ) {
       Alert.alert(
-        "Antigravity model unavailable",
-        "Set up Antigravity on web or desktop, or choose another model.",
+        translate("Antigravity model unavailable"),
+        translate("Set up Antigravity on web or desktop, or choose another model."),
       );
       return;
     }
@@ -1228,8 +1253,8 @@ export function NewTaskDraftScreen(props: {
       draft.attachments.length === 0
     ) {
       Alert.alert(
-        "Usage limits",
-        "Send /usage-limits inside a thread, or open Settings → Usage → Limits.",
+        translate("Usage limits"),
+        translate("Send /usage-limits inside a thread, or open Settings → Usage → Limits."),
       );
       return;
     }
@@ -1238,15 +1263,17 @@ export function NewTaskDraftScreen(props: {
     // and have the server reject the turn.
     if (draft.attachments.length > PROVIDER_SEND_TURN_MAX_ATTACHMENTS) {
       Alert.alert(
-        "Too many attachments",
-        `Remove attachments until there are at most ${PROVIDER_SEND_TURN_MAX_ATTACHMENTS}.`,
+        translate("Too many attachments"),
+        translate("Remove attachments until there are at most {count}.", {
+          count: PROVIDER_SEND_TURN_MAX_ATTACHMENTS,
+        }),
       );
       return;
     }
 
     const contextBlockReason = composerContextSendBlockReason(draft.context);
     if (contextBlockReason) {
-      Alert.alert("Too much context", contextBlockReason);
+      Alert.alert(translate("Too much context"), contextBlockReason);
       return;
     }
 
@@ -1296,8 +1323,10 @@ export function NewTaskDraftScreen(props: {
       await enqueueThreadOutboxMessage(message);
     } catch (error) {
       Alert.alert(
-        "Could not queue task",
-        error instanceof Error ? error.message : "The task could not be saved to the outbox.",
+        translate("Could not queue task"),
+        error instanceof Error
+          ? error.message
+          : translate("The task could not be saved to the outbox."),
       );
       return;
     } finally {
@@ -1335,13 +1364,13 @@ export function NewTaskDraftScreen(props: {
           <>
             <NativeStackScreenOptions options={{ headerShown: false }} />
             <AndroidScreenHeader
-              title="New thread"
+              title={t("New thread")}
               hideBottomBorder
               onBack={() => navigation.goBack()}
             />
           </>
         ) : (
-          <NativeStackScreenOptions options={{ title: "Loading task" }} />
+          <NativeStackScreenOptions options={{ title: t("Loading task") }} />
         )}
       </View>
     );
@@ -1420,7 +1449,7 @@ export function NewTaskDraftScreen(props: {
         onBlur={() => setIsComposerFocused(false)}
         onPasteImages={(uris) => void handleNativePasteImages(uris)}
         onPasteText={(paste) => void handleNativePasteText(paste)}
-        placeholder="Ask anything…"
+        placeholder={t("Ask anything…")}
         singleLineCentered={false}
         contentInsetVertical={0}
         style={{
@@ -1461,7 +1490,9 @@ export function NewTaskDraftScreen(props: {
 
   const environmentControl = (
     <ComposerInlineControl
-      accessibilityLabel={`Environment: ${selectedEnvironmentLabel}`}
+      accessibilityLabel={t("Environment: {environment}", {
+        environment: selectedEnvironmentLabel,
+      })}
       chevronDirection="right"
       disabled={isComposerInteractionLocked || voiceInput.isBusy}
       renderIcon={(size) => (
@@ -1471,7 +1502,7 @@ export function NewTaskDraftScreen(props: {
           tintColorClassName="accent-icon-muted"
         />
       )}
-      label={`on ${selectedEnvironmentLabel}`}
+      label={t("on {environment}", { environment: selectedEnvironmentLabel })}
       maxWidth={flow.isScratchDraft ? 170 : 260}
       onPress={
         flow.environments.length > 1 ? () => openContextPicker("NewTaskEnvironment") : undefined
@@ -1482,20 +1513,21 @@ export function NewTaskDraftScreen(props: {
   );
   // A thread without a project has no project to name, so it asks plainly,
   // like web, and puts the project picker beside the machine as a control.
+  const [heroProjectPrefix = "", heroProjectSuffix = ""] = t("in {project}?").split("{project}");
   const hero = flow.isScratchDraft ? (
     <View className="items-center gap-2 px-6" testID="new-task-hero">
       <Text className="text-center text-2xl font-t3-medium tracking-tight text-foreground">
-        What should we work on?
+        {t("What should we work on?")}
       </Text>
       {/* Wraps onto two lines only when a long machine name leaves no room. */}
       <View className="flex-row flex-wrap items-center justify-center gap-x-1">
         <ComposerInlineControl
-          accessibilityHint="Opens the project picker"
-          accessibilityLabel="Choose a project"
+          accessibilityHint={t("Opens the project picker")}
+          accessibilityLabel={t("Choose a project")}
           chevronDirection="right"
           disabled={isComposerInteractionLocked}
           icon="folder"
-          label="Choose a project"
+          label={t("Choose a project")}
           onPress={chooseProject}
         />
         {environmentControl}
@@ -1505,12 +1537,16 @@ export function NewTaskDraftScreen(props: {
     <View className="items-center gap-6 px-6" testID="new-task-hero">
       <View className="w-full items-center gap-1.5">
         <Text className="text-center text-2xl font-t3-medium tracking-tight text-foreground">
-          What should we build
+          {t("What should we build")}
         </Text>
         <View className="max-w-full flex-row items-center justify-center">
-          <Text className="text-2xl font-t3-medium tracking-tight text-foreground">in </Text>
+          {heroProjectPrefix ? (
+            <Text className="text-2xl font-t3-medium tracking-tight text-foreground">
+              {heroProjectPrefix}
+            </Text>
+          ) : null}
           <Pressable
-            accessibilityHint="Opens the project picker"
+            accessibilityHint={t("Opens the project picker")}
             accessibilityLabel={selectedProject.title}
             accessibilityRole="button"
             disabled={isComposerInteractionLocked}
@@ -1524,7 +1560,9 @@ export function NewTaskDraftScreen(props: {
               {selectedProject.title}
             </Text>
           </Pressable>
-          <Text className="text-2xl font-t3-medium tracking-tight text-foreground">?</Text>
+          <Text className="text-2xl font-t3-medium tracking-tight text-foreground">
+            {heroProjectSuffix}
+          </Text>
         </View>
       </View>
 
@@ -1552,7 +1590,11 @@ export function NewTaskDraftScreen(props: {
   const workspaceControls = (
     <View className="flex-row items-center gap-1 px-2">
       <ComposerInlineControl
-        accessibilityHint={`Switches to ${flow.workspaceMode === "local" ? "a new worktree" : "the current checkout"}`}
+        accessibilityHint={
+          flow.workspaceMode === "local"
+            ? t("Switches to a new worktree")
+            : t("Switches to the current checkout")
+        }
         accessibilityLabel={workspaceLabel}
         disabled={isComposerInteractionLocked || voiceInput.isBusy}
         renderIcon={(size) => (
@@ -1569,11 +1611,15 @@ export function NewTaskDraftScreen(props: {
       />
 
       <ComposerInlineControl
-        accessibilityLabel={`${flow.workspaceMode === "worktree" ? "Base branch" : "Branch"}: ${selectedBranchLabel}`}
+        accessibilityLabel={
+          flow.workspaceMode === "worktree"
+            ? t("Base branch: {branch}", { branch: selectedBranchLabel })
+            : t("Branch: {branch}", { branch: selectedBranchLabel })
+        }
         chevronDirection="right"
         disabled={isComposerInteractionLocked}
         icon="arrow.triangle.branch"
-        label={showBranchLoading ? "Loading branches…" : selectedBranchLabel}
+        label={showBranchLoading ? t("Loading branches…") : selectedBranchLabel}
         maxWidth={190}
         onPress={() => openContextPicker("NewTaskBranch")}
       />
@@ -1607,7 +1653,7 @@ export function NewTaskDraftScreen(props: {
           <ProjectCloneBanner
             clone={projectClone}
             onCancel={() =>
-              void runCloneAction("Failed to cancel clone", () =>
+              void runCloneAction(t("Failed to cancel clone"), () =>
                 cancelProjectClone({
                   environmentId: selectedProject.environmentId,
                   input: { projectId: selectedProject.id },
@@ -1615,7 +1661,7 @@ export function NewTaskDraftScreen(props: {
               )
             }
             onRetry={() =>
-              void runCloneAction("Failed to retry clone", () =>
+              void runCloneAction(t("Failed to retry clone"), () =>
                 retryProjectClone({
                   environmentId: selectedProject.environmentId,
                   input: { projectId: selectedProject.id },
@@ -1635,7 +1681,9 @@ export function NewTaskDraftScreen(props: {
           disabled={isComposerInteractionLocked}
           onPress={settingsSheetPresentation.open}
         >
-          <Text className="text-xs text-foreground">Model unavailable. Open model settings.</Text>
+          <Text className="text-xs text-foreground">
+            {t("Model unavailable. Open model settings.")}
+          </Text>
         </Pressable>
       ) : null}
 
@@ -1717,7 +1765,7 @@ export function NewTaskDraftScreen(props: {
                   <View className="min-w-0 flex-1 flex-row items-center justify-end gap-2">
                     <View className="min-w-0 shrink">
                       <ComposerInlineControl
-                        accessibilityLabel="Model and reasoning settings"
+                        accessibilityLabel={t("Model and reasoning settings")}
                         disabled={isComposerInteractionLocked}
                         emphasized
                         renderIcon={(size) => (
@@ -1727,15 +1775,21 @@ export function NewTaskDraftScreen(props: {
                             size={size}
                           />
                         )}
-                        label={flow.selectedModelOption?.label ?? "Choose model"}
+                        label={flow.selectedModelOption?.label ?? t("Choose model")}
                         maxWidth="100%"
                         onPress={settingsSheetPresentation.open}
                       />
                     </View>
                     {flow.planModeEnabled ? (
                       <ComposerInlineControl
-                        accessibilityHint={`Switches to ${flow.interactionMode === "plan" ? "Build" : "Plan"} mode`}
-                        accessibilityLabel={`Interaction mode: ${flow.interactionMode === "plan" ? "Plan" : "Build"}`}
+                        accessibilityHint={
+                          flow.interactionMode === "plan"
+                            ? t("Switches to Build mode")
+                            : t("Switches to Plan mode")
+                        }
+                        accessibilityLabel={t("Interaction mode: {mode}", {
+                          mode: flow.interactionMode === "plan" ? t("Plan") : t("Build"),
+                        })}
                         disabled={isComposerInteractionLocked}
                         emphasized
                         icon={
@@ -1743,7 +1797,7 @@ export function NewTaskDraftScreen(props: {
                             ? { ios: "list.bullet.clipboard", android: "auto_awesome" }
                             : { ios: "hammer", android: "construction" }
                         }
-                        label={flow.interactionMode === "plan" ? "Plan" : "Build"}
+                        label={flow.interactionMode === "plan" ? t("Plan") : t("Build")}
                         onPress={() =>
                           flow.setInteractionMode(
                             flow.interactionMode === "plan" ? "default" : "plan",
@@ -1770,17 +1824,17 @@ export function NewTaskDraftScreen(props: {
                     attachmentBlockReason ??
                     (cloneBlocksStart
                       ? projectClone === null || projectClone.phase === "running"
-                        ? "Cloning repository"
-                        : "Repository not cloned"
+                        ? t("Cloning repository")
+                        : t("Repository not cloned")
                       : pendingPastedTextAttachmentCount > 0
-                        ? "Attaching pasted text"
+                        ? t("Attaching pasted text")
                         : flow.submitting
-                          ? "Starting task"
+                          ? t("Starting task")
                           : attachmentsUploading
-                            ? "Queue task, sends when uploads finish"
+                            ? t("Queue task, sends when uploads finish")
                             : environmentConnected
-                              ? "Start task"
-                              : "Queue task")
+                              ? t("Start task")
+                              : t("Queue task"))
                   }
                   disabled={!canStart}
                   icon={queuesInsteadOfStarting ? "tray.and.arrow.up" : "arrow.up"}
@@ -1801,7 +1855,7 @@ export function NewTaskDraftScreen(props: {
     return (
       <View className="flex-1 bg-sheet" collapsable={false}>
         <NativeStackScreenOptions options={{ headerShown: false }} />
-        <AndroidScreenHeader title="New thread" hideBottomBorder onBack={closeNewTask} />
+        <AndroidScreenHeader title={t("New thread")} hideBottomBorder onBack={closeNewTask} />
         <MaterialScreenContent>
           {heroViewport}
 
@@ -1827,8 +1881,8 @@ export function NewTaskDraftScreen(props: {
       />
       <NativeHeaderToolbar placement="left">
         <NativeHeaderToolbar.Button
-          accessibilityLabel="Cancel new task"
-          label="Cancel"
+          accessibilityLabel={t("Cancel new task")}
+          label={t("Cancel")}
           onPress={closeNewTask}
         />
       </NativeHeaderToolbar>

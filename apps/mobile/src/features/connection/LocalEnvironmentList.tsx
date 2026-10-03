@@ -5,6 +5,7 @@ import { View } from "react-native";
 import { SymbolView } from "../../components/AppSymbol";
 import { AppText as Text } from "../../components/AppText";
 import { ConnectionEnvironmentRow } from "./ConnectionEnvironmentRow";
+import { useTranslate } from "../../i18n/translate";
 
 type EnvironmentRowProps = ComponentProps<typeof ConnectionEnvironmentRow>;
 
@@ -22,7 +23,9 @@ export function LocalEnvironmentList({
   readonly expandedId: EnvironmentId | null;
   readonly onToggle: (environmentId: EnvironmentId) => void;
 }) {
+  const t = useTranslate();
   if (environments.length === 0) {
+    const [tapToAddBefore, tapToAddAfter] = t("Tap {plus} to add one.").split("{plus}");
     return (
       <View
         collapsable={false}
@@ -37,8 +40,11 @@ export function LocalEnvironmentList({
           />
         </View>
         <Text className="text-center text-sm leading-normal text-foreground-muted">
-          No environments connected yet.{"\n"}Tap{" "}
-          <Text className="font-t3-bold text-foreground">+</Text> to add one.
+          {t("No environments connected yet.")}
+          {"\n"}
+          {tapToAddBefore}
+          <Text className="font-t3-bold text-foreground">+</Text>
+          {tapToAddAfter}
         </Text>
       </View>
     );

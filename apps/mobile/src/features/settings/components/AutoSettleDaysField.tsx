@@ -5,6 +5,7 @@ import {
 } from "@t3tools/contracts";
 
 import { AppTextInput } from "../../../components/AppText";
+import { useTranslate } from "../../../i18n/translate";
 
 export interface AutoSettleDaysFieldProps {
   readonly value: number;
@@ -13,6 +14,7 @@ export interface AutoSettleDaysFieldProps {
 }
 
 export function AutoSettleDaysField(props: AutoSettleDaysFieldProps) {
+  const t = useTranslate();
   const [draft, setDraft] = useState<string | null>(null);
   const commit = () => {
     if (props.disabled) {
@@ -41,7 +43,7 @@ export function AutoSettleDaysField(props: AutoSettleDaysFieldProps) {
       onChangeText={setDraft}
       onBlur={commit}
       onSubmitEditing={commit}
-      accessibilityLabel="Days before auto-settle"
+      accessibilityLabel={t("Days before auto-settle")}
       editable={!props.disabled}
     />
   );

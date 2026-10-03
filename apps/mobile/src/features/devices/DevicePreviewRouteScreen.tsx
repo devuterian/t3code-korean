@@ -18,6 +18,7 @@ import { deviceEnvironment, refreshDeviceHubAccess, useDeviceHubAccess } from ".
 import { useEnvironmentQuery } from "../../state/query";
 import { useAtomCommand } from "../../state/use-atom-command";
 import { useAppearancePreferences } from "../settings/appearance/AppearancePreferencesProvider";
+import { useTranslate } from "../../i18n/translate";
 import { DeviceStreamWebView, type DeviceStreamRef } from "./DeviceStreamWebView";
 import {
   selectedThreadDevicePreview,
@@ -70,6 +71,7 @@ function DevicePreviewScreen({
   readonly threadId: ThreadId;
   readonly onClose: () => void;
 }) {
+  const t = useTranslate();
   const insets = useSafeAreaInsets();
   const { themeVariables } = useAppearancePreferences();
   const focused = useIsFocused();
@@ -114,7 +116,7 @@ function DevicePreviewScreen({
         },
       });
       if (result._tag === "Failure") {
-        Alert.alert("Could not shut down device", String(Cause.squash(result.cause)));
+        Alert.alert(t("Could not shut down device"), String(Cause.squash(result.cause)));
       }
     } finally {
       setShuttingDown(false);
@@ -129,7 +131,7 @@ function DevicePreviewScreen({
       )
       .map((host) => ({
         id: `retry-${host.id}`,
-        title: `Retry ${host.label}`,
+        title: t("Retry {name}", { name: host.label }),
         icon: "arrow.clockwise" as const,
         onPress: () => {
           void retryHost({ environmentId, input: { retryHostId: host.id } });
@@ -139,7 +141,7 @@ function DevicePreviewScreen({
       ? [
           {
             id: "check-device-tools",
-            title: "Check device tool versions",
+            title: t("Check device tool versions"),
             icon: "arrow.clockwise" as const,
             onPress: () => {
               void retryHost({ environmentId, input: { inspectOnly: true } });
@@ -149,15 +151,17 @@ function DevicePreviewScreen({
       : []),
     {
       id: "device-tools",
-      title: "Device tool versions",
+      title: t("Device tool versions"),
       icon: "info.circle",
       onPress: () =>
         Alert.alert(
-          "Device tool versions",
-          deviceToolUpdateOwnership +
+          t("Device tool versions"),
+          t(deviceToolUpdateOwnership) +
             "\n\n" +
-            deviceToolUpdatePolicy(
-              state.data?.hosts.find((host) => host.id === preview?.session.hostId)?.tools,
+            t(
+              deviceToolUpdatePolicy(
+                state.data?.hosts.find((host) => host.id === preview?.session.hostId)?.tools,
+              ),
             ) +
             "\n\n" +
             deviceToolVersionLabels(
@@ -172,7 +176,7 @@ function DevicePreviewScreen({
     },
     {
       id: "reload",
-      title: "Reload stream",
+      title: t("Reload stream"),
       icon: "arrow.clockwise" as const,
       disabled: !preview || shuttingDown,
       onPress: () => {
@@ -184,7 +188,7 @@ function DevicePreviewScreen({
       ? [
           {
             id: "back",
-            title: "Back",
+            title: t("Back"),
             icon: "arrow.left",
             disabled: !inputConnected,
             onPress: () => streamRef.current?.back(),
@@ -193,7 +197,7 @@ function DevicePreviewScreen({
       : []),
     {
       id: "app-switcher",
-      title: "App switcher",
+      title: t("App switcher"),
       icon: "square.on.square",
       disabled: !inputConnected,
       onPress: () => streamRef.current?.appSwitcher(),
@@ -202,7 +206,7 @@ function DevicePreviewScreen({
       ? [
           {
             id: "rotate",
-            title: "Rotate device",
+            title: t("Rotate device"),
             icon: "arrow.clockwise" as const,
             disabled: !inputConnected,
             onPress: () => streamRef.current?.rotate(),
@@ -211,7 +215,7 @@ function DevicePreviewScreen({
       : []),
     {
       id: "shutdown",
-      title: shuttingDown ? "Shutting down…" : "Shut down device",
+      title: shuttingDown ? t("Shutting down…") : t("Shut down device"),
       icon: "power",
       disabled: !preview || shuttingDown,
       onPress: () => void shutDownDevice(),
@@ -220,13 +224,13 @@ function DevicePreviewScreen({
   return (
     <View className="flex-1 bg-sheet" style={{ paddingBottom: insets.bottom }}>
       <ScreenHeader
-        title={preview?.name ?? "Devices"}
+        title={preview?.name ?? t("Devices")}
         sidebar={false}
         onBack={onClose}
         options={{ headerBackVisible: false }}
         actions={[
           {
-            accessibilityLabel: "Home",
+            accessibilityLabel: t("Home"),
             icon: "house",
             disabled: !inputConnected,
             onPress: () => streamRef.current?.home(),
@@ -234,14 +238,14 @@ function DevicePreviewScreen({
         ]}
         menus={[
           {
-            title: "Device options",
+            title: t("Device options"),
             icon: "ellipsis",
             items: [
               ...(previews.length > 1
                 ? [
                     {
                       id: "devices",
-                      title: "Devices",
+                      title: t("Devices"),
                       inline: true,
                       items: previews.map((device) => ({
                         id: device.key,
@@ -262,7 +266,7 @@ function DevicePreviewScreen({
         <NativeHeaderToolbar placement="left">
           <NativeHeaderToolbar.Button
             icon="xmark"
-            accessibilityLabel="Close device preview"
+            accessibilityLabel={t("Close device preview")}
             onPress={onClose}
             separateBackground
           />
@@ -288,7 +292,7 @@ function DevicePreviewScreen({
                 className="rounded-full border border-secondary-border bg-secondary px-6 py-3"
                 onPress={state.refresh}
               >
-                <AppText className="text-secondary-foreground">Retry</AppText>
+                <AppText className="text-secondary-foreground">{t("Retry")}</AppText>
               </Pressable>
             </>
           ) : focused && foreground ? (
@@ -311,6 +315,7 @@ function OpenDevicePreview({
   readonly streamRef: RefObject<DeviceStreamRef | null>;
   readonly onInputConnected: (connected: boolean) => Promise<void>;
 }) {
+  const t = useTranslate();
   const { session } = preview;
   const { themeVariables } = useAppearancePreferences();
   const { access, error, refresh } = useDeviceHubAccess(environmentId, session.hostId);
@@ -351,13 +356,15 @@ function OpenDevicePreview({
             className="rounded-full border border-secondary-border bg-secondary px-6 py-3"
             onPress={refresh}
           >
-            <AppText className="text-secondary-foreground">Retry</AppText>
+            <AppText className="text-secondary-foreground">{t("Retry")}</AppText>
           </Pressable>
         </>
       ) : (
         <>
           <ActivityIndicator color={themeVariables["--color-icon"]} />
-          <AppText className="text-sm text-foreground-muted">Connecting to device...</AppText>
+          <AppText className="text-sm text-foreground-muted">
+            {t("Connecting to device...")}
+          </AppText>
         </>
       )}
     </View>

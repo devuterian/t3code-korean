@@ -4,6 +4,7 @@ import type { FileBackedComposerAttachment } from "./composerImages";
 import { resolveOwnedComposerAttachmentFileUri } from "./composerAttachmentFiles";
 import { shareLocalAttachment, type AttachmentPreviewFile } from "./attachmentDownload";
 import { retainComposerAttachmentFileForPreview } from "./composerAttachmentPreviewRetention";
+import { translate } from "../i18n/translate";
 
 /** Retains the draft original for preview and gives each outgoing share its own lease. */
 export async function loadLocalAttachmentPreview(
@@ -23,7 +24,7 @@ export async function loadLocalAttachmentPreview(
       attachment.fileUri;
     const file = new File(uri);
     if (!file.exists) {
-      throw new Error("The local attachment file is missing.");
+      throw new Error(translate("The local attachment file is missing."));
     }
     let disposed = false;
     return {
@@ -57,6 +58,8 @@ export async function loadLocalAttachmentPreview(
   } catch (cause) {
     release();
     if (signal.aborted) return null;
-    throw new Error("This attachment is no longer available. Attach the file again.", { cause });
+    throw new Error(translate("This attachment is no longer available. Attach the file again."), {
+      cause,
+    });
   }
 }

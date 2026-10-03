@@ -6,6 +6,7 @@ import { loadLocalAttachmentPreview } from "../lib/localAttachmentPreview";
 import { useRefreshAssetUrl } from "../state/assets";
 import { FilePreview } from "./FilePreview";
 import type { FilePreviewSource } from "./FilePreviewModal.types";
+import { translate } from "../i18n/translate";
 
 export type { FilePreviewSource, ResolvedFilePreviewSource } from "./FilePreviewModal.types";
 
@@ -25,7 +26,7 @@ function ResolvedFilePreview(props: {
   const onRequestClose = useEffectEvent(props.onRequestClose);
   const onResolutionError = useEffectEvent((error: unknown, fallbackMessage: string) => {
     if (props.onOpenError) props.onOpenError(error);
-    else Alert.alert("Could not open preview", fallbackMessage);
+    else Alert.alert(translate("Could not open preview"), translate(fallbackMessage));
     onRequestClose();
   });
   useEffect(() => Keyboard.dismiss(), []);
@@ -37,7 +38,7 @@ function ResolvedFilePreview(props: {
     void refreshAssetUrl()
       .then((url) => {
         if (cancelled) return;
-        if (!url) throw new Error("Reconnect to this environment and try again.");
+        if (!url) throw new Error(translate("Reconnect to this environment and try again."));
         setUri(url + (source.srcFragment ?? ""));
       })
       .catch((error: unknown) => {
