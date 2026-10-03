@@ -40,6 +40,7 @@ import {
 } from "./settingsLayout";
 import { BranchNamingSettings } from "./BranchNamingSettings";
 import { searchableSetting } from "./settingsSearch";
+import { useTranslate } from "../../i18n/translate";
 
 const MODE_OPTIONS: Record<SourceControlWritingStyleMode, { label: string; description: string }> =
   {
@@ -59,6 +60,7 @@ const MODE_OPTIONS: Record<SourceControlWritingStyleMode, { label: string; descr
   };
 
 export function SourceControlWritingSettingsSection() {
+  const t = useTranslate();
   const settings = useScopedSettings();
   const updateSettings = useUpdateScopedSettings();
   const navigate = useNavigate();
@@ -169,14 +171,14 @@ export function SourceControlWritingSettingsSection() {
             >
               <SelectValue>
                 {(value: SourceControlWritingStyleMode | null) =>
-                  value === null ? "Mixed" : MODE_OPTIONS[value].label
+                  value === null ? t("Mixed") : t(MODE_OPTIONS[value].label)
                 }
               </SelectValue>
             </SelectTrigger>
             <SelectPopup align="end" alignItemWithTrigger={false}>
               {(Object.keys(MODE_OPTIONS) as SourceControlWritingStyleMode[]).map((mode) => (
                 <SelectItem key={mode} hideIndicator value={mode}>
-                  {MODE_OPTIONS[mode].label}
+                  {t(MODE_OPTIONS[mode].label)}
                 </SelectItem>
               ))}
             </SelectPopup>
@@ -209,7 +211,7 @@ export function SourceControlWritingSettingsSection() {
                     setEditingAllInstructions(false);
                   }}
                 >
-                  Apply instructions to all
+                  {t("Apply instructions to all")}
                 </Button>
               </>
             ) : (
@@ -221,7 +223,7 @@ export function SourceControlWritingSettingsSection() {
                   setEditingAllInstructions(true);
                 }}
               >
-                Write custom instructions for all
+                {t("Write custom instructions for all")}
               </Button>
             )}
           </div>

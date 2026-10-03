@@ -43,6 +43,7 @@ import { Tooltip, TooltipPopup, TooltipProvider, TooltipTrigger } from "../ui/to
 import { ThemeImportDialog } from "./ThemeImportDialog";
 import { searchableSetting } from "./settingsSearch";
 import { useThemeEditorStore } from "./themeEditorStore";
+import { useTranslate } from "../../i18n/translate";
 import {
   STANDARD_THEME_CARDS,
   getThemeCardDefinition,
@@ -131,6 +132,7 @@ function ThemeLibraryCard({
 }) {
   // A one-appearance theme can only take its own side of the mix, so the card
   // tooltip promises exactly what clicking it does.
+  const t = useTranslate();
   const cardModes = theme.previews.map((preview) => preview.mode);
   const [radialModeOpen, setRadialModeOpen] = useState<ThemeAppearance | null>(null);
   const radialModeGroups = (["light", "dark"] as const).map((mode) => {
@@ -164,7 +166,7 @@ function ThemeLibraryCard({
             <div className="relative">
               {variantNavigation ? (
                 <div
-                  aria-label="Light and dark theme variants"
+                  aria-label={t("Light and dark theme variants")}
                   className="relative h-20"
                   role="group"
                   onBlurCapture={(event) => {
@@ -186,7 +188,7 @@ function ThemeLibraryCard({
                     const rootOffsetX = mode === "light" ? -52 : 52;
                     const isOpen = radialModeOpen === mode;
                     const isActive = selected.option.activeModes.includes(mode);
-                    const modeLabel = mode === "light" ? "Light" : "Dark";
+                    const modeLabel = t(mode === "light" ? "Light" : "Dark");
                     return (
                       <div className="contents" key={mode}>
                         <ThemeVariantTooltip label={`${modeLabel}: ${selected.option.label}`}>
@@ -333,7 +335,7 @@ function ThemeLibraryCard({
                           </Button>
                         }
                       />
-                      <TooltipPopup>Duplicate theme</TooltipPopup>
+                      <TooltipPopup>{t("Duplicate theme")}</TooltipPopup>
                     </Tooltip>
                   ) : null}
                   {onEdit ? (
@@ -353,7 +355,7 @@ function ThemeLibraryCard({
                           </Button>
                         }
                       />
-                      <TooltipPopup>Edit theme</TooltipPopup>
+                      <TooltipPopup>{t("Edit theme")}</TooltipPopup>
                     </Tooltip>
                   ) : null}
                   {onDownload ? (
@@ -373,7 +375,7 @@ function ThemeLibraryCard({
                           </Button>
                         }
                       />
-                      <TooltipPopup>Export theme file</TooltipPopup>
+                      <TooltipPopup>{t("Export theme file")}</TooltipPopup>
                     </Tooltip>
                   ) : null}
                   {onRemove ? (
@@ -398,7 +400,7 @@ function ThemeLibraryCard({
                         }
                       />
                       <TooltipPopup>
-                        {variantNavigation ? "Remove themes" : "Remove theme"}
+                        {variantNavigation ? t("Remove themes") : t("Remove theme")}
                       </TooltipPopup>
                     </Tooltip>
                   ) : null}
@@ -410,9 +412,9 @@ function ThemeLibraryCard({
       />
       <TooltipPopup>
         {variantNavigation
-          ? "Use the first variants for light and dark"
+          ? t("Use the first variants for light and dark")
           : cardModes.length > 1
-            ? "Use for both light and dark"
+            ? t("Use for both light and dark")
             : `Use for ${cardModes[0]} mode only`}
       </TooltipPopup>
     </Tooltip>
@@ -525,6 +527,7 @@ export function ThemeLibrary({
   themeHalves: ThemeHalves | null;
   setThemeHalf: (appearance: ThemeAppearance, themeId: string | null) => boolean;
 }) {
+  const t = useTranslate();
   const openThemeEditor = useThemeEditorStore((store) => store.openThemeEditor);
   const environmentThemes = useEnvironmentThemeDefinitions();
   const [themeRemovalTarget, setThemeRemovalTarget] = useState<{
@@ -718,12 +721,18 @@ export function ThemeLibrary({
   );
 
   const renderModeTiles = () => (
-    <div aria-label="Appearance mode" className="grid w-full grid-cols-3 gap-3" role="group">
+    <div aria-label={t("Appearance mode")} className="grid w-full grid-cols-3 gap-3" role="group">
       {(["system", "light", "dark"] as const).map((mode) => {
         const isActive = appearanceMode === mode;
         return (
           <button
-            aria-label={mode === "system" ? "Follow the system appearance" : `Use ${mode} mode`}
+            aria-label={
+              mode === "system"
+                ? t("Follow the system appearance")
+                : mode === "light"
+                  ? t("Use light mode")
+                  : t("Use dark mode")
+            }
             aria-pressed={isActive}
             className={cn(
               "flex cursor-pointer flex-col items-stretch gap-1.5 rounded-xl border p-2 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
@@ -743,7 +752,7 @@ export function ThemeLibrary({
                 isActive ? "text-foreground" : "text-muted-foreground",
               )}
             >
-              {mode === "system" ? "System" : mode === "light" ? "Light" : "Dark"}
+              {mode === "system" ? t("System") : mode === "light" ? t("Light") : t("Dark")}
             </span>
           </button>
         );
@@ -885,12 +894,12 @@ export function ThemeLibrary({
   return (
     <div className="space-y-3">
       <h3 className="px-3 text-sm font-normal text-foreground/70 sm:px-4">
-        {searchableSetting("color-scheme").title}
+        {t(searchableSetting("color-scheme").title)}
       </h3>
       {renderModeTiles()}
       <div className="flex min-h-8 flex-wrap items-center justify-between gap-3 px-3 pt-2 sm:px-4">
         <h3 className="text-sm font-normal text-foreground/70">
-          {searchableSetting("theme").title}
+          {t(searchableSetting("theme").title)}
         </h3>
         <div className="flex flex-wrap items-center justify-end gap-2">
           <Button
@@ -906,11 +915,11 @@ export function ThemeLibrary({
             }
           >
             <PaintbrushIcon />
-            Create theme
+            {t("Create theme")}
           </Button>
           <Button size="xs" variant="outline" onClick={() => onImportOpenChange(true)}>
             <PlusIcon />
-            Add theme
+            {t("Add theme")}
           </Button>
         </div>
       </div>

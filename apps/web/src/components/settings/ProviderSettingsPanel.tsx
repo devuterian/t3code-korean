@@ -52,6 +52,7 @@ import { useEnvironmentSessionState } from "../../state/session";
 import { useProjects } from "../../state/entities";
 import { useAtomCommand } from "../../state/use-atom-command";
 import { getRelativeTimeState } from "../../timestampFormat";
+import { translate as t } from "../../i18n/translate";
 import {
   ConnectionStatusDot,
   connectionPhaseDotClassName,
@@ -160,18 +161,20 @@ function ProviderLastChecked({ lastCheckedAt }: { lastCheckedAt: string | null }
   }
 
   if (lastCheckedRelative.status === "invalid") {
-    return <span>Checked unavailable</span>;
+    return <span>{t("Checked unavailable")}</span>;
   }
 
   return (
     <span>
       {lastCheckedRelative.suffix ? (
         <>
-          Checked <span className="font-mono tabular-nums">{lastCheckedRelative.value}</span>{" "}
-          {lastCheckedRelative.suffix}
+          {t("Checked")} <span className="font-mono tabular-nums">{lastCheckedRelative.value}</span>{" "}
+          {t(lastCheckedRelative.suffix)}
         </>
       ) : (
-        <>Checked {lastCheckedRelative.value}</>
+        <>
+          {t("Checked")} {lastCheckedRelative.value}
+        </>
       )}
     </span>
   );
@@ -1213,10 +1216,10 @@ export function EnvironmentProviderSettings({
                         onClick={() => void refreshProviders()}
                       >
                         <RefreshIcon refreshing={isRefreshingProviders} />
-                        <span className="sr-only">Refresh provider status</span>
+                        <span className="sr-only">{t("Refresh provider status")}</span>
                         <span className="hidden min-w-0 truncate sm:inline">
                           {isRefreshingProviders ? (
-                            "Refreshing providers"
+                            t("Refreshing providers")
                           ) : (
                             <ProviderLastChecked lastCheckedAt={lastCheckedAt} />
                           )}
@@ -1224,7 +1227,7 @@ export function EnvironmentProviderSettings({
                       </Button>
                     }
                   />
-                  <TooltipPopup side="top">Refresh provider status</TooltipPopup>
+                  <TooltipPopup side="top">{t("Refresh provider status")}</TooltipPopup>
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger
@@ -1233,13 +1236,13 @@ export function EnvironmentProviderSettings({
                         size="icon-xs"
                         variant="ghost-muted"
                         onClick={() => setIsAddInstanceDialogOpen(true)}
-                        aria-label="Add provider"
+                        aria-label={t("Add provider")}
                       >
                         <PlusIcon />
                       </Button>
                     }
                   />
-                  <TooltipPopup side="top">Add provider</TooltipPopup>
+                  <TooltipPopup side="top">{t("Add provider")}</TooltipPopup>
                 </Tooltip>
               </>
             )}
@@ -1284,8 +1287,8 @@ export function EnvironmentProviderSettings({
             ) : (
               <div className="p-6 text-sm text-muted-foreground">
                 {targetInstanceMissing
-                  ? "This provider instance is no longer available on this device."
-                  : "No providers configured."}
+                  ? t("This provider instance is no longer available on this device.")
+                  : t("No providers configured.")}
               </div>
             )}
           </div>
@@ -1306,7 +1309,7 @@ export function EnvironmentProviderSettings({
           id={searchableSetting("provider-health-check-interval").id}
           title={
             <span className="inline-flex items-center gap-1.5">
-              {searchableSetting("provider-health-check-interval").title}
+              {t(searchableSetting("provider-health-check-interval").title)}
               <PolicyTooltip>
                 This interval is configured here, then the shared Background activity policy decides
                 whether provider probes may run when the timer fires. Custom intervals appear as
@@ -1363,12 +1366,12 @@ export function EnvironmentProviderSettings({
                 }
               >
                 <NumberFieldGroup>
-                  <NumberFieldDecrement aria-label="Decrease provider health check interval" />
-                  <NumberFieldInput aria-label="Provider health check interval in seconds" />
-                  <NumberFieldIncrement aria-label="Increase provider health check interval" />
+                  <NumberFieldDecrement aria-label={t("Decrease provider health check interval")} />
+                  <NumberFieldInput aria-label={t("Provider health check interval in seconds")} />
+                  <NumberFieldIncrement aria-label={t("Increase provider health check interval")} />
                 </NumberFieldGroup>
               </NumberField>
-              <span className="text-xs text-muted-foreground">seconds</span>
+              <span className="text-xs text-muted-foreground">{t("seconds")}</span>
             </div>
           }
         />
