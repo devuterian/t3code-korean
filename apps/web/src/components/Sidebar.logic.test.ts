@@ -45,6 +45,7 @@ import {
   shouldRecedeSidebarThread,
   sortLogicalProjectsForSidebar,
   sortInboxThreadsByReturn,
+  sortSidebarInboxThreads,
   resolveSidebarDropTarget,
   planSidebarThreadDrop,
   sortPinnedThreadsForSidebar,
@@ -2216,6 +2217,28 @@ describe("Working shelf (beta)", () => {
         activeOrder: ["a1", "a2", "p1"],
       });
       expect(resolveSidebarDropVerb("active", "working")).toBeNull();
+    });
+
+    it("lets an explicit last-message sort win over the inbox return order", () => {
+      const thread = (id: string, createdAt: string, latestUserMessageAt: string | null) => ({
+        id: ThreadId.make(id),
+        environmentId: localEnvironmentId,
+        createdAt,
+        unsettledAt: null,
+        latestRun: null,
+        activeOrderKey: null,
+        latestUserMessageAt,
+      });
+      // "late" came back most recently; "chatty" has the newest user message.
+      const threads = [
+        thread("chatty", "2026-03-09T08:00:00Z", "2026-03-09T12:00:00Z"),
+        thread("late", "2026-03-09T11:00:00Z", null),
+      ];
+      const ids = (order: "manual" | "last_message", workingShelfEnabled: boolean) =>
+        sortSidebarInboxThreads({ threads, order, workingShelfEnabled }).map((entry) => entry.id);
+      expect(ids("manual", true)).toEqual(["late", "chatty"]);
+      expect(ids("last_message", true)).toEqual(["chatty", "late"]);
+      expect(ids("last_message", false)).toEqual(["chatty", "late"]);
     });
 
     it("only changes lifecycle when the inbox is time-ordered", () => {

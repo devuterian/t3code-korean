@@ -14,6 +14,7 @@ import type {
   ServerSettings,
   ServerSettingsPatch,
 } from "@t3tools/contracts";
+import type { ActiveThreadSortOrder } from "@t3tools/contracts/settings";
 import { isModelSelectionProviderEnabled } from "@t3tools/shared/serverSettings";
 import * as Equal from "effect/Equal";
 import * as Struct from "effect/Struct";
@@ -22,6 +23,7 @@ import type { EnvironmentConnectionPhase } from "../connection/presentation.ts";
 
 /** Server keys that hold a user preference rather than machine config. */
 const SHARED_SERVER_SETTING_KEYS = [
+  "activeThreadSortOrder",
   "continueThreadsAfterServerUpdate",
   "sidebarAutoSettleAfterDays",
   "sidebarAutoSettleOnMerge",
@@ -59,11 +61,16 @@ export function splitSharedServerPatch(patch: ServerSettingsPatch): {
 /** Filter unsupported preferences; direct model writes retain the server's fallback behavior. */
 export function filterSharedServerPatch(
   patch: ServerSettingsPatch,
-  capabilities: Pick<ExecutionEnvironmentCapabilities, "threadRestartContinuation"> | undefined,
+  capabilities:
+    | Pick<ExecutionEnvironmentCapabilities, "threadRestartContinuation" | "threadSortOrder">
+    | undefined,
   settings?: ServerSettings,
   sourceSettings = settings,
   targetIsSource = false,
 ): ServerSettingsPatch {
+  if (capabilities?.threadSortOrder !== true) {
+    patch = Struct.omit(patch, ["activeThreadSortOrder"]);
+  }
   const instanceId =
     patch.textGenerationModelSelection?.instanceId ??
     sourceSettings?.textGenerationModelSelection.instanceId;
@@ -89,7 +96,10 @@ export function filterSharedServerPatch(
 /** The shared subset supported by one environment. */
 export function pickSharedServerSettings(
   settings: ServerSettings,
-  capabilities?: Pick<ExecutionEnvironmentCapabilities, "threadRestartContinuation">,
+  capabilities?: Pick<
+    ExecutionEnvironmentCapabilities,
+    "threadRestartContinuation" | "threadSortOrder"
+  >,
 ): ServerSettingsPatch {
   return filterSharedServerPatch(
     Struct.pick(settings, SHARED_SERVER_SETTING_KEYS),
@@ -122,7 +132,7 @@ export interface SharedSettingsEnvironment {
   readonly syncEligible: boolean;
   readonly settings: ServerSettings | null;
   readonly capabilities?:
-    | Pick<ExecutionEnvironmentCapabilities, "threadRestartContinuation">
+    | Pick<ExecutionEnvironmentCapabilities, "threadRestartContinuation" | "threadSortOrder">
     | undefined;
 }
 
@@ -138,7 +148,7 @@ export function findSharedSettingsMismatches(input: {
   readonly primaryEnvironmentId: EnvironmentId | null;
   readonly primarySettings: ServerSettings | null;
   readonly primaryCapabilities?:
-    | Pick<ExecutionEnvironmentCapabilities, "threadRestartContinuation">
+    | Pick<ExecutionEnvironmentCapabilities, "threadRestartContinuation" | "threadSortOrder">
     | undefined;
   readonly environments: ReadonlyArray<SharedSettingsEnvironment>;
 }): ReadonlyArray<{ readonly environmentId: EnvironmentId; readonly label: string }> {
@@ -176,3 +186,30 @@ export function findSharedSettingsMismatches(input: {
       : [{ environmentId: environment.environmentId, label: environment.label }];
   });
 }
+
+/** Stable source for a merged list: independent of connection arrival order.
+ * Writes fan out to connected capable environments; clients of each server
+ * receive its authoritative preference through the existing config stream.
+ */
+export function resolveActiveThreadSortOrder(
+  configs: ReadonlyMap<
+    EnvironmentId,
+    {
+      readonly settings: Pick<ServerSettings, "activeThreadSortOrder">;
+      readonly environment: {
+        readonly capabilities: Pick<ExecutionEnvironmentCapabilities, "threadSortOrder">;
+      };
+    }
+  >,
+): ActiveThreadSortOrder {
+  const source = [...configs]
+    .filter(([, config]) => config.environment.capabilities.threadSortOrder === true)
+    .sort(([left], [right]) => left.localeCompare(right))[0];
+  return source?.[1].settings.activeThreadSortOrder ?? "manual";
+}
+
+/** English labels are translation keys; clients translate them at render time. */
+export const ACTIVE_THREAD_SORT_OPTIONS = [
+  { value: "manual", label: "Configured order" },
+  { value: "last_message", label: "Last message" },
+] as const satisfies ReadonlyArray<{ value: ActiveThreadSortOrder; label: string }>;
