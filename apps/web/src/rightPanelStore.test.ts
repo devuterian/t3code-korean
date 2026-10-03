@@ -2,6 +2,7 @@ import { scopeThreadRef } from "@t3tools/client-runtime/environment";
 import { type EnvironmentId, ThreadId } from "@t3tools/contracts";
 import { beforeEach, describe, expect, it } from "vite-plus/test";
 
+import { useClosedViewStore } from "./closedViewStore";
 import {
   migratePersistedRightPanelState,
   pullRequestSurface,
@@ -19,10 +20,78 @@ const refA = scopeThreadRef("env-1" as EnvironmentId, ThreadId.make("thread-A"))
 const refB = scopeThreadRef("env-1" as EnvironmentId, ThreadId.make("thread-B"));
 
 beforeEach(() => {
+  useClosedViewStore.setState({ entries: [] });
   useRightPanelStore.setState({
     byThreadKey: {},
     threadPanelVisibilityByThreadKey: {},
     userActionRevisionByThreadKey: {},
+    closeRevisionByThreadKey: {},
+  });
+});
+
+const closedSurfaceIds = () =>
+  useClosedViewStore
+    .getState()
+    .entries.map((entry) => (entry.kind === "panel-tab" ? entry.surface.id : null));
+
+describe("rightPanelStore closed view history", () => {
+  it("records single and bulk tab closes, newest first", () => {
+    const store = useRightPanelStore.getState();
+    const pr = pullRequestSurface({
+      projectId: "project-a",
+      repository: "pingdotgg/t3code",
+      number: 42,
+    });
+    store.openFile(refA, "src/app.ts");
+    store.open(refA, "files");
+    store.openPullRequest(refA, pr);
+    store.open(refA, "diff");
+    store.closeSurface(refA, pr.id);
+    store.closeSurfacesToRight(refA, "files");
+    store.closeOtherSurfaces(refA, "file:src/app.ts");
+    expect(closedSurfaceIds()).toEqual(["files", "diff", pr.id]);
+  });
+
+  it("reopens the active tab first after a bulk close", () => {
+    const store = useRightPanelStore.getState();
+    const pr = pullRequestSurface({
+      projectId: "project-a",
+      repository: "pingdotgg/t3code",
+      number: 7,
+    });
+    store.open(refA, "files");
+    store.open(refA, "diff");
+    store.openPullRequest(refA, pr);
+    store.activateSurface(refA, "diff");
+    store.closeAllSurfaces(refA);
+    expect(closedSurfaceIds()).toEqual(["diff", pr.id, "files"]);
+  });
+
+  it("ignores session tabs without browser snapshots and records the empty browser tab", () => {
+    const store = useRightPanelStore.getState();
+    store.openBrowser(refA, "tab-1");
+    store.closeSurface(refA, "browser:tab-1");
+    expect(useClosedViewStore.getState().entries).toEqual([]);
+    store.openBrowser(refA, null);
+    store.closeSurface(refA, "browser:new");
+    expect(useClosedViewStore.getState().entries).toMatchObject([
+      { kind: "panel-tab", surface: { id: "browser:new", resourceId: null } },
+    ]);
+  });
+
+  it("records only closed tabs when a panel is hidden or a terminal tab closes", () => {
+    const store = useRightPanelStore.getState();
+    store.open(refA, "diff");
+    store.openFile(refA, "src/app.ts");
+    store.closeSurface(refA, "file:src/app.ts");
+    store.close(refA);
+    store.toggle(refA, "diff");
+    store.openTerminal(refA, "term-1");
+    store.closeSurface(refA, "terminal:term-1");
+    expect(useClosedViewStore.getState().entries).toMatchObject([
+      { kind: "panel-tab", threadRef: refA, surface: { id: "file:src/app.ts" } },
+    ]);
+    expect(useClosedViewStore.getState().entries).toHaveLength(1);
   });
 });
 
