@@ -116,7 +116,10 @@ html[data-mobile-composer-route-transition="true"]::view-transition-old(t3-mobil
   --workspace-titlebar-control-size: 1.75rem;
   --workspace-titlebar-control-gap: 0.75rem;
   --workspace-titlebar-scroll-fade-height: 1.5rem;
-  --chat-content-max-width: 46rem;
+  /* The Chat width setting picks the base; the thread width control can widen
+     the cap past it per device (see useThreadWidth). */
+  --chat-content-base-width: 46rem;
+  --chat-content-max-width: var(--chat-content-base-width);
   --thread-details-panel-width: 19.5rem;
   /* The prompt on phones: iOS zooms into any input under 16px on focus. */
   --font-size-prompt-touch: max(var(--font-size-prompt, 1rem), 16px);
@@ -2012,6 +2015,26 @@ code {
   overflow-wrap: anywhere;
 }
 
+/* Fit the available pane, but retain horizontal scrolling when there are too
+   many columns to read comfortably. The legacy cell expansion state is kept
+   intact underneath, so switching Fit tables off restores it. */
+.chat-markdown .chat-markdown-table-container[data-fit="true"] table {
+  table-layout: fixed;
+  min-width: calc(var(--table-column-count, 1) * 7.5rem);
+}
+
+.chat-markdown .chat-markdown-table-container[data-fit="true"] :is(th, td) {
+  /* Legacy expansion writes inline min-widths to headers. */
+  min-width: 0 !important;
+  max-width: none;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  overflow: visible;
+  text-overflow: clip;
+  vertical-align: top;
+}
+
 :root {
   --diff-addition: var(--success);
   --diff-deletion: var(--destructive);
@@ -2022,11 +2045,11 @@ code {
 /* Chat width setting. Comfortable keeps the default --chat-content-max-width,
    which sizes the timeline lane, the composer, and ChatCanvas's width probe. */
 :root[data-chat-width="wide"] {
-  --chat-content-max-width: 72rem;
+  --chat-content-base-width: 72rem;
 }
 
 :root[data-chat-width="full"] {
-  --chat-content-max-width: 100%;
+  --chat-content-base-width: 100%;
 }
 
 :root[data-diff-color-scheme="blue-orange"] {
