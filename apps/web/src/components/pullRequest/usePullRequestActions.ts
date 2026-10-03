@@ -17,6 +17,7 @@ import { useState } from "react";
 
 import { type DraftId, useComposerDraftStore } from "~/composerDraftStore";
 import { useNewThreadHandler } from "~/hooks/useHandleNewThread";
+import { translate } from "~/i18n/translate";
 import { usePreparePullRequestThreadAction } from "~/lib/sourceControlActions";
 import type { ReviewCommentContext } from "~/reviewCommentContext";
 import { pullRequestEnvironment } from "~/state/pullRequests";
@@ -104,12 +105,12 @@ export function usePullRequestActionRunner({
       const failure = squashAtomCommandFailure(result);
       toastManager.add({
         type: "error",
-        title: ACTION_FAILURE_LABELS[action],
-        description: readableFailure(failure, ACTION_FAILURE_HINTS[action]),
+        title: translate(ACTION_FAILURE_LABELS[action]),
+        description: readableFailure(failure, translate(ACTION_FAILURE_HINTS[action])),
       });
       return;
     }
-    toastManager.add({ type: "success", title: ACTION_SUCCESS_LABELS[action] });
+    toastManager.add({ type: "success", title: translate(ACTION_SUCCESS_LABELS[action]) });
     onSuccess?.(action);
   };
 
@@ -210,20 +211,20 @@ export function usePullRequestHandoffs({
     if (opened === null) {
       toastManager.add({
         type: "error",
-        title: "Could not open a thread",
-        description: "Try again from the project, or open a thread first.",
+        title: translate("Could not open a thread"),
+        description: translate("Try again from the project, or open a thread first."),
       });
       return;
     }
     toastManager.add({
       type: "success",
-      title: "Asked in a thread",
+      title: translate("Asked in a thread"),
       // "Ask" leaves the composer empty on purpose, so saying the question is in it would send
       // the reader looking for something that is not there. The chips are what landed.
       description:
         task.prompt.length > 0
-          ? "The question is in the composer — read it over, then send."
-          : "The pull request is in the composer — type your question, then send.",
+          ? translate("The question is in the composer — read it over, then send.")
+          : translate("The pull request is in the composer — type your question, then send."),
     });
   };
 
@@ -245,7 +246,7 @@ export function usePullRequestHandoffs({
     // never expires, and an explicit one would survive the update and pin the result on screen.
     const toastId = toastManager.add({
       type: "loading",
-      title: "Preparing the pull request checkout...",
+      title: translate("Preparing the pull request checkout..."),
     });
     const projectRef = scopeProjectRef(environmentId, detail.projectId);
     // The thread is opened before the checkout rather than after it, because the project's setup
@@ -262,8 +263,8 @@ export function usePullRequestHandoffs({
       // working tree than to prepare a worktree nobody asked for.
       toastManager.update(toastId, {
         type: "error",
-        title: "Could not open a thread for the checkout",
-        description: "Try again from the project, or open a thread first.",
+        title: translate("Could not open a thread for the checkout"),
+        description: translate("Try again from the project, or open a thread first."),
       });
       return;
     }
@@ -280,7 +281,7 @@ export function usePullRequestHandoffs({
         prepareThread.error instanceof Error ? prepareThread.error.message : null;
       toastManager.update(toastId, {
         type: "error",
-        title: "Could not prepare the pull request checkout",
+        title: translate("Could not prepare the pull request checkout"),
         ...(detailMessage ? { description: detailMessage } : {}),
       });
       return;
@@ -302,8 +303,10 @@ export function usePullRequestHandoffs({
       // outcome worth stopping for, since it reads as success and is not.
       toastManager.update(toastId, {
         type: "error",
-        title: "Checked out, but the thread stayed where it was",
-        description: `The checkout is ready on \`${prepared.value.branch}\`. Point a thread at it from the branch picker, then ask again.`,
+        title: translate("Checked out, but the thread stayed where it was"),
+        description: translate(
+          `The checkout is ready on \`${prepared.value.branch}\`. Point a thread at it from the branch picker, then ask again.`,
+        ),
       });
       return;
     }
@@ -315,9 +318,10 @@ export function usePullRequestHandoffs({
     // success, because everything else about the handoff did happen.
     const staleCheckoutToast = {
       type: "warning",
-      title: "Checked out, but not on the latest commits",
-      description:
+      title: translate("Checked out, but not on the latest commits"),
+      description: translate(
         "The checkout could not be moved onto the pull request's latest commits, so the code there is older than the pull request. Uncommitted work or local commits keep it where it is.",
+      ),
     } as const;
     if (task === null) {
       toastManager.update(
@@ -325,11 +329,13 @@ export function usePullRequestHandoffs({
         prepared.value.isOnPullRequestHead
           ? {
               type: "success",
-              title: mode === "local" ? "Checked out here" : "Checked out",
+              title: mode === "local" ? translate("Checked out here") : translate("Checked out"),
               description:
                 mode === "local"
-                  ? "This repository is on the pull request's branch, with a thread open on it."
-                  : "The pull request is in its own worktree, with a thread open on it.",
+                  ? translate(
+                      "This repository is on the pull request's branch, with a thread open on it.",
+                    )
+                  : translate("The pull request is in its own worktree, with a thread open on it."),
             }
           : staleCheckoutToast,
       );
@@ -341,8 +347,8 @@ export function usePullRequestHandoffs({
       prepared.value.isOnPullRequestHead
         ? {
             type: "success",
-            title: "Checkout ready",
-            description: "The task is in the composer — read it over, then send.",
+            title: translate("Checkout ready"),
+            description: translate("The task is in the composer — read it over, then send."),
           }
         : staleCheckoutToast,
     );

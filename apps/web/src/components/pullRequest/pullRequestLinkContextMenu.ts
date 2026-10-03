@@ -1,6 +1,7 @@
 import type { ContextMenuItem } from "@t3tools/contracts";
 
 import { writeTextToClipboard } from "~/hooks/useCopyToClipboard";
+import { translate } from "~/i18n/translate";
 import { readLocalApi } from "~/localApi";
 
 import { toastManager } from "../ui/toast";
@@ -17,14 +18,14 @@ const OPEN_ON_HOST_LABELS: Partial<Record<string, string>> = {
 };
 
 export const openOnHostLabel = (provider: string): string =>
-  OPEN_ON_HOST_LABELS[provider] ?? "Open on host";
+  translate(OPEN_ON_HOST_LABELS[provider] ?? "Open on host");
 
 /** Copy first: it is the reason to right-click a number rather than click it. */
 function pullRequestLinkContextMenuItems(
   openLabel: string,
 ): readonly ContextMenuItem<PullRequestLinkContextMenuAction>[] {
   return [
-    { id: "copy-link", label: "Copy link", icon: "copy" },
+    { id: "copy-link", label: translate("Copy link"), icon: "copy" },
     { id: "open-external", label: openLabel },
   ];
 }
@@ -63,7 +64,10 @@ export async function showPullRequestLinkContextMenu({
   } catch {
     toastManager.add({
       type: "error",
-      title: action === "copy-link" ? "Could not copy the link" : "Could not open the link",
+      title:
+        action === "copy-link"
+          ? translate("Could not copy the link")
+          : translate("Could not open the link"),
     });
   }
 }

@@ -1,6 +1,7 @@
 import { formatPercent } from "@t3tools/shared/usageFormat";
 import type { ReactNode } from "react";
 
+import { useTranslate } from "~/i18n/translate";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 
 export interface ShareSegment {
@@ -24,6 +25,7 @@ export function UsageShareBar({
   readonly format: (value: number) => string;
   readonly aside?: ReactNode;
 }) {
+  const t = useTranslate();
   const visible = segments.filter((segment) => segment.value > 0);
   const total = visible.reduce((sum, segment) => sum + segment.value, 0);
   if (total <= 0) return null;
@@ -36,7 +38,7 @@ export function UsageShareBar({
       </div>
       <div
         role="img"
-        aria-label={`${label}: ${visible.map((segment) => `${segment.label} ${format(segment.value)}`).join(", ")}`}
+        aria-label={`${label}: ${visible.map((segment) => `${t(segment.label)} ${format(segment.value)}`).join(", ")}`}
         className="flex h-2 gap-0.5"
       >
         {visible.map((segment) => (
@@ -50,7 +52,7 @@ export function UsageShareBar({
               }
             />
             <TooltipPopup>
-              {segment.label} · {format(segment.value)} · {formatPercent(segment.value / total)}
+              {t(segment.label)} · {format(segment.value)} · {formatPercent(segment.value / total)}
             </TooltipPopup>
           </Tooltip>
         ))}
@@ -63,7 +65,7 @@ export function UsageShareBar({
               className="size-2 rounded-xs"
               style={{ backgroundColor: segment.color }}
             />
-            <span className="text-muted-foreground">{segment.label}</span>
+            <span className="text-muted-foreground">{t(segment.label)}</span>
             <span className="text-foreground tabular-nums">{format(segment.value)}</span>
           </span>
         ))}

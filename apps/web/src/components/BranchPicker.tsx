@@ -11,6 +11,7 @@ import {
   type ReactNode,
 } from "react";
 
+import { useTranslate } from "../i18n/translate";
 import { MiddleTruncate } from "./ui/middle-truncate";
 import { cn } from "../lib/utils";
 import { shouldLoadNextBranchPageAfterScroll } from "../state/paginatedBranches";
@@ -68,6 +69,7 @@ export function BranchPicker({
   getItemType?: ((value: string) => string) | undefined;
   children: ReactNode;
 }) {
+  const t = useTranslate();
   const highlightedValueRef = useRef<string | null>(null);
   const startFromOriginSwitchId = useId();
   const branchListScrollElementRef = useRef<HTMLElement | null>(null);
@@ -176,7 +178,7 @@ export function BranchPicker({
       {children}
       <ComboboxPopup {...popupProps}>
         <ComboboxSearchInput
-          placeholder="Search refs..."
+          placeholder={t("Search refs...")}
           value={query}
           onChange={(event) => onQueryChange(event.target.value)}
           onKeyDown={(event) => {
@@ -194,7 +196,7 @@ export function BranchPicker({
           }}
         />
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-          <ComboboxEmpty>No refs found.</ComboboxEmpty>
+          <ComboboxEmpty>{t("No refs found.")}</ComboboxEmpty>
           <div className="relative min-h-0 w-full max-h-56 flex-1 overflow-hidden">
             <ComboboxListVirtualized className="size-full min-w-0">
               <LegendList<string>
@@ -234,21 +236,22 @@ export function BranchPicker({
                   >
                     <span className="flex min-w-0 items-center gap-1.5 font-medium text-muted-foreground">
                       <RefreshIcon aria-hidden="true" className="size-3 shrink-0" />
-                      <span className="truncate">Start from origin</span>
+                      <span className="truncate">{t("Start from origin")}</span>
                     </span>
                     <Switch
                       id={startFromOriginSwitchId}
                       checked={originControl.checked}
                       size="sm"
-                      aria-label="Start worktree from origin"
+                      aria-label={t("Start worktree from origin")}
                       onCheckedChange={(checked) => originControl.onCheckedChange(Boolean(checked))}
                     />
                   </label>
                 }
               />
               <TooltipPopup side="top" className="max-w-72 whitespace-normal">
-                Creates the worktree from the latest matching branch on origin instead of your local
-                branch.
+                {t(
+                  "Creates the worktree from the latest matching branch on origin instead of your local branch.",
+                )}
               </TooltipPopup>
             </Tooltip>
           ) : null}
@@ -274,6 +277,7 @@ export function BranchPickerRefItem({
   onClick: ComponentProps<typeof ComboboxItem>["onClick"];
   onContextMenu?: ComponentProps<typeof ComboboxItem>["onContextMenu"];
 }) {
+  const t = useTranslate();
   const itemValue = refName.name;
   const hasSecondaryWorktree =
     refName.worktreePath && activeProjectCwd && refName.worktreePath !== activeProjectCwd;
@@ -297,7 +301,7 @@ export function BranchPickerRefItem({
     >
       <div className="flex w-full min-w-0 items-center justify-between gap-2">
         <MiddleTruncate value={itemValue} className="flex-1" />
-        {badge && <span className="shrink-0 text-3xs text-muted-foreground/45">{badge}</span>}
+        {badge && <span className="shrink-0 text-3xs text-muted-foreground/45">{t(badge)}</span>}
       </div>
     </ComboboxItem>
   );

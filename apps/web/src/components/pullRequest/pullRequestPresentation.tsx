@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { Children, type CSSProperties, isValidElement, type ReactNode, useState } from "react";
 
+import { translate, useTranslate } from "~/i18n/translate";
 import { cn } from "~/lib/utils";
 
 import { Badge } from "../ui/badge";
@@ -30,6 +31,7 @@ import { pullRequestLabelColor } from "./pullRequestList.logic";
 import {
   PULL_REQUEST_STATE_PRESENTATION,
   PullRequestGlyph,
+  translatePullRequestLabel,
   type PullRequestStatePresentation,
   type PullRequestGlyphIcon,
 } from "./pullRequestIcons";
@@ -101,14 +103,16 @@ export function PullRequestReviewDecisionGlyph({
 }: {
   decision: PullRequestReviewDecision;
 }) {
+  const t = useTranslate();
   const presentation = reviewDecisionPresentation(decision);
+  const label = t(presentation.label);
   return (
     <Tooltip>
       <TooltipTrigger render={<span className="inline-flex shrink-0" />}>
         <presentation.Icon aria-hidden className={cn("size-3.5", presentation.toneClassName)} />
-        <span className="sr-only">{presentation.label}</span>
+        <span className="sr-only">{label}</span>
       </TooltipTrigger>
-      <TooltipPopup>{presentation.label}</TooltipPopup>
+      <TooltipPopup>{label}</TooltipPopup>
     </Tooltip>
   );
 }
@@ -125,7 +129,8 @@ export function resolvePullRequestState(input: {
   readonly isDraft: boolean;
 }): PullRequestStatePresentation {
   const key = input.state === "open" && input.isDraft ? "draft" : input.state;
-  return PULL_REQUEST_STATE_PRESENTATION[key];
+  const presentation = PULL_REQUEST_STATE_PRESENTATION[key];
+  return { ...presentation, label: translatePullRequestLabel(presentation.label) };
 }
 
 export interface PullRequestConflictPresentation {
@@ -144,7 +149,9 @@ export function resolvePullRequestConflict(input: {
     return null;
   }
   return {
-    label: input.baseBranch ? `Conflicts with ${input.baseBranch}` : "Has conflicts",
+    label: input.baseBranch
+      ? translate(`Conflicts with ${input.baseBranch}`)
+      : translate("Has conflicts"),
     toneClassName: "text-destructive",
     Icon: PullRequestGlyph.conflicting,
   };
@@ -242,9 +249,11 @@ function isWorkflowApprovalCheck(check: Pick<PullRequestCheck, "status" | "url">
 export function pullRequestCheckStatusLabel(
   check: Pick<PullRequestCheck, "status" | "url">,
 ): string {
-  return isWorkflowApprovalCheck(check)
-    ? "Awaiting approval"
-    : CHECK_STATUS_PRESENTATION[check.status].label;
+  return translate(
+    isWorkflowApprovalCheck(check)
+      ? "Awaiting approval"
+      : CHECK_STATUS_PRESENTATION[check.status].label,
+  );
 }
 
 export function PullRequestCheckStatusIcon({ status }: { status: PullRequestCheckStatus }) {
@@ -283,7 +292,8 @@ const CHECKS_STATE_PRESENTATION = {
 >;
 
 export function pullRequestChecksStatePresentation(state: PullRequestChecksState) {
-  return CHECKS_STATE_PRESENTATION[state];
+  const presentation = CHECKS_STATE_PRESENTATION[state];
+  return { ...presentation, label: translate(presentation.label) };
 }
 
 /**
@@ -373,7 +383,7 @@ export function pullRequestReviewOutcomeRingClassName(
  * landed after it, so it stands for code the branch no longer has.
  */
 export function pullRequestReviewOutcomeStaleLabel(outcome: PullRequestReviewOutcome): string {
-  return `${REVIEW_OUTCOME_PRESENTATION[outcome].label} earlier changes`;
+  return translate(`${REVIEW_OUTCOME_PRESENTATION[outcome].label} earlier changes`);
 }
 
 /** Decorative: every caller says which verdict this is in words beside it. */
@@ -394,7 +404,7 @@ export function PullRequestReviewOutcomeIcon({
 }
 
 export function pullRequestReviewOutcomeLabel(outcome: PullRequestReviewOutcome): string {
-  return REVIEW_OUTCOME_PRESENTATION[outcome].label;
+  return translate(REVIEW_OUTCOME_PRESENTATION[outcome].label);
 }
 
 export function PullRequestReviewOutcomeBadge({
@@ -404,11 +414,12 @@ export function PullRequestReviewOutcomeBadge({
   outcome: PullRequestReviewOutcome;
   className?: string;
 }) {
+  const t = useTranslate();
   const presentation = REVIEW_OUTCOME_PRESENTATION[outcome];
   return (
     <Badge size="sm" variant={presentation.badgeVariant} className={className}>
       <presentation.Icon aria-hidden className="size-3" />
-      {presentation.label}
+      {t(presentation.label)}
     </Badge>
   );
 }
@@ -465,6 +476,7 @@ export function PullRequestActorLabel({
   tooltip?: boolean;
   profileUrl?: string | null;
 }) {
+  const t = useTranslate();
   const login = actor?.login ?? "ghost";
   const label = (
     <span className={cn("flex min-w-0 items-center", variant === "label" && "gap-1.5")}>
@@ -488,7 +500,7 @@ export function PullRequestActorLabel({
                   href={profileUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  aria-label={`Open ${login}'s profile`}
+                  aria-label={t(`Open ${login}'s profile`)}
                 />
               }
             />
@@ -501,7 +513,7 @@ export function PullRequestActorLabel({
       </TooltipTrigger>
       <TooltipPopup side="top">
         {actor?.name && actor.name !== login ? `${actor.name} (@${login})` : login}
-        {profileUrl ? " · Open profile" : ""}
+        {profileUrl ? ` · ${t("Open profile")}` : ""}
       </TooltipPopup>
     </Tooltip>
   );
@@ -570,6 +582,10 @@ export function PullRequestMetaLine({
 }
 
 export function summarizePullRequestChecks(checks: ReadonlyArray<PullRequestCheck>): string {
+  return translate(summarizePullRequestChecksSource(checks));
+}
+
+function summarizePullRequestChecksSource(checks: ReadonlyArray<PullRequestCheck>): string {
   if (checks.length === 0) return "No checks reported";
   const actionRequired = checks.filter((check) => check.status === "action-required");
   const workflowApprovalRequired = actionRequired.filter(isWorkflowApprovalCheck).length;

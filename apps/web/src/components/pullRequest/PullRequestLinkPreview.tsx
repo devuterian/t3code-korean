@@ -10,6 +10,7 @@ import {
 } from "react";
 
 import { formatRelativeTimeLabel } from "~/timestampFormat";
+import { useTranslate } from "~/i18n/translate";
 import { pullRequestEnvironment } from "~/state/pullRequests";
 import { useAtomQueryRunner } from "~/state/use-atom-query-runner";
 import { useEnvironmentQuery } from "~/state/query";
@@ -44,6 +45,7 @@ export function PullRequestLinkPreview({
   onOpenFallback?: (url: string) => Promise<void>;
   fallback?: ReactNode;
 }) {
+  const t = useTranslate();
   const [open, setOpen] = useState(false);
   const [resolvingClick, setResolvingClick] = useState(false);
   const detailQuery = useEnvironmentQuery(
@@ -119,7 +121,7 @@ export function PullRequestLinkPreview({
                   {state === null ? null : (
                     <span className="inline-flex shrink-0 items-center gap-1">
                       <state.Icon aria-hidden className={`size-3 ${state.toneClassName}`} />
-                      {state.label}
+                      {t(state.label)}
                     </span>
                   )}
                 </div>
@@ -131,7 +133,7 @@ export function PullRequestLinkPreview({
                   <span className="min-w-0 truncate">{authorLabel}</span>
                   <span aria-hidden>·</span>
                   <span className="shrink-0">
-                    opened {formatRelativeTimeLabel(detail.createdAt)}
+                    {t(`opened ${formatRelativeTimeLabel(detail.createdAt)}`)}
                   </span>
                 </div>
               </div>

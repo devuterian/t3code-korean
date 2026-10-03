@@ -5,6 +5,7 @@ import {
   type SnoozePreset,
 } from "@t3tools/client-runtime/state/thread-settled";
 
+import { translate } from "../i18n/translate";
 import { formatShortTimestamp, parseTimestampDate } from "../timestampFormat";
 
 export { snoozeWakeLabel, type SnoozePreset };
@@ -19,7 +20,8 @@ export function resolveSnoozePresets(
   now: Date,
   timestampFormat: TimestampFormat,
 ): ReadonlyArray<SnoozePreset> {
-  return resolveSharedSnoozePresets(now).map((preset) => {
+  return resolveSharedSnoozePresets(now).map((shared) => {
+    const preset = { ...shared, label: translate(shared.label) };
     const wake = parseTimestampDate(preset.snoozedUntil);
     if (wake === null) return preset;
     const time = timeOfDayLabel(wake, timestampFormat);
@@ -49,7 +51,7 @@ export function snoozeWakeDescription(
   startOfToday.setHours(0, 0, 0, 0);
   const dayDelta = Math.floor((wake.getTime() - startOfToday.getTime()) / DAY_MS);
   if (dayDelta === 0) return time;
-  if (dayDelta === 1) return `tomorrow ${time}`;
+  if (dayDelta === 1) return `${translate("tomorrow")} ${time}`;
   const weekday = wake.toLocaleDateString(undefined, { weekday: "short" });
   if (dayDelta < 7) return `${weekday} ${time}`;
   const date = wake.toLocaleDateString(undefined, { month: "short", day: "numeric" });

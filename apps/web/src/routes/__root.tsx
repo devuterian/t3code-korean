@@ -1,4 +1,5 @@
 import { type ServerLifecycleWelcomePayload } from "@t3tools/contracts";
+import { translate, useTranslate } from "../i18n/translate";
 import { scopedProjectKey, scopeProjectRef } from "@t3tools/client-runtime/environment";
 import { squashAtomCommandFailure } from "@t3tools/client-runtime/state/runtime";
 import {
@@ -375,6 +376,7 @@ function HostedStaticEnvironmentBootstrap() {
 }
 
 function RootRouteErrorView({ error }: ErrorComponentProps) {
+  const t = useTranslate();
   const router = useRouter();
   const message = errorMessage(error);
   // Router pathname rather than window.location: desktop uses hash history, where the window path is always "/".
@@ -385,22 +387,22 @@ function RootRouteErrorView({ error }: ErrorComponentProps) {
     <StandalonePage tone="error">
       <StandalonePageHeader
         eyebrow={APP_DISPLAY_NAME}
-        title="Something went wrong."
+        title={t("Something went wrong.")}
         description={message}
       />
 
       <div className="mt-5 flex flex-wrap gap-2">
         <Button size="sm" onClick={() => void router.invalidate()}>
-          Try again
+          {t("Try again")}
         </Button>
         <Button size="sm" variant="outline" onClick={() => window.location.reload()}>
-          Reload app
+          {t("Reload app")}
         </Button>
         <CopyErrorButton report={report} />
       </div>
 
       <div className="mt-5 overflow-hidden rounded-lg border border-border/70 bg-background/55">
-        <p className="px-3 py-1.5 text-xs font-medium text-muted-foreground">Error report</p>
+        <p className="px-3 py-1.5 text-xs font-medium text-muted-foreground">{t("Error report")}</p>
         <pre className="max-h-64 overflow-auto border-t border-border/70 bg-background/80 px-3 py-2 text-xs whitespace-pre-wrap text-foreground/85">
           {report}
         </pre>
@@ -411,12 +413,13 @@ function RootRouteErrorView({ error }: ErrorComponentProps) {
 
 /** Copies the full error report and swaps to a check mark for a moment as confirmation. */
 function CopyErrorButton({ report }: { report: string }) {
+  const t = useTranslate();
   const { copyToClipboard, isCopied } = useCopyToClipboard({ target: "error-report" });
 
   return (
     <Button size="sm" variant="outline" onClick={() => copyToClipboard(report)}>
       {isCopied ? <CheckIcon className="text-success" /> : <CopyIcon />}
-      {isCopied ? "Copied" : "Copy error"}
+      {isCopied ? t("Copied") : t("Copy error")}
     </Button>
   );
 }
@@ -430,7 +433,7 @@ function errorMessage(error: unknown): string {
     return error;
   }
 
-  return "An unexpected router error occurred.";
+  return translate("An unexpected router error occurred.");
 }
 
 function errorDetails(error: unknown): string {
@@ -558,8 +561,8 @@ function EventRouter({
     if (decision._tag === "Success") {
       toastManager.add({
         type: "success",
-        title: "Keybindings updated",
-        description: "Keybindings configuration reloaded successfully.",
+        title: translate("Keybindings updated"),
+        description: translate("Keybindings configuration reloaded successfully."),
       });
       return;
     }
@@ -567,11 +570,11 @@ function EventRouter({
     toastManager.add(
       stackedThreadToast({
         type: "warning",
-        title: "Invalid keybindings configuration",
+        title: translate("Invalid keybindings configuration"),
         description: decision.message,
         actionVariant: "outline",
         actionProps: {
-          children: "Open keybindings.json",
+          children: translate("Open keybindings.json"),
           onClick: () => {
             if (!serverConfig || !primaryEnvironment) {
               return;
@@ -596,9 +599,11 @@ function EventRouter({
               toastManager.add(
                 stackedThreadToast({
                   type: "error",
-                  title: "Unable to open keybindings file",
+                  title: translate("Unable to open keybindings file"),
                   description:
-                    error instanceof Error ? error.message : "Unknown error opening file.",
+                    error instanceof Error
+                      ? error.message
+                      : translate("Unknown error opening file."),
                 }),
               );
             })();

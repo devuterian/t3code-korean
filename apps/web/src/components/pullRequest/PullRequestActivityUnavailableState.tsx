@@ -2,6 +2,8 @@ import { RefreshIcon } from "~/components/ui/refresh-icon";
 
 import { cn } from "~/lib/utils";
 
+import { useTranslate } from "~/i18n/translate";
+
 import { Button } from "../ui/button";
 
 export function PullRequestActivityUnavailableState({
@@ -13,6 +15,7 @@ export function PullRequestActivityUnavailableState({
   onRetry: () => void;
   compact?: boolean;
 }) {
+  const t = useTranslate();
   return (
     <div
       className={cn(
@@ -20,11 +23,13 @@ export function PullRequestActivityUnavailableState({
         compact ? "py-3" : "min-h-48 px-4 py-10",
       )}
     >
-      <p className="text-sm font-medium text-foreground">Could not load pull request activity</p>
+      <p className="text-sm font-medium text-foreground">
+        {t("Could not load pull request activity")}
+      </p>
       <p className="max-w-md text-xs text-muted-foreground">{error}</p>
       <Button size="sm" variant="outline" onClick={onRetry}>
         <RefreshIcon aria-hidden size="sm" />
-        Retry
+        {t("Retry")}
       </Button>
     </div>
   );
