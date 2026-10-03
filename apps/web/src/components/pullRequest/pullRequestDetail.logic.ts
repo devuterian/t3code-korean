@@ -33,6 +33,7 @@ import {
 import { inferReviewCommentFenceLanguage, type ReviewCommentContext } from "~/reviewCommentContext";
 import { reviewCommentContextId } from "~/lib/composerContextRecords";
 import { removeInlineContextReference } from "~/lib/composerContextReferences";
+import { translate } from "~/i18n/translate";
 
 export const PULL_REQUEST_MERGE_METHOD_LABELS: Record<PullRequestMergeMethod, string> = {
   merge: "Merge",
@@ -240,14 +241,14 @@ export function pullRequestPanelContext(
 export function pullRequestHandoffLabels(inThisThread: boolean) {
   return inThisThread
     ? {
-        fixFinding: "Fix in this thread",
-        fixCheck: "Fix in this thread",
-        fixFindings: "Fix findings in this thread",
+        fixFinding: translate("Fix in this thread"),
+        fixCheck: translate("Fix in this thread"),
+        fixFindings: translate("Fix findings in this thread"),
       }
     : {
-        fixFinding: "Fix in a thread",
-        fixCheck: "Fix",
-        fixFindings: "Fix findings in a thread",
+        fixFinding: translate("Fix in a thread"),
+        fixCheck: translate("Fix"),
+        fixFindings: translate("Fix findings in a thread"),
       };
 }
 
@@ -344,7 +345,7 @@ export function classifyPullRequestChecks(
  * what a reader does next.
  */
 export function describePullRequestChecks(checks: ReadonlyArray<PullRequestCheck>): string {
-  if (checks.length === 0) return "No checks reported";
+  if (checks.length === 0) return translate("No checks reported");
   const failed = checks.filter(
     (check) => check.status === "failure" || check.status === "cancelled",
   ).length;
@@ -352,13 +353,19 @@ export function describePullRequestChecks(checks: ReadonlyArray<PullRequestCheck
   const actionRequired = checks.filter((check) => check.status === "action-required").length;
   const passed = checks.filter((check) => check.status === "success").length;
   const parts: string[] = [];
-  if (pending > 0) parts.push(`${pending} of ${checks.length} running`);
-  if (actionRequired > 0) parts.push(`${actionRequired} of ${checks.length} awaiting action`);
+  if (pending > 0) parts.push(translate(`${pending} of ${checks.length} running`));
+  if (actionRequired > 0) {
+    parts.push(translate(`${actionRequired} of ${checks.length} awaiting action`));
+  }
   if (failed > 0) {
-    parts.push(parts.length > 0 ? `${failed} failed` : `${failed} of ${checks.length} failing`);
+    parts.push(
+      translate(parts.length > 0 ? `${failed} failed` : `${failed} of ${checks.length} failing`),
+    );
   }
   if (parts.length === 0) {
-    return passed === checks.length ? "All checks passed" : `${passed} of ${checks.length} passing`;
+    return translate(
+      passed === checks.length ? "All checks passed" : `${passed} of ${checks.length} passing`,
+    );
   }
   return parts.join(" · ");
 }
@@ -625,7 +632,7 @@ export function buildPullRequestTimeline(
       id: commit.oid,
       at: commit.committedDate,
       kind: "commit" as const,
-      title: `Commit ${commit.oid.slice(0, 7)}`,
+      title: translate(`Commit ${commit.oid.slice(0, 7)}`),
       body: commit.messageHeadline || null,
       markdown: false,
       url: null,
@@ -641,7 +648,7 @@ export function buildPullRequestTimeline(
       id: comment.id,
       at: comment.createdAt,
       kind: comment.kind === "review" ? ("review" as const) : ("comment" as const),
-      title: comment.kind === "review" ? "reviewed" : "commented",
+      title: translate(comment.kind === "review" ? "reviewed" : "commented"),
       body: visibleBody(comment.body),
       markdown: true,
       url: comment.url,
@@ -659,7 +666,7 @@ export function buildPullRequestTimeline(
             id: "merged",
             at: detail.mergedAt,
             kind: "merged" as const,
-            title: "Pull request merged",
+            title: translate("Pull request merged"),
             body: null,
             markdown: false,
             url: null,
@@ -679,7 +686,7 @@ export function buildPullRequestTimeline(
             id: "closed",
             at: detail.closedAt,
             kind: "closed" as const,
-            title: "Pull request closed",
+            title: translate("Pull request closed"),
             body: null,
             markdown: false,
             url: null,

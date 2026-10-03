@@ -83,6 +83,7 @@ import { previewEnvironment } from "../state/preview";
 import { terminalEnvironment } from "../state/terminal";
 import { openTerminalLinkInPreview } from "./preview/openTerminalLinkInPreview";
 import { useAtomCommand } from "../state/use-atom-command";
+import { translate, useTranslate } from "../i18n/translate";
 import { preventTerminalCloseShortcut } from "../lib/terminalCloseShortcut";
 import {
   resolveTerminalFontPreference,
@@ -256,8 +257,10 @@ export function terminalSelectionMenuItems(options?: {
   return [
     ...(options?.canAddToChat === false
       ? []
-      : ([{ id: "add-to-chat", label: "Add to chat" }] satisfies ContextMenuItem<"add-to-chat">[])),
-    { id: "copy", label: "Copy" },
+      : ([
+          { id: "add-to-chat", label: translate("Add to chat") },
+        ] satisfies ContextMenuItem<"add-to-chat">[])),
+    { id: "copy", label: translate("Copy") },
   ];
 }
 
@@ -277,7 +280,7 @@ export function terminalContextMenuItems(options: {
       ...item,
       disabled: !hasSelection,
     })),
-    { id: "paste", label: "Paste" },
+    { id: "paste", label: translate("Paste") },
   ];
 }
 
@@ -807,8 +810,9 @@ export function TerminalViewport({
             toastManager.add(
               stackedThreadToast({
                 type: "error",
-                title: "Unable to open link",
-                description: error instanceof Error ? error.message : "An error occurred.",
+                title: translate("Unable to open link"),
+                description:
+                  error instanceof Error ? error.message : translate("An error occurred."),
               }),
             );
           });
@@ -1076,6 +1080,7 @@ export default function ThreadTerminalDrawer({
   terminalLabelsById,
   terminalLaunchLocationsById,
 }: ThreadTerminalDrawerProps) {
+  const t = useTranslate();
   const isPanel = mode === "panel";
   const [advancedTypography] = useLocalStorage(
     TYPOGRAPHY_ADVANCED_STORAGE_KEY,
@@ -1250,22 +1255,25 @@ export default function ThreadTerminalDrawer({
     },
     [cwd, runtimeEnv, terminalLaunchLocationsById, worktreePath],
   );
+  const splitLimitSuffix = t("(max {max} per group)").replace("{max}", () =>
+    String(MAX_TERMINALS_PER_GROUP),
+  );
   const splitTerminalActionLabel = hasReachedSplitLimit
-    ? `Split Terminal Horizontally (max ${MAX_TERMINALS_PER_GROUP} per group)`
+    ? `${t("Split Terminal Horizontally")} ${splitLimitSuffix}`
     : splitShortcutLabel
-      ? `Split Terminal Horizontally (${splitShortcutLabel})`
-      : "Split Terminal Horizontally";
+      ? `${t("Split Terminal Horizontally")} (${splitShortcutLabel})`
+      : t("Split Terminal Horizontally");
   const splitTerminalVerticalActionLabel = hasReachedSplitLimit
-    ? `Split Terminal Vertically (max ${MAX_TERMINALS_PER_GROUP} per group)`
+    ? `${t("Split Terminal Vertically")} ${splitLimitSuffix}`
     : splitVerticalShortcutLabel
-      ? `Split Terminal Vertically (${splitVerticalShortcutLabel})`
-      : "Split Terminal Vertically";
+      ? `${t("Split Terminal Vertically")} (${splitVerticalShortcutLabel})`
+      : t("Split Terminal Vertically");
   const newTerminalActionLabel = newShortcutLabel
-    ? `New Terminal (${newShortcutLabel})`
-    : "New Terminal";
+    ? `${t("New Terminal")} (${newShortcutLabel})`
+    : t("New Terminal");
   const closeTerminalActionLabel = closeShortcutLabel
-    ? `Close Terminal (${closeShortcutLabel})`
-    : "Close Terminal";
+    ? `${t("Close Terminal")} (${closeShortcutLabel})`
+    : t("Close Terminal");
   const onSplitTerminalAction = useCallback(() => {
     if (hasReachedSplitLimit) return;
     onSplitTerminal();
@@ -1280,11 +1288,11 @@ export default function ThreadTerminalDrawer({
   const confirmCloseTerminal = useCallback(
     (terminalId: string) => {
       const label = terminalLabelById.get(terminalId) ?? getTerminalLabel(terminalId);
-      void confirmTerminalClose([label]).then((confirmed) => {
+      void confirmTerminalClose([t(label)]).then((confirmed) => {
         if (confirmed) onCloseTerminal(terminalId);
       });
     },
-    [onCloseTerminal, terminalLabelById],
+    [onCloseTerminal, t, terminalLabelById],
   );
 
   useEffect(() => {
@@ -1410,7 +1418,7 @@ export default function ThreadTerminalDrawer({
           />
         ) : null}
         <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 px-4 py-6 text-center text-sm text-muted-foreground">
-          <p>No terminal sessions for this thread yet.</p>
+          <p>{t("No terminal sessions for this thread yet.")}</p>
           <Button size="xs" variant="outline" onClick={onNewTerminalAction}>
             {newTerminalActionLabel}
           </Button>
@@ -1638,10 +1646,10 @@ export default function ThreadTerminalDrawer({
                   const terminalCount = terminalGroup.terminalIds.length;
                   const isSplitGroup = terminalCount > 1;
                   const groupLabel = !isSplitGroup
-                    ? "Single"
+                    ? t("Single")
                     : terminalGroup.splitDirection === "vertical"
-                      ? "Stacked"
-                      : "Side by side";
+                      ? t("Stacked")
+                      : t("Side by side");
                   const GroupIcon = !isSplitGroup
                     ? Square
                     : terminalGroup.splitDirection === "vertical"
@@ -1671,10 +1679,11 @@ export default function ThreadTerminalDrawer({
                       <div className="flex flex-col gap-0.5">
                         {terminalGroup.terminalIds.map((terminalId) => {
                           const isActive = terminalId === resolvedActiveTerminalId;
-                          const terminalLabel = terminalLabelById.get(terminalId) ?? "Terminal";
-                          const closeTerminalLabel = `Close ${terminalLabel}${
-                            isActive && closeShortcutLabel ? ` (${closeShortcutLabel})` : ""
-                          }`;
+                          const terminalLabel = t(terminalLabelById.get(terminalId) ?? "Terminal");
+                          const closeTerminalLabel = `${t("Close {label}").replace(
+                            "{label}",
+                            () => terminalLabel,
+                          )}${isActive && closeShortcutLabel ? ` (${closeShortcutLabel})` : ""}`;
                           return (
                             <div
                               key={terminalId}

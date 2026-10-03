@@ -22,6 +22,7 @@ import {
 } from "./ProviderUpdateLaunchNotification.logic";
 import { hiddenToastActionProps, stackedThreadToast, toastManager } from "./ui/toast";
 import { useAtomCommand } from "../state/use-atom-command";
+import { translate } from "../i18n/translate";
 
 const seenProviderUpdateNotificationKeys = new Set<string>();
 type ProviderUpdateToastId = ReturnType<typeof toastManager.add>;
@@ -79,7 +80,7 @@ function addProviderUpdateToast(input: {
       description: input.view.description,
       timeout: 0,
       actionProps: {
-        children: "Settings",
+        children: translate("Settings"),
         onClick: () => input.openSettings(toastId),
       },
       actionVariant: "outline",
@@ -269,11 +270,11 @@ export function ProviderUpdatePrimaryNotification() {
         actionProps:
           oneClickProviders.length > 0
             ? {
-                children: "Update",
+                children: translate("Update"),
                 onClick: runUpdates,
               }
             : {
-                children: "Settings",
+                children: translate("Settings"),
                 onClick: openSettings,
               },
         actionVariant: "outline",
@@ -287,7 +288,7 @@ export function ProviderUpdatePrimaryNotification() {
           ...(oneClickProviders.length > 0
             ? {
                 secondaryActionProps: {
-                  children: "Settings",
+                  children: translate("Settings"),
                   onClick: openSettings,
                 },
                 secondaryActionVariant: "outline" as const,

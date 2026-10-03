@@ -2,6 +2,7 @@ import type { EnvironmentId } from "@t3tools/contracts";
 import { ChevronDownIcon, GitBranchIcon } from "lucide-react";
 import { useDeferredValue, useMemo, useState } from "react";
 
+import { useTranslate } from "../i18n/translate";
 import { usePaginatedBranches } from "../state/queries";
 import { useEnvironmentQuery } from "../state/query";
 import { vcsEnvironment } from "../state/vcs";
@@ -31,6 +32,7 @@ export function WorktreeBaseBranchPicker({
   disabled?: boolean;
   id?: string;
 }) {
+  const t = useTranslate();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const deferredQuery = useDeferredValue(query.trim());
@@ -66,11 +68,11 @@ export function WorktreeBaseBranchPicker({
   const statusText =
     branches.error ??
     (branches.isPending && branches.data === null
-      ? "Loading refs..."
+      ? t("Loading refs...")
       : branches.isFetchingNextPage
-        ? "Loading more refs..."
+        ? t("Loading more refs...")
         : hasNextPage
-          ? `Showing ${branches.refs.length} of ${branches.data?.totalCount} refs`
+          ? t(`Showing ${branches.refs.length} of ${branches.data?.totalCount} refs`)
           : null);
   const handleOpenChange = (next: boolean) => {
     setOpen(next);

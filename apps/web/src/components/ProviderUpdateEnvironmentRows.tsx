@@ -7,6 +7,7 @@ import {
   type AtomCommandResult,
 } from "@t3tools/client-runtime/state/runtime";
 
+import { translate, useTranslate } from "~/i18n/translate";
 import { cn } from "~/lib/utils";
 import { serverEnvironment } from "~/state/server";
 import { useAtomCommand } from "~/state/use-atom-command";
@@ -65,7 +66,7 @@ function toProviderUpdateOutcome(input: {
     const error = squashAtomCommandFailure(input.result);
     return {
       status: "rejected",
-      reason: error instanceof Error ? error : new Error("Provider update failed."),
+      reason: error instanceof Error ? error : new Error(translate("Provider update failed.")),
     };
   }
 
@@ -115,6 +116,7 @@ function EnvironmentUpdateRow({
   readonly status: ProviderUpdateRowStatus;
   readonly onUpdate: () => void;
 }) {
+  const t = useTranslate();
   let trailing: ReactNode;
   switch (status.kind) {
     case "loading":
@@ -127,14 +129,14 @@ function EnvironmentUpdateRow({
     case "unchanged":
       trailing = (
         <Button size="xs" variant="outline" onClick={onUpdate}>
-          Retry
+          {t("Retry")}
         </Button>
       );
       break;
     default:
       trailing = (
         <Button size="xs" variant="outline" onClick={onUpdate}>
-          Update
+          {t("Update")}
         </Button>
       );
       break;
@@ -261,7 +263,7 @@ export function ProviderUpdateEnvironmentRows({
         inFlightEnvironmentsRef.current.delete(environmentId);
         clearPending(environmentId);
         setErrorByEnvironment((previous) =>
-          new Map(previous).set(environmentId, "Update timed out — try again."),
+          new Map(previous).set(environmentId, translate("Update timed out — try again.")),
         );
       }, PENDING_EXPIRY_MS);
       try {
@@ -283,7 +285,8 @@ export function ProviderUpdateEnvironmentRows({
             } catch (error) {
               return {
                 status: "rejected",
-                reason: error instanceof Error ? error : new Error("Provider update failed."),
+                reason:
+                  error instanceof Error ? error : new Error(translate("Provider update failed.")),
               };
             }
           }),
@@ -308,7 +311,7 @@ export function ProviderUpdateEnvironmentRows({
           setErrorByEnvironment((previous) =>
             new Map(previous).set(
               environmentId,
-              "This environment isn’t connected — try again once it reconnects.",
+              translate("This environment isn’t connected — try again once it reconnects."),
             ),
           );
           return;
@@ -341,7 +344,7 @@ export function ProviderUpdateEnvironmentRows({
           setErrorByEnvironment((previous) =>
             new Map(previous).set(
               environmentId,
-              error instanceof Error ? error.message : "Provider update failed.",
+              error instanceof Error ? error.message : translate("Provider update failed."),
             ),
           );
         }

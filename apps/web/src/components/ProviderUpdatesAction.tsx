@@ -13,6 +13,7 @@ import {
 import { Button } from "./ui/button";
 import { stackedThreadToast, toastManager } from "./ui/toast";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "./ui/tooltip";
+import { useTranslate } from "~/i18n/translate";
 
 /**
  * Updates every outdated provider on every connected machine at once, then
@@ -22,6 +23,7 @@ import { Tooltip, TooltipPopup, TooltipTrigger } from "./ui/tooltip";
  * it. Renders nothing when no machine has a one-click update.
  */
 export function ProviderUpdatesAction() {
+  const t = useTranslate();
   const { environments } = useEnvironments();
   const updateProvider = useAtomCommand(serverEnvironment.updateProvider, {
     reportFailure: false,
@@ -93,7 +95,7 @@ export function ProviderUpdatesAction() {
             disabled={isPending}
             onClick={() => void handleUpdate()}
           >
-            {isPending ? "Updating…" : "Update all"}
+            {isPending ? t("Updating…") : t("Update all")}
           </Button>
         }
       />

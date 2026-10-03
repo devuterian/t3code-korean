@@ -2,6 +2,7 @@ import { useAtomValue } from "@effect/atom-react";
 import { useEffect, useRef } from "react";
 
 import { primaryServerLegacyThreadMigrationAtom } from "../state/server";
+import { translate } from "../i18n/translate";
 import { toastManager } from "./ui/toast";
 
 type MigrationToastId = ReturnType<typeof toastManager.add>;
@@ -17,10 +18,12 @@ export function LegacyThreadMigrationToast() {
       }
       toastIdRef.current = toastManager.add({
         type: "loading",
-        title: "Restoring your threads…",
-        description: `Migrating ${migration.totalThreadCount.toLocaleString()} ${
-          migration.totalThreadCount === 1 ? "thread" : "threads"
-        } from the previous version. You can keep working while this finishes.`,
+        title: translate("Restoring your threads…"),
+        description: translate(
+          `Migrating ${migration.totalThreadCount.toLocaleString()} ${
+            migration.totalThreadCount === 1 ? "thread" : "threads"
+          } from the previous version. You can keep working while this finishes.`,
+        ),
         timeout: 0,
       });
       return;

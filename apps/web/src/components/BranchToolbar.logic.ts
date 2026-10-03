@@ -8,6 +8,7 @@ import type {
 import * as Schema from "effect/Schema";
 import { sanitizeNewRefName } from "@t3tools/shared/git";
 import { toSortableTimestamp } from "../lib/threadSort";
+import { translate } from "../i18n/translate";
 export {
   dedupeRemoteBranchesWithLocalMatches,
   deriveLocalBranchNameFromRemoteRef,
@@ -46,7 +47,7 @@ export function resolveEnvironmentOptionLabel(input: {
       if (!label) return false;
       return !GENERIC_LOCAL_ENVIRONMENT_LABELS.has(label.toLowerCase());
     });
-    return preferredLocalLabel ?? "This device";
+    return preferredLocalLabel ?? translate("This device");
   }
 
   return runtimeLabel ?? savedLabel ?? input.environmentId;
@@ -94,17 +95,24 @@ export function resolveContextStripLabelsCompact(input: {
 }
 
 export function resolveEnvModeLabel(mode: EnvMode): string {
-  return mode === "worktree" ? "New worktree" : "Current checkout";
+  return mode === "worktree" ? translate("New worktree") : translate("Current checkout");
 }
 
+// Getters translate on access so the active interface language applies.
 export const WORKTREE_SUBMODULES_LABELS: Record<WorktreeSubmodules, string> = {
-  recursive: "Recursive",
-  "top-level": "Top level only",
-  none: "Skip",
+  get recursive() {
+    return translate("Recursive");
+  },
+  get "top-level"() {
+    return translate("Top level only");
+  },
+  get none() {
+    return translate("Skip");
+  },
 };
 
 export function resolveCurrentWorkspaceLabel(activeWorktreePath: string | null): string {
-  return activeWorktreePath ? "Current worktree" : resolveEnvModeLabel("local");
+  return activeWorktreePath ? translate("Current worktree") : resolveEnvModeLabel("local");
 }
 
 // A locked thread in worktree mode with no path is still creating its
@@ -113,8 +121,10 @@ export function resolveLockedWorkspaceLabel(
   activeWorktreePath: string | null,
   effectiveEnvMode: EnvMode,
 ): string {
-  if (activeWorktreePath) return "Worktree";
-  return effectiveEnvMode === "worktree" ? resolveEnvModeLabel("worktree") : "Local checkout";
+  if (activeWorktreePath) return translate("Worktree");
+  return effectiveEnvMode === "worktree"
+    ? resolveEnvModeLabel("worktree")
+    : translate("Local checkout");
 }
 
 export function resolveWorkspaceDisplayName(path: string | null): string | null {
@@ -168,7 +178,9 @@ export function resolvePreviousWorktreeSeed(input: {
 }
 
 export function resolvePreviousWorktreeLabel(seed: PreviousWorktreeSeed): string {
-  return seed.branch ? `Previous worktree (${seed.branch})` : "Previous worktree";
+  return seed.branch
+    ? translate(`Previous worktree (${seed.branch})`)
+    : translate("Previous worktree");
 }
 
 export function resolveEffectiveEnvMode(input: {
@@ -234,14 +246,14 @@ export function resolveBranchTriggerLabel(input: {
     startFromOrigin,
   } = input;
   if (!resolvedActiveBranch) {
-    return "Select ref";
+    return translate("Select ref");
   }
   if (effectiveEnvMode === "worktree" && !activeWorktreePath) {
     const baseRef =
       startFromOrigin && resolvedActiveBranchIsRemote === false
         ? `origin/${resolvedActiveBranch}`
         : resolvedActiveBranch;
-    return `From ${baseRef}`;
+    return translate(`From ${baseRef}`);
   }
   return resolvedActiveBranch;
 }

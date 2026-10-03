@@ -10,6 +10,8 @@ import {
 } from "lucide-react";
 import type { PullRequestState } from "@t3tools/contracts";
 
+import { translate } from "~/i18n/translate";
+
 export const PullRequestGlyph = {
   pullRequest: GitPullRequestArrowIcon,
   reopen: GitPullRequestArrowIcon,
@@ -52,3 +54,18 @@ export const PULL_REQUEST_STATE_PRESENTATION = {
     Icon: PullRequestGlyph.merged,
   },
 } as const satisfies Record<PullRequestState | "draft", PullRequestStatePresentation>;
+
+/**
+ * "Open" as a pull request's state, not the verb: the shared dictionary already spends the bare
+ * word on the action, so the state reads through its own key and falls back to the English word.
+ */
+const OPEN_STATE_KEY = "Open (pull request state)";
+
+/** Translates a pull request state or filter label at call time. */
+export function translatePullRequestLabel(label: string): string {
+  if (label === "Open") {
+    const translated = translate(OPEN_STATE_KEY);
+    return translated === OPEN_STATE_KEY ? label : translated;
+  }
+  return translate(label);
+}

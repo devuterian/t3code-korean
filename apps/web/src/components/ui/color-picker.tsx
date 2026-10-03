@@ -9,6 +9,7 @@ import {
 
 import type { HsvColor } from "../../lib/color";
 import { cn } from "../../lib/utils";
+import { translate } from "../../i18n/translate";
 
 function clamp(value: number) {
   return Math.min(1, Math.max(0, value));
@@ -126,8 +127,9 @@ export function ColorSaturationValuePlane({
       {...handlers}
     >
       <span id={instructionsId} className="sr-only">
-        Use arrow keys to adjust the focused value. Hold Shift for larger steps. Use Home and End
-        for the minimum and maximum. Press Tab to move between saturation and brightness.
+        {translate(
+          "Use arrow keys to adjust the focused value. Hold Shift for larger steps. Use Home and End for the minimum and maximum. Press Tab to move between saturation and brightness.",
+        )}
       </span>
       {(
         [

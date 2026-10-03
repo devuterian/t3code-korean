@@ -10,6 +10,7 @@ import { type ComponentProps, useRef, useState } from "react";
 import { requestConfirmDialog } from "~/confirmDialog";
 import { useCopyToClipboard } from "~/hooks/useCopyToClipboard";
 import { useEnvironmentSettings } from "~/hooks/useSettings";
+import { translate } from "~/i18n/translate";
 import { serverEnvironment, updateOutdatedServer } from "~/state/server";
 import { useAtomCommand } from "~/state/use-atom-command";
 import { manualServerUpdateCommand } from "~/versionSkew";
@@ -28,11 +29,11 @@ const UPDATE_STAGE_LABELS: Record<ServerUpdateStage, string> = {
 const pendingUpdateEnvironmentIds = new Set<EnvironmentId>();
 
 export function serverUpdateStageLabel(stage: ServerUpdateStage): string {
-  return UPDATE_STAGE_LABELS[stage];
+  return translate(UPDATE_STAGE_LABELS[stage]);
 }
 
 function updateFailureMessage(error: unknown): string {
-  return error instanceof Error ? error.message : "Server update failed.";
+  return error instanceof Error ? error.message : translate("Server update failed.");
 }
 
 export interface ServerUpdateTarget {
@@ -53,7 +54,7 @@ type UpdateButtonProps = Pick<ComponentProps<typeof Button>, "variant" | "size" 
 
 function useServerUpdate() {
   const updateServer = useAtomCommand(serverEnvironment.updateServer, { reportFailure: false });
-  return async (target: ServerUpdateTarget, failureTitle = "Server update failed") => {
+  return async (target: ServerUpdateTarget, failureTitle = translate("Server update failed")) => {
     const { environmentId, serverLabel, selfUpdate, targetVersion } = target;
     if (pendingUpdateEnvironmentIds.has(environmentId)) return;
     pendingUpdateEnvironmentIds.add(environmentId);
@@ -73,11 +74,11 @@ function useServerUpdate() {
       }
       toastManager.add({
         type: "success",
-        title: `${serverLabel} updated`,
+        title: `${serverLabel} ${translate("updated")}`,
         description:
           selfUpdate === "desktop-managed"
-            ? `Desktop app relaunched on ${result.value.targetVersion}.`
-            : `Reconnected on t3@${result.value.targetVersion}.`,
+            ? translate(`Desktop app relaunched on ${result.value.targetVersion}.`)
+            : translate(`Reconnected on t3@${result.value.targetVersion}.`),
       });
     } catch (error) {
       toastManager.add({
@@ -101,6 +102,8 @@ export function ServerUpdatesAction({
 }: UpdateButtonProps & {
   readonly targets: ReadonlyArray<ServerUpdateTarget>;
 }) {
+  // Plain call (not a hook): unit tests invoke this component as a function.
+  const t = translate;
   const update = useServerUpdate();
   const pending = useRef(false);
   const [isPending, setIsPending] = useState(false);
@@ -121,12 +124,16 @@ export function ServerUpdatesAction({
       if (desktopTargets.length > 0) {
         const confirmed =
           (await requestConfirmDialog(
-            `Update the T3 Code desktop apps on ${desktopTargets.map((target) => target.serverLabel).join(", ")}? They will close and relaunch on those machines.`,
+            translate(
+              `Update the T3 Code desktop apps on ${desktopTargets.map((target) => target.serverLabel).join(", ")}? They will close and relaunch on those machines.`,
+            ),
           )) ?? true;
         if (!confirmed) return;
       }
       await Promise.all(
-        available.map((target) => update(target, `${target.serverLabel} update failed`)),
+        available.map((target) =>
+          update(target, `${target.serverLabel} ${translate("update failed")}`),
+        ),
       );
     } finally {
       pending.current = false;
@@ -141,7 +148,7 @@ export function ServerUpdatesAction({
       disabled={isPending || eligible.length === 0}
       onClick={() => void handleUpdate()}
     >
-      {label}
+      {t(label)}
     </Button>
   );
 }
@@ -197,6 +204,8 @@ export function ServerUpdateAction({
   className,
   appearance = "button",
 }: Omit<ServerUpdateTarget, "continueThreadsAfterServerUpdate"> & UpdateButtonProps) {
+  // Plain call (not a hook): unit tests invoke this component as a function.
+  const t = translate;
   const isDesktopAppUpdate = selfUpdate === "desktop-managed";
   const continueThreadsAfterServerUpdate = useEnvironmentSettings(
     environmentId,
@@ -208,14 +217,14 @@ export function ServerUpdateAction({
     onCopy: ({ command }) => {
       toastManager.add({
         type: "success",
-        title: "Update command copied",
-        description: `Run \`${command}\` on ${serverLabel} to update it.`,
+        title: translate("Update command copied"),
+        description: translate(`Run \`${command}\` on ${serverLabel} to update it.`),
       });
     },
     onError: (error) => {
       toastManager.add({
         type: "error",
-        title: "Could not copy update command",
+        title: translate("Could not copy update command"),
         description: error.message,
       });
     },
@@ -231,7 +240,9 @@ export function ServerUpdateAction({
       // remote machine installs without asking anyone there.
       const confirmed =
         (await requestConfirmDialog(
-          `Update the T3 Code desktop app that runs the ${serverLabel}? It will close and relaunch on that machine.`,
+          translate(
+            `Update the T3 Code desktop app that runs the ${serverLabel}? It will close and relaunch on that machine.`,
+          ),
         )) ?? true;
       if (!confirmed) {
         return;
@@ -251,13 +262,14 @@ export function ServerUpdateAction({
   if (selfUpdate === "desktop-managed" && !desktopAppUpdate) {
     return (
       <span className="text-muted-foreground text-xs">
-        Update the desktop app on that machine to update this server.
+        {t("Update the desktop app on that machine to update this server.")}
       </span>
     );
   }
 
   const manualCommand = selfUpdate === null ? manualServerUpdateCommand(targetVersion) : null;
-  const actionLabel = manualCommand !== null ? "Copy update command" : label;
+  const actionLabelSource = manualCommand !== null ? "Copy update command" : label;
+  const actionLabel = t(actionLabelSource);
   const onClick =
     manualCommand !== null
       ? () => copyToClipboard(manualCommand, { command: manualCommand })
@@ -272,7 +284,7 @@ export function ServerUpdateAction({
               size="icon-xs"
               variant="ghost-muted"
               className={className}
-              aria-label={`${actionLabel} for ${serverLabel}`}
+              aria-label={t(`${actionLabelSource} for ${serverLabel}`)}
               onClick={onClick}
             />
           }
@@ -308,6 +320,8 @@ export function OutdatedServerUpdateAction({
   readonly targetVersion: string;
   readonly label?: string;
 }) {
+  // Plain call (not a hook): unit tests invoke this component as a function.
+  const t = translate;
   const update = useAtomCommand(updateOutdatedServer, { reportFailure: false });
   const handleUpdate = async () => {
     if (pendingUpdateEnvironmentIds.has(environmentId)) return;
@@ -324,13 +338,13 @@ export function OutdatedServerUpdateAction({
       }
       toastManager.add({
         type: "success",
-        title: `${serverLabel} updated`,
-        description: `Reconnected on t3@${result.value.targetVersion}.`,
+        title: `${serverLabel} ${translate("updated")}`,
+        description: translate(`Reconnected on t3@${result.value.targetVersion}.`),
       });
     } catch (error) {
       toastManager.add({
         type: "error",
-        title: "Server update failed",
+        title: translate("Server update failed"),
         description: updateFailureMessage(error),
       });
     } finally {
@@ -339,7 +353,7 @@ export function OutdatedServerUpdateAction({
   };
   return (
     <Button size="xs" variant="outline" onClick={() => void handleUpdate()}>
-      {label}
+      {t(label)}
     </Button>
   );
 }

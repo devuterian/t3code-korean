@@ -3,6 +3,7 @@ import { ComposerContextLabel } from "./ComposerContextLabel";
 import { FolderGit2Icon, FolderGitIcon, FolderIcon } from "lucide-react";
 import { memo, useMemo, type MouseEvent as ReactMouseEvent } from "react";
 import { writeTextToClipboard } from "../hooks/useCopyToClipboard";
+import { useTranslate } from "../i18n/translate";
 import { readLocalApi } from "../localApi";
 import { cn } from "../lib/utils";
 import {
@@ -57,23 +58,24 @@ export const BranchToolbarEnvModeSelector = memo(function BranchToolbarEnvModeSe
   previousWorktreeBranch = null,
   onUsePreviousWorktree,
 }: BranchToolbarEnvModeSelectorProps) {
+  const t = useTranslate();
   const workspacePath = displayMode === "panel" ? (activeWorktreePath ?? workspaceRoot) : null;
   const workspaceDisplayName = resolveWorkspaceDisplayName(workspacePath);
-  const workspaceKind = activeWorktreePath ? "Worktree" : "Project folder";
+  const workspaceKind = activeWorktreePath ? t("Worktree") : t("Project folder");
   const composerFloatingLayerProps = useComposerMenuProps();
   const showPreviousWorktree = Boolean(previousWorktreeLabel && onUsePreviousWorktree);
+  // Resolved outside the memo so the translated labels follow the interface language.
+  const localModeLabel = workspaceDisplayName ?? resolveCurrentWorkspaceLabel(activeWorktreePath);
+  const worktreeModeLabel = resolveEnvModeLabel("worktree");
   const envModeItems = useMemo(
     () => [
-      {
-        value: "local",
-        label: workspaceDisplayName ?? resolveCurrentWorkspaceLabel(activeWorktreePath),
-      },
-      { value: "worktree", label: resolveEnvModeLabel("worktree") },
+      { value: "local", label: localModeLabel },
+      { value: "worktree", label: worktreeModeLabel },
       ...(showPreviousWorktree && previousWorktreeLabel
         ? [{ value: PREVIOUS_WORKTREE_SELECT_VALUE, label: previousWorktreeLabel }]
         : []),
     ],
-    [activeWorktreePath, previousWorktreeLabel, showPreviousWorktree, workspaceDisplayName],
+    [localModeLabel, previousWorktreeLabel, showPreviousWorktree, worktreeModeLabel],
   );
 
   const handleWorkspaceContextMenu = (event: ReactMouseEvent) => {
@@ -83,7 +85,7 @@ export const BranchToolbarEnvModeSelector = memo(function BranchToolbarEnvModeSe
     event.preventDefault();
     event.stopPropagation();
     void api.contextMenu
-      .show([{ id: "copy-path", label: "Copy full path", icon: "copy" }], {
+      .show([{ id: "copy-path", label: t("Copy full path"), icon: "copy" }], {
         x: event.clientX,
         y: event.clientY,
       })
@@ -94,7 +96,7 @@ export const BranchToolbarEnvModeSelector = memo(function BranchToolbarEnvModeSe
             if (didCopy) {
               toastManager.add({
                 type: "success",
-                title: "Path copied",
+                title: t("Path copied"),
                 description: workspacePath,
               });
             }
@@ -103,8 +105,8 @@ export const BranchToolbarEnvModeSelector = memo(function BranchToolbarEnvModeSe
             toastManager.add(
               stackedThreadToast({
                 type: "error",
-                title: "Failed to copy path",
-                description: error instanceof Error ? error.message : "An error occurred.",
+                title: t("Failed to copy path"),
+                description: error instanceof Error ? error.message : t("An error occurred."),
               }),
             );
           },
@@ -149,7 +151,7 @@ export const BranchToolbarEnvModeSelector = memo(function BranchToolbarEnvModeSe
         </ComposerContextLabel>
         {displayMode === "panel" ? (
           <span className="shrink-0 text-3xs font-normal text-muted-foreground/70">
-            {forceNewWorktree ? "Worktree" : workspaceKind}
+            {forceNewWorktree ? t("Worktree") : workspaceKind}
           </span>
         ) : null}
       </span>
@@ -160,7 +162,7 @@ export const BranchToolbarEnvModeSelector = memo(function BranchToolbarEnvModeSe
         <TooltipTrigger render={lockedRow} />
         <TooltipPopup side={displayMode === "panel" ? "left" : undefined}>
           {forceNewWorktree
-            ? "Each model starts in its own worktree."
+            ? t("Each model starts in its own worktree.")
             : (workspacePath ?? resolveLockedWorkspaceLabel(activeWorktreePath, effectiveEnvMode))}
         </TooltipPopup>
       </Tooltip>
@@ -186,7 +188,7 @@ export const BranchToolbarEnvModeSelector = memo(function BranchToolbarEnvModeSe
             <ThreadDetailsSelectControl
               panel={displayMode === "panel"}
               className="min-w-0 shrink"
-              aria-label="Workspace"
+              aria-label={t("Workspace")}
               data-composer-shortcut="composer.workspace"
               data-composer-context-control
               onMouseDownCapture={stopContextMenuMouseDown}
@@ -212,7 +214,7 @@ export const BranchToolbarEnvModeSelector = memo(function BranchToolbarEnvModeSe
           </ComposerContextLabel>
           {displayMode === "panel" ? (
             <span className="shrink-0 text-3xs font-normal text-muted-foreground/70">
-              {effectiveEnvMode === "worktree" && !activeWorktreePath ? "Create" : workspaceKind}
+              {effectiveEnvMode === "worktree" && !activeWorktreePath ? t("Create") : workspaceKind}
             </span>
           ) : null}
         </TooltipTrigger>
@@ -235,7 +237,7 @@ export const BranchToolbarEnvModeSelector = memo(function BranchToolbarEnvModeSe
         }
       >
         <SelectGroup>
-          <SelectGroupLabel>Workspace</SelectGroupLabel>
+          <SelectGroupLabel>{t("Workspace")}</SelectGroupLabel>
           <SelectItem value="local">
             <span className="inline-flex items-center gap-1.5">
               {activeWorktreePath ? (

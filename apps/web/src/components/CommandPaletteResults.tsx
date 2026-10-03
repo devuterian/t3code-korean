@@ -15,6 +15,7 @@ import {
   CommandShortcut,
 } from "./ui/command";
 import { ThreadSearchMatchExcerpt } from "./ThreadSearchMatch";
+import { useTranslate } from "../i18n/translate";
 
 interface CommandPaletteResultsProps {
   emptyStateMessage?: string;
@@ -26,13 +27,14 @@ interface CommandPaletteResultsProps {
 }
 
 export function CommandPaletteResults(props: CommandPaletteResultsProps) {
+  const t = useTranslate();
   if (props.groups.length === 0) {
     return (
       <div className="py-10 text-center text-sm text-muted-foreground">
         {props.emptyStateMessage ??
           (props.isActionsOnly
-            ? "No matching actions."
-            : "No matching commands, projects, or threads.")}
+            ? t("No matching actions.")
+            : t("No matching commands, projects, or threads."))}
       </div>
     );
   }
