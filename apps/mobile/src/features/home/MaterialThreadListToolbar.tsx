@@ -18,6 +18,7 @@ import { MaterialSearchField } from "../../components/MaterialSearchField";
 import { useHardwareKeyboardCommand } from "../keyboard/hardwareKeyboardCommands";
 import { WorkspaceConnectionTitle } from "./WorkspaceConnectionTitle";
 import { useWorkspaceState } from "../../state/workspace";
+import { useTranslate } from "../../i18n/translate";
 import { useAndroidControlSizing } from "../../components/useAndroidControlSizing";
 import { useMaterialToolbarLayout } from "../../components/useMaterialToolbarLayout";
 
@@ -34,6 +35,7 @@ export function MaterialThreadListToolbar(props: {
   readonly onLayout?: (event: LayoutChangeEvent) => void;
   readonly onRequestVisibility?: () => void;
 }) {
+  const t = useTranslate();
   const insets = useSafeAreaInsets();
   const { fabSize } = useAndroidControlSizing();
   const { height: toolbarHeight, ...headerPadding } = useMaterialToolbarLayout();
@@ -71,9 +73,9 @@ export function MaterialThreadListToolbar(props: {
   const searchField = (
     <MaterialSearchField
       inputRef={searchRef}
-      accessibilityLabel="Search threads"
-      clearAccessibilityLabel="Clear search"
-      placeholder="Search"
+      accessibilityLabel={t("Search threads")}
+      clearAccessibilityLabel={t("Clear search")}
+      placeholder={t("Search")}
       value={props.searchQuery}
       onChangeText={onSearchQueryChange}
     />
@@ -92,7 +94,7 @@ export function MaterialThreadListToolbar(props: {
           {searching ? (
             <>
               <AndroidHeaderIconButton
-                accessibilityLabel="Close search"
+                accessibilityLabel={t("Close search")}
                 icon="arrow.left"
                 onPress={closeSearch}
               />
@@ -109,12 +111,12 @@ export function MaterialThreadListToolbar(props: {
                 />
               </View>
               <AndroidHeaderIconButton
-                accessibilityLabel="Search threads"
+                accessibilityLabel={t("Search threads")}
                 icon="magnifyingglass"
                 onPress={openSearch}
               />
               <AndroidHeaderIconButton
-                accessibilityLabel="Open settings"
+                accessibilityLabel={t("Open settings")}
                 icon="gearshape"
                 onPress={props.onOpenSettings}
               />
@@ -136,7 +138,7 @@ export function MaterialThreadListToolbar(props: {
           <AndroidAnchoredMenu actions={props.filterActions} onPressAction={props.onFilterAction}>
             {(open) => (
               <MaterialFloatingActionButton
-                label="Filter threads"
+                label={t("Filter threads")}
                 icon={filterIcon}
                 onPress={open}
               />

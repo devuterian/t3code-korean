@@ -22,6 +22,7 @@ import type { EnvironmentId, ProjectId } from "@t3tools/contracts";
 import type { ThreadListProvider } from "../../state/thread-list-environments";
 import type { ThreadMoveAvailability } from "./threadOrder";
 
+import { formatCompactDuration, translate } from "../../i18n/translate";
 import { relativeTime } from "../../lib/time";
 import type { PendingNewTask } from "../../state/use-pending-new-tasks";
 
@@ -422,6 +423,13 @@ export function threadListV2ListItemsAreEqual(
     stamp on settled slim rows, otherwise the latest activity. Blank for
     status-labelled cards and snoozed rows with a wake countdown — those
     never draw a time, so their minute tick must not invalidate the cell. */
+/** The shared wake label is compact English ("now", "2h"); spell it in the interface language. */
+function localizeSnoozeWakeLabel(label: string): string {
+  if (label === "now") return translate("now");
+  const match = /^(\d+)([mhd])$/.exec(label);
+  return match ? formatCompactDuration(Number(match[1]), match[2] as "m" | "h" | "d") : label;
+}
+
 function resolveThreadListV2ItemTimeLabel(
   item: ThreadListV2Item,
   showSnoozeWakeLabel: boolean,
@@ -475,7 +483,9 @@ export function buildThreadListV2ListItems(input: {
   const threadItems = input.items.map((item): ThreadListV2ListItem => {
     const snoozeWakeLabelText =
       item.snoozed && item.thread.snoozedUntil != null && input.snoozeLabelNow !== undefined
-        ? snoozeWakeLabel(item.thread.snoozedUntil, { now: input.snoozeLabelNow })
+        ? localizeSnoozeWakeLabel(
+            snoozeWakeLabel(item.thread.snoozedUntil, { now: input.snoozeLabelNow }),
+          )
         : undefined;
     // The minute clock belongs on the item, not the list's extraData, so the
     // recycler's equality can confine the per-minute re-render to rows whose

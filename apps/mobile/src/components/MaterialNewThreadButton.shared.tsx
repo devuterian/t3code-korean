@@ -1,6 +1,7 @@
 import { Pressable, type StyleProp, type ViewStyle } from "react-native";
 
 import { cn } from "../lib/cn";
+import { useTranslate } from "../i18n/translate";
 import { AppText } from "./AppText";
 import { SymbolView } from "./AppSymbol";
 
@@ -12,9 +13,10 @@ export function MaterialNewThreadButton(props: {
   readonly className?: string;
   readonly style?: StyleProp<ViewStyle>;
 }) {
+  const t = useTranslate();
   return (
     <Pressable
-      accessibilityLabel="New thread"
+      accessibilityLabel={t("New thread")}
       accessibilityRole="button"
       onPress={props.onPress}
       className={cn(
@@ -33,7 +35,9 @@ export function MaterialNewThreadButton(props: {
         type="monochrome"
       />
       {props.extended && props.expanded !== false ? (
-        <AppText className="text-[16px] font-t3-medium text-primary-foreground">New thread</AppText>
+        <AppText className="text-[16px] font-t3-medium text-primary-foreground">
+          {t("New thread")}
+        </AppText>
       ) : null}
     </Pressable>
   );
