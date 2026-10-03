@@ -125,6 +125,9 @@ actions of the same kind undo together. The notice remains available for five
 seconds after the latest action. The default shortcut skips text fields and
 terminals so native undo keeps working there.
 
+`thread.unsettleLast` (`mod+shift+u` by default) un-settles the thread you settled
+most recently, across all connected environments.
+
 `navigation.back` (`mod+[` by default) and `navigation.forward` (`mod+]`) move
 through the pages you have visited, like a browser's back and forward buttons.
 

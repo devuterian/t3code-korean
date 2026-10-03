@@ -1514,3 +1514,23 @@ describe("Usage shortcuts", () => {
     );
   });
 });
+
+describe("unsettle last thread shortcut", () => {
+  it("resolves mod+shift+u outside the terminal", () => {
+    assert.equal(
+      resolveShortcutCommand(
+        event({ key: "u", metaKey: true, shiftKey: true }),
+        DEFAULT_RESOLVED_KEYBINDINGS,
+        { platform: "MacIntel", context: { terminalFocus: false } },
+      ),
+      "thread.unsettleLast",
+    );
+    assert.isNull(
+      resolveShortcutCommand(
+        event({ key: "u", metaKey: true, shiftKey: true }),
+        DEFAULT_RESOLVED_KEYBINDINGS,
+        { platform: "MacIntel", context: { terminalFocus: true } },
+      ),
+    );
+  });
+});
