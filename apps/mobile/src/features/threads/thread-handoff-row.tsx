@@ -14,6 +14,7 @@ import { Alert, Pressable, View, type ColorValue } from "react-native";
 import { AppText as Text } from "../../components/AppText";
 import { SymbolView } from "../../components/AppSymbol";
 import { ProviderIcon } from "../../components/ProviderIcon";
+import { useTranslate } from "../../i18n/translate";
 import { environmentThreadDetails } from "../../state/threads";
 import { serverEnvironment } from "../../state/server";
 import { ThreadContextDivider } from "./thread-context-divider";
@@ -39,6 +40,7 @@ export function ThreadHandoffRow(props: {
   projectedItem: OrchestrationV2ProjectedTurnItem;
   iconColor: ColorValue;
 }) {
+  const t = useTranslate();
   const { item } = props.projectedItem;
   const endpointsAtom = useMemo(
     () => handoffEndpointsAtom(props.environmentId, props.projectedItem),
@@ -50,7 +52,7 @@ export function ThreadHandoffRow(props: {
   const color = item.status === "failed" ? "#e11d48" : props.iconColor;
   return (
     <ThreadContextDivider
-      label="Context handoff"
+      label={t("Context handoff")}
       icon="arrow.left.arrow.right"
       iconColor={color}
       failed={item.status === "failed"}
@@ -80,6 +82,7 @@ function HandoffEndpoint(props: {
   model?: string | undefined;
   providers: ReadonlyArray<ServerProvider>;
 }) {
+  const t = useTranslate();
   const provider = props.providers.find((candidate) => candidate.instanceId === props.instanceId);
   const model = provider?.models.find((candidate) => candidate.slug === props.model);
   const label =
@@ -91,7 +94,7 @@ function HandoffEndpoint(props: {
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
-      accessibilityHint="Show provider account"
+      accessibilityHint={t("Show provider account")}
       className="min-h-6 max-w-full flex-row items-center justify-center gap-1"
       hitSlop={{ top: 8, bottom: 8 }}
       onPress={() =>

@@ -8,7 +8,22 @@ import { View } from "react-native";
 
 import { AppText as Text } from "../../components/AppText";
 import { ProviderIcon } from "../../components/ProviderIcon";
+import { useTranslate } from "../../i18n/translate";
+import { localizeDurationUnits } from "../../lib/threadActivity";
 import { RequestActionButton } from "./RequestActionButton";
+
+/** Shared status text ("Working 1m 5s", "Completed in 3s") in the active language. */
+function useLocalizedSubagentStatus(status: string): string {
+  const t = useTranslate();
+  const match = /^(\S+)(?: (in )?(\S.*))?$/.exec(status);
+  if (match === null) return t(status);
+  const [, label, completedIn, elapsed] = match;
+  if (elapsed === undefined) return t(label!);
+  const duration = localizeDurationUnits(elapsed);
+  return completedIn
+    ? t("{status} in {duration}", { status: t(label!), duration })
+    : t("{status} {duration}", { status: t(label!), duration });
+}
 
 /**
  * Replaces the composer on a provider-native subagent thread. The provider
@@ -32,7 +47,8 @@ export function ProviderSubagentBar(props: {
     const id = setInterval(() => setNowMs(Date.now()), 1_000);
     return () => clearInterval(id);
   }, [live]);
-  const statusLabel = formatProviderSubagentStatus(props.status, nowMs);
+  const t = useTranslate();
+  const statusLabel = useLocalizedSubagentStatus(formatProviderSubagentStatus(props.status, nowMs));
   const modelDescription =
     props.effortLabel === null ? props.modelLabel : `${props.modelLabel}, ${props.effortLabel}`;
 
@@ -41,7 +57,10 @@ export function ProviderSubagentBar(props: {
       {/* Only the text is one element, so "Open parent" stays reachable. */}
       <View
         accessible
-        accessibilityLabel={`${modelDescription} subagent, ${statusLabel}. It runs on its own and cannot take messages.`}
+        accessibilityLabel={t(
+          "{model} subagent, {status}. It runs on its own and cannot take messages.",
+          { model: modelDescription, status: statusLabel },
+        )}
         className="min-w-0 flex-1 gap-0.5"
       >
         <View className="min-w-0 flex-row items-center gap-1.5">
@@ -69,11 +88,15 @@ export function ProviderSubagentBar(props: {
           className="font-sans text-xs text-foreground-secondary"
           style={{ fontVariant: ["tabular-nums"] }}
         >
-          {statusLabel} · Runs on its own
+          {t("{status} · Runs on its own", { status: statusLabel })}
         </Text>
       </View>
       {props.onOpenParent ? (
-        <RequestActionButton label="Open parent" tone="secondary" onPress={props.onOpenParent} />
+        <RequestActionButton
+          label={t("Open parent")}
+          tone="secondary"
+          onPress={props.onOpenParent}
+        />
       ) : null}
     </View>
   );

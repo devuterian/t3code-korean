@@ -1,5 +1,7 @@
 import type { MenuAction } from "@react-native-menu/menu";
 
+import { translate } from "../../i18n/translate";
+
 export function buildThreadTitleRegenerationMenuItems(input: {
   readonly supported: boolean;
   readonly isRegenerating: boolean;
@@ -9,7 +11,7 @@ export function buildThreadTitleRegenerationMenuItems(input: {
   return [
     {
       id: "regenerate-title",
-      title: input.isRegenerating ? "Regenerating…" : "Regenerate title",
+      title: input.isRegenerating ? translate("Regenerating…") : translate("Regenerate title"),
       image: "arrow.clockwise",
       ...(input.isRegenerating ? { attributes: { disabled: true } } : {}),
     },

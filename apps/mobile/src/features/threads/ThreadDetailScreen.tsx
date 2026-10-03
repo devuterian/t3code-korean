@@ -96,6 +96,7 @@ import { scopedThreadKey } from "../../lib/scopedEntities";
 import { threadEnvironment } from "../../state/threads";
 import { useAtomCommand } from "../../state/use-atom-command";
 import { useDelayedStatus } from "../../lib/useDelayedStatus";
+import { translate, useTranslate, type TranslateParams } from "../../i18n/translate";
 import type {
   PendingApproval,
   PendingUserInput,
@@ -227,6 +228,66 @@ export interface ThreadDetailScreenProps {
   readonly showContent?: boolean;
 }
 
+type PendingBackgroundWork = NonNullable<ReturnType<typeof presentPendingBackgroundWork>>;
+type PendingBackgroundWorkKind = PendingBackgroundWork["items"][number]["kind"];
+type Translator = (source: string, params?: TranslateParams) => string;
+
+// Mirrors the shared presenter's English nouns so the title can be rebuilt per language.
+const BACKGROUND_WORK_NOUNS: Record<
+  PendingBackgroundWorkKind,
+  { readonly singular: string; readonly plural: string }
+> = {
+  subagent: { singular: "subagent", plural: "subagents" },
+  command: { singular: "command", plural: "commands" },
+  monitor: { singular: "monitor", plural: "monitors" },
+  background_task: { singular: "background task", plural: "background tasks" },
+};
+
+function pendingBackgroundWorkTitle(work: PendingBackgroundWork, tr: Translator): string {
+  const { items, waiting } = work;
+  const [only] = items;
+  if (items.length === 1 && only !== undefined) {
+    const englishNoun = BACKGROUND_WORK_NOUNS[only.kind].singular;
+    const noun = tr(englishNoun);
+    if (only.label !== englishNoun) {
+      return waiting
+        ? tr("Waiting on {noun} {label}", { noun, label: only.label })
+        : tr("Running: {label}", { label: only.label });
+    }
+    return waiting ? tr("Waiting on a {noun}", { noun }) : tr("Running a {noun}", { noun });
+  }
+  const counts = new Map<PendingBackgroundWorkKind, number>();
+  for (const item of items) counts.set(item.kind, (counts.get(item.kind) ?? 0) + 1);
+  const groups = Array.from(counts, ([kind, count]) => {
+    const { singular, plural } = BACKGROUND_WORK_NOUNS[kind];
+    return tr("{count} {noun}", { count, noun: tr(count === 1 ? singular : plural) });
+  });
+  const list =
+    groups.length <= 1
+      ? groups.join("")
+      : tr("{items} and {last}", {
+          items: groups.slice(0, -1).join(", "),
+          last: groups.at(-1) ?? "",
+        });
+  return waiting
+    ? tr("Waiting on {items}", { items: list })
+    : tr("Running {items}", { items: list });
+}
+
+/**
+ * Localized pending-work title and item labels. Falls back to the shared
+ * English title if the presenter's wording drifts from the mirrored templates.
+ */
+function localizePendingBackgroundWork(work: PendingBackgroundWork, t: Translator) {
+  const english: Translator = (source, params) => translate(source, params, "en");
+  const matches = pendingBackgroundWorkTitle(work, english) === work.title;
+  const title = matches ? pendingBackgroundWorkTitle(work, t) : work.title;
+  const labels = work.items.map((item) =>
+    item.label === BACKGROUND_WORK_NOUNS[item.kind].singular ? t(item.label) : item.label,
+  );
+  return { title, labels };
+}
+
 function latestStreamingAssistantMessage(
   feed: ReadonlyArray<ThreadFeedEntry>,
 ): { readonly id: string; readonly textLength: number } | null {
@@ -304,6 +365,7 @@ const USER_INPUT_TOGGLE_TIMING = {
 
 export const ThreadDetailScreen = memo(function ThreadDetailScreen(props: ThreadDetailScreenProps) {
   const navigation = useNavigation();
+  const t = useTranslate();
   const reportedModelSelection = useThreadReportedModelSelection({
     environmentId: props.environmentId,
     threadId: props.selectedThread.id,
@@ -422,9 +484,9 @@ export const ThreadDetailScreen = memo(function ThreadDetailScreen(props: Thread
       case "cached":
       case "synchronizing":
         if (contentPresentationKind === "ready") {
-          return "Syncing messages...";
+          return t("Syncing messages...");
         }
-        return contentPresentationKind === "loading" ? "Loading messages..." : null;
+        return contentPresentationKind === "loading" ? t("Loading messages...") : null;
       default:
         return null;
     }
@@ -439,6 +501,8 @@ export const ThreadDetailScreen = memo(function ThreadDetailScreen(props: Thread
   const pendingBackgroundWork = presentPendingBackgroundWork(
     props.selectedThread.pendingBackgroundTasks,
   );
+  const localizedBackgroundWork =
+    pendingBackgroundWork === null ? null : localizePendingBackgroundWork(pendingBackgroundWork, t);
   const floatingStatus = ((): FloatingWorkingStatus | null => {
     const connectionStatus = connectionFloatingStatus({
       connectionError: props.connectionError,
@@ -457,7 +521,7 @@ export const ThreadDetailScreen = memo(function ThreadDetailScreen(props: Thread
       if (props.worktreeSetup) return null;
       return {
         kind: "preparing",
-        label: props.creationState.preparingWorktree ? "Setting up worktree…" : "Starting…",
+        label: props.creationState.preparingWorktree ? t("Setting up worktree…") : t("Starting…"),
       };
     }
     if (props.creationState?.kind === "failed") {
@@ -472,13 +536,11 @@ export const ThreadDetailScreen = memo(function ThreadDetailScreen(props: Thread
     if (props.activeWorkStartedAt !== null && contentPresentationKind === "ready") {
       return { kind: "working", startedAt: props.activeWorkStartedAt };
     }
-    if (pendingBackgroundWork !== null && contentPresentationKind === "ready") {
+    if (localizedBackgroundWork !== null && contentPresentationKind === "ready") {
       return {
         kind: "waiting",
-        label: pendingBackgroundWork.title,
-        accessibilityLabel: `${pendingBackgroundWork.title}: ${pendingBackgroundWork.items
-          .map((item) => item.label)
-          .join(", ")}`,
+        label: localizedBackgroundWork.title,
+        accessibilityLabel: `${localizedBackgroundWork.title}: ${localizedBackgroundWork.labels.join(", ")}`,
       };
     }
     return null;
@@ -959,21 +1021,24 @@ export const ThreadDetailScreen = memo(function ThreadDetailScreen(props: Thread
     ],
   );
 
-  const handleEditPendingMessage = useCallback(async (message: QueuedThreadMessage) => {
-    try {
-      if (
-        (await editPendingThreadMessage(message)) &&
-        selectedThreadKeyRef.current === scopedThreadKey(message.environmentId, message.threadId)
-      ) {
-        composerEditorRef.current?.focus();
+  const handleEditPendingMessage = useCallback(
+    async (message: QueuedThreadMessage) => {
+      try {
+        if (
+          (await editPendingThreadMessage(message)) &&
+          selectedThreadKeyRef.current === scopedThreadKey(message.environmentId, message.threadId)
+        ) {
+          composerEditorRef.current?.focus();
+        }
+      } catch (error) {
+        Alert.alert(
+          t("Could not edit message"),
+          error instanceof Error ? error.message : t("Please try again."),
+        );
       }
-    } catch (error) {
-      Alert.alert(
-        "Could not edit message",
-        error instanceof Error ? error.message : "Please try again.",
-      );
-    }
-  }, []);
+    },
+    [t],
+  );
 
   const collapseComposer = useCallback(() => {
     composerEditorRef.current?.blur();
@@ -1060,7 +1125,7 @@ export const ThreadDetailScreen = memo(function ThreadDetailScreen(props: Thread
             renderFallback={(fallback) => (
               <RenderFailureView
                 {...fallback}
-                title="The conversation couldn't be displayed"
+                title={t("The conversation couldn't be displayed")}
                 bottomInset={estimatedOverlayHeight}
               />
             )}
@@ -1303,7 +1368,7 @@ export const ThreadDetailScreen = memo(function ThreadDetailScreen(props: Thread
                       editorRef={composerEditorRef}
                       draftMessage={props.draftMessage}
                       draftAttachments={props.draftAttachments}
-                      placeholder="Ask the repo agent, or run a command…"
+                      placeholder={t("Ask the repo agent, or run a command…")}
                       contentMaxWidth={contentMaxWidth}
                       connectionState={props.connectionStateLabel}
                       environmentLabel={props.environmentLabel}
@@ -1319,7 +1384,7 @@ export const ThreadDetailScreen = memo(function ThreadDetailScreen(props: Thread
                       // them against a thread id the server may still reject
                       // would strand them in the outbox.
                       sendBlockedReason={
-                        props.creationState?.kind === "preparing" ? "Starting the task…" : null
+                        props.creationState?.kind === "preparing" ? t("Starting the task…") : null
                       }
                       draftKey={props.composerDraftKey ?? undefined}
                       followUpBehavior={props.followUpBehavior}

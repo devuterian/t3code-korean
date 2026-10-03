@@ -14,6 +14,7 @@ import { Alert } from "react-native";
 import { formatComposerContextReference } from "@t3tools/shared/composerContextReferences";
 import { pullRequestComposerContext, threadComposerContext } from "../../lib/composerContext";
 import { uuidv4 } from "../../lib/uuid";
+import { translate } from "../../i18n/translate";
 import {
   getComposerDraftSnapshot,
   readComposerDraftSelection,
@@ -76,21 +77,21 @@ export function buildComposerSlashCommandItems(input: {
       type: "slash-command",
       command: "model",
       label: "/model",
-      description: "Switch model",
+      description: translate("Switch model"),
     },
     {
       id: "cmd:plan",
       type: "slash-command",
       command: "plan",
       label: "/plan",
-      description: "Switch to plan mode",
+      description: translate("Switch to plan mode"),
     },
     {
       id: "cmd:default",
       type: "slash-command",
       command: "default",
       label: "/default",
-      description: "Switch to default mode",
+      description: translate("Switch to default mode"),
     },
   ] satisfies ComposerCommandItem[];
   const items: ComposerCommandItem[] = builtIn.filter(
@@ -336,7 +337,7 @@ export function useComposerCommandMenu({
           isDraft: entry.isDraft,
         },
         label: `#${entry.number}`,
-        description: `${entry.isDraft ? "Draft" : entry.state} · ${entry.title}`,
+        description: `${entry.isDraft ? translate("Draft") : translate(entry.state)} · ${entry.title}`,
       }));
     }
 
@@ -515,8 +516,8 @@ export function useComposerCommandMenu({
         const alreadyAttached = existing.some((entry) => entry.contextId === record.contextId);
         if (!alreadyAttached && existing.length >= COMPOSER_CONTEXT_MAX_RECORDS) {
           Alert.alert(
-            "Too many context items",
-            "Remove some context from the draft and try again.",
+            translate("Too many context items"),
+            translate("Remove some context from the draft and try again."),
           );
           return;
         }
@@ -550,8 +551,8 @@ export function useComposerCommandMenu({
           COMPOSER_CONTEXT_MAX_RECORDS
         ) {
           Alert.alert(
-            "Too many context items",
-            "Remove some context from the draft and try again.",
+            translate("Too many context items"),
+            translate("Remove some context from the draft and try again."),
           );
           return;
         }
@@ -621,7 +622,7 @@ export function useComposerCommandMenu({
     error:
       trigger?.kind === "pull-request"
         ? pullRequestProjectId === null || pullRequestRepository === null
-          ? "Pull requests are unavailable for this project."
+          ? translate("Pull requests are unavailable for this project.")
           : pullRequestSearch.error
         : null,
     onSelect,

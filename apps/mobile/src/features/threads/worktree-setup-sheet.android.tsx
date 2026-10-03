@@ -3,6 +3,7 @@ import { Pressable, View, useWindowDimensions } from "react-native";
 import { withUniwind } from "uniwind";
 import { AndroidSheetHeader } from "../../components/AndroidScreenHeader";
 import { AppText as Text } from "../../components/AppText";
+import { useTranslate } from "../../i18n/translate";
 import type { WorktreeSetupSheetProps } from "./worktree-setup-sheet";
 
 const NativeBottomSheet = withUniwind(ModalBottomSheet, {
@@ -11,6 +12,7 @@ const NativeBottomSheet = withUniwind(ModalBottomSheet, {
 
 export function WorktreeSetupSheet({ children, height, onClose }: WorktreeSetupSheetProps) {
   const window = useWindowDimensions();
+  const t = useTranslate();
   return (
     <Host style={{ position: "absolute", width: 0, height: 0 }}>
       <NativeBottomSheet
@@ -26,15 +28,15 @@ export function WorktreeSetupSheet({ children, height, onClose }: WorktreeSetupS
             }}
           >
             <AndroidSheetHeader
-              title="Worktree setup"
+              title={t("Worktree setup")}
               trailing={
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel="Close setup details"
+                  accessibilityLabel={t("Close setup details")}
                   onPress={onClose}
                   className="min-h-11 justify-center px-2"
                 >
-                  <Text className="font-t3-medium text-sm text-foreground">Done</Text>
+                  <Text className="font-t3-medium text-sm text-foreground">{t("Done")}</Text>
                 </Pressable>
               }
             />

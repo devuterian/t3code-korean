@@ -12,6 +12,7 @@ import {
 import { AppText as Text } from "../../components/AppText";
 import type { FilePreviewSource } from "../../components/FilePreviewModal";
 import { MediaActionsMenu } from "../../components/MediaActionsMenu";
+import { useTranslate } from "../../i18n/translate";
 import { PresentationSource } from "../../components/NativePresentation";
 import { useMediaActions, type MediaActionsSource } from "../../lib/mediaActions";
 import { useAssetUrlState } from "../../state/assets";
@@ -41,6 +42,7 @@ export function ThreadMarkdownImageView(props: {
   readonly actionsSource?: MediaActionsSource;
   readonly onPressPreview: (source: FilePreviewSource) => void;
 }) {
+  const t = useTranslate();
   const sourceIdentifier = useId();
   const mediaActions = useMediaActions(props.actionsSource);
   const contextWidth = useContext(MarkdownImageAvailableWidthContext);
@@ -85,15 +87,15 @@ export function ThreadMarkdownImageView(props: {
         <MediaActionsMenu media={mediaActions}>
           <Pressable
             accessibilityRole="imagebutton"
-            accessibilityLabel={props.alt ?? "Markdown image"}
+            accessibilityLabel={props.alt ?? t("Markdown image")}
             accessibilityHint={
-              mediaActions.actions.length > 0 ? "Touch and hold for media actions" : undefined
+              mediaActions.actions.length > 0 ? t("Touch and hold for media actions") : undefined
             }
             className="items-center justify-center rounded-[10px] bg-md-code-bg"
             style={frameStyle}
           >
             {failed ? (
-              <Text className="text-xs text-foreground-muted">Image unavailable</Text>
+              <Text className="text-xs text-foreground-muted">{t("Image unavailable")}</Text>
             ) : (
               <ActivityIndicator />
             )}
@@ -104,15 +106,15 @@ export function ThreadMarkdownImageView(props: {
           <MediaActionsMenu media={mediaActions}>
             <Pressable
               accessibilityRole="imagebutton"
-              accessibilityLabel={props.alt ?? "Markdown image"}
+              accessibilityLabel={props.alt ?? t("Markdown image")}
               accessibilityHint={
-                mediaActions.actions.length > 0 ? "Touch and hold for media actions" : undefined
+                mediaActions.actions.length > 0 ? t("Touch and hold for media actions") : undefined
               }
               onPress={() =>
                 props.onPressPreview({
                   kind: "image",
                   uri: props.uri!,
-                  name: props.actionsSource?.name ?? props.alt ?? "Image",
+                  name: props.actionsSource?.name ?? props.alt ?? t("Image"),
                   sourceIdentifier,
                   actionsSource: props.actionsSource,
                 })
@@ -148,6 +150,7 @@ function ThreadMarkdownImageRequest(props: {
   readonly onLoad: (sourceSize: { width: number; height: number }) => void;
   readonly onError: () => void;
 }) {
+  const t = useTranslate();
   const [loaded, setLoaded] = useState(false);
 
   return (
@@ -168,7 +171,7 @@ function ThreadMarkdownImageRequest(props: {
           pointerEvents="none"
           style={[StyleSheet.absoluteFill, { alignItems: "center", justifyContent: "center" }]}
         >
-          <Text className="text-xs text-foreground-muted">Loading image…</Text>
+          <Text className="text-xs text-foreground-muted">{t("Loading image…")}</Text>
         </View>
       )}
     </>

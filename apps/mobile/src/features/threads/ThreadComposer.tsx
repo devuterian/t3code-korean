@@ -35,6 +35,7 @@ import {
 } from "react";
 import { Alert, Keyboard, Platform, Pressable, View, type ViewStyle } from "react-native";
 import { FilePreviewModal, type FilePreviewSource } from "../../components/FilePreviewModal";
+import { useTranslate } from "../../i18n/translate";
 import {
   composerAttachmentUploadBlockReason,
   composerAttachmentsStillUploading,
@@ -269,6 +270,7 @@ function SendActionButton(props: {
   readonly disabled: boolean;
   readonly onSend: (followUp?: ActiveTurnComposerAction) => void;
 }) {
+  const t = useTranslate();
   const { presentation } = props;
   const button = (
     <ComposerActionButton
@@ -287,12 +289,12 @@ function SendActionButton(props: {
   );
   return (
     <ControlPillMenu
-      accessibilityLabel="Choose how to send this message"
+      accessibilityLabel={t("Choose how to send this message")}
       shouldOpenOnLongPress
       actions={actions.map((action) => ({
         id: action,
-        title: FOLLOW_UP_ACTION_LABEL[action],
-        subtitle: FOLLOW_UP_ACTION_SUBTITLE[action],
+        title: t(FOLLOW_UP_ACTION_LABEL[action]),
+        subtitle: t(FOLLOW_UP_ACTION_SUBTITLE[action]),
         state: action === presentation.action ? ("on" as const) : ("off" as const),
       }))}
       onPressAction={({ nativeEvent }) =>
@@ -369,6 +371,7 @@ export function ComposerSurface(props: {
 }
 
 export const ThreadComposer = memo(function ThreadComposer(props: ThreadComposerProps) {
+  const t = useTranslate();
   const project = useProject(scopeProjectRef(props.environmentId, props.selectedThread.projectId));
   const { themeVariables: materialTheme } = useAppearancePreferences();
   const composerPanel = materialTheme["--color-composer-panel"];
@@ -424,7 +427,7 @@ export const ThreadComposer = memo(function ThreadComposer(props: ThreadComposer
     deliveryDeferred:
       props.connectionState !== "connected" || props.queueCount > 0 || attachmentsUploading,
   });
-  const sendLabel = sendPresentation.label;
+  const sendLabel = t(sendPresentation.label);
   const currentModelSelection = props.selectedThread.modelSelection;
   const currentRuntimeMode = props.selectedThread.runtimeMode;
   const modelUnavailable =
@@ -474,10 +477,13 @@ export const ThreadComposer = memo(function ThreadComposer(props: ThreadComposer
     );
     onShowUsageLimits(report);
     if (!report) {
-      Alert.alert("Usage limits unavailable", "This provider does not currently report limits.");
+      Alert.alert(
+        t("Usage limits unavailable"),
+        t("This provider does not currently report limits."),
+      );
     }
     return report !== null;
-  }, [currentModelSelection.instanceId, onShowUsageLimits, props.serverConfig]);
+  }, [currentModelSelection.instanceId, onShowUsageLimits, props.serverConfig, t]);
 
   const composerMenu = useComposerCommandMenu({
     draftMessage: props.draftMessage,
@@ -528,10 +534,10 @@ export const ThreadComposer = memo(function ThreadComposer(props: ThreadComposer
   });
   const contextImports = useAtomValue(composerContextImportsAtom);
   const sendBlockedReason =
-    (queuedEdit?.saving === true ? "Saving…" : null) ??
+    (queuedEdit?.saving === true ? t("Saving…") : null) ??
     props.sendBlockedReason ??
-    (pendingPastedTextAttachmentCount > 0 ? "Attaching pasted text" : null) ??
-    attachmentBlockReason;
+    (pendingPastedTextAttachmentCount > 0 ? t("Attaching pasted text") : null) ??
+    (attachmentBlockReason === null ? null : t(attachmentBlockReason));
   const canSend =
     hasContent &&
     !contextImports[composerDraftKey] &&
@@ -799,7 +805,9 @@ export const ThreadComposer = memo(function ThreadComposer(props: ThreadComposer
         ) : null}
         {modelUnavailable ? (
           <Pressable accessibilityRole="button" className="px-3 py-2" onPress={openSettings}>
-            <Text className="text-xs text-foreground">Model unavailable. Open model settings.</Text>
+            <Text className="text-xs text-foreground">
+              {t("Model unavailable. Open model settings.")}
+            </Text>
           </Pressable>
         ) : null}
 
@@ -964,11 +972,11 @@ export const ThreadComposer = memo(function ThreadComposer(props: ThreadComposer
                     } else {
                       Alert.alert(
                         wouldExceedInputLimit
-                          ? "Pasted text is too large for this message"
-                          : "Could not attach pasted text",
+                          ? t("Pasted text is too large for this message")
+                          : t("Could not attach pasted text"),
                         wouldExceedInputLimit
-                          ? "Remove some text or an attachment, then paste again."
-                          : "Remove an attachment or use a smaller paste, then try again.",
+                          ? t("Remove some text or an attachment, then paste again.")
+                          : t("Remove an attachment or use a smaller paste, then try again."),
                       );
                     }
                     return;
@@ -986,11 +994,11 @@ export const ThreadComposer = memo(function ThreadComposer(props: ThreadComposer
                       : undefined,
                   )
                 }
-                submitTitle={sendPresentation.label}
+                submitTitle={sendLabel}
                 alternateSubmitTitle={
                   sendPresentation.alternate === null
-                    ? sendPresentation.label
-                    : FOLLOW_UP_ACTION_LABEL[sendPresentation.alternate]
+                    ? sendLabel
+                    : t(FOLLOW_UP_ACTION_LABEL[sendPresentation.alternate])
                 }
                 scrollEnabled={isExpanded}
                 // Android: collapsed single line centers natively (gravity) in
@@ -1047,7 +1055,7 @@ export const ThreadComposer = memo(function ThreadComposer(props: ThreadComposer
                 />
                 {showStopAction ? (
                   <ComposerActionButton
-                    accessibilityLabel="Stop agent"
+                    accessibilityLabel={t("Stop agent")}
                     icon="stop.fill"
                     variant="danger"
                     onPress={props.onStopThread}
@@ -1114,7 +1122,7 @@ export const ThreadComposer = memo(function ThreadComposer(props: ThreadComposer
                     />
                     <View className="min-w-0 shrink">
                       <ComposerInlineControl
-                        accessibilityLabel="Model and reasoning settings"
+                        accessibilityLabel={t("Model and reasoning settings")}
                         emphasized
                         renderIcon={(size) => (
                           <ProviderIcon
@@ -1141,7 +1149,7 @@ export const ThreadComposer = memo(function ThreadComposer(props: ThreadComposer
                   />
                   {showStopAction ? (
                     <ComposerActionButton
-                      accessibilityLabel="Stop agent"
+                      accessibilityLabel={t("Stop agent")}
                       icon="stop.fill"
                       variant="danger"
                       onPress={props.onStopThread}

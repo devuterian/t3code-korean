@@ -4,6 +4,7 @@ import * as Option from "effect/Option";
 import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
 import { Alert } from "react-native";
 
+import { translate } from "../../i18n/translate";
 import { downloadAndShareAttachment } from "../../lib/attachmentDownload";
 import { assetEnvironment } from "../../state/assets";
 import { usePreparedConnection } from "../../state/session";
@@ -37,12 +38,14 @@ export function useFileChipShare(
       requestRef.current = request;
       const httpBaseUrl = connectionRef.current;
       void (async () => {
-        if (httpBaseUrl === null) throw new Error("Reconnect to the environment and try again.");
+        if (httpBaseUrl === null)
+          throw new Error(translate("Reconnect to the environment and try again."));
         const result = await createUrl({ environmentId, input: { resource: source.resource } });
         if (request.signal.aborted) return;
         const url =
           result._tag === "Success" ? resolveAssetUrl(httpBaseUrl, result.value.relativeUrl) : null;
-        if (url === null) throw new Error("The file could not be loaded. Reconnect and try again.");
+        if (url === null)
+          throw new Error(translate("The file could not be loaded. Reconnect and try again."));
         await downloadAndShareAttachment({
           url,
           attachment: source,
@@ -53,8 +56,8 @@ export function useFileChipShare(
         .catch((error: unknown) => {
           if (!request.signal.aborted) {
             Alert.alert(
-              "Could not share file",
-              error instanceof Error ? error.message : "Try again.",
+              translate("Could not share file"),
+              error instanceof Error ? error.message : translate("Try again."),
             );
           }
         })

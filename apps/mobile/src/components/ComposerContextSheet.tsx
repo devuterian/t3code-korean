@@ -31,16 +31,18 @@ import { FilePreviewModal } from "./FilePreviewModal";
 import { VideoPreviewModal } from "./VideoPreviewModal";
 import { ComposerContextAttachment } from "./ComposerContextAttachment";
 import { AppText as Text } from "./AppText";
+import { useTranslate } from "../i18n/translate";
 import { SymbolView } from "./AppSymbol";
 import { ContextSheetSize } from "./ContextSheetSize";
 import { useAppearancePreferences } from "../features/settings/appearance/AppearancePreferencesProvider";
 import { getMobileTerminalTheme } from "../features/terminal/terminalTheme";
 
 function ContextField(props: { label: string; value: string | null | undefined; code?: boolean }) {
+  const t = useTranslate();
   if (!props.value) return null;
   return (
     <View className="gap-1">
-      <Text className="text-xs text-foreground-muted">{props.label}</Text>
+      <Text className="text-xs text-foreground-muted">{t(props.label)}</Text>
       {props.code && (props.label === "HTML" || props.label === "Styles") ? (
         <View
           className="overflow-hidden rounded-xl border border-border"
@@ -94,6 +96,7 @@ export function ComposerContextSheet(props: {
   readonly records?: ReadonlyArray<ComposerContextRecord>;
   readonly attachments?: ReadonlyArray<DraftComposerAttachment>;
 }) {
+  const t = useTranslate();
   const reviewColors = useReviewCommentColors();
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
@@ -196,7 +199,7 @@ export function ComposerContextSheet(props: {
         {Platform.OS === "android" ? (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Dismiss context"
+            accessibilityLabel={t("Dismiss context")}
             onPress={props.onClose}
             style={{ position: "absolute", top: 0, right: 0, bottom: 0, left: 0 }}
           />
@@ -228,17 +231,20 @@ export function ComposerContextSheet(props: {
               </Text>
               {terminal ? (
                 <Text className="text-xs text-foreground-muted">
-                  Lines {terminal.lineStart}–{terminal.lineEnd}
+                  {t("Lines {start}–{end}", {
+                    start: terminal.lineStart,
+                    end: terminal.lineEnd,
+                  })}
                 </Text>
               ) : null}
             </View>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Close context"
+              accessibilityLabel={t("Close context")}
               onPress={props.onClose}
               className="p-3"
             >
-              <Text className="text-foreground">Done</Text>
+              <Text className="text-foreground">{t("Done")}</Text>
             </Pressable>
           </View>
           <ScrollView
@@ -252,13 +258,15 @@ export function ComposerContextSheet(props: {
           >
             {!record ? (
               <Text className="text-foreground">
-                Context unavailable. The reference was copied without its payload. Copy it again
-                from the original message or remove it.
+                {t(
+                  "Context unavailable. The reference was copied without its payload. Copy it again from the original message or remove it.",
+                )}
               </Text>
             ) : "payload" in record ? (
               <Text className="text-foreground">
-                This context type is not supported by this version of the app. Its payload will be
-                preserved when sent.
+                {t(
+                  "This context type is not supported by this version of the app. Its payload will be preserved when sent.",
+                )}
               </Text>
             ) : (
               <>
@@ -290,7 +298,7 @@ export function ComposerContextSheet(props: {
                   <>
                     {record.pullRequest ? (
                       <ContextField
-                        label={`#${record.pullRequest.number} · ${record.pullRequest.isDraft ? "draft" : record.pullRequest.state}`}
+                        label={`#${record.pullRequest.number} · ${record.pullRequest.isDraft ? t("draft") : t(record.pullRequest.state)}`}
                         value={`${record.pullRequest.title}\n${record.pullRequest.headBranch} → ${record.pullRequest.baseBranch}`}
                       />
                     ) : null}
@@ -364,7 +372,7 @@ export function ComposerContextSheet(props: {
                         }
                         className="rounded-xl bg-subtle p-4"
                       >
-                        <Text className="text-foreground">Open thread</Text>
+                        <Text className="text-foreground">{t("Open thread")}</Text>
                       </Pressable>
                     ) : null}
                   </View>
@@ -375,7 +383,7 @@ export function ComposerContextSheet(props: {
                     <ContextField
                       label="Description"
                       value={
-                        props.skillDescription ?? "No description is available for this skill."
+                        props.skillDescription ?? t("No description is available for this skill.")
                       }
                     />
                     {props.onOpenSkill ? (
@@ -384,7 +392,7 @@ export function ComposerContextSheet(props: {
                         onPress={props.onOpenSkill}
                         className="rounded-xl bg-subtle p-4"
                       >
-                        <Text className="text-foreground">View instructions</Text>
+                        <Text className="text-foreground">{t("View instructions")}</Text>
                       </Pressable>
                     ) : null}
                   </View>
@@ -411,12 +419,12 @@ export function ComposerContextSheet(props: {
                 accessibilityRole="link"
                 onPress={() => {
                   void Linking.openURL(pullRequestUrl).catch(() =>
-                    Alert.alert("Could not open pull request", "Try again when connected."),
+                    Alert.alert(t("Could not open pull request"), t("Try again when connected.")),
                   );
                 }}
                 className="rounded-xl bg-subtle p-4"
               >
-                <Text className="text-foreground">Open pull request</Text>
+                <Text className="text-foreground">{t("Open pull request")}</Text>
               </Pressable>
             ) : null}
             {props.onOpenAttachment ? (
@@ -425,7 +433,7 @@ export function ComposerContextSheet(props: {
                 onPress={props.onOpenAttachment}
                 className="rounded-xl bg-subtle p-4"
               >
-                <Text className="text-foreground">Open attachment</Text>
+                <Text className="text-foreground">{t("Open attachment")}</Text>
               </Pressable>
             ) : null}
             {props.onOpenPullRequest ? (
@@ -434,7 +442,7 @@ export function ComposerContextSheet(props: {
                 onPress={props.onOpenPullRequest}
                 className="rounded-xl bg-subtle p-4"
               >
-                <Text className="text-foreground">Open pull request</Text>
+                <Text className="text-foreground">{t("Open pull request")}</Text>
               </Pressable>
             ) : null}
             {props.onRemove ? (
@@ -443,7 +451,7 @@ export function ComposerContextSheet(props: {
                 onPress={props.onRemove}
                 className="rounded-xl bg-subtle p-4"
               >
-                <Text className="text-foreground">Remove from draft</Text>
+                <Text className="text-foreground">{t("Remove from draft")}</Text>
               </Pressable>
             ) : null}
           </ScrollView>

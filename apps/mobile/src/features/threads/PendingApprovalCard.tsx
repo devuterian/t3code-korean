@@ -7,6 +7,7 @@ import type {
 import { View } from "react-native";
 
 import { AppText as Text } from "../../components/AppText";
+import { useTranslate } from "../../i18n/translate";
 import type { PendingApproval } from "../../lib/threadActivity";
 
 export interface PendingApprovalCardProps {
@@ -25,6 +26,7 @@ const DEFAULT_APPROVAL_OPTIONS: ReadonlyArray<ProviderApprovalOption> = [
 ];
 
 export function PendingApprovalCard(props: PendingApprovalCardProps) {
+  const t = useTranslate();
   const options: ReadonlyArray<ProviderApprovalOption> =
     props.approval.options ?? DEFAULT_APPROVAL_OPTIONS;
   const warning = options.find((option) => option.warning)?.warning;
@@ -35,7 +37,7 @@ export function PendingApprovalCard(props: PendingApprovalCardProps) {
   return (
     <View className="gap-2.5 rounded-[20px] border border-border bg-card-alt p-4">
       <Text className="font-t3-bold text-2xs uppercase tracking-[1.1px] text-foreground-secondary">
-        Approval needed
+        {t("Approval needed")}
       </Text>
       <Text className="font-t3-bold text-lg text-foreground">
         {props.approval.appName ?? props.approval.requestKind}
@@ -47,8 +49,9 @@ export function PendingApprovalCard(props: PendingApprovalCardProps) {
       ) : null}
       {!canRespond ? (
         <Text className="font-sans text-sm leading-5 text-adaptive-neutral-600-400">
-          The provider process for this request is no longer available. Interrupt or restart the run
-          to continue.
+          {t(
+            "The provider process for this request is no longer available. Interrupt or restart the run to continue.",
+          )}
         </Text>
       ) : null}
       {warning ? (
@@ -58,7 +61,7 @@ export function PendingApprovalCard(props: PendingApprovalCardProps) {
         {options.map((option) => (
           <RequestActionButton
             key={option.decision}
-            label={option.label}
+            label={t(option.label)}
             tone={
               option.decision === "accept"
                 ? "primary"
