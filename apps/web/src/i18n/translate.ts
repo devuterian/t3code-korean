@@ -4,6 +4,7 @@ import { DEFAULT_INTERFACE_LANGUAGE, type InterfaceLanguage } from "@t3tools/con
 
 import { ZH_CN_DICTIONARY } from "./dictionary";
 import { KO_DICTIONARY } from "./dictionary.ko";
+import { KO_V2_CHAT_GENERIC_PATTERNS, KO_V2_CHAT_PATTERNS } from "./ko/chat";
 
 type Listener = () => void;
 
@@ -112,6 +113,9 @@ const LANGUAGE_PACKS: Partial<Record<InterfaceLanguage, LanguagePack>> = {
             : `보관된 스레드 ${n}개를 삭제할까요?`;
         },
       ],
+      ...KO_V2_CHAT_PATTERNS,
+      // Generic Open/Close/Expand/Collapse/Edit <name> patterns stay last.
+      ...KO_V2_CHAT_GENERIC_PATTERNS,
     ],
   },
 };
