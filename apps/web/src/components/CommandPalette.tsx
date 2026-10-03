@@ -126,7 +126,6 @@ import {
 } from "../lib/projectPaths";
 import { onOpenCommandPalette } from "../commandPaletteBus";
 import { useChatFindStore } from "../chatFindStore";
-import { translate } from "../i18n/translate";
 import { isPreviewFocused } from "../lib/previewFocus";
 import { isTerminalFocused } from "../lib/terminalFocus";
 import {
