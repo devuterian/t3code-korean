@@ -40,6 +40,7 @@ import { getAgentLiveActivities, startAgentLiveActivity } from "./agentLiveActiv
 import { resolveCloudPublicConfig } from "../cloud/publicConfig";
 import { supportsAgentAwarenessPush } from "./capabilities";
 import { makeRelayDeviceRegistrationRequest, resolveApsEnvironment } from "./registrationPayload";
+import { translate } from "../../i18n/translate";
 
 const REMOTE_ACTIVITY_REGISTRATION_RETRY_MS = 15_000;
 
@@ -535,7 +536,7 @@ function armAgentAwarenessLiveActivityForLocalWorkNow(input: {
     const activity = startAgentLiveActivity(
       {
         title: "T3 Code",
-        subtitle: "Agent work in progress",
+        subtitle: translate("Agent work in progress"),
         activeCount: 1,
         updatedAt: nowIso,
         activities: [
@@ -546,7 +547,7 @@ function armAgentAwarenessLiveActivityForLocalWorkNow(input: {
             threadTitle: input.threadTitle,
             modelTitle: "",
             phase: "starting",
-            status: "Connecting",
+            status: translate("Connecting"),
             updatedAt: nowIso,
             deepLink: "/",
           },

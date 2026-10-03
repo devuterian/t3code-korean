@@ -19,6 +19,7 @@ import type {
   NativeReviewDiffCommentTarget,
 } from "./nativeReviewDiffAdapter";
 import type { ReviewSectionItem } from "./reviewModel";
+import { useTranslate } from "../../i18n/translate";
 
 interface PendingNativeCommentSelection extends NativeReviewDiffCommentTarget {
   readonly sectionId: string;
@@ -32,6 +33,7 @@ export function useReviewCommentSelectionController(input: {
   readonly selectedSection: ReviewSectionItem | null;
   readonly nativeReviewDiffData: NativeReviewDiffData;
 }) {
+  const t = useTranslate();
   const { environmentId, nativeReviewDiffData, selectedSection, threadId } = input;
   const navigation = useNavigation();
   const activeCommentTarget = useReviewCommentTarget();
@@ -79,7 +81,9 @@ export function useReviewCommentSelectionController(input: {
       activeCommentTarget.startIndex !== activeCommentTarget.endIndex
     ) {
       return {
-        title: `Comment on ${formatReviewSelectedRangeLabel(activeCommentTarget)}`,
+        title: t("Comment on {range}", {
+          range: formatReviewSelectedRangeLabel(activeCommentTarget),
+        }),
         onOpenComment: openReviewCommentSheet,
       };
     }
@@ -89,7 +93,7 @@ export function useReviewCommentSelectionController(input: {
       pendingNativeCommentSelection.sectionTitle === selectedSection?.title
     ) {
       return {
-        title: "Select range end",
+        title: t("Select range end"),
         onOpenComment: null,
       };
     }
@@ -100,6 +104,7 @@ export function useReviewCommentSelectionController(input: {
     openReviewCommentSheet,
     pendingNativeCommentSelection,
     selectedSection?.title,
+    t,
   ]);
 
   useEffect(() => {

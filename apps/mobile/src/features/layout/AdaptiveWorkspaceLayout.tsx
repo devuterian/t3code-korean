@@ -61,6 +61,7 @@ import { RenderErrorBoundary, RenderFailureView } from "../../components/RenderE
 import { WORKSPACE_PANE_TIMING } from "./workspace-pane-animation";
 import { WorkspaceInspectorPane } from "./workspace-inspector-pane";
 import { WorkspaceContentWidthContext } from "./workspace-content-width";
+import { translate } from "../../i18n/translate";
 
 interface AdaptiveWorkspaceContextValue {
   readonly layout: Layout;
@@ -585,8 +586,8 @@ function AdaptiveWorkspaceLayoutContent(
                   renderFallback={(fallback) => (
                     <RenderFailureView
                       {...fallback}
-                      title="The sidebar couldn't be displayed"
-                      exit={{ label: "Open settings", onPress: handleOpenSettings }}
+                      title={translate("The sidebar couldn't be displayed")}
+                      exit={{ label: translate("Open settings"), onPress: handleOpenSettings }}
                     />
                   )}
                 >

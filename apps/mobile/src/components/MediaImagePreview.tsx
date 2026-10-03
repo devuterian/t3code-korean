@@ -9,6 +9,7 @@ import { SymbolView } from "./AppSymbol";
 import type { ResolvedFilePreviewSource } from "./FilePreviewModal.types";
 import { MediaActionsMenu } from "./MediaActionsMenu";
 import { MediaSourceCaption } from "./MediaSourceCaption";
+import { useTranslate } from "../i18n/translate";
 
 type MediaImagePreviewProps = {
   readonly source: ResolvedFilePreviewSource;
@@ -19,18 +20,19 @@ const ImagePreviewContext = createContext<MediaImagePreviewProps | null>(null);
 
 function ImagePreviewHeader() {
   const props = useContext(ImagePreviewContext)!;
+  const t = useTranslate();
   const insets = useSafeAreaInsets();
   const mediaActions = useMediaActions(props.source.actionsSource, props.onRequestClose);
   return (
     <View className="bg-black/70" style={{ paddingTop: insets.top }}>
       <View className="flex-row items-center gap-2 px-3">
         <AppText className="flex-1 text-base text-white" numberOfLines={2}>
-          {props.source.name ?? "Image"}
+          {props.source.name ?? t("Image")}
         </AppText>
         <MediaActionsMenu media={mediaActions} inModal />
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Close image"
+          accessibilityLabel={t("Close image")}
           onPress={props.onRequestClose}
           className="min-h-11 min-w-11 items-center justify-center"
         >

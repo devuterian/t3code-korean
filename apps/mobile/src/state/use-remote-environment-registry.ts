@@ -16,6 +16,7 @@ import { environmentSession } from "./session";
 import { environmentCatalog } from "../connection/catalog";
 import { createRemoteEnvironmentProjectionAtoms } from "./remote-environment-projections";
 import { serverEnvironment } from "./server";
+import { translate } from "../i18n/translate";
 
 const connectionPairingUrlAtom = Atom.make("").pipe(
   Atom.keepAlive,
@@ -117,14 +118,16 @@ export function useRemoteConnections() {
       if (AsyncResult.isFailure(result)) {
         const error = Cause.squash(result.cause);
         const message =
-          error instanceof Error ? error.message : "Failed to pair with the environment.";
+          error instanceof Error
+            ? error.message
+            : translate("Failed to pair with the environment.");
         if (
           error !== null &&
           typeof error === "object" &&
           "reason" in error &&
           error.reason === "unsupported"
         ) {
-          Alert.alert("Client not supported", message);
+          Alert.alert(translate("Client not supported"), message);
         } else {
           setPendingConnectionError(message);
         }
@@ -162,7 +165,7 @@ export function useRemoteConnections() {
         return;
       }
       const remove = {
-        text: "Remove",
+        text: translate("Remove"),
         style: "destructive",
         onPress: () => {
           void controller.removeEnvironment(environmentId);
@@ -172,12 +175,15 @@ export function useRemoteConnections() {
       // and host space, so point to where it can be deregistered.
       if (environment.isRelayManaged) {
         Alert.alert(
-          "Remove from this device?",
-          `Forget ${environment.environmentLabel} and its cached threads on this device.\n\nIt stays on your T3 Connect account and keeps its host space. Deregister it under T3 Account → T3 Connect to free it.`,
+          translate("Remove from this device?"),
+          translate(
+            "Forget {name} and its cached threads on this device.\n\nIt stays on your T3 Connect account and keeps its host space. Deregister it under T3 Account → T3 Connect to free it.",
+            { name: environment.environmentLabel },
+          ),
           [
-            { text: "Cancel", style: "cancel" },
+            { text: translate("Cancel"), style: "cancel" },
             {
-              text: "Open T3 Account",
+              text: translate("Open T3 Account"),
               onPress: () => navigation.navigate("SettingsSheet", { screen: "SettingsAuth" }),
             },
             remove,
@@ -186,9 +192,12 @@ export function useRemoteConnections() {
         return;
       }
       Alert.alert(
-        "Remove from this device?",
-        `Forget ${environment.environmentLabel} and its cached threads on this device. Switch it off instead to keep it saved.`,
-        [{ text: "Cancel", style: "cancel" }, remove],
+        translate("Remove from this device?"),
+        translate(
+          "Forget {name} and its cached threads on this device. Switch it off instead to keep it saved.",
+          { name: environment.environmentLabel },
+        ),
+        [{ text: translate("Cancel"), style: "cancel" }, remove],
       );
     },
     [connectedEnvironments, controller, navigation],

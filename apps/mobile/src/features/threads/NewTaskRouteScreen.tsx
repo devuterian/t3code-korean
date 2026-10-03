@@ -30,6 +30,7 @@ import { useWorkspaceState } from "../../state/workspace";
 import { useAdaptiveWorkspaceLayout } from "../layout/AdaptiveWorkspaceLayout";
 import { useIncomingShare } from "../sharing/IncomingShareProvider";
 import { useNewTaskFlow } from "./new-task-flow-provider";
+import { translate, useTranslate } from "../../i18n/translate";
 import { filterProjectScopes, getProjectScopeSelectionTarget } from "./new-task-project-selection";
 
 type NewTaskRouteParams = {
@@ -98,6 +99,7 @@ function NewTaskHeader(props: {
   readonly searchText: string;
   readonly onSearchTextChange: (text: string) => void;
 }) {
+  const t = useTranslate();
   const navigation = useNavigation();
   const { layout } = useAdaptiveWorkspaceLayout();
   return (
@@ -106,7 +108,7 @@ function NewTaskHeader(props: {
       subtitle={props.subtitle ?? undefined}
       sidebar={false}
       backInSplitView={{
-        accessibilityLabel: "Go back",
+        accessibilityLabel: t("Go back"),
         icon: "chevron.left",
       }}
       options={{ headerBackVisible: !layout.usesSplitView }}
@@ -116,7 +118,7 @@ function NewTaskHeader(props: {
         props.canAddProject
           ? [
               {
-                accessibilityLabel: "Add project",
+                accessibilityLabel: t("Add project"),
                 icon: "plus",
                 onPress: () => navigation.dispatch(StackActions.push("AddProject")),
               },
@@ -126,13 +128,14 @@ function NewTaskHeader(props: {
       search={{
         value: props.searchText,
         onChangeText: props.onSearchTextChange,
-        placeholder: "Search projects",
+        placeholder: t("Search projects"),
       }}
     />
   );
 }
 
 export function NewTaskRouteScreen({ route }: StaticScreenProps<NewTaskRouteParams | undefined>) {
+  const t = useTranslate();
   const projects = useProjects();
   const [searchText, setSearchText] = useState("");
   const { projectScopes, selectedEnvironmentId, setProject } = useNewTaskFlow();
@@ -147,12 +150,20 @@ export function NewTaskRouteScreen({ route }: StaticScreenProps<NewTaskRoutePara
   const incomingShare = routeShareId ? getShare(routeShareId) : null;
   const incomingShareSubtitle = incomingShare
     ? incomingShare.attachments.length === 0
-      ? "Choose a project for what you shared"
+      ? t("Choose a project for what you shared")
       : incomingShare.attachments.length === 1
-        ? `Choose a project for the ${incomingShare.attachments[0]?.type === "image" ? "image" : "file"} you shared`
-        : `Choose a project for the ${incomingShare.attachments.length} ${incomingShare.attachments.every((attachment) => attachment.type === "image") ? "images" : "files"} you shared`
+        ? incomingShare.attachments[0]?.type === "image"
+          ? t("Choose a project for the image you shared")
+          : t("Choose a project for the file you shared")
+        : incomingShare.attachments.every((attachment) => attachment.type === "image")
+          ? t("Choose a project for the {count} images you shared", {
+              count: incomingShare.attachments.length,
+            })
+          : t("Choose a project for the {count} files you shared", {
+              count: incomingShare.attachments.length,
+            })
     : null;
-  const screenTitle = incomingShare ? "Start a task" : "Choose project";
+  const screenTitle = incomingShare ? t("Start a task") : t("Choose project");
   const projectEmptyState = deriveProjectEmptyState(catalogState);
   const serverConfigs = useServerConfigs();
   // Scratch projects are reached through the No project row, never as rows
@@ -199,10 +210,10 @@ export function NewTaskRouteScreen({ route }: StaticScreenProps<NewTaskRoutePara
         await releaseShareReservation(incomingShare.id, incomingShare.destination);
       } catch (error) {
         Alert.alert(
-          "Could not change project",
+          translate("Could not change project"),
           error instanceof Error
             ? error.message
-            : "The shared content reservation could not be updated.",
+            : translate("The shared content reservation could not be updated."),
         );
         return;
       }
@@ -374,15 +385,17 @@ export function NewTaskRouteScreen({ route }: StaticScreenProps<NewTaskRoutePara
                 <ActivityIndicator colorClassName="accent-icon-muted" />
               ) : null}
               <Text className="text-center text-lg font-t3-bold text-foreground">
-                {projectEmptyState.title}
+                {t(projectEmptyState.title)}
               </Text>
               <Text className="text-center text-sm leading-normal text-foreground-muted">
-                {projectEmptyState.detail}
+                {t(projectEmptyState.detail)}
               </Text>
               {Platform.OS === "android" ? (
                 <>
                   <MaterialButton
-                    label={catalogState.hasReadyEnvironment ? "Add new project" : "Add environment"}
+                    label={
+                      catalogState.hasReadyEnvironment ? t("Add new project") : t("Add environment")
+                    }
                     tone="primary"
                     onPress={() =>
                       catalogState.hasReadyEnvironment
@@ -392,7 +405,7 @@ export function NewTaskRouteScreen({ route }: StaticScreenProps<NewTaskRoutePara
                   />
                   {canStartScratch ? (
                     <MaterialButton
-                      label="Start without a project"
+                      label={t("Start without a project")}
                       tone="secondary"
                       onPress={() => void startScratch()}
                     />
@@ -404,7 +417,7 @@ export function NewTaskRouteScreen({ route }: StaticScreenProps<NewTaskRoutePara
                   onPress={() => navigation.navigate("ConnectionsNew")}
                 >
                   <Text className="text-sm font-t3-bold text-primary-foreground">
-                    Add environment
+                    {t("Add environment")}
                   </Text>
                 </Pressable>
               ) : (
@@ -414,7 +427,7 @@ export function NewTaskRouteScreen({ route }: StaticScreenProps<NewTaskRoutePara
                     onPress={() => navigation.dispatch(StackActions.push("AddProject"))}
                   >
                     <Text className="text-sm font-t3-bold text-primary-foreground">
-                      Add new project
+                      {t("Add new project")}
                     </Text>
                   </Pressable>
                   {canStartScratch ? (
@@ -423,7 +436,7 @@ export function NewTaskRouteScreen({ route }: StaticScreenProps<NewTaskRoutePara
                       onPress={() => void startScratch()}
                     >
                       <Text className="text-sm font-t3-bold text-foreground">
-                        Start without a project
+                        {t("Start without a project")}
                       </Text>
                     </Pressable>
                   ) : null}
@@ -433,10 +446,10 @@ export function NewTaskRouteScreen({ route }: StaticScreenProps<NewTaskRoutePara
           ) : visibleScopes.length === 0 ? (
             <View className="items-center gap-2 px-6 py-8">
               <Text className="text-center text-lg font-t3-bold text-foreground">
-                No matching projects
+                {t("No matching projects")}
               </Text>
               <Text className="text-center text-sm leading-normal text-foreground-muted">
-                Try a different project name or workspace path.
+                {t("Try a different project name or workspace path.")}
               </Text>
             </View>
           ) : (
@@ -462,7 +475,7 @@ export function NewTaskRouteScreen({ route }: StaticScreenProps<NewTaskRoutePara
                       title={scope.title}
                       subtitle={
                         hasMultipleProjects
-                          ? `${scope.projects.length} workspaces`
+                          ? t("{count} workspaces", { count: scope.projects.length })
                           : selectionTarget.workspaceRoot
                       }
                       disabled={reservedDestinationProject !== null}
@@ -512,7 +525,7 @@ export function NewTaskRouteScreen({ route }: StaticScreenProps<NewTaskRoutePara
                           numberOfLines={1}
                         >
                           {hasMultipleProjects
-                            ? `${scope.projects.length} workspaces`
+                            ? t("{count} workspaces", { count: scope.projects.length })
                             : selectionTarget.workspaceRoot}
                         </Text>
                       </View>

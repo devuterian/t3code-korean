@@ -2,6 +2,7 @@ import * as Notifications from "expo-notifications";
 import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
 import { Platform } from "react-native";
+import { translate } from "../../i18n/translate";
 
 export type NotificationPermissionResult =
   | { readonly type: "unsupported" }
@@ -42,7 +43,7 @@ export const requestAgentNotificationPermission: Effect.Effect<
     yield* Effect.tryPromise({
       try: () =>
         Notifications.setNotificationChannelAsync("agent-alerts", {
-          name: "Agent alerts",
+          name: translate("Agent alerts"),
           importance: Notifications.AndroidImportance.HIGH,
         }),
       catch: (cause) => new NotificationPermissionRequestError({ cause }),

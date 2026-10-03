@@ -4,11 +4,13 @@ import { useAppearancePreferences } from "../features/settings/appearance/Appear
 
 import { AppText as Text } from "./AppText";
 import { BrandMark } from "./BrandMark";
+import { useTranslate } from "../i18n/translate";
 
 export function LoadingScreen(props: {
   readonly message: string;
   readonly messagePlacement?: "above-spinner" | "below-spinner";
 }) {
+  const t = useTranslate();
   const { themeAppearance: colorScheme } = useAppearancePreferences();
   const insets = useSafeAreaInsets();
   const messagePlacement = props.messagePlacement ?? "below-spinner";
@@ -19,11 +21,11 @@ export function LoadingScreen(props: {
       <View className="flex-1 items-center justify-center gap-5 px-6">
         <BrandMark compact />
         {messagePlacement === "above-spinner" ? (
-          <Text className="font-t3-bold text-lg text-foreground">{props.message}</Text>
+          <Text className="font-t3-bold text-lg text-foreground">{t(props.message)}</Text>
         ) : null}
         <ActivityIndicator size="large" />
         {messagePlacement === "below-spinner" ? (
-          <Text className="font-t3-bold text-lg text-foreground">{props.message}</Text>
+          <Text className="font-t3-bold text-lg text-foreground">{t(props.message)}</Text>
         ) : null}
       </View>
     </View>

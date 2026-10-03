@@ -7,6 +7,8 @@ import * as Arr from "effect/Array";
 import { pipe } from "effect/Function";
 import * as Order from "effect/Order";
 
+import { translate } from "../../i18n/translate";
+
 export type ReviewSectionKind = "turn" | "working-tree" | "branch-range";
 
 const CHANGES_SECTION_ID = "git:branch-range";
@@ -96,15 +98,17 @@ export type ReviewParsedDiff =
     };
 
 function checkpointTitle(checkpoint: ThreadCheckpointSummary): string {
-  return `Turn ${checkpoint.checkpointTurnCount}`;
+  return translate("Turn {count}", { count: checkpoint.checkpointTurnCount });
 }
 
 function checkpointSubtitle(checkpoint: ThreadCheckpointSummary): string {
   const fileCount = checkpoint.files.length;
   if (checkpoint.status !== "ready") {
-    return `Diff ${checkpoint.status}`;
+    return translate("Diff {status}", { status: translate(checkpoint.status) });
   }
-  return `${fileCount} file${fileCount === 1 ? "" : "s"} changed`;
+  return fileCount === 1
+    ? translate("1 file changed")
+    : translate("{count} files changed", { count: fileCount });
 }
 
 function compareCheckpointTurnCountDescending(
@@ -124,12 +128,12 @@ const readyCheckpointOrder = Order.make<ThreadCheckpointSummary>(
 
 function gitSubtitle(section: ReviewDiffPreviewSource): string | null {
   if (section.kind === "working-tree") {
-    return UNCOMMITTED_SUBTITLE;
+    return translate(UNCOMMITTED_SUBTITLE);
   }
   if (section.baseRef) {
     return `${section.baseRef} ... ${section.headRef ?? "HEAD"}`;
   }
-  return "Base branch unavailable";
+  return translate("Base branch unavailable");
 }
 
 function stripTrailingNewline(value: string): string {
@@ -252,8 +256,8 @@ export function getReviewFilePreviewState(file: ReviewRenderableFile): ReviewFil
     return {
       kind: "suppressed",
       reason: "non-text",
-      title: "Non-text file",
-      message: "Diff preview is not available for this file format.",
+      title: translate("Non-text file"),
+      message: translate("Diff preview is not available for this file format."),
       actionLabel: null,
     };
   }
@@ -264,9 +268,9 @@ export function getReviewFilePreviewState(file: ReviewRenderableFile): ReviewFil
     return {
       kind: "suppressed",
       reason: "large",
-      title: "Large diff",
-      message: "Large diffs are not rendered by default.",
-      actionLabel: "Load diff",
+      title: translate("Large diff"),
+      message: translate("Large diffs are not rendered by default."),
+      actionLabel: translate("Load diff"),
     };
   }
 
@@ -435,7 +439,7 @@ export function buildReviewSectionItems(input: {
   const gitItems = input.gitSections.map<ReviewSectionItem>((section) => ({
     id: `git:${section.kind}`,
     kind: section.kind,
-    title: section.title,
+    title: translate(section.title),
     subtitle: gitSubtitle(section),
     diff: section.diff,
     source: section,
@@ -451,7 +455,7 @@ export function buildReviewSectionItems(input: {
           {
             id: CHANGES_SECTION_ID,
             kind: "branch-range",
-            title: CHANGES_TITLE,
+            title: translate(CHANGES_TITLE),
             subtitle: null,
             diff: null,
             isLoading: true,
@@ -485,7 +489,7 @@ export function buildReviewParsedDiff(
   }
 
   const notice = truncated
-    ? "Diff output hit the server size cap. Showing the available excerpt."
+    ? translate("Diff output hit the server size cap. Showing the available excerpt.")
     : null;
 
   try {
@@ -503,8 +507,10 @@ export function buildReviewParsedDiff(
         kind: "raw",
         text,
         reason: truncated
-          ? "Diff was truncated before it could be parsed completely. Showing the raw excerpt."
-          : "Unsupported diff format. Showing raw patch.",
+          ? translate(
+              "Diff was truncated before it could be parsed completely. Showing the raw excerpt.",
+            )
+          : translate("Unsupported diff format. Showing raw patch."),
         notice,
       };
     }
@@ -522,8 +528,10 @@ export function buildReviewParsedDiff(
       kind: "raw",
       text,
       reason: truncated
-        ? "Diff was truncated before it could be parsed completely. Showing the raw excerpt."
-        : "Failed to parse patch. Showing raw patch.",
+        ? translate(
+            "Diff was truncated before it could be parsed completely. Showing the raw excerpt.",
+          )
+        : translate("Failed to parse patch. Showing raw patch."),
       notice,
     };
   }
@@ -535,7 +543,11 @@ export function applyReviewDiffMetadata(
 ): ReviewParsedDiff {
   if (previewDiff.kind === "empty") return previewDiff;
   const notice = selectedSection?.truncated
-    ? `This preview exceeds the size limit. Changes shown are incomplete.${selectedSection.files ? " Counts include all changes." : ""}`
+    ? selectedSection.files
+      ? translate(
+          "This preview exceeds the size limit. Changes shown are incomplete. Counts include all changes.",
+        )
+      : translate("This preview exceeds the size limit. Changes shown are incomplete.")
     : previewDiff.notice;
   if (previewDiff.kind !== "files" || !selectedSection?.files) return { ...previewDiff, notice };
   const totals = selectedSection.files.reduce(
