@@ -9,9 +9,13 @@ import {
 import { defaultAnimateLayoutChanges, type AnimateLayoutChanges } from "@dnd-kit/sortable";
 import { threadSearchMatchKey } from "@t3tools/client-runtime/state/thread-search";
 import type { ContextMenuItem, EnvironmentId, ThreadId } from "@t3tools/contracts";
-import type { SidebarProjectSortOrder, SidebarThreadSortOrder } from "@t3tools/contracts/settings";
+import type {
+  ActiveThreadSortOrder,
+  SidebarProjectSortOrder,
+  SidebarThreadSortOrder,
+} from "@t3tools/contracts/settings";
 import type { AsyncResult } from "effect/unstable/reactivity";
-import { planPinnedReorder } from "@t3tools/client-runtime/state/thread-sort";
+import { planPinnedReorder, sortActiveThreads } from "@t3tools/client-runtime/state/thread-sort";
 import {
   effectiveSnoozed,
   type ThreadSnoozeShell,
@@ -1037,7 +1041,7 @@ export function firstValidTimestampMs(
   return 0;
 }
 
-export { sortActiveThreadsByOrderKey as sortThreadsForSidebar } from "@t3tools/client-runtime/state/thread-sort";
+export { sortActiveThreads as sortThreadsForSidebar } from "@t3tools/client-runtime/state/thread-sort";
 
 // Pinned-reorder key math and the keyed sort live in client-runtime
 // (state/thread-sort) so web and mobile compute identical pinned orders.
@@ -1147,6 +1151,31 @@ export function sortInboxThreadsByReturn<
       left.id.localeCompare(right.id) ||
       left.environmentId.localeCompare(right.environmentId),
   );
+}
+
+/** The inbox (active) order: an explicit "Last message" choice wins; otherwise
+    the Working beta orders by return time, else the configured arrangement. */
+export function sortSidebarInboxThreads<
+  T extends Pick<
+    SidebarThreadSummary,
+    | "id"
+    | "environmentId"
+    | "createdAt"
+    | "unsettledAt"
+    | "latestRun"
+    | "activeOrderKey"
+    | "latestUserMessageAt"
+  >,
+>(input: {
+  readonly threads: readonly T[];
+  readonly order: ActiveThreadSortOrder;
+  readonly workingShelfEnabled: boolean;
+  readonly observedReturnAt?: (thread: T) => number | undefined;
+}): T[] {
+  if (input.order !== "last_message" && input.workingShelfEnabled) {
+    return sortInboxThreadsByReturn(input.threads, input.observedReturnAt);
+  }
+  return sortActiveThreads(input.threads, input.order);
 }
 
 /** The timestamp a working thread's elapsed label counts from: when its

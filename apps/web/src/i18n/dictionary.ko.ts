@@ -1290,7 +1290,7 @@ const KO_BASE_DICTIONARY: Readonly<Record<string, string>> = {
   // Sidebar sort menu
   "Sort threads": "스레드 정렬",
   "Sort active threads": "활성 스레드 정렬",
-  "Configured order": "설정한 순서",
+  "Configured order": "지정한 순서",
   "Last message": "마지막 메시지",
   "Thread order not saved": "스레드 순서가 저장되지 않았습니다",
   "Could not save to all environments. Try again.":
