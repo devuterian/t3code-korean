@@ -116,7 +116,10 @@ html[data-mobile-composer-route-transition="true"]::view-transition-old(t3-mobil
   --workspace-titlebar-control-size: 1.75rem;
   --workspace-titlebar-control-gap: 0.75rem;
   --workspace-titlebar-scroll-fade-height: 1.5rem;
-  --chat-content-max-width: 46rem;
+  /* The Chat width setting picks the base; the thread width control can widen
+     the cap past it per device (see useThreadWidth). */
+  --chat-content-base-width: 46rem;
+  --chat-content-max-width: var(--chat-content-base-width);
   --thread-details-panel-width: 19.5rem;
   /* The prompt on phones: iOS zooms into any input under 16px on focus. */
   --font-size-prompt-touch: max(var(--font-size-prompt, 1rem), 16px);
@@ -1731,7 +1734,22 @@ code {
   background: var(--app-scrollbar-thumb-hover);
 }
 
-/* Chat markdown rendering */
+/* Conversation text, scoped to the thread timeline. Tailwind's text-*
+   utilities read these tokens, so overriding them resizes conversation text
+   while spacing stays on the interface rem. Without a conversation size the
+   tokens resolve to their defaults and text follows the interface size. */
+.conversation-text {
+  --conversation-text: var(--font-size-conversation, 1rem);
+  --text-xs: calc(var(--conversation-text) * 0.75);
+  --text-sm: calc(var(--conversation-text) * 0.875);
+  --text-base: var(--conversation-text);
+  --text-lg: calc(var(--conversation-text) * 1.125);
+  --text-xl: calc(var(--conversation-text) * 1.25);
+  font-size: var(--conversation-text);
+}
+
+/* Chat markdown rendering. Rem sizes go through --conversation-text so they
+   track the conversation size inside the timeline and 1rem elsewhere. */
 
 .chat-markdown > :first-child {
   margin-top: 0;
@@ -1763,21 +1781,21 @@ code {
 }
 
 .chat-markdown h1 {
-  font-size: 1.25rem;
+  font-size: calc(var(--conversation-text, 1rem) * 1.25);
 }
 
 .chat-markdown h2 {
-  font-size: 1.125rem;
+  font-size: calc(var(--conversation-text, 1rem) * 1.125);
 }
 
 .chat-markdown h3 {
-  font-size: 1rem;
+  font-size: var(--conversation-text, 1rem);
 }
 
 .chat-markdown h4,
 .chat-markdown h5,
 .chat-markdown h6 {
-  font-size: 0.875rem;
+  font-size: calc(var(--conversation-text, 1rem) * 0.875);
 }
 
 .chat-markdown h6 {
@@ -1872,7 +1890,7 @@ code {
   border-top: 1px solid var(--contrast-border);
   padding-top: 0.75rem;
   color: var(--contrast-muted-foreground);
-  font-size: 0.75rem;
+  font-size: calc(var(--conversation-text, 1rem) * 0.75);
 }
 
 .chat-markdown section[data-footnotes] ol {
@@ -1891,7 +1909,7 @@ code {
   justify-content: center;
   border-radius: 0.25rem;
   text-decoration: none;
-  font-size: 0.6875rem;
+  font-size: calc(var(--conversation-text, 1rem) * 0.6875);
   font-weight: 600;
 }
 
@@ -1901,7 +1919,7 @@ code {
   background: var(--muted);
   padding: 0.1rem 0.35rem;
   color: var(--contrast-foreground);
-  font-size: 0.75rem;
+  font-size: calc(var(--conversation-text, 1rem) * 0.75);
 }
 
 .chat-markdown pre {
@@ -1977,7 +1995,7 @@ code {
   border-collapse: collapse;
   overflow-wrap: normal;
   word-break: normal;
-  font-size: 0.75rem;
+  font-size: calc(var(--conversation-text, 1rem) * 0.75);
 }
 
 .chat-markdown th,
@@ -2012,6 +2030,26 @@ code {
   overflow-wrap: anywhere;
 }
 
+/* Fit the available pane, but retain horizontal scrolling when there are too
+   many columns to read comfortably. The legacy cell expansion state is kept
+   intact underneath, so switching Fit tables off restores it. */
+.chat-markdown .chat-markdown-table-container[data-fit="true"] table {
+  table-layout: fixed;
+  min-width: calc(var(--table-column-count, 1) * 7.5rem);
+}
+
+.chat-markdown .chat-markdown-table-container[data-fit="true"] :is(th, td) {
+  /* Legacy expansion writes inline min-widths to headers. */
+  min-width: 0 !important;
+  max-width: none;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  overflow: visible;
+  text-overflow: clip;
+  vertical-align: top;
+}
+
 :root {
   --diff-addition: var(--success);
   --diff-deletion: var(--destructive);
@@ -2022,11 +2060,11 @@ code {
 /* Chat width setting. Comfortable keeps the default --chat-content-max-width,
    which sizes the timeline lane, the composer, and ChatCanvas's width probe. */
 :root[data-chat-width="wide"] {
-  --chat-content-max-width: 72rem;
+  --chat-content-base-width: 72rem;
 }
 
 :root[data-chat-width="full"] {
-  --chat-content-max-width: 100%;
+  --chat-content-base-width: 100%;
 }
 
 :root[data-diff-color-scheme="blue-orange"] {

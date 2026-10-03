@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test"
 const state = vi.hoisted(() => ({
   mode: "off" as ClientSettings["notificationMode"],
   inApp: true,
+  autoSwitch: "off" as ClientSettings["threadAutoSwitchMode"],
   active: { environmentId: "env-1", threadId: "other-thread" },
   focused: true,
   visible: "visible",
@@ -21,6 +22,7 @@ const state = vi.hoisted(() => ({
   limited: false,
   subagent: false,
   background: [] as Array<{ taskId: string; kind: "command" | "monitor" }>,
+  extraThreads: [] as Array<Record<string, unknown>>,
   add: vi.fn(
     (_toast: { title: string; description: string; actionProps: { onClick: () => void } }) =>
       "toast-1",
@@ -90,7 +92,12 @@ function mockThreadShell() {
 vi.mock("@effect/atom-react", () => ({
   useAtomValue: () => ({
     status: state.live ? "live" : "disconnected",
-    snapshot: Option.some({ threads: [mockThreadShell()] }),
+    snapshot: Option.some({
+      threads: [
+        mockThreadShell(),
+        ...state.extraThreads.map((overrides) => ({ ...mockThreadShell(), ...overrides })),
+      ],
+    }),
   }),
 }));
 vi.mock("@tanstack/react-router", () => ({
@@ -100,9 +107,17 @@ vi.mock("@tanstack/react-router", () => ({
 vi.mock("../hooks/useSettings", () => ({
   useClientSettings: (
     select: (
-      settings: Pick<ClientSettings, "notificationMode" | "inAppNotificationsEnabled">,
+      settings: Pick<
+        ClientSettings,
+        "notificationMode" | "inAppNotificationsEnabled" | "threadAutoSwitchMode"
+      >,
     ) => unknown,
-  ) => select({ notificationMode: state.mode, inAppNotificationsEnabled: state.inApp }),
+  ) =>
+    select({
+      notificationMode: state.mode,
+      inAppNotificationsEnabled: state.inApp,
+      threadAutoSwitchMode: state.autoSwitch,
+    }),
   getClientSettings: () => ({ notificationMode: state.mode }),
 }));
 vi.mock("../state/environments", () => ({
@@ -141,6 +156,7 @@ beforeEach(() => {
   Object.assign(state, {
     mode: "off",
     inApp: true,
+    autoSwitch: "off",
     active: { environmentId: "env-1", threadId: "other-thread" },
     focused: true,
     visible: "visible",
@@ -154,6 +170,7 @@ beforeEach(() => {
     limited: false,
     subagent: false,
     background: [],
+    extraThreads: [],
   });
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
   vi.stubGlobal("window", new EventTarget());
@@ -322,5 +339,116 @@ describe("thread notifications", () => {
       tag: "env-1:thread-1",
       silent: true,
     });
+  });
+
+  it("does not switch threads when auto-switch is off", async () => {
+    await render();
+    await complete();
+    expect(state.navigate).not.toHaveBeenCalled();
+    expect(state.add).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(["attention", "attention-or-done"] as const)(
+    "switches to a thread that needs input when auto-switch is %s",
+    async (autoSwitch) => {
+      state.autoSwitch = autoSwitch;
+      state.mode = "notifications-and-sound";
+      await render();
+      state.input = true;
+      await render();
+      expect(state.navigate).toHaveBeenCalledWith({
+        to: "/$environmentId/$threadId",
+        params: { environmentId: "env-1", threadId: "thread-1" },
+      });
+      expect(state.add).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(["attention", "attention-or-done"] as const)(
+    "switches on completion only when auto-switch is %s",
+    async (autoSwitch) => {
+      state.autoSwitch = autoSwitch;
+      await render();
+      await complete();
+      expect(state.navigate).toHaveBeenCalledTimes(autoSwitch === "attention" ? 0 : 1);
+      if (autoSwitch === "attention") expect(state.add).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it.each(["hidden", "blurred", "active"] as const)(
+    "does not switch for a %s window or the thread already on screen",
+    async (condition) => {
+      state.autoSwitch = "attention-or-done";
+      await render();
+      if (condition === "hidden") state.visible = "hidden";
+      if (condition === "blurred") state.focused = false;
+      if (condition === "active") state.active.threadId = "thread-1";
+      await complete();
+      expect(state.navigate).not.toHaveBeenCalled();
+    },
+  );
+
+  it("does not replay an auto-switch after navigating away", async () => {
+    state.autoSwitch = "attention";
+    await render();
+    state.approval = true;
+    await render();
+    state.approval = false;
+    await render();
+    expect(state.navigate).toHaveBeenCalledTimes(1);
+  });
+
+  it("still switches when all notifications are off", async () => {
+    state.autoSwitch = "attention-or-done";
+    state.mode = "off";
+    state.inApp = false;
+    await render();
+    await complete();
+    expect(state.navigate).toHaveBeenCalledTimes(1);
+    expect(state.sound).not.toHaveBeenCalled();
+    expect(state.add).not.toHaveBeenCalled();
+  });
+
+  it("keeps the configured sound when auto-switching", async () => {
+    state.autoSwitch = "attention";
+    state.mode = "sound";
+    await render();
+    state.approval = true;
+    await render();
+    expect(state.navigate).toHaveBeenCalledTimes(1);
+    expect(state.sound).toHaveBeenCalledWith("input", expect.any(Function));
+    expect(state.add).not.toHaveBeenCalled();
+  });
+
+  it("switches at most once per snapshot and toasts later matches", async () => {
+    state.autoSwitch = "attention";
+    state.mode = "off";
+    state.inApp = true;
+    state.extraThreads = [
+      {
+        id: "thread-2",
+        title: "Second thread",
+        latestRunId: "run-2",
+        lineage: { rootThreadId: "thread-2", parentThreadId: null, relationshipToParent: null },
+        status: "running",
+        lastErrorClass: null,
+        pendingRuntimeRequest: null,
+        latestRunCompletedAt: undefined,
+      },
+    ];
+    await render();
+    state.input = true;
+    state.extraThreads = state.extraThreads.map((thread) => ({
+      ...thread,
+      pendingRuntimeRequest: { id: "request-2", kind: "command", createdAt: SHELL_NOW },
+    }));
+    await render();
+    expect(state.navigate).toHaveBeenCalledTimes(1);
+    expect(state.navigate).toHaveBeenCalledWith({
+      to: "/$environmentId/$threadId",
+      params: { environmentId: "env-1", threadId: "thread-1" },
+    });
+    expect(state.add).toHaveBeenCalledTimes(1);
+    expect(state.add).toHaveBeenCalledWith(expect.objectContaining({ title: "Approval needed" }));
   });
 });

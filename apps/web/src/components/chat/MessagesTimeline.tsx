@@ -1101,13 +1101,12 @@ export const MessagesTimeline = memo(function MessagesTimeline({
       return;
     }
 
+    const contentElement =
+      timelineViewportElement.querySelector<HTMLElement>("[data-timeline-root]");
     const measure = () => {
       const viewportWidth = timelineViewportElement.getBoundingClientRect().width;
       // Without a mounted row, treat the column as full width so the strip stays inert.
-      const contentWidth =
-        timelineViewportElement
-          .querySelector<HTMLElement>("[data-timeline-root]")
-          ?.getBoundingClientRect().width ?? viewportWidth;
+      const contentWidth = contentElement?.getBoundingClientRect().width ?? viewportWidth;
       const nextHasPersistentGutter = resolveTimelineMinimapHasPersistentGutter(
         viewportWidth,
         contentWidth,
@@ -1123,12 +1122,17 @@ export const MessagesTimeline = memo(function MessagesTimeline({
 
     const observer = new ResizeObserver(measure);
     observer.observe(timelineViewportElement);
+    if (contentElement) {
+      // Width can change without resizing the viewport when the header control
+      // or the Appearance setting changes the shared content-column cap.
+      observer.observe(contentElement);
+    }
 
     return () => {
       cancelAnimationFrame(frame);
       observer.disconnect();
     };
-  }, [timelineViewportElement, rows.length, reportContentOverflow, chatWidth]);
+  }, [timelineViewportElement, rows.length, listIdentityKey, reportContentOverflow, chatWidth]);
 
   const sharedState = useMemo<TimelineRowSharedState>(
     () => ({
@@ -1306,7 +1310,7 @@ export const MessagesTimeline = memo(function MessagesTimeline({
       <TimelineRowActivityCtx value={activityState}>
         <div
           ref={setTimelineViewportElement}
-          className="relative h-full min-h-0"
+          className="conversation-text relative h-full min-h-0"
           data-assistant-citation-viewport="true"
         >
           {onCiteAssistantText && citationThreadRef ? (
@@ -3394,7 +3398,7 @@ function WorkingTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "workin
   );
   return (
     <div className="border-b border-border/60 pb-2 pt-1">
-      <div className="flex h-6 min-w-0 items-baseline gap-2 px-1 text-sm leading-relaxed text-muted-foreground tabular-nums">
+      <div className="flex min-h-6 min-w-0 items-baseline gap-2 px-1 text-sm leading-relaxed text-muted-foreground tabular-nums">
         <span
           ref={shimmer ? observeVisibleAnimation : undefined}
           className="relative shrink-0 overflow-hidden whitespace-nowrap"

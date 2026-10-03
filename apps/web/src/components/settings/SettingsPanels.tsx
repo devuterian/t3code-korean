@@ -1,17 +1,27 @@
 import { SettingsGroup } from "./SettingsGroup";
 import { Spinner } from "~/components/ui/spinner";
 import { NotificationSettings } from "./NotificationSettings";
-import { ArchiveIcon, ArchiveX, CheckIcon, ChevronRightIcon, SettingsIcon } from "lucide-react";
+import {
+  ArchiveIcon,
+  ArchiveX,
+  CheckIcon,
+  ChevronRightIcon,
+  EllipsisIcon,
+  SettingsIcon,
+  Trash2Icon,
+} from "lucide-react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import type { CSSProperties, ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   type BackgroundActivityProfile,
   type DesktopUpdateChannel,
+  type EnvironmentId,
   ProviderDriverKind,
   type ProviderInstanceId,
   type ScopedThreadRef,
   type SidebarProjectGroupingMode,
+  type ThreadId,
 } from "@t3tools/contracts";
 import { scopeThreadRef } from "@t3tools/client-runtime/environment";
 import { presentThreadShell } from "@t3tools/client-runtime/state/shell";
@@ -46,6 +56,7 @@ import {
   type QuitConfirmationMode,
   SidebarProjectSortOrder,
   INTERFACE_LANGUAGE_LABELS,
+  type ThreadAutoSwitchMode,
 } from "@t3tools/contracts/settings";
 import { resolveServerBackgroundActivitySettings } from "@t3tools/shared/backgroundActivitySettings";
 import { createModelSelection } from "@t3tools/shared/model";
@@ -102,6 +113,8 @@ import { EMPTY_SERVER_PROVIDERS } from "../../state/server";
 import { useArchivedThreadSnapshots } from "../../lib/archivedThreadsState";
 import { formatRelativeTimeLabel } from "../../timestampFormat";
 import { Button } from "../ui/button";
+import { Menu, MenuItem, MenuPopup, MenuTrigger } from "../ui/menu";
+import { useTranslate } from "../../i18n/translate";
 import { Collapsible, CollapsiblePanel, CollapsibleTrigger } from "../ui/collapsible";
 import {
   Dialog,
@@ -206,6 +219,12 @@ const CHAT_WIDTH_LABELS: Record<ChatWidth, string> = {
 const DIFF_LAYOUT_LABELS: Record<DiffLayout, string> = {
   stacked: "Stacked",
   split: "Split",
+};
+
+const THREAD_AUTO_SWITCH_MODE_LABELS: Record<ThreadAutoSwitchMode, string> = {
+  off: "Off",
+  attention: "Needs input or failed",
+  "attention-or-done": "Needs input, failed, or done",
 };
 
 const QUIT_CONFIRMATION_MODE_LABELS: Record<QuitConfirmationMode, string> = {
@@ -555,6 +574,9 @@ export function useSettingsRestore(onRestored?: () => void) {
       ...(settings.inAppNotificationsEnabled !== DEFAULT_UNIFIED_SETTINGS.inAppNotificationsEnabled
         ? ["In-app notifications"]
         : []),
+      ...(settings.threadAutoSwitchMode !== DEFAULT_UNIFIED_SETTINGS.threadAutoSwitchMode
+        ? ["Thread auto-switch"]
+        : []),
       ...(settings.sidebarThreadPreviewCount !== DEFAULT_UNIFIED_SETTINGS.sidebarThreadPreviewCount
         ? ["Visible threads"]
         : []),
@@ -689,6 +711,7 @@ export function useSettingsRestore(onRestored?: () => void) {
       settings.fontFamilySans,
       settings.fontFamilyTerminal,
       settings.fontSizeCode,
+      settings.fontSizeConversation,
       settings.fontSizeInterface,
       settings.fontSizePrompt,
       settings.fontSizeTerminal,
@@ -710,6 +733,7 @@ export function useSettingsRestore(onRestored?: () => void) {
       settings.timestampFormat,
       settings.notificationMode,
       settings.inAppNotificationsEnabled,
+      settings.threadAutoSwitchMode,
       settings.wordWrap,
       followSystem,
       theme,
@@ -786,6 +810,7 @@ export function useSettingsRestore(onRestored?: () => void) {
       timestampFormat: DEFAULT_UNIFIED_SETTINGS.timestampFormat,
       notificationMode: DEFAULT_UNIFIED_SETTINGS.notificationMode,
       inAppNotificationsEnabled: DEFAULT_UNIFIED_SETTINGS.inAppNotificationsEnabled,
+      threadAutoSwitchMode: DEFAULT_UNIFIED_SETTINGS.threadAutoSwitchMode,
       wordWrap: DEFAULT_UNIFIED_SETTINGS.wordWrap,
       persistComposerContextStrip: DEFAULT_UNIFIED_SETTINGS.persistComposerContextStrip,
       diffFilesCollapsed: DEFAULT_UNIFIED_SETTINGS.diffFilesCollapsed,
@@ -829,6 +854,7 @@ export function useSettingsRestore(onRestored?: () => void) {
       fontFamilyCode: DEFAULT_UNIFIED_SETTINGS.fontFamilyCode,
       fontFamilyTerminal: DEFAULT_UNIFIED_SETTINGS.fontFamilyTerminal,
       fontSizeInterface: DEFAULT_UNIFIED_SETTINGS.fontSizeInterface,
+      fontSizeConversation: DEFAULT_UNIFIED_SETTINGS.fontSizeConversation,
       fontSizePrompt: DEFAULT_UNIFIED_SETTINGS.fontSizePrompt,
       fontSizeCode: DEFAULT_UNIFIED_SETTINGS.fontSizeCode,
       fontSizeTerminal: DEFAULT_UNIFIED_SETTINGS.fontSizeTerminal,
@@ -1555,6 +1581,73 @@ function InterfaceFontRow({ preview }: { preview?: ReactNode }) {
   );
 }
 
+/** Conversation text size; "Auto" (null) keeps it on the interface size. */
+function ConversationFontSizeRow() {
+  const t = useTranslate();
+  const settings = useScopedSettings();
+  const updateSettings = useUpdateScopedSettings();
+  const value = settings.fontSizeConversation;
+  return (
+    <SettingsRow
+      {...searchableSetting("conversation-font-size")}
+      title="Conversation size"
+      description="Messages in a thread. Auto follows the interface size."
+      resetAction={
+        value !== DEFAULT_UNIFIED_SETTINGS.fontSizeConversation ? (
+          <SettingResetButton
+            label="conversation size"
+            onClick={() =>
+              updateSettings({
+                fontSizeConversation: DEFAULT_UNIFIED_SETTINGS.fontSizeConversation,
+              })
+            }
+          />
+        ) : null
+      }
+      control={
+        <Select
+          value={value === null ? "auto" : String(value)}
+          onValueChange={(next) => {
+            if (next === "auto") {
+              updateSettings({ fontSizeConversation: null });
+              return;
+            }
+            const parsed = Number(next);
+            if (
+              Number.isInteger(parsed) &&
+              parsed >= MIN_INTERFACE_FONT_SIZE &&
+              parsed <= MAX_INTERFACE_FONT_SIZE
+            ) {
+              updateSettings({ fontSizeConversation: parsed });
+            }
+          }}
+        >
+          <SelectTrigger
+            size="sm"
+            className="w-22 shrink-0"
+            aria-label={t("Conversation font size")}
+          >
+            <SelectValue>{value === null ? t("Auto") : `${value} px`}</SelectValue>
+          </SelectTrigger>
+          <SelectPopup align="end" alignItemWithTrigger={false}>
+            <SelectItem hideIndicator value="auto">
+              {t("Auto")} ({settings.fontSizeInterface} px)
+            </SelectItem>
+            {Array.from(
+              { length: MAX_INTERFACE_FONT_SIZE - MIN_INTERFACE_FONT_SIZE + 1 },
+              (_, index) => MIN_INTERFACE_FONT_SIZE + index,
+            ).map((px) => (
+              <SelectItem hideIndicator key={px} value={String(px)}>
+                {px} px
+              </SelectItem>
+            ))}
+          </SelectPopup>
+        </Select>
+      }
+    />
+  );
+}
+
 function PromptFontRow() {
   const settings = useScopedSettings();
   const updateSettings = useUpdateScopedSettings();
@@ -1727,6 +1820,7 @@ function FontSettingsGroup() {
   return (
     <>
       <InterfaceFontRow />
+      <ConversationFontSizeRow />
       <PromptFontRow />
       <CodeFontRow />
       <TerminalFontRow />
@@ -1745,6 +1839,7 @@ function SimpleFontRows() {
   return (
     <>
       <InterfaceFontRow preview={<PromptFontPreview />} />
+      <ConversationFontSizeRow />
       <CodeFontRow
         title="Monospace font"
         description="Code blocks, diffs, file previews, and the terminal."
@@ -2160,6 +2255,7 @@ function LegacyFeaturesSection() {
 }
 
 export function GeneralSettingsPanel() {
+  const t = useTranslate();
   const modifierLabel = isMacPlatform(navigator.platform) ? "⌘" : "Ctrl";
   const sendShortcutOptions = [
     { value: "enter", label: "Enter" },
@@ -2479,6 +2575,49 @@ export function GeneralSettingsPanel() {
               onCheckedChange={(checked) => updateSettings({ inAppNotificationsEnabled: checked })}
               aria-label="In-app notifications"
             />
+          }
+        />
+        <SettingsRow
+          {...searchableSetting("thread-auto-switch")}
+          description="Switch to a background thread that needs input or approval, fails, or (optionally) finishes, while this window is focused."
+          resetAction={
+            settings.threadAutoSwitchMode !== DEFAULT_UNIFIED_SETTINGS.threadAutoSwitchMode ? (
+              <SettingResetButton
+                label="thread auto-switch"
+                onClick={() =>
+                  updateSettings({
+                    threadAutoSwitchMode: DEFAULT_UNIFIED_SETTINGS.threadAutoSwitchMode,
+                  })
+                }
+              />
+            ) : null
+          }
+          control={
+            <Select
+              value={settings.threadAutoSwitchMode}
+              onValueChange={(value) => {
+                if (value === "off" || value === "attention" || value === "attention-or-done") {
+                  updateSettings({ threadAutoSwitchMode: value });
+                }
+              }}
+            >
+              <SelectTrigger
+                size="sm"
+                className="w-full sm:w-40"
+                aria-label={t("Thread auto-switch")}
+              >
+                <SelectValue>
+                  {t(THREAD_AUTO_SWITCH_MODE_LABELS[settings.threadAutoSwitchMode])}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectPopup align="end" alignItemWithTrigger={false}>
+                {Object.entries(THREAD_AUTO_SWITCH_MODE_LABELS).map(([value, label]) => (
+                  <SelectItem key={value} hideIndicator value={value}>
+                    {t(label)}
+                  </SelectItem>
+                ))}
+              </SelectPopup>
+            </Select>
           }
         />
         <SettingsRow
@@ -3419,7 +3558,10 @@ export function GeneralSettingsPanel() {
 
 export function ArchivedThreadsPanel() {
   const { scope } = useSettingsScope();
-  const { unarchiveThread, confirmAndDeleteThread } = useThreadActions();
+  const t = useTranslate();
+  const { unarchiveThread, unarchiveThreads, confirmAndDeleteThread, deleteArchivedThreads } =
+    useThreadActions();
+  const [isBulkActionPending, setIsBulkActionPending] = useState(false);
   const {
     snapshots: archivedSnapshots,
     error: archiveError,
@@ -3523,8 +3665,102 @@ export function ArchivedThreadsPanel() {
     [confirmAndDeleteThread, refreshArchivedThreads, unarchiveThread],
   );
 
+  const archivedThreadCount = useMemo(
+    () => archivedGroups.reduce((count, group) => count + group.threads.length, 0),
+    [archivedGroups],
+  );
+
+  /** Unarchives or deletes every listed thread; `scopeLabel` names the set in the delete prompt. */
+  const handleBulkArchivedThreadAction = useCallback(
+    async (
+      action: "unarchive" | "delete",
+      threads: ReadonlyArray<{ readonly environmentId: EnvironmentId; readonly id: ThreadId }>,
+      scopeLabel: string,
+    ) => {
+      if (threads.length === 0) return;
+      if (action === "delete") {
+        const api = readLocalApi();
+        if (!api) return;
+        // Always confirm: one click here can erase many threads at once.
+        const confirmed = await settlePromise(() =>
+          api.dialogs.confirm(
+            [
+              t(
+                `Delete ${threads.length} archived thread${threads.length === 1 ? "" : "s"}${scopeLabel}?`,
+              ),
+              t("This permanently clears conversation history for these threads."),
+            ].join("\n"),
+            { variant: "destructive" },
+          ),
+        );
+        if (confirmed._tag === "Failure" || !confirmed.value) return;
+      }
+      setIsBulkActionPending(true);
+      const targets = threads.map((thread) => scopeThreadRef(thread.environmentId, thread.id));
+      const failure = await (action === "unarchive"
+        ? unarchiveThreads(targets)
+        : deleteArchivedThreads(targets));
+      setIsBulkActionPending(false);
+      if (failure !== null) {
+        const error = squashAtomCommandFailure(failure);
+        toastManager.add(
+          stackedThreadToast({
+            type: "error",
+            title:
+              action === "unarchive"
+                ? t("Failed to unarchive threads")
+                : t("Failed to delete threads"),
+            description: error instanceof Error ? error.message : t("An error occurred."),
+          }),
+        );
+      }
+    },
+    [deleteArchivedThreads, t, unarchiveThreads],
+  );
+
   return (
     <SettingsPageContainer>
+      {archivedGroups.length > 0 ? (
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-3 sm:px-4">
+          <p className="text-sm text-muted-foreground">
+            {t(`${archivedThreadCount} archived thread${archivedThreadCount === 1 ? "" : "s"}`)}
+          </p>
+          <div className="flex items-center gap-1.5">
+            <Button
+              type="button"
+              variant="outline"
+              size="xs"
+              disabled={isBulkActionPending}
+              onClick={() => {
+                void handleBulkArchivedThreadAction(
+                  "unarchive",
+                  archivedGroups.flatMap((group) => group.threads),
+                  "",
+                );
+              }}
+            >
+              <ArchiveX className="size-3.5" />
+              <span>{t("Unarchive all")}</span>
+            </Button>
+            <Button
+              type="button"
+              variant="destructive-outline"
+              size="xs"
+              disabled={isBulkActionPending}
+              onClick={() => {
+                void handleBulkArchivedThreadAction(
+                  "delete",
+                  archivedGroups.flatMap((group) => group.threads),
+                  archivedGroups.length === 1 ? ` in ${archivedGroups[0]!.project.title}` : "",
+                );
+              }}
+            >
+              <Trash2Icon className="size-3.5" />
+              <span>{t("Delete all")}</span>
+            </Button>
+          </div>
+        </div>
+      ) : null}
       {archivedGroups.length === 0 ? (
         <SettingsSection
           id={isLoadingArchive ? undefined : searchableSetting("archive").id}
@@ -3559,6 +3795,46 @@ export function ArchivedThreadsPanel() {
             id={index === 0 ? searchableSetting("archive").id : undefined}
             title={project.title}
             icon={<ProjectFavicon project={project} />}
+            headerAction={
+              <Menu>
+                <MenuTrigger
+                  render={
+                    <Button
+                      type="button"
+                      variant="ghost-muted"
+                      size="icon-xs"
+                      disabled={isBulkActionPending}
+                      aria-label={t(`Archived thread actions for ${project.title}`)}
+                    />
+                  }
+                >
+                  <EllipsisIcon className="size-3.5" />
+                </MenuTrigger>
+                <MenuPopup align="end">
+                  <MenuItem
+                    onClick={() => {
+                      void handleBulkArchivedThreadAction("unarchive", projectThreads, "");
+                    }}
+                  >
+                    <ArchiveX />
+                    {t("Unarchive all in project")}
+                  </MenuItem>
+                  <MenuItem
+                    variant="destructive"
+                    onClick={() => {
+                      void handleBulkArchivedThreadAction(
+                        "delete",
+                        projectThreads,
+                        ` in ${project.title}`,
+                      );
+                    }}
+                  >
+                    <Trash2Icon />
+                    {t("Delete all in project")}
+                  </MenuItem>
+                </MenuPopup>
+              </Menu>
+            }
           >
             {projectThreads.map((thread) => (
               <SettingsRow

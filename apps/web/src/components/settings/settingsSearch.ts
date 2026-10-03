@@ -239,6 +239,12 @@ export const SETTINGS_SEARCH_ITEMS = [
     searchTerms: ["typography family size system sans"],
   },
   {
+    id: "conversation-font-size",
+    title: "Conversation size",
+    to: "/settings/appearance",
+    searchTerms: ["typography font size chat messages thread text"],
+  },
+  {
     id: "prompt-font",
     title: "Prompt font",
     to: "/settings/appearance",
@@ -346,6 +352,12 @@ export const SETTINGS_SEARCH_ITEMS = [
     title: "Interface language",
     to: "/settings/general",
     searchTerms: ["language locale english korean chinese 한국어 언어 menu ui translation"],
+  },
+  {
+    id: "thread-auto-switch",
+    title: "Thread auto-switch",
+    to: "/settings/general",
+    searchTerms: ["automatically switch focus jump thread input approval failed done multitasking"],
   },
   {
     id: "time-format",

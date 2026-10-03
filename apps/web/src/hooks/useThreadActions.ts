@@ -4,7 +4,12 @@ import {
   scopeThreadRef,
   scopedThreadKey,
 } from "@t3tools/client-runtime/environment";
-import { settlePromise, squashAtomCommandFailure } from "@t3tools/client-runtime/state/runtime";
+import {
+  type AtomCommandResult,
+  isAtomCommandInterrupted,
+  settlePromise,
+  squashAtomCommandFailure,
+} from "@t3tools/client-runtime/state/runtime";
 import { canSnooze, threadWokeAt } from "@t3tools/client-runtime/state/thread-settled";
 import { threadRuntimeCanArchive } from "@t3tools/client-runtime/state/models";
 import { EnvironmentId, type ScopedThreadRef, ThreadId } from "@t3tools/contracts";
@@ -243,6 +248,30 @@ export function useAcknowledgeThreadWoke() {
   );
 }
 
+/**
+ * Runs one command per archived thread in order, then refreshes each reached
+ * environment's archive once instead of once per thread. Stops at the first
+ * interruption and reports the first failure.
+ */
+export async function runArchivedThreadBatch(
+  targets: readonly ScopedThreadRef[],
+  run: (target: ScopedThreadRef) => Promise<AtomCommandResult<unknown, unknown>>,
+) {
+  let firstFailure: AsyncResult.Failure<unknown, unknown> | null = null;
+  const reachedEnvironmentIds = new Set<EnvironmentId>();
+  for (const target of targets) {
+    reachedEnvironmentIds.add(target.environmentId);
+    const result = await run(target);
+    if (result._tag === "Success") continue;
+    if (isAtomCommandInterrupted(result)) break;
+    firstFailure ??= result;
+  }
+  for (const environmentId of reachedEnvironmentIds) {
+    refreshArchivedThreadsForEnvironment(environmentId);
+  }
+  return firstFailure;
+}
+
 export function useThreadActions() {
   const closeTerminal = useAtomCommand(terminalEnvironment.close);
   const archiveThreadMutation = useAtomCommand(threadEnvironment.archive, {
@@ -344,6 +373,31 @@ export function useThreadActions() {
       return result;
     },
     [router, unarchiveThreadMutation],
+  );
+
+  const unarchiveThreads = useCallback(
+    (targets: readonly ScopedThreadRef[]) =>
+      runArchivedThreadBatch(targets, (target) => {
+        ThreadUndo.invalidate("archive", scopedThreadKey(target));
+        return unarchiveThreadMutation({
+          environmentId: target.environmentId,
+          input: { threadId: target.threadId },
+        });
+      }),
+    [unarchiveThreadMutation],
+  );
+
+  // Archived threads have no live session, worktree prompt, or route to leave;
+  // the server's deletion reactor stops leftover sessions and terminals.
+  const deleteArchivedThreads = useCallback(
+    (targets: readonly ScopedThreadRef[]) =>
+      runArchivedThreadBatch(targets, (target) =>
+        deleteThreadMutation({
+          environmentId: target.environmentId,
+          input: { threadId: target.threadId },
+        }),
+      ),
+    [deleteThreadMutation],
   );
 
   const archiveThread = useCallback(
@@ -961,7 +1015,9 @@ export function useThreadActions() {
     () => ({
       archiveThread,
       unarchiveThread,
+      unarchiveThreads,
       deleteThread,
+      deleteArchivedThreads,
       confirmAndDeleteThread,
       settleThread,
       unsettleThread,
@@ -979,6 +1035,7 @@ export function useThreadActions() {
       archiveThread,
       confirmAndDeleteThread,
       confirmAndUnpinThread,
+      deleteArchivedThreads,
       deleteThread,
       markThreadUnread,
       pinThread,
@@ -988,6 +1045,7 @@ export function useThreadActions() {
       settleThread,
       snoozeThread,
       unarchiveThread,
+      unarchiveThreads,
       unpinThread,
       unsettleThread,
       unsnoozeThread,
