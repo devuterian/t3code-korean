@@ -24,6 +24,7 @@ import { toastManager } from "~/components/ui/toast";
 import { useCopyToClipboard } from "~/hooks/useCopyToClipboard";
 import { useClientSettings, useUpdateClientSettings } from "~/hooks/useSettings";
 import { cn } from "~/lib/utils";
+import { translate, useTranslate } from "~/i18n/translate";
 
 import { AudioPreview } from "./AudioPreview";
 import { BrowserDocumentFrame } from "./BrowserDocumentFrame";
@@ -72,6 +73,7 @@ export function AttachmentFilePreview(props: {
   onRemove?: () => void;
   onClose?: () => void;
 }) {
+  const t = useTranslate();
   const kind = filePreviewKind(props);
   const delimiter = filePreviewDelimiter(props);
   const renderedMode =
@@ -219,8 +221,8 @@ export function AttachmentFilePreview(props: {
       } catch (cause) {
         toastManager.add({
           type: "error",
-          title: "Could not save file",
-          description: cause instanceof Error ? cause.message : "Please try again.",
+          title: translate("Could not save file"),
+          description: cause instanceof Error ? cause.message : translate("Please try again."),
         });
       } finally {
         setSaving(false);
@@ -276,10 +278,11 @@ export function AttachmentFilePreview(props: {
     </div>
   ) : (
     <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-1 px-6 text-center">
-      <p className="text-sm font-medium">No preview for this file</p>
+      <p className="text-sm font-medium">{t("No preview for this file")}</p>
       <p className="max-w-sm text-xs leading-relaxed text-muted-foreground">
-        Save it to open in an app that supports {props.name.split(".").at(-1) || "this format"}{" "}
-        files.
+        {t(
+          `Save it to open in an app that supports ${props.name.split(".").at(-1) || t("this format")} files.`,
+        )}
       </p>
     </div>
   );
@@ -289,7 +292,7 @@ export function AttachmentFilePreview(props: {
       <div className={cn(FILE_SURFACE_SUBHEADER_CLASS)} data-surface-subheader>
         <div className="flex min-w-0 flex-1 items-center text-xs">
           <span className="shrink-0 px-0.5 text-muted-foreground">
-            {props.origin ?? "Attachment"}
+            {t(props.origin ?? "Attachment")}
           </span>
           <ChevronRightIcon className="mx-1 size-3.5 shrink-0 text-muted-foreground/60" />
           <span aria-current="page" className="min-w-0 truncate px-0.5 font-medium text-foreground">
@@ -353,8 +356,9 @@ export function AttachmentFilePreview(props: {
       </div>
       {content?.truncated ? (
         <FileSurfaceNotice>
-          Preview limited to the first 1 MB of a {props.sizeBytes.toLocaleString()} byte file. Save
-          the file to read it in full.
+          {t(
+            `Preview limited to the first 1 MB of a ${props.sizeBytes.toLocaleString()} byte file. Save the file to read it in full.`,
+          )}
         </FileSurfaceNotice>
       ) : null}
       {body}

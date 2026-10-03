@@ -3,6 +3,7 @@ import { useMemo, useState, type ReactNode } from "react";
 
 import { useActiveProjectTarget, type ActiveProjectTarget } from "~/hooks/useActiveProjectTarget";
 import { useTheme } from "~/hooks/useTheme";
+import { useTranslate } from "~/i18n/translate";
 import { useRightPanelStore } from "~/rightPanelStore";
 import { primaryServerKeybindingsAtom } from "~/state/server";
 
@@ -51,24 +52,26 @@ function getEmptyStateMessage(query: string, error: string | null, isPending: bo
 }
 
 function EmptyProjectFilePicker() {
+  const t = useTranslate();
   return (
     <CommandPaletteContent
-      aria-label="File picker"
-      escapeLabel="Back"
-      footerActionLabel="Open file"
-      inputProps={{ disabled: true, placeholder: "Search files…" }}
+      aria-label={t("File picker")}
+      escapeLabel={t("Back")}
+      footerActionLabel={t("Open file")}
+      inputProps={{ disabled: true, placeholder: t("Search files…") }}
       mode="none"
       testId="project-file-picker"
       value=""
     >
       <div className="py-10 text-center text-sm text-muted-foreground">
-        Open a project to search its files.
+        {t("Open a project to search its files.")}
       </div>
     </CommandPaletteContent>
   );
 }
 
 function OpenProjectFilePicker(props: ProjectFilePickerProps & { target: ActiveProjectTarget }) {
+  const t = useTranslate();
   const { target } = props;
   const [query, setQuery] = useState("");
   const [highlightedItemValue, setHighlightedItemValue] = useState<string | null>(null);
@@ -117,11 +120,11 @@ function OpenProjectFilePicker(props: ProjectFilePickerProps & { target: ActiveP
 
   return (
     <CommandPaletteContent
-      aria-label="File picker"
+      aria-label={t("File picker")}
       autoHighlight="always"
-      escapeLabel="Back"
-      footerActionLabel="Open file"
-      inputProps={{ placeholder: "Search files…" }}
+      escapeLabel={t("Back")}
+      footerActionLabel={t("Open file")}
+      inputProps={{ placeholder: t("Search files…") }}
       mode="none"
       onItemHighlighted={(value) => {
         setHighlightedItemValue(typeof value === "string" ? value : null);
@@ -146,7 +149,7 @@ function OpenProjectFilePicker(props: ProjectFilePickerProps & { target: ActiveP
           props.setOpen(false);
           void item.run();
         }}
-        emptyStateMessage={emptyStateMessage}
+        emptyStateMessage={t(emptyStateMessage)}
       />
     </CommandPaletteContent>
   );

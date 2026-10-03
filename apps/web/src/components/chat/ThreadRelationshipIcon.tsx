@@ -2,8 +2,13 @@ import type { ProviderDriverKind, ServerProvider } from "@t3tools/contracts";
 import { BotIcon, type LucideIcon } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { ProviderInstanceIcon } from "./ProviderInstanceIcon";
+import { translate } from "~/i18n/translate";
 
 export function threadRelationshipStatusLabel(status: string | null): string {
+  return translate(threadRelationshipStatusSource(status));
+}
+
+function threadRelationshipStatusSource(status: string | null): string {
   switch (status) {
     case "preparing":
     case "starting":

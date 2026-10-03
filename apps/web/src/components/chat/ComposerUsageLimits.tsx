@@ -2,6 +2,7 @@ import type { EnvironmentId, UsageLimitsReport } from "@t3tools/contracts";
 import { limitsNotice } from "@t3tools/shared/usageLimits";
 import { GaugeIcon } from "lucide-react";
 
+import { translate, useTranslate } from "~/i18n/translate";
 import { ensureLocalApi } from "../../localApi";
 import { Button } from "../ui/button";
 import { getDriverOption } from "../settings/providerDriverMeta";
@@ -24,6 +25,7 @@ function accountLabel(account: UsageLimitsReport["accounts"][number]): string {
 }
 
 function AccountSummary({ account }: { readonly account: UsageLimitsReport["accounts"][number] }) {
+  const t = useTranslate();
   const label = accountLabel(account);
   return (
     <>
@@ -31,9 +33,9 @@ function AccountSummary({ account }: { readonly account: UsageLimitsReport["acco
         <RedactedSensitiveText
           key={label}
           value={label}
-          ariaLabel="Toggle account label visibility"
-          revealTooltip="Click to reveal account"
-          hideTooltip="Click to hide account"
+          ariaLabel={t("Toggle account label visibility")}
+          revealTooltip={t("Click to reveal account")}
+          hideTooltip={t("Click to hide account")}
           className="max-w-full truncate align-bottom font-sans text-xs leading-normal"
         />
       ) : (
@@ -56,16 +58,16 @@ export function usageLimitsBannerItem(
   const summary = single ? (
     <AccountSummary account={single} />
   ) : (
-    `${report.accounts.length} accounts`
+    translate(`${report.accounts.length} accounts`)
   );
   return {
     id,
     variant: "info",
     priority: "notice",
     icon: <GaugeIcon />,
-    title: "Usage limits",
+    title: translate("Usage limits"),
     description: summary,
-    dismissLabel: "Dismiss usage limits",
+    dismissLabel: translate("Dismiss usage limits"),
     onDismiss,
     children: <UsageLimitsBannerBody report={report} environmentId={environmentId} />,
   };
@@ -78,6 +80,7 @@ function UsageLimitsBannerBody({
   readonly report: UsageLimitsReport;
   readonly environmentId: EnvironmentId;
 }) {
+  const t = useTranslate();
   const now = Date.parse(report.createdAt);
   return (
     <ComposerBanner.Scroll>
@@ -96,7 +99,7 @@ function UsageLimitsBannerBody({
                 </span>
               ) : null}
               {notice ? (
-                <span className="text-xs text-muted-foreground">{notice}</span>
+                <span className="text-xs text-muted-foreground">{t(notice)}</span>
               ) : (
                 <LimitWindows
                   compact
@@ -112,7 +115,7 @@ function UsageLimitsBannerBody({
                   className="self-start"
                   onClick={() => void ensureLocalApi().shell.openExternal(externalUsage.url)}
                 >
-                  Manage usage
+                  {t("Manage usage")}
                 </Button>
               ) : null}
               {resetCreditInput && account.limits.resetCredits ? (
@@ -128,7 +131,7 @@ function UsageLimitsBannerBody({
         })}
         {report.notices.map((notice) => (
           <span key={notice} className="text-xs text-muted-foreground">
-            {notice}
+            {t(notice)}
           </span>
         ))}
       </ComposerBanner.Body>

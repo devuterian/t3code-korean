@@ -3,6 +3,7 @@ import {
   type CodexFeedbackSubmission,
 } from "@t3tools/client-runtime/state/threads";
 import { MessageSquareIcon } from "lucide-react";
+import { translate } from "~/i18n/translate";
 
 import { writeTextToClipboard } from "../../hooks/useCopyToClipboard";
 import { Button } from "../ui/button";
@@ -22,6 +23,8 @@ export function feedbackBannerItem(
     priority: submission.status === "uploading" ? "activity" : "notice",
     icon: <MessageSquareIcon />,
     ...notice,
+    title: translate(notice.title),
+    description: notice.description === undefined ? undefined : translate(notice.description),
     actions:
       submission.status === "sent" ? (
         <Button
@@ -32,18 +35,19 @@ export function feedbackBannerItem(
               (error: unknown) => {
                 toastManager.add({
                   type: "error",
-                  title: "Could not copy thread ID",
-                  description: error instanceof Error ? error.message : "An error occurred.",
+                  title: translate("Could not copy thread ID"),
+                  description:
+                    error instanceof Error ? error.message : translate("An error occurred."),
                 });
               },
             );
           }}
         >
-          Copy ID
+          {translate("Copy ID")}
         </Button>
       ) : undefined,
     ...(submission.status !== "uploading"
-      ? { dismissLabel: "Dismiss feedback notice", onDismiss }
+      ? { dismissLabel: translate("Dismiss feedback notice"), onDismiss }
       : {}),
   };
 }

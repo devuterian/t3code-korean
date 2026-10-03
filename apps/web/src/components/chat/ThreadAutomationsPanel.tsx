@@ -22,6 +22,7 @@ import {
   THREAD_DETAILS_PANEL_ICON_CLASS,
   THREAD_DETAILS_PANEL_ROW_CONTENT_CLASS,
 } from "./threadDetailsPanelStyles";
+import { useTranslate } from "~/i18n/translate";
 
 const STATUS_DOT_CLASS: Record<ScheduledTask["lastRunStatus"], string> = {
   never: "bg-muted-foreground/40",
@@ -40,6 +41,7 @@ export function ThreadAutomationsPanel(props: {
   readonly environmentId: EnvironmentId;
   readonly threadId: ThreadId;
 }) {
+  const t = useTranslate();
   const tasksQuery = useEnvironmentQuery(
     serverEnvironment.scheduledTasksLive({ environmentId: props.environmentId, input: {} }),
   );
@@ -81,7 +83,7 @@ export function ThreadAutomationsPanel(props: {
     });
     setBusyTaskId(null);
     if (result._tag === "Failure" && !isAtomCommandInterrupted(result)) {
-      reportFailure("Could not update automation", squashAtomCommandFailure(result));
+      reportFailure(t("Could not update automation"), squashAtomCommandFailure(result));
     }
   };
 
@@ -94,14 +96,14 @@ export function ThreadAutomationsPanel(props: {
     });
     setBusyTaskId(null);
     if (result._tag === "Failure" && !isAtomCommandInterrupted(result)) {
-      reportFailure("Could not run automation", squashAtomCommandFailure(result));
+      reportFailure(t("Could not run automation"), squashAtomCommandFailure(result));
     }
   };
 
   return (
     <ThreadDetailsSection
       headingId="thread-details-automations-heading"
-      title="Automations"
+      title={t("Automations")}
       data-thread-automations-panel
       actions={
         <Tooltip>
@@ -111,7 +113,7 @@ export function ThreadAutomationsPanel(props: {
                 size="icon-xs"
                 variant="ghost"
                 part="icon"
-                aria-label="Manage scheduled tasks"
+                aria-label={t("Manage scheduled tasks")}
                 onClick={() =>
                   void navigate({
                     to: "/settings/scheduled-tasks",
@@ -123,13 +125,13 @@ export function ThreadAutomationsPanel(props: {
               </ThreadDetailsControl>
             }
           />
-          <TooltipPopup>Manage scheduled tasks</TooltipPopup>
+          <TooltipPopup>{t("Manage scheduled tasks")}</TooltipPopup>
         </Tooltip>
       }
     >
       {tasksQuery.error !== null ? (
         <p className="px-2.5 py-1.5 text-2xs text-destructive">
-          Could not load automations: {tasksQuery.error}
+          {t("Could not load automations:")} {tasksQuery.error}
         </p>
       ) : null}
 
@@ -159,10 +161,10 @@ export function ThreadAutomationsPanel(props: {
               <p className="truncate text-2xs text-muted-foreground">
                 {scheduleLabel(task.schedule)}
                 {task.enabled && task.nextRunAt !== null
-                  ? ` · next ${relativeLabel(task.nextRunAt)}`
+                  ? ` · ${t("next")} ${relativeLabel(task.nextRunAt)}`
                   : task.enabled
                     ? ""
-                    : " · paused"}
+                    : ` · ${t("paused")}`}
               </p>
             </div>
             <Tooltip>
@@ -172,7 +174,7 @@ export function ThreadAutomationsPanel(props: {
                     size="icon-xs"
                     variant="ghost"
                     part="icon"
-                    aria-label={`Edit ${task.title}`}
+                    aria-label={t(`Edit ${task.title}`)}
                     onClick={() =>
                       void navigate({
                         to: "/settings/scheduled-tasks",
@@ -184,7 +186,7 @@ export function ThreadAutomationsPanel(props: {
                   </ThreadDetailsControl>
                 }
               />
-              <TooltipPopup>Edit automation</TooltipPopup>
+              <TooltipPopup>{t("Edit automation")}</TooltipPopup>
             </Tooltip>
             <Tooltip>
               <TooltipTrigger
@@ -193,7 +195,7 @@ export function ThreadAutomationsPanel(props: {
                     size="icon-xs"
                     variant="ghost"
                     part="icon"
-                    aria-label={`Run ${task.title} now`}
+                    aria-label={t(`Run ${task.title} now`)}
                     disabled={busyTaskId !== null || task.lastRunStatus === "running"}
                     onClick={() => void runNow(task)}
                   >
@@ -201,12 +203,12 @@ export function ThreadAutomationsPanel(props: {
                   </ThreadDetailsControl>
                 }
               />
-              <TooltipPopup>Run now</TooltipPopup>
+              <TooltipPopup>{t("Run now")}</TooltipPopup>
             </Tooltip>
             <Switch
               checked={task.enabled}
               disabled={busyTaskId !== null}
-              aria-label={task.enabled ? `Pause ${task.title}` : `Resume ${task.title}`}
+              aria-label={t(task.enabled ? `Pause ${task.title}` : `Resume ${task.title}`)}
               onCheckedChange={(enabled) => void toggleEnabled(task, enabled)}
             />
           </li>

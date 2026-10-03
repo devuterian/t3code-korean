@@ -3,6 +3,8 @@ import type { ServerUpdateState } from "@t3tools/client-runtime/state/server";
 import { CircleAlertIcon, DownloadIcon } from "lucide-react";
 import { useId, useState } from "react";
 
+import { useTranslate } from "~/i18n/translate";
+
 import { serverUpdateStageLabel } from "../ServerUpdateAction";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import { ComposerBanner } from "./ComposerBanner";
@@ -29,10 +31,11 @@ export function ComposerServerUpdateStatus({
   readonly state: Exclude<ServerUpdateState, { status: "idle" }>;
   readonly serverLabel?: string;
 }) {
+  const t = useTranslate();
   const [detailsOpen, setDetailsOpen] = useState(false);
   const triggerId = useId();
-  const title = `${state.status === "failed" ? "Could not update" : "Updating"} ${serverLabel}`;
-  const detail = state.status === "failed" ? state.message : serverUpdateStageLabel(state.stage);
+  const title = t(`${state.status === "failed" ? "Could not update" : "Updating"} ${serverLabel}`);
+  const detail = state.status === "failed" ? state.message : t(serverUpdateStageLabel(state.stage));
   return (
     <span
       role={state.status === "failed" ? "alert" : "status"}
