@@ -8,7 +8,6 @@ import { ActivityIndicator, Pressable, View } from "react-native";
 import { cn } from "../lib/cn";
 import { useTranslate } from "../i18n/translate";
 import { AppText as Text } from "./AppText";
-import { useTranslate } from "../i18n/translate";
 
 /**
  * Live state of the clone that backs a freshly added project, shown above
@@ -23,7 +22,6 @@ export function ProjectCloneBanner(props: {
 }) {
   const t = useTranslate();
   const { clone } = props;
-  const t = useTranslate();
   const name = projectCloneDisplayName(clone);
   if (clone.phase === "running") {
     return (

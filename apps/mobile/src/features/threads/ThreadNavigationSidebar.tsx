@@ -25,7 +25,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { SearchBarCommands } from "react-native-screens";
 
 import { AppText as Text } from "../../components/AppText";
-import { useTranslate } from "../../i18n/translate";
 import { CompactBrandTitle } from "../../components/CompactBrandTitle";
 import { ControlPillMenu } from "../../components/ControlPill";
 import { SymbolView } from "../../components/AppSymbol";
@@ -329,7 +328,6 @@ function ThreadNavigationSidebarPane(
     titleRegenerationEnvironmentIds,
   } = listEnvironments;
   const resolveProviderInstance = useThreadRowProviderInstanceResolver(providersByEnvironmentId);
-  const t = useTranslate();
   const {
     order: activeThreadSortOrder,
     setOrder: setActiveThreadSortOrder,

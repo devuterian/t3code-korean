@@ -3,8 +3,6 @@ import type { ActiveThreadSortOrder } from "@t3tools/contracts/settings";
 import type { EnvironmentId } from "@t3tools/contracts";
 import { translate } from "../../i18n/translate";
 
-import { translate } from "../../i18n/translate";
-
 export interface HomeListFilterMenuEnvironment {
   readonly environmentId: EnvironmentId;
   readonly label: string;

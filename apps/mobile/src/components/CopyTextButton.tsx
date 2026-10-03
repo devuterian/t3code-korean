@@ -4,7 +4,6 @@ import { Alert, Pressable, type ColorValue } from "react-native";
 
 import { useTranslate } from "../i18n/translate";
 import { tryCopyTextWithHaptic } from "../lib/copyTextWithHaptic";
-import { useTranslate } from "../i18n/translate";
 
 const COPY_FEEDBACK_DURATION_MS = 1200;
 

@@ -114,7 +114,6 @@ import { useArchivedThreadSnapshots } from "../../lib/archivedThreadsState";
 import { formatRelativeTimeLabel } from "../../timestampFormat";
 import { Button } from "../ui/button";
 import { Menu, MenuItem, MenuPopup, MenuTrigger } from "../ui/menu";
-import { useTranslate } from "../../i18n/translate";
 import { Collapsible, CollapsiblePanel, CollapsibleTrigger } from "../ui/collapsible";
 import {
   Dialog,
@@ -3597,7 +3596,6 @@ export function GeneralSettingsPanel() {
 export function ArchivedThreadsPanel() {
   const t = useTranslate();
   const { scope } = useSettingsScope();
-  const t = useTranslate();
   const { unarchiveThread, unarchiveThreads, confirmAndDeleteThread, deleteArchivedThreads } =
     useThreadActions();
   const [isBulkActionPending, setIsBulkActionPending] = useState(false);

@@ -3,7 +3,6 @@ import { ACTIVE_THREAD_SORT_OPTIONS } from "@t3tools/client-runtime/state/shared
 import type { MenuAction } from "@react-native-menu/menu";
 import { useTranslate } from "../../i18n/translate";
 import { useCallback, useMemo } from "react";
-import { useTranslate } from "../../i18n/translate";
 import { NativeStackScreenOptions } from "../../native/StackHeader";
 import { MaterialThreadListToolbar } from "./MaterialThreadListToolbar";
 import type { HomeHeaderProps } from "./HomeHeader.types";

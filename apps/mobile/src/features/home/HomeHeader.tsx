@@ -3,7 +3,6 @@ import { ACTIVE_THREAD_SORT_OPTIONS } from "@t3tools/client-runtime/state/shared
 import { NativeHeaderToolbar, NativeStackScreenOptions } from "../../native/StackHeader";
 import { useTranslate } from "../../i18n/translate";
 import { useCallback, useRef } from "react";
-import { useTranslate } from "../../i18n/translate";
 import type { SearchBarCommands } from "react-native-screens";
 import { useUniwindTheme } from "../../lib/useUniwindTheme";
 import { useHardwareKeyboardCommand } from "../keyboard/hardwareKeyboardCommands";
