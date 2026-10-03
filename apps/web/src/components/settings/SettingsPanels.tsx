@@ -1,17 +1,27 @@
 import { SettingsGroup } from "./SettingsGroup";
 import { Spinner } from "~/components/ui/spinner";
 import { NotificationSettings } from "./NotificationSettings";
-import { ArchiveIcon, ArchiveX, CheckIcon, ChevronRightIcon, SettingsIcon } from "lucide-react";
+import {
+  ArchiveIcon,
+  ArchiveX,
+  CheckIcon,
+  ChevronRightIcon,
+  EllipsisIcon,
+  SettingsIcon,
+  Trash2Icon,
+} from "lucide-react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import type { CSSProperties, ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   type BackgroundActivityProfile,
   type DesktopUpdateChannel,
+  type EnvironmentId,
   ProviderDriverKind,
   type ProviderInstanceId,
   type ScopedThreadRef,
   type SidebarProjectGroupingMode,
+  type ThreadId,
 } from "@t3tools/contracts";
 import { scopeThreadRef } from "@t3tools/client-runtime/environment";
 import { presentThreadShell } from "@t3tools/client-runtime/state/shell";
@@ -102,6 +112,8 @@ import { EMPTY_SERVER_PROVIDERS } from "../../state/server";
 import { useArchivedThreadSnapshots } from "../../lib/archivedThreadsState";
 import { formatRelativeTimeLabel } from "../../timestampFormat";
 import { Button } from "../ui/button";
+import { Menu, MenuItem, MenuPopup, MenuTrigger } from "../ui/menu";
+import { useTranslate } from "../../i18n/translate";
 import { Collapsible, CollapsiblePanel, CollapsibleTrigger } from "../ui/collapsible";
 import {
   Dialog,
@@ -3419,7 +3431,10 @@ export function GeneralSettingsPanel() {
 
 export function ArchivedThreadsPanel() {
   const { scope } = useSettingsScope();
-  const { unarchiveThread, confirmAndDeleteThread } = useThreadActions();
+  const t = useTranslate();
+  const { unarchiveThread, unarchiveThreads, confirmAndDeleteThread, deleteArchivedThreads } =
+    useThreadActions();
+  const [isBulkActionPending, setIsBulkActionPending] = useState(false);
   const {
     snapshots: archivedSnapshots,
     error: archiveError,
@@ -3523,8 +3538,102 @@ export function ArchivedThreadsPanel() {
     [confirmAndDeleteThread, refreshArchivedThreads, unarchiveThread],
   );
 
+  const archivedThreadCount = useMemo(
+    () => archivedGroups.reduce((count, group) => count + group.threads.length, 0),
+    [archivedGroups],
+  );
+
+  /** Unarchives or deletes every listed thread; `scopeLabel` names the set in the delete prompt. */
+  const handleBulkArchivedThreadAction = useCallback(
+    async (
+      action: "unarchive" | "delete",
+      threads: ReadonlyArray<{ readonly environmentId: EnvironmentId; readonly id: ThreadId }>,
+      scopeLabel: string,
+    ) => {
+      if (threads.length === 0) return;
+      if (action === "delete") {
+        const api = readLocalApi();
+        if (!api) return;
+        // Always confirm: one click here can erase many threads at once.
+        const confirmed = await settlePromise(() =>
+          api.dialogs.confirm(
+            [
+              t(
+                `Delete ${threads.length} archived thread${threads.length === 1 ? "" : "s"}${scopeLabel}?`,
+              ),
+              t("This permanently clears conversation history for these threads."),
+            ].join("\n"),
+            { variant: "destructive" },
+          ),
+        );
+        if (confirmed._tag === "Failure" || !confirmed.value) return;
+      }
+      setIsBulkActionPending(true);
+      const targets = threads.map((thread) => scopeThreadRef(thread.environmentId, thread.id));
+      const failure = await (action === "unarchive"
+        ? unarchiveThreads(targets)
+        : deleteArchivedThreads(targets));
+      setIsBulkActionPending(false);
+      if (failure !== null) {
+        const error = squashAtomCommandFailure(failure);
+        toastManager.add(
+          stackedThreadToast({
+            type: "error",
+            title:
+              action === "unarchive"
+                ? t("Failed to unarchive threads")
+                : t("Failed to delete threads"),
+            description: error instanceof Error ? error.message : t("An error occurred."),
+          }),
+        );
+      }
+    },
+    [deleteArchivedThreads, t, unarchiveThreads],
+  );
+
   return (
     <SettingsPageContainer>
+      {archivedGroups.length > 0 ? (
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-3 sm:px-4">
+          <p className="text-sm text-muted-foreground">
+            {t(`${archivedThreadCount} archived thread${archivedThreadCount === 1 ? "" : "s"}`)}
+          </p>
+          <div className="flex items-center gap-1.5">
+            <Button
+              type="button"
+              variant="outline"
+              size="xs"
+              disabled={isBulkActionPending}
+              onClick={() => {
+                void handleBulkArchivedThreadAction(
+                  "unarchive",
+                  archivedGroups.flatMap((group) => group.threads),
+                  "",
+                );
+              }}
+            >
+              <ArchiveX className="size-3.5" />
+              <span>{t("Unarchive all")}</span>
+            </Button>
+            <Button
+              type="button"
+              variant="destructive-outline"
+              size="xs"
+              disabled={isBulkActionPending}
+              onClick={() => {
+                void handleBulkArchivedThreadAction(
+                  "delete",
+                  archivedGroups.flatMap((group) => group.threads),
+                  archivedGroups.length === 1 ? ` in ${archivedGroups[0]!.project.title}` : "",
+                );
+              }}
+            >
+              <Trash2Icon className="size-3.5" />
+              <span>{t("Delete all")}</span>
+            </Button>
+          </div>
+        </div>
+      ) : null}
       {archivedGroups.length === 0 ? (
         <SettingsSection
           id={isLoadingArchive ? undefined : searchableSetting("archive").id}
@@ -3559,6 +3668,46 @@ export function ArchivedThreadsPanel() {
             id={index === 0 ? searchableSetting("archive").id : undefined}
             title={project.title}
             icon={<ProjectFavicon project={project} />}
+            headerAction={
+              <Menu>
+                <MenuTrigger
+                  render={
+                    <Button
+                      type="button"
+                      variant="ghost-muted"
+                      size="icon-xs"
+                      disabled={isBulkActionPending}
+                      aria-label={t(`Archived thread actions for ${project.title}`)}
+                    />
+                  }
+                >
+                  <EllipsisIcon className="size-3.5" />
+                </MenuTrigger>
+                <MenuPopup align="end">
+                  <MenuItem
+                    onClick={() => {
+                      void handleBulkArchivedThreadAction("unarchive", projectThreads, "");
+                    }}
+                  >
+                    <ArchiveX />
+                    {t("Unarchive all in project")}
+                  </MenuItem>
+                  <MenuItem
+                    variant="destructive"
+                    onClick={() => {
+                      void handleBulkArchivedThreadAction(
+                        "delete",
+                        projectThreads,
+                        ` in ${project.title}`,
+                      );
+                    }}
+                  >
+                    <Trash2Icon />
+                    {t("Delete all in project")}
+                  </MenuItem>
+                </MenuPopup>
+              </Menu>
+            }
           >
             {projectThreads.map((thread) => (
               <SettingsRow
