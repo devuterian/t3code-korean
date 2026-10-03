@@ -1,4 +1,7 @@
+import { ACTIVE_THREAD_SORT_OPTIONS } from "@t3tools/client-runtime/state/shared-settings";
+import type { ActiveThreadSortOrder } from "@t3tools/contracts/settings";
 import type { EnvironmentId } from "@t3tools/contracts";
+import { translate } from "../../i18n/translate";
 
 export interface HomeListFilterMenuEnvironment {
   readonly environmentId: EnvironmentId;
@@ -29,6 +32,8 @@ export interface HomeListFilterMenu {
   readonly items: Array<HomeListFilterMenuAction | HomeListFilterMenuSubmenu>;
 }
 
+/** Builds the menu shared by native Home and sidebar headers. Shared sorting
+ * is offered only when a connected environment can persist the preference. */
 export function buildHomeListFilterMenu(props: {
   readonly environments: ReadonlyArray<HomeListFilterMenuEnvironment>;
   readonly projects: ReadonlyArray<HomeListFilterMenuProject>;
@@ -36,7 +41,14 @@ export function buildHomeListFilterMenu(props: {
   readonly selectedProjectKey: string | null;
   readonly onEnvironmentChange: (environmentId: EnvironmentId | null) => void;
   readonly onProjectChange: (projectKey: string | null) => void;
+  readonly activeThreadSort?: {
+    order: ActiveThreadSortOrder;
+    onChange: (order: ActiveThreadSortOrder) => void;
+  };
+  /** Language-bound translator from useTranslate, so memoized menus follow language changes. */
+  readonly t?: (source: string) => string;
 }): HomeListFilterMenu {
+  const t = props.t ?? ((source: string) => translate(source));
   const items: Array<HomeListFilterMenuAction | HomeListFilterMenuSubmenu> = [];
 
   items.push({
@@ -81,6 +93,20 @@ export function buildHomeListFilterMenu(props: {
           onPress: () => props.onProjectChange(project.key),
         })),
       ],
+    });
+  }
+
+  if (props.activeThreadSort) {
+    const sort = props.activeThreadSort;
+    items.push({
+      type: "submenu",
+      title: t("Sort active threads"),
+      items: ACTIVE_THREAD_SORT_OPTIONS.map((option) => ({
+        type: "action",
+        title: t(option.label),
+        state: sort.order === option.value ? "on" : "off",
+        onPress: () => sort.onChange(option.value),
+      })),
     });
   }
 

@@ -1,4 +1,7 @@
+import { useActiveThreadSort } from "../threads/use-active-thread-sort";
+import { ACTIVE_THREAD_SORT_OPTIONS } from "@t3tools/client-runtime/state/shared-settings";
 import { NativeHeaderToolbar, NativeStackScreenOptions } from "../../native/StackHeader";
+import { useTranslate } from "../../i18n/translate";
 import { useCallback, useRef } from "react";
 import type { SearchBarCommands } from "react-native-screens";
 import { useUniwindTheme } from "../../lib/useUniwindTheme";
@@ -13,20 +16,25 @@ import type { HomeHeaderProps } from "./HomeHeader.types";
 
 export type { HomeHeaderEnvironment } from "./HomeHeader.types";
 
+/** Keeps the native search toolbar and the older iOS toolbar on the same
+ * filter and sort choices, including the server-backed active-thread order. */
 export function HomeHeader(props: HomeHeaderProps) {
   const searchBarRef = useRef<SearchBarCommands>(null);
   const iconColor = useUniwindTheme()["--color-icon"];
-  // The list uses a fixed creation order and ignores sort/group options, so
-  // the filter menu only carries the filters and the "customized" icon state
-  // keys off those alone.
+  const t = useTranslate();
+  const { order, setOrder, available } = useActiveThreadSort();
   const hasCustomListOptions =
-    props.selectedEnvironmentId !== null || props.selectedProjectKey !== null;
+    props.selectedEnvironmentId !== null || props.selectedProjectKey !== null || order !== "manual";
   const focusSearch = useCallback(() => {
     searchBarRef.current?.focus();
     return searchBarRef.current !== null;
   }, []);
   useHardwareKeyboardCommand("focusSearch", focusSearch);
-  const filterMenu = buildHomeListFilterMenu(props);
+  const filterMenu = buildHomeListFilterMenu({
+    ...props,
+    ...(available ? { activeThreadSort: { order, onChange: setOrder } } : {}),
+    t,
+  });
 
   return (
     <>
@@ -135,6 +143,20 @@ export function HomeHeader(props: HomeHeaderProps) {
                     onPress={() => props.onProjectChange(project.key)}
                   >
                     <NativeHeaderToolbar.Label>{project.label}</NativeHeaderToolbar.Label>
+                  </NativeHeaderToolbar.MenuAction>
+                ))}
+              </NativeHeaderToolbar.Menu>
+            ) : null}
+            {available ? (
+              <NativeHeaderToolbar.Menu title={t("Sort active threads")}>
+                <NativeHeaderToolbar.Label>{t("Sort active threads")}</NativeHeaderToolbar.Label>
+                {ACTIVE_THREAD_SORT_OPTIONS.map((option) => (
+                  <NativeHeaderToolbar.MenuAction
+                    key={option.value}
+                    isOn={order === option.value}
+                    onPress={() => setOrder(option.value)}
+                  >
+                    <NativeHeaderToolbar.Label>{t(option.label)}</NativeHeaderToolbar.Label>
                   </NativeHeaderToolbar.MenuAction>
                 ))}
               </NativeHeaderToolbar.Menu>

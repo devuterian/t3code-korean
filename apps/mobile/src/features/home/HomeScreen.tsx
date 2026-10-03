@@ -1,4 +1,5 @@
 import { useAndroidControlSizing } from "../../components/useAndroidControlSizing";
+import { useActiveThreadSort } from "../threads/use-active-thread-sort";
 import type { ThreadMoveDestination } from "../threads/threadOrder";
 import { computeThreadMoveAvailability } from "../threads/threadOrder";
 import { LegendList, type LegendListRef } from "@legendapp/list/react-native";
@@ -219,6 +220,8 @@ function HomeTopContentSpacer() {
 
 /* ─── Main screen ────────────────────────────────────────────────────── */
 
+/** Home thread list, including scoped search and parked-thread shelves.
+ * Message sorting changes only active rows and suppresses manual move plans. */
 export function HomeScreen(props: HomeScreenProps) {
   const queuedThreadKeys = useQueuedThreadKeys();
   const openSwipeableRef = useRef<SwipeableMethods | null>(null);
@@ -498,6 +501,7 @@ export function HomeScreen(props: HomeScreenProps) {
     titleRegenerationEnvironmentIds,
   } = listEnvironments;
   const resolveProviderInstance = useThreadRowProviderInstanceResolver(providersByEnvironmentId);
+  const { order: activeThreadSortOrder } = useActiveThreadSort();
   const pendingOrder = usePendingThreadOrder(nowMinute, snoozeWakeTick);
   // Up/down menu availability for every card, computed once per section per
   // rebuild (see computeThreadMoveAvailability): per-thread planner calls made
@@ -509,8 +513,13 @@ export function HomeScreen(props: HomeScreenProps) {
         section,
         pendingOrder,
         reorderableEnvironmentIds:
-          section === "pinned" ? pinReorderEnvironmentIds : activeReorderEnvironmentIds,
+          section === "pinned"
+            ? pinReorderEnvironmentIds
+            : activeThreadSortOrder === "manual"
+              ? activeReorderEnvironmentIds
+              : new Set<EnvironmentId>(),
         ordered: getThreadListV2OrderedSection({
+          activeThreadSortOrder,
           threads: props.threads,
           section,
           pendingOrder,
@@ -522,6 +531,7 @@ export function HomeScreen(props: HomeScreenProps) {
       });
     return new Map([...sectionAvailability("pinned"), ...sectionAvailability("active")]);
   }, [
+    activeThreadSortOrder,
     pinReorderEnvironmentIds,
     activeReorderEnvironmentIds,
     props.threads,
@@ -536,6 +546,7 @@ export function HomeScreen(props: HomeScreenProps) {
     // Settled threads are live shells; archived threads keep their original
     // "hidden from lists" meaning.
     return buildThreadListV2Items({
+      activeThreadSortOrder,
       pendingOrder,
       threads: props.threads.filter((thread) => thread.archivedAt === null),
       environmentId: props.selectedEnvironmentId,
@@ -552,6 +563,7 @@ export function HomeScreen(props: HomeScreenProps) {
       selectedThreadKey: null,
     });
   }, [
+    activeThreadSortOrder,
     pendingOrder,
     queuedThreadKeys,
     nowMinute,
