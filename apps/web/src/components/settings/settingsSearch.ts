@@ -348,6 +348,12 @@ export const SETTINGS_SEARCH_ITEMS = [
     searchTerms: ["language locale english korean chinese 한국어 언어 menu ui translation"],
   },
   {
+    id: "thread-auto-switch",
+    title: "Thread auto-switch",
+    to: "/settings/general",
+    searchTerms: ["automatically switch focus jump thread input approval failed done multitasking"],
+  },
+  {
     id: "time-format",
     title: "Time format",
     to: "/settings/general",

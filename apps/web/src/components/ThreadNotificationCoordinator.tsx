@@ -30,6 +30,7 @@ export function ThreadNotificationCoordinator() {
   const inAppNotificationsEnabled = useClientSettings(
     (settings) => settings.inAppNotificationsEnabled,
   );
+  const autoSwitchMode = useClientSettings((settings) => settings.threadAutoSwitchMode);
   const pending = useRef(
     new Map<string, { environmentId: EnvironmentId; notification: Notification }>(),
   );
@@ -77,7 +78,7 @@ export function ThreadNotificationCoordinator() {
     };
   }, [mode]);
 
-  if (mode === "off" && !inAppNotificationsEnabled) return null;
+  if (mode === "off" && !inAppNotificationsEnabled && autoSwitchMode === "off") return null;
 
   return environmentIds.map((environmentId) => (
     <EnvironmentNotifications
@@ -100,6 +101,7 @@ function EnvironmentNotifications({
   const inAppNotificationsEnabled = useClientSettings(
     (settings) => settings.inAppNotificationsEnabled,
   );
+  const threadAutoSwitchMode = useClientSettings((settings) => settings.threadAutoSwitchMode);
   const navigate = useNavigate();
   const { environmentId: activeEnvironmentId, threadId: activeThreadId } = useParams({
     strict: false,
@@ -114,6 +116,7 @@ function EnvironmentNotifications({
       return;
     }
     const next = new Map<ThreadId, { attention: string | null; completion: number | null }>();
+    let autoSwitched = false;
     for (const rawThread of shell.snapshot.value.threads) {
       if (rawThread.lineage.relationshipToParent === "subagent") continue;
       const thread = presentThreadShell(environmentId, rawThread);
@@ -151,11 +154,31 @@ function EnvironmentNotifications({
               : status === "failed"
                 ? "Thread failed"
                 : "Input needed";
+      // Auto-switch covers only the focused-window case: in the background
+      // the OS notification is the attention signal, and switching a hidden
+      // window changes nothing the user can see. At most one switch per
+      // snapshot pass — later matches fall through to the toast flow.
+      const autoSwitch =
+        !autoSwitched &&
+        document.visibilityState === "visible" &&
+        document.hasFocus() &&
+        (activeEnvironmentId !== environmentId || activeThreadId !== thread.id) &&
+        (threadAutoSwitchMode === "attention"
+          ? kind === "input"
+          : threadAutoSwitchMode === "attention-or-done");
+      if (autoSwitch) {
+        autoSwitched = true;
+        void navigate({
+          to: "/$environmentId/$threadId",
+          params: { environmentId, threadId: thread.id },
+        });
+      }
       if (hasNotificationSound(mode)) {
         void playNotificationSound(kind, () =>
           hasNotificationSound(getClientSettings().notificationMode),
         );
       }
+      if (autoSwitch) continue;
       if (
         inAppNotificationsEnabled &&
         document.visibilityState === "visible" &&
@@ -228,6 +251,7 @@ function EnvironmentNotifications({
     navigate,
     onNotification,
     shell,
+    threadAutoSwitchMode,
   ]);
 
   return null;
