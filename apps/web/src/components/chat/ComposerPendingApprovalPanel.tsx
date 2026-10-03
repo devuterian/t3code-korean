@@ -1,5 +1,6 @@
 import { memo } from "react";
 import { type PendingApproval } from "../../session-logic";
+import { useTranslate } from "~/i18n/translate";
 import { cn } from "~/lib/utils";
 
 interface ComposerPendingApprovalPanelProps {
@@ -13,27 +14,28 @@ export const ComposerPendingApprovalPanel = memo(function ComposerPendingApprova
   pendingCount,
   className,
 }: ComposerPendingApprovalPanelProps) {
+  const t = useTranslate();
   const Detail = approval.requestKind === "mcp-elicitation" ? "span" : "code";
   const fallbackLabel =
     approval.requestKind === "mcp-elicitation"
-      ? "App access approval"
+      ? t("App access approval")
       : approval.requestKind === "command"
-        ? "Command approval"
+        ? t("Command approval")
         : approval.requestKind === "file-read"
-          ? "File read approval"
+          ? t("File read approval")
           : approval.requestKind === "permission"
-            ? "App permission approval"
-            : "File change approval";
+            ? t("App permission approval")
+            : t("File change approval");
   const detailAriaLabel =
     approval.requestKind === "mcp-elicitation"
-      ? "App access request"
+      ? t("App access request")
       : approval.requestKind === "command"
-        ? "Command"
+        ? t("Command")
         : approval.requestKind === "file-read"
-          ? "File to read"
+          ? t("File to read")
           : approval.requestKind === "permission"
-            ? "Permission request"
-            : "File change";
+            ? t("Permission request")
+            : t("File change");
 
   return (
     <span
@@ -60,7 +62,7 @@ export const ComposerPendingApprovalPanel = memo(function ComposerPendingApprova
         tabIndex={0}
       >
         {approval.responseCapability === "not_resumable"
-          ? "Provider process is gone — interrupt or restart the run to respond."
+          ? t("Provider process is gone — interrupt or restart the run to respond.")
           : approval.detail || fallbackLabel}
       </Detail>
     </span>

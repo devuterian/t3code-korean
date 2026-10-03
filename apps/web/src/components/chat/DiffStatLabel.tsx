@@ -1,5 +1,6 @@
 import { memo } from "react";
 import { cn } from "~/lib/utils";
+import { useTranslate } from "~/i18n/translate";
 
 export function hasNonZeroStat(stat: { additions: number; deletions: number }): boolean {
   return stat.additions > 0 || stat.deletions > 0;
@@ -26,13 +27,14 @@ export const DiffStatLabel = memo(function DiffStatLabel(props: {
   showParentheses?: boolean;
   layout?: "aligned" | "inline";
 }) {
+  const t = useTranslate();
   const { additions, deletions, className, showParentheses = false, layout = "aligned" } = props;
   return (
     <>
       {showParentheses && <span className="text-muted-foreground/70">(</span>}
       <span
         role="group"
-        aria-label={`${additions} additions, ${deletions} deletions`}
+        aria-label={t(`${additions} additions, ${deletions} deletions`)}
         className={cn(
           layout === "inline"
             ? "inline-flex items-center gap-1 tabular-nums align-middle"

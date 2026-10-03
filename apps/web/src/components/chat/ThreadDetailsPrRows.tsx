@@ -16,6 +16,7 @@ import { pullRequestListLines } from "../pullRequest/pullRequestListLines";
 import { linkedPullRequestSnapshotStatus, prStatusIndicator } from "../ThreadStatusIndicators";
 
 import { ThreadDetailsPrRow } from "./ThreadDetailsPrRow";
+import { useTranslate } from "~/i18n/translate";
 
 function ThreadDetailsPrLinkRow({
   environmentId,
@@ -65,6 +66,7 @@ export function ThreadDetailsPrRows({
   currentLink: ThreadPullRequestLink | null;
   onOpenLink: (event: ReactMouseEvent<HTMLElement>, url: string) => void;
 }) {
+  const t = useTranslate();
   const [expanded, setExpanded] = useState(false);
   const rest =
     currentLink === null
@@ -101,7 +103,7 @@ export function ThreadDetailsPrRows({
         ) : (
           <PlusIcon aria-hidden className="size-4 shrink-0" />
         )}
-        {expanded ? "Show less" : `Show ${rest.length} more`}
+        {expanded ? t("Show less") : t(`Show ${rest.length} more`)}
       </ThreadDetailsControl>
     </>
   );

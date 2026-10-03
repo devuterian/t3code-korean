@@ -21,6 +21,7 @@ import { ThreadHoverCard } from "../ThreadHoverCard";
 import { MiddleTruncate } from "../ui/middle-truncate";
 import { ProviderInstanceIcon } from "./ProviderInstanceIcon";
 import { cn } from "~/lib/utils";
+import { useTranslate } from "~/i18n/translate";
 
 /** Geometry and preview limits stay identical in lineage and timeline tooltips. */
 export function SubagentTooltipContent(props: {
@@ -37,6 +38,7 @@ export function SubagentTooltipContent(props: {
   result?: string | null | undefined;
   progress?: string | null | undefined;
 }) {
+  const t = useTranslate();
   const model = props.model?.trim();
   const modelSlug = props.provider
     ? resolveSelectableModel(props.provider.driver, model, props.provider.models)
@@ -46,7 +48,7 @@ export function SubagentTooltipContent(props: {
     ? getTriggerDisplayModelName(providerModel)
     : model
       ? formatModelSlugName(model)
-      : "Not reported";
+      : t("Not reported");
   const currentWorkspace = props.parentThread?.worktreePath ?? props.parentProject?.workspaceRoot;
   const childWorkspace = props.childThread?.worktreePath ?? props.childProject?.workspaceRoot;
   const metadata = [
@@ -114,7 +116,7 @@ export function SubagentTooltipContent(props: {
           )}
         >
           <StatusIcon aria-hidden className="size-3 shrink-0" />
-          {props.status.replaceAll("_", " ")}
+          {t(props.status.replaceAll("_", " "))}
         </span>
         {props.elapsed}
       </div>
@@ -123,7 +125,7 @@ export function SubagentTooltipContent(props: {
         return (
           <div key={label} className="flex min-w-0 items-center gap-2">
             <Icon aria-hidden className="size-3 shrink-0" />
-            <span className="sr-only">{label}</span>
+            <span className="sr-only">{t(label)}</span>
             <MiddleTruncate value={value} className="flex" showTitle={false} />
           </div>
         );

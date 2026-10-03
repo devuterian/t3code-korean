@@ -2,6 +2,7 @@ import type { EnvironmentId, ScopedThreadRef } from "@t3tools/contracts";
 import { Globe, History, RadioTower } from "lucide-react";
 
 import type { BrowserHistoryEntry } from "~/browserHistoryStore";
+import { useTranslate } from "~/i18n/translate";
 import { Empty, EmptyDescription, EmptyMedia, EmptyTitle } from "~/components/ui/empty";
 import { DiscoveryList } from "../ui/discovery-list";
 
@@ -26,6 +27,7 @@ export function PreviewEmptyState({
   onRemoveRecent,
   onOpenUrl,
 }: Props) {
+  const t = useTranslate();
   const servers = useDiscoveredLocalServers({
     environmentId,
     configuredUrls,
@@ -38,10 +40,11 @@ export function PreviewEmptyState({
         <EmptyMedia variant="icon">
           <Globe className="size-4.5 text-muted-foreground" />
         </EmptyMedia>
-        <EmptyTitle>No preview yet</EmptyTitle>
+        <EmptyTitle>{t("No preview yet")}</EmptyTitle>
         <EmptyDescription>
-          Type a URL above, or run a dev script. Browser-ready localhost servers will show up here
-          automatically.
+          {t(
+            "Type a URL above, or run a dev script. Browser-ready localhost servers will show up here automatically.",
+          )}
         </EmptyDescription>
       </Empty>
     );
@@ -54,7 +57,7 @@ export function PreviewEmptyState({
           <div className="flex flex-col gap-3">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <History className="size-4 shrink-0" />
-              <h2 className="font-medium">Recently used</h2>
+              <h2 className="font-medium">{t("Recently used")}</h2>
             </div>
             <DiscoveryList>
               {recents.map((entry) => (
@@ -73,7 +76,7 @@ export function PreviewEmptyState({
           <div className="flex flex-col gap-3">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <RadioTower className="size-4 shrink-0" />
-              <h2 className="font-medium">Local servers</h2>
+              <h2 className="font-medium">{t("Local servers")}</h2>
             </div>
             <DiscoveryList>
               {servers.map((server) => (
@@ -86,7 +89,7 @@ export function PreviewEmptyState({
               ))}
             </DiscoveryList>
             <p className="px-1 text-xs text-muted-foreground">
-              Select a live local server to open it in this browser tab.
+              {t("Select a live local server to open it in this browser tab.")}
             </p>
           </div>
         ) : null}
