@@ -1,4 +1,5 @@
 import { isElectron } from "~/env";
+import { translate } from "~/i18n/translate";
 import { isMacPlatform, isWindowsPlatform, normalizeSearchText } from "~/lib/utils";
 import { STATIC_KEYBINDING_COMMANDS, type KeybindingCommand } from "@t3tools/contracts";
 import type { EnvironmentId } from "@t3tools/contracts";
@@ -1049,26 +1050,36 @@ export function searchSettings(
       if (item.windowsOnly && !isWindowsPlatform(platform)) return [];
 
       const title = normalizeSearchText(item.title);
+      // Localized title and section label let non-English queries match too;
+      // in English these equal the source strings and add nothing.
+      const localizedTitle = normalizeSearchText(translate(item.title));
+      const sectionLabel = SETTINGS_SECTION_LABELS[item.to];
+      const localizedSectionLabel = translate(sectionLabel);
       const fields = [
         title,
-        normalizeSearchText(SETTINGS_SECTION_LABELS[item.to]),
+        normalizeSearchText(sectionLabel),
         ...(item.searchTerms ?? []).map(normalizeSearchText),
+        ...(localizedTitle === title ? [] : [localizedTitle]),
+        ...(localizedSectionLabel === sectionLabel
+          ? []
+          : [normalizeSearchText(localizedSectionLabel)]),
       ];
       if (!queryTokens.every((token) => fields.some((field) => field.includes(token)))) return [];
 
       const exactPhraseField = fields.findIndex((field) => field.includes(normalizedQuery));
-      const rank =
-        title === normalizedQuery
+      const rankTitle = (candidate: string) =>
+        candidate === normalizedQuery
           ? 5
-          : title.startsWith(normalizedQuery)
+          : candidate.startsWith(normalizedQuery)
             ? 4
-            : title.includes(normalizedQuery)
+            : candidate.includes(normalizedQuery)
               ? 3
-              : queryTokens.every((token) => title.includes(token))
+              : queryTokens.every((token) => candidate.includes(token))
                 ? 2
                 : exactPhraseField >= 0
                   ? 1
                   : 0;
+      const rank = Math.max(rankTitle(title), rankTitle(localizedTitle));
       return [{ item, index, rank }];
     })
     .toSorted(

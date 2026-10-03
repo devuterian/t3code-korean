@@ -11,6 +11,7 @@ import type {
 import { ExternalLinkIcon, SearchIcon } from "lucide-react";
 import { type FormEvent, useEffect, useLayoutEffect, useRef, useState } from "react";
 
+import { translate, useTranslate } from "../../i18n/translate";
 import { serverEnvironment } from "../../state/server";
 import { useEnvironmentQuery } from "../../state/query";
 import { useAtomCommand } from "../../state/use-atom-command";
@@ -26,7 +27,7 @@ import { ProviderInstanceIcon } from "../chat/ProviderInstanceIcon";
 function errorMessage(error: unknown): string {
   return error instanceof Error && error.message.trim()
     ? error.message
-    : "The ACP could not be prepared.";
+    : translate("The ACP could not be prepared.");
 }
 
 interface AcpRegistrySearchStepProps {
@@ -58,6 +59,7 @@ export function AcpRegistrySearchStep({
   onLoadingChange,
   onPreparingChange,
 }: AcpRegistrySearchStepProps) {
+  const t = useTranslate();
   const [query, setQuery] = useState("");
   // An empty registry query is the compact compatible catalog. Start there so
   // entering this step is useful before the user knows what to search for.
@@ -133,7 +135,7 @@ export function AcpRegistrySearchStep({
   return (
     <section className="grid gap-3" aria-labelledby="acp-registry-search-heading">
       <h3 className="sr-only" id="acp-registry-search-heading">
-        Choose an agent
+        {t("Choose an agent")}
       </h3>
 
       <form className="flex flex-wrap items-center gap-2" onSubmit={handleSearch}>
@@ -142,7 +144,7 @@ export function AcpRegistrySearchStep({
             <SearchIcon />
           </InputGroupAddon>
           <InputGroupInput
-            aria-label="Search ACP Registry"
+            aria-label={t("Search ACP Registry")}
             disabled={preparingId !== null}
             onChange={(event) => {
               const nextQuery = event.currentTarget.value;
@@ -154,7 +156,7 @@ export function AcpRegistrySearchStep({
                 setSubmittedQuery(nextQuery.trim());
               }, 300);
             }}
-            placeholder="Search agents…"
+            placeholder={t("Search agents…")}
             size="sm"
             type="search"
             value={query}
@@ -167,17 +169,17 @@ export function AcpRegistrySearchStep({
           type="button"
           variant="ghost-muted"
         >
-          Enter manually
+          {t("Enter manually")}
         </Button>
       </form>
 
       <div className="sr-only" role="status">
         {isInitialSearch
-          ? "Searching the ACP Registry."
+          ? t("Searching the ACP Registry.")
           : isRefreshing
-            ? "Refreshing ACP Registry results."
+            ? t("Refreshing ACP Registry results.")
             : results
-              ? `${resultCount} compatible ${resultCount === 1 ? "agent" : "agents"} found.`
+              ? `${resultCount} ${resultCount === 1 ? t("compatible agent found.") : t("compatible agents found.")}`
               : ""}
       </div>
 
@@ -189,15 +191,15 @@ export function AcpRegistrySearchStep({
 
       {isInitialSearch ? (
         <div className="flex min-h-20 items-center justify-center text-sm text-muted-foreground">
-          Searching the registry...
+          {t("Searching the registry...")}
         </div>
       ) : null}
 
       {results ? (
         results.length === 0 ? (
           <div className="flex min-h-28 flex-col items-center justify-center rounded-2xl border border-dashed px-4 text-center">
-            <p className="text-sm font-medium">No compatible agents found</p>
-            <p className="mt-1 text-xs text-muted-foreground">Try a broader search.</p>
+            <p className="text-sm font-medium">{t("No compatible agents found")}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{t("Try a broader search.")}</p>
           </div>
         ) : (
           <ScrollArea scrollFade className="max-h-64">
@@ -207,7 +209,8 @@ export function AcpRegistrySearchStep({
               {results.map((agent) => {
                 const alreadyAdded = isConfiguredAcpRegistryAgent(providerInstances, agent.id);
                 const isPreparing = preparingId === agent.id;
-                const progressLabel = agent.distribution === "binary" ? "Downloading" : "Preparing";
+                const progressLabel =
+                  agent.distribution === "binary" ? t("Downloading") : t("Preparing");
                 return (
                   <article className="min-w-0 py-2.5" key={agent.id}>
                     <div className="flex min-w-0 items-center justify-between gap-3">
@@ -240,7 +243,7 @@ export function AcpRegistrySearchStep({
                                 <Button
                                   size="icon-xs"
                                   variant="ghost-muted"
-                                  aria-label={`About ${agent.name}`}
+                                  aria-label={`${t("About")} ${agent.name}`}
                                   render={
                                     <a
                                       href={agent.website || agent.repository || undefined}
@@ -253,17 +256,19 @@ export function AcpRegistrySearchStep({
                                 </Button>
                               }
                             />
-                            <TooltipPopup>About {agent.name}</TooltipPopup>
+                            <TooltipPopup>
+                              {t("About")} {agent.name}
+                            </TooltipPopup>
                           </Tooltip>
                         ) : null}
                         <Button
-                          aria-label={`${alreadyAdded ? "Already added" : isPreparing ? progressLabel : "Add"} ${agent.name}`}
+                          aria-label={`${alreadyAdded ? t("Already added") : isPreparing ? progressLabel : t("Add")} ${agent.name}`}
                           disabled={alreadyAdded || preparingId !== null}
                           onClick={() => void handlePrepare(agent)}
                           size="xs"
                           variant={isPreparing ? "secondary" : "outline"}
                         >
-                          {alreadyAdded ? "Added" : isPreparing ? progressLabel : "Add"}
+                          {alreadyAdded ? t("Added") : isPreparing ? progressLabel : t("Add")}
                         </Button>
                       </div>
                     </div>

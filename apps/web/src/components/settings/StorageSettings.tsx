@@ -20,6 +20,7 @@ import {
   useScopedSettings,
   useUpdateScopedSettings,
 } from "./useScopedSettings";
+import { useTranslate } from "../../i18n/translate";
 
 function RetentionControl({
   label,
@@ -30,6 +31,7 @@ function RetentionControl({
   value: number | null;
   onChange: (value: number | null) => void;
 }) {
+  const t = useTranslate();
   const [draft, setDraft] = useState(value);
   const [savedValue, setSavedValue] = useState(value);
   if (savedValue !== value) {
@@ -58,23 +60,23 @@ function RetentionControl({
           }}
         >
           <NumberFieldGroup>
-            <NumberFieldDecrement aria-label={`Decrease ${label}`} />
+            <NumberFieldDecrement aria-label={`${t("Decrease")} ${t(label)}`} />
             <NumberFieldInput
-              aria-label={`${label} in days`}
+              aria-label={`${t(label)} (${t("days")})`}
               size={new Intl.NumberFormat().format(draft ?? value).length}
               className="field-sizing-content w-auto min-w-[1ch] grow-0 text-right"
             />
             <span aria-hidden="true" className="self-center pr-2 text-xs">
-              days
+              {t("days")}
             </span>
-            <NumberFieldIncrement aria-label={`Increase ${label}`} />
+            <NumberFieldIncrement aria-label={`${t("Increase")} ${t(label)}`} />
           </NumberFieldGroup>
         </NumberField>
       ) : (
-        <span className="text-xs text-muted-foreground">Off</span>
+        <span className="text-xs text-muted-foreground">{t("Off")}</span>
       )}
       <Switch
-        aria-label={label}
+        aria-label={t(label)}
         checked={value !== null}
         onCheckedChange={(enabled) => onChange(enabled ? 8 : null)}
       />
@@ -83,6 +85,7 @@ function RetentionControl({
 }
 
 export function StorageSettingsPanel() {
+  const t = useTranslate();
   const { scope, connectedEnvironments, targets, target } = useSettingsScope();
   const scopedSettings = useScopedSettings();
   const isProjectScope = scope.kind === "project" || scope.kind === "checkout";
@@ -123,7 +126,7 @@ export function StorageSettingsPanel() {
   ) {
     return (
       <SettingsScopeNotice target="all">
-        Update the selected machines to configure project worktree cleanup.
+        {t("Update the selected machines to configure project worktree cleanup.")}
       </SettingsScopeNotice>
     );
   }
@@ -143,8 +146,9 @@ export function StorageSettingsPanel() {
           )
           .map((environment) => environment.environmentId)}
       >
-        Update the selected environments to use storage cleanup, or choose a machine that supports
-        it.
+        {t(
+          "Update the selected environments to use storage cleanup, or choose a machine that supports it.",
+        )}
       </SettingsScopeNotice>
     );
   }
@@ -175,21 +179,21 @@ export function StorageSettingsPanel() {
                     updateSettings({ worktreeCleanup: { mode: "custom", rules: {} } });
                 }}
               >
-                <SelectTrigger size="sm" aria-label="Automatic worktree cleanup">
+                <SelectTrigger size="sm" aria-label={t("Automatic worktree cleanup")}>
                   <SelectValue>
                     {mixedModes
-                      ? "Mixed"
+                      ? t("Mixed")
                       : mode === "inherit"
-                        ? "Inherit"
+                        ? t("Inherit")
                         : mode === "off"
-                          ? "Off"
-                          : "Custom"}
+                          ? t("Off")
+                          : t("Custom")}
                   </SelectValue>
                 </SelectTrigger>
                 <SelectPopup align="end" alignItemWithTrigger={false}>
-                  <SelectItem value="inherit">Inherit</SelectItem>
-                  <SelectItem value="off">Off</SelectItem>
-                  <SelectItem value="custom">Custom</SelectItem>
+                  <SelectItem value="inherit">{t("Inherit")}</SelectItem>
+                  <SelectItem value="off">{t("Off")}</SelectItem>
+                  <SelectItem value="custom">{t("Custom")}</SelectItem>
                 </SelectPopup>
               </Select>
             }
@@ -204,7 +208,7 @@ export function StorageSettingsPanel() {
               serverScoped={!isProjectScope}
               control={
                 <Switch
-                  aria-label="Delete worktrees with deleted threads"
+                  aria-label={t("Delete worktrees with deleted threads")}
                   checked={settings.worktreeOnDelete}
                   onCheckedChange={(worktreeOnDelete) => updateWorktree({ worktreeOnDelete })}
                 />
@@ -230,7 +234,7 @@ export function StorageSettingsPanel() {
               serverScoped={!isProjectScope}
               control={
                 <Switch
-                  aria-label="Delete merged worktrees"
+                  aria-label={t("Delete merged worktrees")}
                   checked={settings.worktreeOnMerge}
                   onCheckedChange={(worktreeOnMerge) => updateWorktree({ worktreeOnMerge })}
                 />
@@ -243,7 +247,7 @@ export function StorageSettingsPanel() {
               serverScoped={!isProjectScope}
               control={
                 <Switch
-                  aria-label="Delete unchanged worktrees"
+                  aria-label={t("Delete unchanged worktrees")}
                   checked={settings.worktreeUnchanged}
                   onCheckedChange={(worktreeUnchanged) => updateWorktree({ worktreeUnchanged })}
                 />

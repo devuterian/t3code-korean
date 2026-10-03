@@ -8,6 +8,7 @@ import {
 import { useEffect, useEffectEvent, useState, type ReactNode } from "react";
 import { usesChatGptSharing } from "@t3tools/shared/usageLimits";
 
+import { useTranslate } from "../../i18n/translate";
 import { useEnvironmentSettings } from "../../hooks/useSettings";
 import { randomUUID } from "../../lib/utils";
 import { serverEnvironment } from "../../state/server";
@@ -31,6 +32,7 @@ export function AddCodexAccountDialog({
     | undefined;
   readonly renderSetup: (instanceId: ProviderInstanceId, provider: ServerProvider) => ReactNode;
 }) {
+  const t = useTranslate();
   const settings = useEnvironmentSettings(environmentId);
   const providers = useAtomValue(serverEnvironment.providersValueAtom(environmentId));
   const update = useAtomCommand(serverEnvironment.updateSettings, "Add ChatGPT account");
@@ -87,8 +89,10 @@ export function AddCodexAccountDialog({
     >
       <WizardPopup size="wide">
         <WizardHeader
-          title={instanceId ? displayName : "Add ChatGPT account"}
-          description="Each account has its own Codex instance and sign-in. Choose the other account on the sign-in page."
+          title={instanceId ? displayName : t("Add ChatGPT account")}
+          description={t(
+            "Each account has its own Codex instance and sign-in. Choose the other account on the sign-in page.",
+          )}
         />
         <WizardPanel>
           {instanceId ? (
@@ -110,11 +114,11 @@ export function AddCodexAccountDialog({
                 description="Shown in the provider list and model picker."
                 control={
                   <Input
-                    aria-label="Account name"
+                    aria-label={t("Account name")}
                     value={name}
                     disabled={pending}
                     onChange={(event) => setName(event.target.value)}
-                    placeholder="e.g. Personal or Work"
+                    placeholder={t("e.g. Personal or Work")}
                   />
                 }
               />
@@ -124,15 +128,15 @@ export function AddCodexAccountDialog({
         <WizardFooter>
           {instanceId ? (
             <Button variant="outline" onClick={onClose}>
-              Finish later
+              {t("Finish later")}
             </Button>
           ) : (
             <>
               <Button variant="outline" disabled={pending} onClick={onClose}>
-                Cancel
+                {t("Cancel")}
               </Button>
               <Button type="submit" form="add-codex-account" disabled={pending || !name.trim()}>
-                {pending ? "Adding account…" : "Continue"}
+                {pending ? t("Adding account…") : t("Continue")}
               </Button>
             </>
           )}

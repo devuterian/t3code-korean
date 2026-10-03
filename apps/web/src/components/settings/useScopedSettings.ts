@@ -13,6 +13,7 @@ import {
 } from "../../hooks/useSettings";
 import { serverEnvironment } from "../../state/server";
 import { useAtomCommand } from "../../state/use-atom-command";
+import { translate } from "../../i18n/translate";
 import { toastManager } from "../ui/toast";
 import { useOptionalSettingsScope, useSettingsScope } from "./SettingsScopeContext";
 import {
@@ -58,8 +59,8 @@ function useRunScopedPlan() {
       if (plan.unavailableReason) {
         toastManager.add({
           type: "warning",
-          title: "Setting not saved",
-          description: plan.unavailableReason,
+          title: translate("Setting not saved"),
+          description: translate(plan.unavailableReason),
         });
         return;
       }
@@ -70,9 +71,9 @@ function useRunScopedPlan() {
             type: "error",
             title:
               savedEnvironmentCount > 0
-                ? "Setting saved on some environments"
-                : "Setting not saved",
-            description: `Could not update ${failedEnvironments.map((environment) => environment.label).join(", ")}.${savedEnvironmentCount > 0 ? " The other selected environments saved the change." : ""}`,
+                ? translate("Setting saved on some environments")
+                : translate("Setting not saved"),
+            description: `${translate("Could not update")} ${failedEnvironments.map((environment) => environment.label).join(", ")}.${savedEnvironmentCount > 0 ? ` ${translate("The other selected environments saved the change.")}` : ""}`,
           });
         },
       );

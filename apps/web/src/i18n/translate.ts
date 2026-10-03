@@ -4,6 +4,7 @@ import { DEFAULT_INTERFACE_LANGUAGE, type InterfaceLanguage } from "@t3tools/con
 
 import { ZH_CN_DICTIONARY } from "./dictionary";
 import { KO_DICTIONARY } from "./dictionary.ko";
+import { KO_V2_SETTINGS_PATTERNS } from "./ko/settings";
 
 type Listener = () => void;
 
@@ -100,6 +101,7 @@ const LANGUAGE_PACKS: Partial<Record<InterfaceLanguage, LanguagePack>> = {
       [/^Worked for (.+)$/, (d) => `${d} 동안 작업함`],
       [/^Model Picker: Jump: (\d+)$/, (n) => `모델 선택기: 이동: ${n}`],
       [/^Thread: Jump: (\d+)$/, (n) => `스레드: 이동: ${n}`],
+      ...KO_V2_SETTINGS_PATTERNS,
       [/^Working \((\d+)\)$/, (n) => `작업 중 (${n})`],
       [/^(\d+) archived threads?$/, (n) => `보관된 스레드 ${n}개`],
       [/^Archived thread actions for (.+)$/, (project) => `${project}의 보관된 스레드 작업`],

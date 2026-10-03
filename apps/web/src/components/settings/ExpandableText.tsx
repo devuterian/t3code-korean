@@ -2,6 +2,7 @@ import { InlineButton } from "../ui/button";
 import { useId, useState } from "react";
 
 import { cn } from "../../lib/utils";
+import { useTranslate } from "../../i18n/translate";
 
 /**
  * Long error text clamped to a few lines with a toggle to reveal the rest.
@@ -19,6 +20,7 @@ export function ExpandableText({
   expandLabel?: string;
 }) {
   const textId = useId();
+  const t = useTranslate();
   const [expanded, setExpanded] = useState(false);
   const canExpand = text.length > 180 || text.includes("\n");
 
@@ -41,7 +43,7 @@ export function ExpandableText({
           className="mt-1"
           onClick={() => setExpanded((value) => !value)}
         >
-          {expanded ? "Show less" : expandLabel}
+          {expanded ? t("Show less") : t(expandLabel)}
         </InlineButton>
       ) : null}
     </div>

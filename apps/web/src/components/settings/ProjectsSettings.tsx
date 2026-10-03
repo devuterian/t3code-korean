@@ -4,9 +4,11 @@ import { ProjectSettingsPanel } from "./ProjectSettingsPanel";
 import { useSettingsScope } from "./SettingsScopeContext";
 import { SettingsScopeNotice } from "./SettingsScopeNotice";
 import { SettingsPageContainer } from "./settingsLayout";
+import { useTranslate } from "../../i18n/translate";
 
 /** Project identity and checkout management for the selected project. */
 export function ProjectsSettings() {
+  const t = useTranslate();
   const { search: value, scope } = useSettingsScope();
   // The panel follows remembered members when grouping replaces a project key.
   const projectScope =
@@ -24,7 +26,7 @@ export function ProjectsSettings() {
         />
       ) : scope.kind === "unavailable" ? (
         <SettingsPageContainer>
-          <p className="text-sm text-muted-foreground">{scope.message}</p>
+          <p className="text-sm text-muted-foreground">{t(scope.message)}</p>
         </SettingsPageContainer>
       ) : (
         <SettingsScopeNotice target="project">

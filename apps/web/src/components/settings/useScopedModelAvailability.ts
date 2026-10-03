@@ -9,6 +9,7 @@ import {
 } from "../../providerInstances";
 import { useEnvironments } from "../../state/environments";
 import { useSettingsScope } from "./SettingsScopeContext";
+import { useTranslate } from "../../i18n/translate";
 
 /**
  * A model choice fans out to every selected target, so it must exist on all
@@ -22,6 +23,7 @@ export function useScopedModelDisabledReason(
 ) {
   const { targets } = useSettingsScope();
   const { environments } = useEnvironments();
+  const t = useTranslate();
   return useCallback(
     (instanceId: ProviderInstanceId, model: string): string | null => {
       const sourceEntry = entries.find((entry) => entry.instanceId === instanceId);
@@ -45,11 +47,13 @@ export function useScopedModelDisabledReason(
           entry.driverKind !== sourceEntry?.driverKind ||
           !options?.some((option) => option.slug === model && !option.isUnavailable)
         ) {
-          return `This model is unavailable on ${environment?.label ?? "a selected environment"}. Select that environment to choose its model separately.`;
+          return `${t("This model is unavailable on")} ${environment?.label ?? t("a selected environment")}${t(
+            ". Select that environment to choose its model separately.",
+          )}`;
         }
       }
       return null;
     },
-    [entries, environments, settings, targets],
+    [entries, environments, settings, t, targets],
   );
 }
