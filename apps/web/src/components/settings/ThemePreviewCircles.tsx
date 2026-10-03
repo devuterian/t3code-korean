@@ -12,7 +12,7 @@ import {
   type ThemeAppearance,
   type ThemeDefinition,
 } from "../../themePalette";
-import { translate as t } from "../../i18n/translate";
+import { useTranslate } from "../../i18n/translate";
 
 const THEME_PREVIEW_ROLES = [
   "sidebar",
@@ -175,6 +175,7 @@ export function ThemePreviewCircles({
   onSelectMode: (mode: ThemeMode) => void;
   previews: ThemeCardDefinition["previews"];
 }) {
+  const t = useTranslate();
   return (
     <div className="flex min-h-16 items-center justify-center gap-2.5 px-3 pt-3">
       {previews.map((preview) => {

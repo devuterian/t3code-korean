@@ -20,7 +20,7 @@ import {
   useScopedSettings,
   useUpdateScopedSettings,
 } from "./useScopedSettings";
-import { translate as t } from "../../i18n/translate";
+import { useTranslate } from "../../i18n/translate";
 
 function RetentionControl({
   label,
@@ -31,6 +31,7 @@ function RetentionControl({
   value: number | null;
   onChange: (value: number | null) => void;
 }) {
+  const t = useTranslate();
   const [draft, setDraft] = useState(value);
   const [savedValue, setSavedValue] = useState(value);
   if (savedValue !== value) {
@@ -75,7 +76,7 @@ function RetentionControl({
         <span className="text-xs text-muted-foreground">{t("Off")}</span>
       )}
       <Switch
-        aria-label={label}
+        aria-label={t(label)}
         checked={value !== null}
         onCheckedChange={(enabled) => onChange(enabled ? 8 : null)}
       />
@@ -84,6 +85,7 @@ function RetentionControl({
 }
 
 export function StorageSettingsPanel() {
+  const t = useTranslate();
   const { scope, connectedEnvironments, targets, target } = useSettingsScope();
   const scopedSettings = useScopedSettings();
   const isProjectScope = scope.kind === "project" || scope.kind === "checkout";
@@ -177,7 +179,7 @@ export function StorageSettingsPanel() {
                     updateSettings({ worktreeCleanup: { mode: "custom", rules: {} } });
                 }}
               >
-                <SelectTrigger size="sm" aria-label="Automatic worktree cleanup">
+                <SelectTrigger size="sm" aria-label={t("Automatic worktree cleanup")}>
                   <SelectValue>
                     {mixedModes
                       ? t("Mixed")
@@ -206,7 +208,7 @@ export function StorageSettingsPanel() {
               serverScoped={!isProjectScope}
               control={
                 <Switch
-                  aria-label="Delete worktrees with deleted threads"
+                  aria-label={t("Delete worktrees with deleted threads")}
                   checked={settings.worktreeOnDelete}
                   onCheckedChange={(worktreeOnDelete) => updateWorktree({ worktreeOnDelete })}
                 />
@@ -232,7 +234,7 @@ export function StorageSettingsPanel() {
               serverScoped={!isProjectScope}
               control={
                 <Switch
-                  aria-label="Delete merged worktrees"
+                  aria-label={t("Delete merged worktrees")}
                   checked={settings.worktreeOnMerge}
                   onCheckedChange={(worktreeOnMerge) => updateWorktree({ worktreeOnMerge })}
                 />
@@ -245,7 +247,7 @@ export function StorageSettingsPanel() {
               serverScoped={!isProjectScope}
               control={
                 <Switch
-                  aria-label="Delete unchanged worktrees"
+                  aria-label={t("Delete unchanged worktrees")}
                   checked={settings.worktreeUnchanged}
                   onCheckedChange={(worktreeUnchanged) => updateWorktree({ worktreeUnchanged })}
                 />

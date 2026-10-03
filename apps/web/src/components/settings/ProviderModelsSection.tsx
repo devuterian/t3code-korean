@@ -229,19 +229,21 @@ export function ProviderModelsSection({
     if (driverKind === "antigravity") return;
     const normalized = normalizeCustomModelSlug(input);
     if (!normalized) {
-      setError("Enter a model slug.");
+      setError(t("Enter a model slug."));
       return;
     }
     if (models.some((model) => !model.isCustom && model.slug === normalized)) {
-      setError("That model is already built in.");
+      setError(t("That model is already built in."));
       return;
     }
     if (normalized.length > MAX_CUSTOM_MODEL_LENGTH) {
-      setError(`Model slugs must be ${MAX_CUSTOM_MODEL_LENGTH} characters or less.`);
+      setError(
+        `${t("Model slugs must be")} ${MAX_CUSTOM_MODEL_LENGTH} ${t("characters or less.")}`,
+      );
       return;
     }
     if (customModels.some((entry) => entry.slug === normalized)) {
-      setError("That custom model is already saved.");
+      setError(t("That custom model is already saved."));
       return;
     }
 
@@ -317,9 +319,9 @@ export function ProviderModelsSection({
             size="icon-micro"
             variant="ghost-muted"
             onClick={() => handleToggleFavorite(model.slug)}
-            aria-label={`${isFavorite ? "Remove" : "Add"} ${model.name} ${
-              isFavorite ? "from" : "to"
-            } favorites`}
+            aria-label={`${t(isFavorite ? "Remove" : "Add")} ${model.name} ${t(
+              isFavorite ? "from favorites" : "to favorites",
+            )}`}
           />
         }
       >
@@ -352,7 +354,7 @@ export function ProviderModelsSection({
                   variant="ghost-muted"
                   disabled={!options.canMoveUp}
                   onClick={() => handleMove(model.slug, -1)}
-                  aria-label={`Move ${model.name} up`}
+                  aria-label={`${t("Move")} ${model.name} ${t("up")}`}
                 />
               }
             >
@@ -368,7 +370,7 @@ export function ProviderModelsSection({
                   variant="ghost-muted"
                   disabled={!options.canMoveDown}
                   onClick={() => handleMove(model.slug, 1)}
-                  aria-label={`Move ${model.name} down`}
+                  aria-label={`${t("Move")} ${model.name} ${t("down")}`}
                 />
               }
             >
@@ -386,7 +388,7 @@ export function ProviderModelsSection({
                 <Button
                   size="icon-micro"
                   variant="ghost-muted"
-                  aria-label={`Edit ${model.slug}`}
+                  aria-label={`${t("Edit")} ${model.slug}`}
                   onClick={() =>
                     setEditingSlug((current) => (current === model.slug ? null : model.slug))
                   }
@@ -403,7 +405,7 @@ export function ProviderModelsSection({
                 <Button
                   size="icon-micro"
                   variant="ghost-muted"
-                  aria-label={`Remove ${model.slug}`}
+                  aria-label={`${t("Remove")} ${model.slug}`}
                   onClick={() => handleRemove(model.slug)}
                 />
               }
@@ -434,7 +436,7 @@ export function ProviderModelsSection({
           checked={!isHidden}
           disabled={model.isCustom}
           onCheckedChange={(checked) => setHidden(model.slug, !checked)}
-          aria-label={`Show ${model.name} in the model picker`}
+          aria-label={`${t("Show")} ${model.name} ${t("in the model picker")}`}
         />
       </TooltipTrigger>
       <TooltipPopup side="top">{pickerTooltip(model, isHidden)}</TooltipPopup>
@@ -623,10 +625,10 @@ export function ProviderModelsSection({
           />
           <div className="flex shrink-0 gap-2">
             <Button size="sm" variant="outline" onClick={handleAdd}>
-              Add
+              {t("Add")}
             </Button>
             <Button size="sm" variant="ghost" onClick={cancelAdd}>
-              Cancel
+              {t("Cancel")}
             </Button>
           </div>
         </div>

@@ -74,11 +74,12 @@ function ProviderStatusDiagnostic({
   detail: string | null;
   children: ReactElement;
 }) {
+  const t = useTranslate();
   if (!detail) return children;
   return (
     <Tooltip>
       <TooltipTrigger render={children} />
-      <TooltipPopup side="top">{detail}</TooltipPopup>
+      <TooltipPopup side="top">{t(detail)}</TooltipPopup>
     </Tooltip>
   );
 }
@@ -258,15 +259,16 @@ function ProviderEnvironmentFieldRow(props: {
   readonly onCommit: (field: ProviderEnvironmentFieldDefinition, value: string) => void;
   readonly onRemove: (field: ProviderEnvironmentFieldDefinition) => void;
 }) {
+  const t = useTranslate();
   const inputId = `${props.idPrefix}-environment-${props.field.name}`;
   const value = props.variable?.valueRedacted ? "" : (props.variable?.value ?? "");
   const placeholder = props.variable?.valueRedacted
-    ? "Stored secret - enter a new value to replace"
-    : props.field.placeholder;
+    ? t("Stored secret - enter a new value to replace")
+    : props.field.placeholder && t(props.field.placeholder);
 
   return (
     <SettingsRow
-      title={<label htmlFor={inputId}>{props.field.label}</label>}
+      title={<label htmlFor={inputId}>{t(props.field.label)}</label>}
       description={props.field.description}
       control={
         <div className="flex w-full min-w-0 items-center gap-2 @min-[32rem]/settings-row:w-56">
@@ -287,7 +289,7 @@ function ProviderEnvironmentFieldRow(props: {
               size="icon-sm"
               variant="ghost-destructive"
               onClick={() => props.onRemove(props.field)}
-              aria-label={`Clear ${props.field.label}`}
+              aria-label={`${t("Clear")} ${t(props.field.label)}`}
             >
               <XIcon className="size-3.5" />
             </Button>
@@ -403,7 +405,7 @@ function ProviderEnvironmentSection(props: {
                 onCommit={(name) => updateVariable(variable.id, { name: name.trim() })}
                 placeholder="VARIABLE_NAME"
                 spellCheck={false}
-                aria-label={`Environment variable name ${index + 1}`}
+                aria-label={`${t("Environment variable name")} ${index + 1}`}
               />
               <span className="hidden text-xs text-muted-foreground sm:inline" aria-hidden>
                 =
@@ -422,7 +424,7 @@ function ProviderEnvironmentSection(props: {
                     : t("value")
                 }
                 spellCheck={false}
-                aria-label={`Environment variable value ${index + 1}`}
+                aria-label={`${t("Environment variable value")} ${index + 1}`}
               />
               <Tooltip>
                 <TooltipTrigger
@@ -441,7 +443,7 @@ function ProviderEnvironmentSection(props: {
                         });
                       }}
                       aria-pressed={variable.sensitive}
-                      aria-label={`Mark environment variable ${variable.name || index + 1} as sensitive`}
+                      aria-label={`${t("Mark environment variable")} ${variable.name || index + 1} ${t("as sensitive")}`}
                     >
                       {variable.sensitive ? (
                         <LockIcon className="size-3" />
@@ -460,14 +462,14 @@ function ProviderEnvironmentSection(props: {
                 size="icon-micro"
                 variant="ghost-destructive"
                 onClick={() => removeVariable(variable.id)}
-                aria-label={`Remove environment variable ${variable.name || index + 1}`}
+                aria-label={`${t("Remove environment variable")} ${variable.name || index + 1}`}
               >
                 <XIcon className="size-3" />
               </Button>
             </div>
           ))}
           <p className="text-xs text-muted-foreground">
-            Sensitive values are stored separately and never returned to the app.
+            {t("Sensitive values are stored separately and never returned to the app.")}
           </p>
         </div>
       ) : null}
@@ -614,7 +616,7 @@ export function ProviderInstanceCard({
     onCopy: ({ providerName }) => {
       toastManager.add({
         type: "success",
-        title: `${providerName} update command copied`,
+        title: `${providerName} ${t("update command copied")}`,
         description: t("Run it in a terminal when you are ready to update."),
       });
     },
@@ -622,7 +624,7 @@ export function ProviderInstanceCard({
       toastManager.add(
         stackedThreadToast({
           type: "error",
-          title: `Could not copy ${providerName} update command`,
+          title: `${t("Could not copy")} ${providerName} ${t("update command")}`,
           description: error.message,
         }),
       );
@@ -756,7 +758,7 @@ export function ProviderInstanceCard({
       : compatibility?.status === "unsupported"
         ? t("Unsupported")
         : t("Limited support")
-    : summary.detail;
+    : summary.detail && t(summary.detail);
   const editorStatusNode =
     isAuthenticated && authEmail ? (
       <>
@@ -823,7 +825,7 @@ export function ProviderInstanceCard({
                         </span>
                       }
                     />
-                    <TooltipPopup side="top">{versionAdvisory.detail}</TooltipPopup>
+                    <TooltipPopup side="top">{t(versionAdvisory.detail)}</TooltipPopup>
                   </Tooltip>
                 ) : updateCommand ? (
                   <Tooltip>
@@ -934,7 +936,7 @@ export function ProviderInstanceCard({
                         : "text-muted-foreground",
                     )}
                   >
-                    {versionAdvisory.detail}
+                    {t(versionAdvisory.detail)}
                   </p>
                 </div>
                 {onRunVersionAction ? (
@@ -1021,8 +1023,9 @@ export function ProviderInstanceCard({
       title="Driver"
       description={
         <span>
-          This instance uses <code className="text-foreground">{String(instance.driver)}</code>,
-          which is not available in this build. Its configuration is preserved.
+          {t("This instance uses")}{" "}
+          <code className="text-foreground">{String(instance.driver)}</code>,{" "}
+          {t("which is not available in this build. Its configuration is preserved.")}
         </span>
       }
     />
@@ -1062,7 +1065,7 @@ export function ProviderInstanceCard({
                     disabled={readOnly}
                   >
                     <ExternalLinkIcon />
-                    Continue authentication
+                    {t("Continue authentication")}
                   </Button>
                 </div>
               ) : null}
@@ -1090,7 +1093,7 @@ export function ProviderInstanceCard({
                 className="min-w-0 flex-1 @min-[32rem]/settings-row:w-56"
                 value={instance.displayName ?? ""}
                 onCommit={updateDisplayName}
-                placeholder={driverOption?.label ?? "Instance label"}
+                placeholder={driverOption?.label ?? t("Instance label")}
                 spellCheck={false}
               />
             </div>

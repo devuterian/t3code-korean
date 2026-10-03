@@ -41,7 +41,7 @@ import { Switch } from "../ui/switch";
 import { Toggle, ToggleGroup } from "../ui/toggle-group";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import { getThemeRoleLabel, ThemeColorField } from "./ThemeColorPicker";
-import { translate as t } from "../../i18n/translate";
+import { useTranslate } from "../../i18n/translate";
 import {
   clearThemeInspectorHover,
   clearThemeInspectorHighlights,
@@ -300,6 +300,7 @@ export function ThemeEditorPanel({
   /** Reapplies the stored theme once the draft stops being previewed. */
   restoreTheme: () => void;
 }) {
+  const t = useTranslate();
   const isEditing = editingTheme !== null;
   const [name, setName] = useState("");
   const [activeAppearance, setActiveAppearance] = useState<ThemeAppearance>(initialAppearance);
@@ -443,10 +444,16 @@ export function ThemeEditorPanel({
   // had it (adding one is a create-with-same-name away).
   const appearanceLockReason = (appearance: ThemeAppearance): string | null => {
     if (editableAppearances && !editableAppearances.includes(appearance)) {
-      return `“${editingTheme?.label}” has no ${appearance} palette. Create a theme with the same name to add one.`;
+      return `“${editingTheme?.label}” ${t(
+        appearance === "light"
+          ? "has no light palette. Create a theme with the same name to add one."
+          : "has no dark palette. Create a theme with the same name to add one.",
+      )}`;
     }
     if (!isEditing && takenAppearances.includes(appearance)) {
-      return `“${mergeTarget?.label}” already has a ${appearance} palette.`;
+      return `“${mergeTarget?.label}” ${t(
+        appearance === "light" ? "already has a light palette." : "already has a dark palette.",
+      )}`;
     }
     return null;
   };
@@ -641,7 +648,7 @@ export function ThemeEditorPanel({
       hoverInspection = inspection;
       showThemeInspectorHover(
         inspection,
-        getThemeEditorColorFamily(inspection.role)?.label ?? getThemeRoleLabel(inspection.role),
+        t(getThemeEditorColorFamily(inspection.role)?.label ?? getThemeRoleLabel(inspection.role)),
       );
     };
     const handlePointerOver = (event: PointerEvent) => {
@@ -707,8 +714,10 @@ export function ThemeEditorPanel({
         if (hoverInspection) {
           showThemeInspectorHover(
             hoverInspection,
-            getThemeEditorColorFamily(hoverInspection.role)?.label ??
-              getThemeRoleLabel(hoverInspection.role),
+            t(
+              getThemeEditorColorFamily(hoverInspection.role)?.label ??
+                getThemeRoleLabel(hoverInspection.role),
+            ),
           );
         }
       });
@@ -734,7 +743,7 @@ export function ThemeEditorPanel({
       if (hoverFrame !== null) cancelAnimationFrame(hoverFrame);
       clearThemeInspectorHover();
     };
-  }, [clearInspectorSelection, isInspecting, open, selectThemeRole]);
+  }, [clearInspectorSelection, isInspecting, open, selectThemeRole, t]);
 
   const handleAdvancedChange = useCallback(
     (checked: boolean) => {
@@ -800,7 +809,11 @@ export function ThemeEditorPanel({
         const collision = editedModes.find((mode) => takenAppearances.includes(mode));
         if (collision) {
           setError(
-            `“${mergeTarget.label}” ${t(`already has a ${collision} palette. Pick another name.`)}`,
+            `“${mergeTarget.label}” ${t(
+              collision === "light"
+                ? "already has a light palette. Pick another name."
+                : "already has a dark palette. Pick another name.",
+            )}`,
           );
           return;
         }

@@ -2,6 +2,7 @@ import { Button } from "../ui/button";
 import { Alert, AlertAction, AlertDescription } from "../ui/alert";
 import { SettingsPageContainer } from "./settingsLayout";
 import { useSettingsScope } from "./SettingsScopeContext";
+import { useTranslate } from "../../i18n/translate";
 import { useEnvironments } from "../../state/environments";
 import type { SettingsScopeSearch } from "./settingsScope";
 import { useSettingsProjectGroups } from "./useSettingsProjectGroups";
@@ -20,6 +21,7 @@ export function SettingsScopeNotice({
   targetId?: string;
   eligibleEnvironmentIds?: readonly EnvironmentId[];
 }) {
+  const t = useTranslate();
   const { selectScope, search } = useSettingsScope();
   const navigate = useNavigate({ from: "/settings" });
   const pathname = useLocation({ select: (location) => location.pathname });
@@ -31,7 +33,7 @@ export function SettingsScopeNotice({
           .filter((group) => !search.project || group.projectKey === search.project)
           .flatMap((group) =>
             group.memberProjects.map((member) => ({
-              label: `${group.displayName} · ${member.environmentLabel ?? "Environment"} · ${member.workspaceRoot}`,
+              label: `${group.displayName} · ${member.environmentLabel ?? t("Environment")} · ${member.workspaceRoot}`,
               search: {
                 project: group.projectKey,
                 machine: member.environmentId,
@@ -60,12 +62,12 @@ export function SettingsScopeNotice({
                   : entry.label,
                 search: { machine: entry.environmentId },
               }))
-          : [{ label: "Open all environments", search: {} }];
+          : [{ label: t("Open all environments"), search: {} }];
   return (
     <SettingsPageContainer>
       <Alert role="status">
         <AlertDescription>
-          <p>{children}</p>
+          <p>{t(children)}</p>
           <AlertAction className="flex-wrap">
             {choices.map((choice) => (
               <Button

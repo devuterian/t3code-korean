@@ -70,7 +70,7 @@ import { SettingsPageContainer, SettingsRow, SettingsSection } from "./settingsL
 import { keybindingSearchAnchorId, searchableSetting } from "./settingsSearch";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import { useAtomCommand } from "../../state/use-atom-command";
-import { useTranslate } from "../../i18n/translate";
+import { translate, useTranslate } from "../../i18n/translate";
 
 function KeybindingPill({ value }: { value: string }) {
   // Keys dedupe repeated parts; a literal "+" in a shortcut splits into empty strings.
@@ -278,30 +278,36 @@ function UnknownWhenVariableWarning({
   identifiers: ReadonlyArray<string>;
   focusable?: boolean;
 }) {
+  const t = useTranslate();
   if (identifiers.length === 0) return null;
   const label =
     identifiers.length === 1
-      ? `Unknown condition: ${identifiers[0]}`
-      : `Unknown conditions: ${identifiers.join(", ")}`;
+      ? `${t("Unknown condition:")} ${identifiers[0]}`
+      : `${t("Unknown conditions:")} ${identifiers.join(", ")}`;
 
   return (
     <WarningTooltipIcon label={label} focusable={focusable} className="size-4.5">
-      T3 Code does not recognize this condition yet. It can still be saved, but it may not match
-      unless the runtime provides it.
+      {t(
+        "T3 Code does not recognize this condition yet. It can still be saved, but it may not match unless the runtime provides it.",
+      )}
     </WarningTooltipIcon>
   );
 }
 
 function KeybindingConflictWarning({ labels }: { labels: ReadonlyArray<string> }) {
+  const t = useTranslate();
   if (labels.length === 0) return null;
   const description =
     labels.length === 1
-      ? `Conflicts with ${labels[0]}.`
-      : `Conflicts with ${labels.slice(0, 3).join(", ")}${labels.length > 3 ? ", and more" : ""}.`;
+      ? `${t("Conflicts with")} ${t(labels[0] ?? "")}.`
+      : `${t("Conflicts with")} ${labels
+          .slice(0, 3)
+          .map((label) => t(label))
+          .join(", ")}${labels.length > 3 ? t(", and more") : ""}.`;
 
   return (
     <WarningTooltipIcon label={description}>
-      {description} The most recent matching binding wins when both conditions can apply.
+      {description} {t("The most recent matching binding wins when both conditions can apply.")}
     </WarningTooltipIcon>
   );
 }
@@ -317,6 +323,7 @@ function WhenVariableSelect({
   unknownIdentifiers?: ReadonlyArray<string>;
   onChange: (value: string) => void;
 }) {
+  const t = useTranslate();
   const selected = variables.find((option) => option === value);
   const options =
     selected || variables.some((option) => option === value) ? variables : [value, ...variables];
@@ -324,7 +331,7 @@ function WhenVariableSelect({
   return (
     <Select value={value} onValueChange={(nextValue) => nextValue && onChange(nextValue)}>
       <SelectTrigger size="compact" className="min-w-0 flex-1">
-        <SelectValue placeholder="Condition" />
+        <SelectValue placeholder={t("Condition")} />
         {unknownIdentifiers && unknownIdentifiers.length > 0 ? (
           <UnknownWhenVariableWarning identifiers={unknownIdentifiers} focusable={false} />
         ) : null}
@@ -360,14 +367,14 @@ function WhenExpressionRemoveButton({
             variant="ghost"
             size="icon-sm"
             className={cn("size-7", className)}
-            aria-label={label}
+            aria-label={t(label)}
             onClick={onRemove}
           />
         }
       >
         <MinusIcon aria-hidden className="size-3.5" />
       </TooltipTrigger>
-      <TooltipPopup side="top">{label}</TooltipPopup>
+      <TooltipPopup side="top">{t(label)}</TooltipPopup>
     </Tooltip>
   );
 }
@@ -398,7 +405,7 @@ function WhenExpressionNodeEditor({
         <Toggle
           pressed={condition.negated}
           onPressedChange={(pressed) => onChange(setConditionNegated(node, pressed))}
-          aria-label={`Negate ${condition.identifier}`}
+          aria-label={`${t("Negate")} ${condition.identifier}`}
           variant="outline"
           size="compact"
           className="min-w-10"
@@ -537,17 +544,17 @@ function WhenExpressionNodeEditor({
             <SelectValue />
           </SelectTrigger>
           <SelectContent alignItemWithTrigger={false} matchTriggerWidth={false}>
-            <SelectItem value="and">and</SelectItem>
-            <SelectItem value="or">or</SelectItem>
+            <SelectItem value="and">{t("and")}</SelectItem>
+            <SelectItem value="or">{t("or")}</SelectItem>
           </SelectContent>
         </Select>
         <Button type="button" variant="outline" size="compact" onClick={addCondition}>
           <PlusIcon className="size-3.5" />
-          Condition
+          {t("Condition")}
         </Button>
         <Button type="button" variant="outline" size="compact" onClick={addGroup}>
           <PlusIcon className="size-3.5" />
-          Group
+          {t("Group")}
         </Button>
         {onRemove ? (
           <WhenExpressionRemoveButton
@@ -661,9 +668,9 @@ function WhenExpressionBuilder({
           <InputGroupInput
             value={expressionDraft}
             onChange={(event) => updateExpressionDraft(event.currentTarget.value)}
-            placeholder="Always"
+            placeholder={t("Always")}
             aria-invalid={Boolean(parseError)}
-            aria-label="When expression"
+            aria-label={t("When expression")}
             size="compact"
             font="mono"
           />
@@ -676,7 +683,7 @@ function WhenExpressionBuilder({
         {parseError ? (
           <div className="flex items-center gap-1.5 text-2xs text-destructive">
             <CircleXIcon className="size-3.5" />
-            {parseError}
+            {t(parseError)}
           </div>
         ) : null}
       </div>
@@ -694,18 +701,18 @@ function WhenExpressionBuilder({
             <div className="flex flex-wrap gap-2">
               <Button type="button" size="compact" onClick={addRootCondition}>
                 <PlusIcon className="size-3.5" />
-                Condition
+                {t("Condition")}
               </Button>
               <Button type="button" variant="outline" size="compact" onClick={addRootGroup}>
                 <PlusIcon className="size-3.5" />
-                Group
+                {t("Group")}
               </Button>
             </div>
           </div>
         )}
         {parseError ? (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-lg border border-destructive/30 bg-background/75 p-4 text-center text-xs text-destructive backdrop-blur-xs">
-            Fix the expression above to continue editing visually.
+            {t("Fix the expression above to continue editing visually.")}
           </div>
         ) : null}
       </div>
@@ -1419,9 +1426,11 @@ export function KeybindingsSettingsPanel() {
       }
       const error = squashAtomCommandFailure(result);
       toastManager.add({
-        title: "Unable to open keybindings file",
+        title: translate("Unable to open keybindings file"),
         description:
-          error instanceof Error ? error.message : "The keybindings file was not opened.",
+          error instanceof Error
+            ? error.message
+            : translate("The keybindings file was not opened."),
         type: "error",
       });
     })();
@@ -1452,8 +1461,9 @@ export function KeybindingsSettingsPanel() {
         if (!isAtomCommandInterrupted(failed)) {
           const error = squashAtomCommandFailure(failed);
           toastManager.add({
-            title: "Unable to save keybinding",
-            description: error instanceof Error ? error.message : "The keybinding was not saved.",
+            title: translate("Unable to save keybinding"),
+            description:
+              error instanceof Error ? error.message : translate("The keybinding was not saved."),
             type: "error",
           });
         }
@@ -1480,8 +1490,9 @@ export function KeybindingsSettingsPanel() {
         if (result?._tag === "Failure" && !isAtomCommandInterrupted(result)) {
           const error = squashAtomCommandFailure(result);
           toastManager.add({
-            title: "Unable to remove keybinding",
-            description: error instanceof Error ? error.message : "The keybinding was not removed.",
+            title: translate("Unable to remove keybinding"),
+            description:
+              error instanceof Error ? error.message : translate("The keybinding was not removed."),
             type: "error",
           });
         }

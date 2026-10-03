@@ -5,6 +5,7 @@ import { type ReactNode, useState } from "react";
 import { cn } from "~/lib/utils";
 import { Collapsible, CollapsiblePanel, CollapsibleTrigger } from "../ui/collapsible";
 import { useSettingsSearchTarget, useSettingsSearchTargetId } from "./settingsLayout";
+import { useTranslate } from "../../i18n/translate";
 
 /**
  * A grouped settings section that starts closed. The header carries the title,
@@ -26,6 +27,7 @@ export function FoldedSettingsSection({
   readonly headerPlacement?: "inside" | "outside";
   readonly children: ReactNode;
 }) {
+  const t = useTranslate();
   const [open, setOpen] = useState(false);
   const searchTargetId = useSettingsSearchTargetId();
   const targetRef = useSettingsSearchTarget<HTMLElement>(id);
@@ -47,7 +49,7 @@ export function FoldedSettingsSection({
             >
               <h2>
                 <CollapsibleTrigger className="flex min-h-7 items-center gap-2 rounded-md text-sm font-normal text-foreground/70 outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                  {title}
+                  {t(title)}
                   <ChevronRightIcon
                     aria-hidden
                     className={cn(
@@ -80,7 +82,7 @@ export function FoldedSettingsSection({
                 open && "rotate-90",
               )}
             />
-            <span className="shrink-0 text-sm font-medium">{title}</span>
+            <span className="shrink-0 text-sm font-medium">{t(title)}</span>
             {summary ? (
               <span className="min-w-0 truncate text-xs text-muted-foreground">{summary}</span>
             ) : null}

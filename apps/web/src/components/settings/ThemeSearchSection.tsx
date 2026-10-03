@@ -29,7 +29,7 @@ import { Button } from "../ui/button";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "../ui/input-group";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "../ui/select";
 import { Spinner } from "../ui/spinner";
-import { translate as t } from "../../i18n/translate";
+import { useTranslate } from "../../i18n/translate";
 
 const DOWNLOAD_FORMAT = new Intl.NumberFormat(undefined, {
   notation: "compact",
@@ -85,6 +85,7 @@ export function ThemeSearchSection({
   open: boolean;
   onInstalled: (themes: ReadonlyArray<ThemeDefinition>, context: { updated: boolean }) => void;
 }) {
+  const t = useTranslate();
   const [query, setQuery] = useState("");
   const [sortBy, setSortBy] = useState<OpenVsxThemeSort>("downloadCount");
   const [results, setResults] = useState<ReadonlyArray<OpenVsxThemeExtension> | null>(null);
@@ -152,7 +153,7 @@ export function ThemeSearchSection({
         setIsSearching(false);
       }
     },
-    [sortBy],
+    [sortBy, t],
   );
 
   const debouncedQuery = useDebouncedValue(query.trim(), SEARCH_DEBOUNCE_MS);
@@ -254,7 +255,7 @@ export function ThemeSearchSection({
         setInstallingId(null);
       }
     },
-    [onInstalled],
+    [onInstalled, t],
   );
 
   return (
@@ -317,7 +318,7 @@ export function ThemeSearchSection({
                 value={sortBy}
                 onValueChange={handleSortChange}
               >
-                <SelectTrigger size="sm" className="w-40" aria-label="Sort themes">
+                <SelectTrigger size="sm" className="w-40" aria-label={t("Sort themes")}>
                   <SelectValue>
                     {t(SORT_OPTIONS.find((option) => option.value === sortBy)?.label ?? "Newest")}
                   </SelectValue>
@@ -402,7 +403,7 @@ export function ThemeSearchSection({
                       ) : null}
                     </div>
                     <Button
-                      aria-label={`${isInstalling ? progressAction : action} ${extension.name}`}
+                      aria-label={`${t(isInstalling ? progressAction : action)} ${extension.name}`}
                       disabled={installingId !== null}
                       size="xs"
                       variant="outline"

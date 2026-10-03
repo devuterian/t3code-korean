@@ -6,7 +6,8 @@ import { ColorHueSlider, ColorSaturationValuePlane } from "../ui/color-picker";
 import { Input } from "../ui/input";
 import { Popover, PopoverPopup, PopoverTrigger } from "../ui/popover";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
-import { translate as t } from "../../i18n/translate";
+import { useTranslate } from "../../i18n/translate";
+
 export function getThemeRoleLabel(role: ThemeColorRole): string {
   const labels: Partial<Record<ThemeColorRole, string>> = {
     canvas: "Background",
@@ -81,6 +82,7 @@ function ThemeColorPickerPanel({
   value: string;
   onChange: (value: string) => void;
 }) {
+  const t = useTranslate();
   const normalizedValue = normalizeThemePickerColor(value);
   const alphaSuffix = themePickerAlphaSuffix(value);
   const [hsv, setHsv] = useState(() => hexToHsv(normalizedValue));
@@ -258,6 +260,7 @@ function ThemeColorPicker({
   onChange: (value: string) => void;
   onInteract?: () => void;
 }) {
+  const t = useTranslate();
   return (
     <Popover>
       <Tooltip>
@@ -313,6 +316,7 @@ export const ThemeColorField = memo(function ThemeColorField({
   selected?: boolean;
   label?: string;
 }) {
+  const t = useTranslate();
   const label = customLabel ?? t(getThemeRoleLabel(role));
   const isColorValue = isThemeColor(value);
   const swatchValue = isColorValue ? value : "#000000";

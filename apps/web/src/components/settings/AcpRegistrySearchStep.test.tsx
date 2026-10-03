@@ -23,6 +23,12 @@ const lifecycle = vi.hoisted(() => ({
   cleanups: [] as Array<() => void>,
 }));
 
+vi.mock("../../i18n/translate", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../i18n/translate")>()),
+  translate: (source: string) => source,
+  useTranslate: () => (source: string) => source,
+}));
+
 vi.mock("react", async (importOriginal) => {
   const actual = await importOriginal<typeof import("react")>();
   const { reactHookHarness } = await import("../../test/reactHookHarness");

@@ -12,6 +12,7 @@ import {
   SETTINGS_SEARCH_ITEMS,
   type SettingsSearchItem,
 } from "./settingsSearch";
+import { setInterfaceLanguage } from "../../i18n/translate";
 
 const ITEMS: ReadonlyArray<SettingsSearchItem> = [
   {
@@ -263,6 +264,15 @@ describe("searchSettings", () => {
       targetId: "keybindings",
     });
     expect(searchSettings("sidebar.toggle")[0]?.targetId).toBeUndefined();
+  });
+
+  it("matches localized titles when the interface language is Korean", () => {
+    setInterfaceLanguage("ko");
+    try {
+      expect(searchSettings("시간 형식")[0]?.id).toBe("time-format");
+    } finally {
+      setInterfaceLanguage("en");
+    }
   });
 
   it("keeps catalog result ids unique", () => {

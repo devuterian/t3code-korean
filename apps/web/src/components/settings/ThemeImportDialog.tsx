@@ -22,7 +22,7 @@ import { Alert } from "../ui/alert";
 import { Button } from "../ui/button";
 import { Dialog, DialogHeader, DialogPanel, DialogPopup, DialogTitle } from "../ui/dialog";
 import { ThemeSearchSection } from "./ThemeSearchSection";
-import { translate as t } from "../../i18n/translate";
+import { translate, useTranslate } from "../../i18n/translate";
 
 /**
  * A full theme export is a few KB, so anything past this is not a theme file.
@@ -45,7 +45,7 @@ function formatByteSize(bytes: number): string {
 /** Returns the error to show for a file too large to be a theme, else null. */
 export function describeOversizedThemeFile(bytes: number): string | null {
   if (bytes <= MAX_THEME_FILE_BYTES) return null;
-  return `${t("That file is")} ${formatByteSize(bytes)}. ${t("Theme files are only a few KB, so this one was not read (limit")} ${formatByteSize(MAX_THEME_FILE_BYTES)}).`;
+  return `${translate("That file is")} ${formatByteSize(bytes)}. ${translate("Theme files are only a few KB, so this one was not read (limit")} ${formatByteSize(MAX_THEME_FILE_BYTES)}).`;
 }
 
 function escapeJsonHtml(value: string): string {
@@ -97,6 +97,7 @@ function ThemeJsonEditor({
   value: string;
   onChange: (value: string) => void;
 }) {
+  const t = useTranslate();
   const highlightRef = useRef<HTMLPreElement>(null);
   const isPlainText = value.length > MAX_HIGHLIGHTED_JSON_LENGTH;
   const highlightedJson = useMemo(
@@ -156,6 +157,7 @@ export function ThemeImportDialog({
   /** Batch imports install without activating; the caller reports them. */
   onImportedMany: (themes: ReadonlyArray<ThemeDefinition>, context: { updated: boolean }) => void;
 }) {
+  const t = useTranslate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [json, setJson] = useState("");
   const [fileName, setFileName] = useState<string | null>(null);
@@ -180,30 +182,33 @@ export function ThemeImportDialog({
     setConflicts(null);
   }, [open]);
 
-  const readThemeFile = useCallback(async (file: ImportableThemeFile) => {
-    // Check the size first: reading a large file is what locks the UI, so it
-    // never gets read at all.
-    const oversized = describeOversizedThemeFile(file.size);
-    if (oversized) {
-      setError(oversized);
-      return;
-    }
+  const readThemeFile = useCallback(
+    async (file: ImportableThemeFile) => {
+      // Check the size first: reading a large file is what locks the UI, so it
+      // never gets read at all.
+      const oversized = describeOversizedThemeFile(file.size);
+      if (oversized) {
+        setError(oversized);
+        return;
+      }
 
-    const requestId = ++importRequestRef.current;
-    setIsReading(true);
-    try {
-      const fileText = await file.text();
-      if (requestId !== importRequestRef.current) return;
-      setJson(fileText);
-      setFileName(file.name);
-      setError(null);
-    } catch {
-      if (requestId !== importRequestRef.current) return;
-      setError("Could not read that file. Paste the JSON below instead.");
-    } finally {
-      if (requestId === importRequestRef.current) setIsReading(false);
-    }
-  }, []);
+      const requestId = ++importRequestRef.current;
+      setIsReading(true);
+      try {
+        const fileText = await file.text();
+        if (requestId !== importRequestRef.current) return;
+        setJson(fileText);
+        setFileName(file.name);
+        setError(null);
+      } catch {
+        if (requestId !== importRequestRef.current) return;
+        setError(t("Could not read that file. Paste the JSON below instead."));
+      } finally {
+        if (requestId === importRequestRef.current) setIsReading(false);
+      }
+    },
+    [t],
+  );
 
   // Several files at once import as a batch: VS Code families pair their
   // light and dark variants, everything installs without activating, and the
@@ -218,7 +223,7 @@ export function ThemeImportDialog({
         for (const file of files) {
           const oversized = describeOversizedThemeFile(file.size);
           if (oversized) {
-            failures.push(`${file.name}: too large`);
+            failures.push(`${file.name}: ${t("too large")}`);
             continue;
           }
           try {
@@ -229,7 +234,7 @@ export function ThemeImportDialog({
             });
           } catch (cause) {
             failures.push(
-              `${file.name}: ${cause instanceof Error ? cause.message : "not a theme file"}`,
+              `${file.name}: ${cause instanceof Error ? cause.message : t("not a theme file")}`,
             );
           }
         }
@@ -245,7 +250,7 @@ export function ThemeImportDialog({
             installed.push(installCustomTheme(theme));
           } catch (cause) {
             failures.push(
-              `${theme.label}: ${cause instanceof Error ? cause.message : "could not install"}`,
+              `${theme.label}: ${cause instanceof Error ? cause.message : t("could not install")}`,
             );
           }
         }
@@ -261,7 +266,7 @@ export function ThemeImportDialog({
         if (requestId === importRequestRef.current) setIsReading(false);
       }
     },
-    [onImportedMany, onOpenChange],
+    [onImportedMany, onOpenChange, t],
   );
 
   const readThemeFiles = useCallback(
@@ -341,7 +346,7 @@ export function ThemeImportDialog({
       if (getCustomThemes().some((existing) => existing.id === candidate.id)) continue;
       return candidate;
     }
-    throw new Error(`Too many copies of "${theme.label}".`);
+    throw new Error(`${t("Too many copies of")} "${theme.label}".`);
   };
 
   const resolveConflicts = useCallback(
@@ -368,7 +373,7 @@ export function ThemeImportDialog({
               : installCustomTheme(versionedCopy(theme, preferredName)),
           );
         } catch (cause) {
-          failures.push(`${theme.label}: ${cause instanceof Error ? cause.message : "failed"}`);
+          failures.push(`${theme.label}: ${cause instanceof Error ? cause.message : t("failed")}`);
         }
       }
       if (resolved.length > 0) onImportedMany(resolved, { updated: mode === "update" });
@@ -376,7 +381,7 @@ export function ThemeImportDialog({
       if (failures.length > 0) setError(failures.join(" — "));
       else onOpenChange(false);
     },
-    [conflicts, fileName, onImportedMany, onOpenChange],
+    [conflicts, fileName, onImportedMany, onOpenChange, t],
   );
 
   const handleSubmit = useCallback(() => {
@@ -414,7 +419,7 @@ export function ThemeImportDialog({
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : t("That theme file is invalid."));
     }
-  }, [json, onImported, onOpenChange]);
+  }, [json, onImported, onOpenChange, t]);
 
   return (
     <Dialog

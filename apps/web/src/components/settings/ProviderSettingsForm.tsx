@@ -280,7 +280,7 @@ function ProviderSettingsFieldRow({
           onChange={(event) =>
             onChange(nextProviderConfigWithFieldValue(value, field, event.target.value))
           }
-          placeholder={field.placeholder}
+          placeholder={field.placeholder && t(field.placeholder)}
           spellCheck={false}
         />
       ) : (
@@ -293,7 +293,7 @@ function ProviderSettingsFieldRow({
           autoComplete={field.control === "password" ? "off" : undefined}
           value={readProviderConfigString(value, field.key)}
           onCommit={(next) => onChange(nextProviderConfigWithFieldValue(value, field, next))}
-          placeholder={field.placeholder}
+          placeholder={field.placeholder && t(field.placeholder)}
           spellCheck={false}
         />
       );
@@ -366,7 +366,7 @@ function ProviderSettingsFieldRow({
             onChange={(event) =>
               onChange(nextProviderConfigWithFieldValue(value, field, event.target.value))
             }
-            placeholder={field.placeholder}
+            placeholder={field.placeholder && t(field.placeholder)}
             spellCheck={false}
           />
           {description}
@@ -389,7 +389,7 @@ function ProviderSettingsFieldRow({
             autoComplete={field.control === "password" ? "off" : undefined}
             value={readProviderConfigString(value, field.key)}
             onCommit={(next) => onChange(nextProviderConfigWithFieldValue(value, field, next))}
-            placeholder={field.placeholder}
+            placeholder={field.placeholder && t(field.placeholder)}
             spellCheck={false}
           />
         ) : (
@@ -401,7 +401,7 @@ function ProviderSettingsFieldRow({
             onChange={(event) =>
               onChange(nextProviderConfigWithFieldValue(value, field, event.target.value))
             }
-            placeholder={field.placeholder}
+            placeholder={field.placeholder && t(field.placeholder)}
             spellCheck={false}
           />
         )}

@@ -84,10 +84,10 @@ function ProviderCustomColorPicker(props: {
             size="icon-sm"
             variant="ghost-muted"
             style={normalized ? { backgroundColor: normalized } : undefined}
-            aria-label={`${normalized ? "Change" : "Add"} accent color for ${props.displayName}`}
+            aria-label={`${t(normalized ? "Change accent color for" : "Add accent color for")} ${props.displayName}`}
           >
             {normalized ? (
-              <span className="sr-only">Change accent color</span>
+              <span className="sr-only">{t("Change accent color")}</span>
             ) : (
               <PlusIcon aria-hidden />
             )}
@@ -215,7 +215,7 @@ export function ProviderAccentColorPicker(props: {
     <div className="grid gap-2">
       <span className="text-xs font-medium text-foreground">{t("Accent color")}</span>
       {picker}
-      {description ? <span className="text-xs text-muted-foreground">{description}</span> : null}
+      {description ? <span className="text-xs text-muted-foreground">{t(description)}</span> : null}
     </div>
   );
 }

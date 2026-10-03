@@ -32,14 +32,15 @@ import { serverEnvironment } from "../../state/server";
 import { useAtomCommand } from "../../state/use-atom-command";
 import type { NewProjectScriptInput } from "../projectScriptEditor";
 import { toastManager } from "../ui/toast";
+import { translate } from "../../i18n/translate";
 
 function reportScriptFailure(result: AtomCommandResult<unknown, unknown>) {
   if (result._tag === "Failure" && !isAtomCommandInterrupted(result)) {
     const error = squashAtomCommandFailure(result);
     toastManager.add({
       type: "error",
-      title: "Failed to save project actions",
-      description: error instanceof Error ? error.message : "An error occurred.",
+      title: translate("Failed to save project actions"),
+      description: error instanceof Error ? error.message : translate("An error occurred."),
     });
   }
   return mapAtomCommandResult(result, () => undefined);
@@ -76,8 +77,12 @@ export function useProjectScriptSettings(
     keybinding?: string | null,
   ): Promise<AtomCommandResult<void, unknown>> {
     if (savingRef.current || targets.length === 0) {
-      const message = "No available machine, or another action change is saving.";
-      toastManager.add({ type: "error", title: "Actions not saved", description: message });
+      const message = translate("No available machine, or another action change is saving.");
+      toastManager.add({
+        type: "error",
+        title: translate("Actions not saved"),
+        description: message,
+      });
       return AsyncResult.failure(Cause.fail(new Error(message)));
     }
     savingRef.current = true;

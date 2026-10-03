@@ -17,7 +17,7 @@ import { PULL_REQUEST_MERGE_METHOD_LABELS } from "../pullRequest/pullRequestDeta
 import { Button, InlineButton } from "../ui/button";
 import { Popover, PopoverPopup, PopoverTrigger } from "../ui/popover";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
-import { useTranslate } from "../../i18n/translate";
+import { translate, useTranslate } from "../../i18n/translate";
 import type { ProjectOverrideEntry, ScopedSettingsTarget } from "./scopedSettings";
 import { isProjectScopedSettingKey } from "./scopedSettings";
 
@@ -53,7 +53,7 @@ function formatValue(key: keyof ServerSettings, value: unknown): string {
   if (typeof value === "boolean") return value ? "On" : "Off";
   if (typeof value === "number") {
     return key === "sidebarAutoSettleAfterDays"
-      ? `${value} ${value === 1 ? "day" : "days"}`
+      ? `${value} ${translate(value === 1 ? "day" : "days")}`
       : String(value);
   }
   if (typeof value === "string") {
@@ -70,7 +70,8 @@ function formatValue(key: keyof ServerSettings, value: unknown): string {
     }
     return value === "" ? "Empty" : value;
   }
-  if (Array.isArray(value)) return `${value.length} ${value.length === 1 ? "item" : "items"}`;
+  if (Array.isArray(value))
+    return `${value.length} ${translate(value.length === 1 ? "item" : "items")}`;
   if (typeof value === "object") {
     if ("model" in value && typeof value.model === "string") return value.model;
     if ("mode" in value && typeof value.mode === "string") {

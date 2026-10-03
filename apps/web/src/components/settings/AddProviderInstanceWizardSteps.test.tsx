@@ -5,6 +5,12 @@ import { WizardSteps } from "../ui/wizard";
 import { ADD_PROVIDER_WIZARD_STEPS } from "./AddProviderInstanceDialog.logic";
 import { AddProviderInstanceWizardSteps } from "./AddProviderInstanceWizardSteps";
 
+vi.mock("../../i18n/translate", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../i18n/translate")>()),
+  translate: (source: string) => source,
+  useTranslate: () => (source: string) => source,
+}));
+
 interface StepButtonProps {
   readonly "aria-current"?: string;
   readonly onClick: () => void;

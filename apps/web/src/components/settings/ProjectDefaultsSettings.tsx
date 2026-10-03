@@ -116,7 +116,7 @@ export function ProjectDefaultsSettings({ category }: { category: ProjectSetting
         entry.driverKind !== sourceEntry?.driverKind ||
         !options?.some((option) => option.slug === model && !option.isUnavailable)
       ) {
-        return `This model is unavailable on ${environment?.label ?? "a selected environment"}. Select that environment to choose its model separately.`;
+        return `${t("This model is unavailable on")} ${environment?.label ?? t("a selected environment")}${t(". Select that environment to choose its model separately.")}`;
       }
     }
     return null;
@@ -125,7 +125,7 @@ export function ProjectDefaultsSettings({ category }: { category: ProjectSetting
   const setModel = (value: ModelSelection | null) => {
     const reason = value ? modelDisabledReason(value.instanceId, value.model) : null;
     if (reason) {
-      toastManager.add({ type: "error", title: "Default model not saved", description: reason });
+      toastManager.add({ type: "error", title: t("Default model not saved"), description: reason });
       return;
     }
     updateSettings({ defaultModelSelection: value });
@@ -229,7 +229,7 @@ export function ProjectDefaultsSettings({ category }: { category: ProjectSetting
               updateSettings({ defaultThreadEnvMode: value });
           }}
         >
-          <SelectTrigger size="sm" aria-label="Default workspace">
+          <SelectTrigger size="sm" aria-label={t("Default workspace")}>
             <SelectValue>
               {(value: string | null) =>
                 value === "local" || value === "worktree"
@@ -303,7 +303,7 @@ export function ProjectDefaultsSettings({ category }: { category: ProjectSetting
                   if (value) updateSettings({ defaultRuntimeMode: value });
                 }}
               >
-                <SelectTrigger size="sm" aria-label="Default permissions">
+                <SelectTrigger size="sm" aria-label={t("Default permissions")}>
                   {!mixedPermissions && (
                     <PermissionIcon className="size-3.5 shrink-0 text-muted-foreground" />
                   )}
@@ -361,7 +361,7 @@ export function ProjectDefaultsSettings({ category }: { category: ProjectSetting
                   if (isWorktreeSubmodules(value)) updateSettings({ worktreeSubmodules: value });
                 }}
               >
-                <SelectTrigger size="sm" aria-label="Worktree submodules">
+                <SelectTrigger size="sm" aria-label={t("Worktree submodules")}>
                   <SelectValue>
                     {(value: string | null) =>
                       isWorktreeSubmodules(value)
@@ -407,7 +407,7 @@ export function ProjectDefaultsSettings({ category }: { category: ProjectSetting
             }
             control={
               <Switch
-                aria-label="Default automatic pull"
+                aria-label={t("Default automatic pull")}
                 mixed={mixedAutoPull}
                 checked={mixedAutoPull ? false : settings.defaultAutoPull}
                 onCheckedChange={(enabled) => updateSettings({ defaultAutoPull: enabled })}
@@ -442,11 +442,11 @@ export function ProjectDefaultsSettings({ category }: { category: ProjectSetting
                     updateSettings({ pullRequestMergeMethod: value });
                 }}
               >
-                <SelectTrigger size="sm" aria-label="Default pull request merge method">
+                <SelectTrigger size="sm" aria-label={t("Default pull request merge method")}>
                   <SelectValue>
                     {(value: string | null) =>
                       value === "merge" || value === "squash" || value === "rebase"
-                        ? PULL_REQUEST_MERGE_METHOD_LABELS[value]
+                        ? t(PULL_REQUEST_MERGE_METHOD_LABELS[value])
                         : value === "last"
                           ? t("Last selected")
                           : t("Mixed")
@@ -455,9 +455,13 @@ export function ProjectDefaultsSettings({ category }: { category: ProjectSetting
                 </SelectTrigger>
                 <SelectPopup align="end" alignItemWithTrigger={false}>
                   <SelectItem value="last">{t("Last selected")}</SelectItem>
-                  <SelectItem value="merge">{PULL_REQUEST_MERGE_METHOD_LABELS.merge}</SelectItem>
-                  <SelectItem value="squash">{PULL_REQUEST_MERGE_METHOD_LABELS.squash}</SelectItem>
-                  <SelectItem value="rebase">{PULL_REQUEST_MERGE_METHOD_LABELS.rebase}</SelectItem>
+                  <SelectItem value="merge">{t(PULL_REQUEST_MERGE_METHOD_LABELS.merge)}</SelectItem>
+                  <SelectItem value="squash">
+                    {t(PULL_REQUEST_MERGE_METHOD_LABELS.squash)}
+                  </SelectItem>
+                  <SelectItem value="rebase">
+                    {t(PULL_REQUEST_MERGE_METHOD_LABELS.rebase)}
+                  </SelectItem>
                 </SelectPopup>
               </Select>
             }
@@ -491,7 +495,7 @@ export function ProjectDefaultsSettings({ category }: { category: ProjectSetting
             }
             control={
               <Switch
-                aria-label="Agent browser access"
+                aria-label={t("Agent browser access")}
                 mixed={mixedBrowser}
                 checked={mixedBrowser ? false : settings.enableAgentBrowserAccess}
                 onCheckedChange={(enabled) => updateSettings({ enableAgentBrowserAccess: enabled })}

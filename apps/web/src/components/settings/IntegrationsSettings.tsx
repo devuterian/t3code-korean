@@ -684,7 +684,7 @@ function DeviceIntegrationControls({
         toastManager.add({
           type: "error",
           title: t("Device settings not saved on all environments"),
-          description: `Could not update ${failed.map((environment) => environment.label).join(", ")}.`,
+          description: `${t("Could not update")} ${failed.map((environment) => environment.label).join(", ")}.`,
         });
       }
     } finally {
@@ -715,14 +715,17 @@ function DeviceIntegrationControls({
                     if (result._tag === "Failure")
                       setUpdateError({
                         tool,
-                        message:
+                        message: t(
                           "Update failed. Check this host's network connection and try again.",
+                        ),
                       });
                   })
                   .finally(() => setPending(null));
               }}
             >
-              {pending === `update-${tool}` ? "Updating…" : `Update to v${version.requiredVersion}`}
+              {pending === `update-${tool}`
+                ? t("Updating…")
+                : `${t("Update to")} v${version.requiredVersion}`}
             </Button>
           ) : null}
           {state.supportsToolInspection ? (
@@ -738,7 +741,7 @@ function DeviceIntegrationControls({
                 );
               }}
             >
-              {pending === "check" ? "Checking…" : "Check versions"}
+              {pending === "check" ? t("Checking…") : t("Check versions")}
             </Button>
           ) : null}
         </div>
@@ -787,7 +790,7 @@ function DeviceIntegrationControls({
             {...searchableSetting("device-platform-support")}
             description={
               connectedEnvironments.length > 1
-                ? `Status for ${connectedEnvironments.find((environment) => environment.environmentId === environmentId)?.label}. Select an environment to inspect its simulator support.`
+                ? `${t("Status for")} ${connectedEnvironments.find((environment) => environment.environmentId === environmentId)?.label}${t(". Select an environment to inspect its simulator support.")}`
                 : undefined
             }
             status={
@@ -975,7 +978,7 @@ function BrowserProfilesSetting({ disabled }: { readonly disabled: boolean }) {
     if (!previewBridge || !environmentsReady || environments.length === 0) {
       toastManager.add({
         type: "error",
-        title: `Could not clear ${name}'s data`,
+        title: t("Could not clear {name}'s data").replace("{name}", name),
         description: t("You're not connected to a server yet."),
       });
       return;
@@ -986,17 +989,23 @@ function BrowserProfilesSetting({ disabled }: { readonly disabled: boolean }) {
       id,
     )
       .then(() => {
-        toastManager.add({ type: "success", title: `Cleared ${name}'s cookies and cache` });
+        toastManager.add({
+          type: "success",
+          title: t("Cleared {name}'s cookies and cache").replace("{name}", name),
+        });
       })
       .catch(() => {
-        toastManager.add({ type: "error", title: `Could not clear ${name}'s data` });
+        toastManager.add({
+          type: "error",
+          title: t("Could not clear {name}'s data").replace("{name}", name),
+        });
       });
   };
 
   const removeProfile = async (id: string) => {
     if (!settingsHydrated || importInFlightRef.current) return;
     if (!removalAvailable) {
-      setProfileRemovalError("Connect to an environment before removing this profile.");
+      setProfileRemovalError(t("Connect to an environment before removing this profile."));
       return;
     }
     setProfileRemovalError(null);
@@ -1010,7 +1019,7 @@ function BrowserProfilesSetting({ disabled }: { readonly disabled: boolean }) {
         id,
       );
     } catch {
-      setProfileRemovalError("Profile data could not be deleted. Try again.");
+      setProfileRemovalError(t("Profile data could not be deleted. Try again."));
       setProfileRemovalInFlight(false);
       return;
     }
@@ -1196,7 +1205,7 @@ function BrowserProfilesSetting({ disabled }: { readonly disabled: boolean }) {
               {t("Blank profile")}
             </MenuItem>
             {atProfileLimit ? (
-              <MenuItem disabled>You&rsquo;ve reached the profile limit</MenuItem>
+              <MenuItem disabled>{t("You’ve reached the profile limit")}</MenuItem>
             ) : null}
             <MenuSeparator />
             <MenuGroup>
@@ -1276,7 +1285,7 @@ function BrowserProfilesSetting({ disabled }: { readonly disabled: boolean }) {
                     nativeInput
                     size="sm"
                     className="w-full max-w-56"
-                    aria-label={`Rename ${profile.name}`}
+                    aria-label={`${t("Rename")} ${profile.name}`}
                     disabled={profileWritesDisabled || importInFlight}
                     maxLength={BROWSER_PROFILE_NAME_MAX_LENGTH}
                     value={profile.name}
@@ -1359,7 +1368,7 @@ function BrowserProfilesSetting({ disabled }: { readonly disabled: boolean }) {
         <AlertDialogPopup>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {t("Remove profile question").replace("{name}", profilePendingRemoval?.name ?? "")}
+              {t("Remove “{name}”?").replace("{name}", profilePendingRemoval?.name ?? "")}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {t(

@@ -85,7 +85,7 @@ export function UsageProviderSettings({
             description="Read your existing Cursor CLI login from macOS Keychain to show account history and monthly limits. macOS may ask you to allow access."
             control={
               <Switch
-                aria-label="Cursor account usage"
+                aria-label={t("Cursor account usage")}
                 checked={cursorKeychainUsageEnabled}
                 disabled={readOnly || updatingCursor}
                 onCheckedChange={(enabled) => void setCursorUsageEnabled(enabled)}

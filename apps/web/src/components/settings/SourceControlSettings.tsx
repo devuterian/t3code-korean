@@ -374,6 +374,7 @@ function DiscoveryItemRow({
 }
 
 function GitFetchIntervalSettings() {
+  const t = useTranslate();
   const settings = useScopedSettings();
   const updateSettings = useUpdateScopedSettings();
   const resolvedBackgroundActivity = resolveServerBackgroundActivitySettings(settings);
@@ -394,7 +395,7 @@ function GitFetchIntervalSettings() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 space-y-1">
           <div className="flex min-w-0 items-center gap-1">
-            <span className="text-xs font-medium text-foreground">{setting.title}</span>
+            <span className="text-xs font-medium text-foreground">{t(setting.title)}</span>
             <PolicyTooltip>
               This interval is configured for Git only. The shared Background activity policy still
               decides whether Git refreshes may run when the timer fires. Custom intervals appear as
@@ -422,7 +423,9 @@ function GitFetchIntervalSettings() {
             </span>
           </div>
           <p className="max-w-2xl text-xs leading-relaxed text-muted-foreground">
-            Refresh remote branches in the background. Set to 0 to avoid automatic Git prompts.
+            {t(
+              "Refresh remote branches in the background. Set to 0 to avoid automatic Git prompts.",
+            )}
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
@@ -441,12 +444,12 @@ function GitFetchIntervalSettings() {
             }
           >
             <NumberFieldGroup>
-              <NumberFieldDecrement aria-label="Decrease fetch interval" />
-              <NumberFieldInput aria-label="Automatic Git fetch interval in seconds" />
-              <NumberFieldIncrement aria-label="Increase fetch interval" />
+              <NumberFieldDecrement aria-label={t("Decrease fetch interval")} />
+              <NumberFieldInput aria-label={t("Automatic Git fetch interval in seconds")} />
+              <NumberFieldIncrement aria-label={t("Increase fetch interval")} />
             </NumberFieldGroup>
           </NumberField>
-          <span className="text-xs text-muted-foreground">seconds</span>
+          <span className="text-xs text-muted-foreground">{t("seconds")}</span>
         </div>
       </div>
     </SettingsSearchTarget>

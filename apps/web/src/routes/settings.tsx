@@ -46,6 +46,7 @@ function RestoreDeviceDefaultsButton({ onRestored }: { onRestored: () => void })
 }
 
 function SettingsScopeBoundary({ pathname, children }: { pathname: string; children: ReactNode }) {
+  const t = useTranslate();
   const { scope, connectedEnvironments } = useSettingsScope();
   const { environments } = useEnvironments();
   const hash = useLocation({ select: (location) => location.hash });
@@ -66,8 +67,8 @@ function SettingsScopeBoundary({ pathname, children }: { pathname: string; child
         eligibleEnvironmentIds={autoSettlementAvailability.eligibleEnvironmentIds}
       >
         {autoSettlementAvailability.eligibleEnvironmentIds.length > 0
-          ? `${searchTarget.title} requires a supporting environment. Choose one to continue.`
-          : `${searchTarget.title} requires a supporting environment. Connect or update an environment to continue.`}
+          ? `${t(searchTarget.title)} ${t("requires a supporting environment. Choose one to continue.")}`
+          : `${t(searchTarget.title)} ${t("requires a supporting environment. Connect or update an environment to continue.")}`}
       </SettingsScopeNotice>
     );
   }
@@ -84,7 +85,7 @@ function SettingsScopeBoundary({ pathname, children }: { pathname: string; child
         : "all";
     return (
       <SettingsScopeNotice target={target} targetId={hash}>
-        {`${searchTarget.title} is not available for the selected target. Choose its owning scope to continue.`}
+        {`${t(searchTarget.title)} ${t("is not available for the selected target. Choose its owning scope to continue.")}`}
       </SettingsScopeNotice>
     );
   }
@@ -97,14 +98,14 @@ function SettingsScopeBoundary({ pathname, children }: { pathname: string; child
   if (scope.kind === "unavailable")
     return (
       <SettingsPageContainer>
-        <p className="text-sm text-muted-foreground">{scope.message}</p>
+        <p className="text-sm text-muted-foreground">{t(scope.message)}</p>
       </SettingsPageContainer>
     );
   if (scope.kind === "environment" && connectedEnvironments.length === 0) {
     return (
       <SettingsPageContainer>
         <p className="text-sm text-muted-foreground">
-          Reconnect {scope.label} to change its settings.
+          {t("Reconnect")} {scope.label} {t("to change its settings.")}
         </p>
       </SettingsPageContainer>
     );
