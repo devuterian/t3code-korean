@@ -9,6 +9,7 @@ import {
   planPinnedMove,
   planPinnedReorder,
   resolveSettledThreadTimestamp,
+  sortActiveThreads,
   sortActiveThreadsByOrderKey,
   sortPinnedThreadsByOrderKey,
   sortSettledThreads,
@@ -509,5 +510,41 @@ describe("sortActiveThreadsByOrderKey", () => {
     const keys = new Map(assignments.map((assignment) => [assignment.id, assignment.orderKey]));
     const updated = threads.map((thread) => ({ ...thread, activeOrderKey: keys.get(thread.id) }));
     expect(sortActiveThreadsByOrderKey(updated).map((thread) => thread.id)).toEqual(orderedIds);
+  });
+});
+
+describe("sortActiveThreads", () => {
+  const threads = [
+    {
+      id: "arranged-old",
+      createdAt: "2026-06-01T08:00:00.000Z",
+      activeOrderKey: "a",
+      latestUserMessageAt: "2026-06-01T09:00:00.000Z",
+    },
+    {
+      id: "arranged-new",
+      createdAt: "2026-06-01T08:00:00.000Z",
+      activeOrderKey: "b",
+      latestUserMessageAt: "2026-06-01T12:00:00.000Z",
+    },
+    // No user message yet: falls back to creation time.
+    { id: "fresh", createdAt: "2026-06-01T10:00:00.000Z", latestUserMessageAt: null },
+  ];
+
+  it("keeps the configured arrangement by default", () => {
+    expect(sortActiveThreads(threads).map((thread) => thread.id)).toEqual([
+      "fresh",
+      "arranged-old",
+      "arranged-new",
+    ]);
+  });
+
+  it("orders by the latest user message, falling back to creation time", () => {
+    expect(sortActiveThreads(threads, "last_message").map((thread) => thread.id)).toEqual([
+      "arranged-new",
+      "fresh",
+      "arranged-old",
+    ]);
+    expect(threads.map((thread) => thread.activeOrderKey)).toEqual(["a", "b", undefined]);
   });
 });

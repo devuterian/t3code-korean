@@ -431,6 +431,34 @@ it.layer(NodeServices.layer)("server settings", (it) => {
     ).pipe(Effect.provide(makeServerSettingsLayer())),
   );
 
+  it.effect("persists and broadcasts the active thread sort preference to subscribers", () =>
+    Effect.scoped(
+      Effect.gen(function* () {
+        const serverConfig = yield* ServerConfig.ServerConfig;
+        const fileSystem = yield* FileSystem.FileSystem;
+        const serverSettings = yield* ServerSettingsModule.ServerSettingsService;
+        const changes = yield* serverSettings.subscribeChanges;
+        const otherClientChanges = yield* serverSettings.subscribeChanges;
+
+        yield* serverSettings.updateSettings({ activeThreadSortOrder: "last_message" });
+        const change = Option.getOrUndefined(yield* Stream.runHead(changes));
+        const otherChange = Option.getOrUndefined(yield* Stream.runHead(otherClientChanges));
+        const readPersisted = fileSystem
+          .readFileString(serverConfig.settingsPath)
+          .pipe(Effect.flatMap(Schema.decodeUnknownEffect(Schema.fromJsonString(ServerSettings))));
+        const persisted = yield* readPersisted;
+
+        assert.strictEqual(change?.activeThreadSortOrder, "last_message");
+        assert.strictEqual(otherChange?.activeThreadSortOrder, "last_message");
+        assert.strictEqual(persisted.activeThreadSortOrder, "last_message");
+
+        const restored = yield* serverSettings.updateSettings({ activeThreadSortOrder: "manual" });
+        assert.strictEqual(restored.activeThreadSortOrder, "manual");
+        assert.strictEqual((yield* readPersisted).activeThreadSortOrder, "manual");
+      }),
+    ).pipe(Effect.provide(makeServerSettingsLayer())),
+  );
+
   it.effect("persists and broadcasts thread settlement settings", () =>
     Effect.scoped(
       Effect.gen(function* () {

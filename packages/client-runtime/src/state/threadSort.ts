@@ -1,5 +1,9 @@
 import type { ProjectId } from "@t3tools/contracts";
-import type { SidebarProjectSortOrder, SidebarThreadSortOrder } from "@t3tools/contracts/settings";
+import type {
+  ActiveThreadSortOrder,
+  SidebarProjectSortOrder,
+  SidebarThreadSortOrder,
+} from "@t3tools/contracts/settings";
 import type { EnvironmentThreadShell } from "./models.ts";
 import * as Arr from "effect/Array";
 import * as Order from "effect/Order";
@@ -373,6 +377,32 @@ export function sortActiveThreadsByOrderKey<
       (left.environmentId ?? "").localeCompare(right.environmentId ?? "")
     );
   });
+}
+
+/** Active list order for the shared sort preference. "last_message" is a view
+    preference: newest user message first (creation time when there is none),
+    ties keep the saved arrangement, and saved order keys stay intact. */
+export function sortActiveThreads<
+  T extends {
+    readonly id: string;
+    readonly createdAt: string;
+    readonly unsettledAt?: string | null | undefined;
+    readonly activeOrderKey?: string | null | undefined;
+    readonly environmentId?: string | undefined;
+    readonly latestUserMessageAt?: string | null | undefined;
+  },
+>(threads: readonly T[], order: ActiveThreadSortOrder = "manual"): T[] {
+  const arranged = sortActiveThreadsByOrderKey(threads);
+  if (order === "manual") return arranged;
+  const timestamps = new Map(
+    arranged.map((thread) => [
+      thread,
+      toSortableTimestamp(thread.latestUserMessageAt ?? undefined) ??
+        toSortableTimestamp(thread.createdAt) ??
+        0,
+    ]),
+  );
+  return arranged.sort((left, right) => timestamps.get(right)! - timestamps.get(left)!);
 }
 
 /**
