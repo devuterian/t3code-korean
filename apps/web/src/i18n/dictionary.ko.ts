@@ -4,6 +4,7 @@ import { KO_V2_SHELL } from "./ko/shell";
 import { KO_V2_SORT } from "./ko/sort";
 import { KO_V2_QOL_A } from "./ko/qolA";
 import { KO_V2_QOL_B } from "./ko/qolB";
+import { KO_V2_RESOLVED } from "./ko/resolved";
 
 /**
  * Korean dictionary. Keys are the exact English source strings rendered by
@@ -362,7 +363,7 @@ const KO_BASE_DICTIONARY: Readonly<Record<string, string>> = {
     "백그라운드에서 프로바이더 상태, 버전, 모델을 새로 고칩니다. 0으로 설정하면 사용하지 않습니다.",
   Remote: "원격",
   "Remove unused worktrees when active or archived threads are deleted. Worktrees with local changes are kept.":
-    "활성 또는 보관된 스레드를 삭제할 때 사용하지 않는 워크트리를 제거합니다. 로컬 변경 사항이 있는 워크트리는 유지됩니다.",
+    "활성 또는 보관된 스레드를 삭제할 때 사용하지 않는 워크트리를 제거합니다. 로컬 변경사항이 있는 워크트리는 유지됩니다.",
   "Remove worktrees after their threads have been inactive for this many days. Branches and thread history are kept.":
     "스레드가 이 일수 동안 비활성 상태이면 워크트리를 제거합니다. 브랜치와 스레드 기록은 유지됩니다.",
   "Remove worktrees whose pull request is merged and whose commits are included in the default branch.":
@@ -1379,4 +1380,5 @@ export const KO_DICTIONARY: Readonly<Record<string, string>> = {
   ...KO_V2_SORT,
   ...KO_V2_QOL_A,
   ...KO_V2_QOL_B,
+  ...KO_V2_RESOLVED,
 };

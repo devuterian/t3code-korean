@@ -78,7 +78,7 @@ export const KO_V2_SETTINGS: Readonly<Record<string, string>> = {
     "브라우저나 시스템 설정에서 알림을 허용한 다음 이 옵션을 다시 선택하세요. 소리만 사용하는 옵션은 계속 쓸 수 있습니다.",
   "Allow snapshots": "스냅샷 허용",
   "Allow T3 Code to read your desktop settings. You'll review any changes here before saving.":
-    "T3 Code가 데스크톱 설정을 읽도록 허용하세요. 저장하기 전에 여기서 변경 사항을 검토합니다.",
+    "T3 Code가 데스크톱 설정을 읽도록 허용하세요. 저장하기 전에 여기서 변경사항을 검토합니다.",
   "Allows scoped background probes while any subscribed client remains connected.":
     "구독 중인 클라이언트가 연결되어 있는 동안 범위가 지정된 백그라운드 확인을 허용합니다.",
   "Already added": "이미 추가됨",
@@ -147,7 +147,7 @@ export const KO_V2_SETTINGS: Readonly<Record<string, string>> = {
   "Browser appearance": "브라우저 모양",
   "browser recording frame rate": "브라우저 녹화 프레임 레이트",
   "Browser storage is unavailable, so the change was not kept.":
-    "브라우저 저장소를 사용할 수 없어 변경 사항이 유지되지 않았습니다.",
+    "브라우저 저장소를 사용할 수 없어 변경사항이 유지되지 않았습니다.",
   "Browser viewport": "브라우저 뷰포트",
   "Browser zoom": "브라우저 확대/축소",
   "Can't find a setting? Keep this project picked above and hop to any other settings page.":
@@ -448,10 +448,10 @@ export const KO_V2_SETTINGS: Readonly<Record<string, string>> = {
     "이 단계를 완료할 수 없습니다. 다시 시도하거나 고급에서 도움말을 확인하세요.",
   "Couldn't open shortcut permissions": "단축키 권한을 열 수 없음",
   "Couldn't prepare the changes. Check Advanced for help.":
-    "변경 사항을 준비할 수 없습니다. 도움말은 고급을 확인하세요.",
+    "변경사항을 준비할 수 없습니다. 도움말은 고급을 확인하세요.",
   "Couldn't save capture settings": "캡처 설정을 저장할 수 없음",
   "Couldn't save your shortcut. Review the changes and try again.":
-    "단축키를 저장할 수 없습니다. 변경 사항을 검토한 뒤 다시 시도하세요.",
+    "단축키를 저장할 수 없습니다. 변경사항을 검토한 뒤 다시 시도하세요.",
   "Couldn't set up the extension": "확장을 설정할 수 없음",
   "Couldn't verify capture access": "캡처 접근 권한을 확인할 수 없음",
   "Couldn’t import from": "가져오지 못함:",
@@ -798,7 +798,7 @@ export const KO_V2_SETTINGS: Readonly<Record<string, string>> = {
   "Keep titles concise. Use short bullet points in descriptions.":
     "제목은 간결하게 작성하고, 설명에는 짧은 글머리 기호를 사용하세요.",
   "Keeps this project's default branch current when the checkout has no local changes or commits.":
-    "체크아웃에 로컬 변경 사항이나 커밋이 없으면 이 프로젝트의 기본 브랜치를 최신 상태로 유지합니다.",
+    "체크아웃에 로컬 변경사항이나 커밋이 없으면 이 프로젝트의 기본 브랜치를 최신 상태로 유지합니다.",
   Keyboard: "키보드",
   Kill: "종료",
   "Known broken version": "알려진 문제가 있는 버전",
@@ -932,7 +932,7 @@ export const KO_V2_SETTINGS: Readonly<Record<string, string>> = {
   "No actions configured.": "구성된 액션이 없습니다.",
   "No available editors found.": "사용 가능한 편집기가 없습니다.",
   "No available machine, or another action change is saving.":
-    "사용 가능한 기기가 없거나 다른 액션 변경 사항을 저장하는 중입니다.",
+    "사용 가능한 기기가 없거나 다른 액션 변경사항을 저장하는 중입니다.",
   "No compatible agents found": "호환되는 에이전트가 없습니다",
   "No computers linked yet.": "아직 연결된 컴퓨터가 없습니다.",
   "No connected devices": "연결된 기기 없음",
@@ -1004,7 +1004,7 @@ export const KO_V2_SETTINGS: Readonly<Record<string, string>> = {
   "on OpenAI.": "(OpenAI)",
   "One or two letters or numbers.": "글자나 숫자 한두 개.",
   "Only these changes will be saved. We'll keep a backup.":
-    "이 변경 사항만 저장되며 백업이 보관됩니다.",
+    "이 변경사항만 저장되며 백업이 보관됩니다.",
   "Only this machine can connect. Restart with a non-loopback host for remote pairing.":
     "이 컴퓨터에서만 연결할 수 있습니다. 원격 페어링을 하려면 루프백이 아닌 호스트로 다시 시작하세요.",
   "Open all environments": "모든 환경 열기",
@@ -1018,7 +1018,7 @@ export const KO_V2_SETTINGS: Readonly<Record<string, string>> = {
   "Open it in the client you want to pair to this environment.":
     "이 환경과 페어링할 클라이언트에서 여세요.",
   "Open linked pull requests first. Otherwise, open Changes for edits to at least 3 files or 50 lines.":
-    "연결된 풀 리퀘스트를 먼저 엽니다. 없으면 3개 이상의 파일 또는 50줄 이상이 수정되었을 때 변경 사항을 엽니다.",
+    "연결된 풀 리퀘스트를 먼저 엽니다. 없으면 3개 이상의 파일 또는 50줄 이상이 수정되었을 때 변경사항을 엽니다.",
   "Open logs folder": "로그 폴더 열기",
   "Open sign-in page": "로그인 페이지 열기",
   "Open source for": "소스 열기:",
@@ -1090,7 +1090,7 @@ export const KO_V2_SETTINGS: Readonly<Record<string, string>> = {
   prefer: "우선",
   Prefer: "우선",
   Preparing: "준비 중",
-  "Preparing changes…": "변경 사항 준비 중…",
+  "Preparing changes…": "변경사항 준비 중…",
   "Preparing command...": "명령어 준비 중...",
   "Preparing managed setup.": "관리형 설정을 준비하는 중입니다.",
   "Preparing sign-in.": "로그인을 준비하는 중입니다.",
@@ -1271,11 +1271,11 @@ export const KO_V2_SETTINGS: Readonly<Record<string, string>> = {
   "Retry update": "업데이트 다시 시도",
   "Retrying…": "다시 시도하는 중…",
   "Return to the provider and try again.": "프로바이더로 돌아가 다시 시도하세요.",
-  "Review changes": "변경 사항 검토",
+  "Review changes": "변경사항 검토",
   "Review the change below to remove your shortcut.":
-    "단축키를 제거하려면 아래 변경 사항을 검토하세요.",
+    "단축키를 제거하려면 아래 변경사항을 검토하세요.",
   "Review the change below, then save your shortcut.":
-    "아래 변경 사항을 검토한 뒤 단축키를 저장하세요.",
+    "아래 변경사항을 검토한 뒤 단축키를 저장하세요.",
   "Review the command, then press Enter to run it.": "명령어를 확인한 뒤 Enter를 눌러 실행하세요.",
   Revoke: "해지",
   "Revoke others": "다른 클라이언트 해지",
@@ -1394,7 +1394,7 @@ export const KO_V2_SETTINGS: Readonly<Record<string, string>> = {
   "Shared Codex config, sessions, and state.": "공유되는 Codex 설정, 세션, 상태입니다.",
   Shopping: "쇼핑",
   Shortcut: "단축키",
-  "Shortcut changes": "단축키 변경 사항",
+  "Shortcut changes": "단축키 변경사항",
   "Shortcut permissions": "단축키 권한",
   "Shortcut removed.": "단축키가 제거되었습니다.",
   "Shortcut saved": "단축키 저장됨",
@@ -1567,7 +1567,7 @@ export const KO_V2_SETTINGS: Readonly<Record<string, string>> = {
   "The most recent matching binding wins when both conditions can apply.":
     "두 조건이 모두 적용될 수 있으면 가장 최근에 일치한 단축키가 우선합니다.",
   "The other selected environments saved the change.":
-    "선택한 다른 환경에는 변경 사항이 저장되었습니다.",
+    "선택한 다른 환경에는 변경사항이 저장되었습니다.",
   "The process is not a child of the T3 Server. It might already have exited.":
     "이 프로세스는 T3 Server의 하위 프로세스가 아닙니다. 이미 종료되었을 수 있습니다.",
   "The provider failed its startup checks.": "프로바이더가 시작 점검에 실패했습니다.",
@@ -1841,8 +1841,8 @@ export const KO_V2_SETTINGS: Readonly<Record<string, string>> = {
     "프로필 개수 한도에 도달했습니다. 가져올 기존 프로필을 선택하세요.",
   "You've reached the profile limit. Delete a profile or import into an existing one.":
     "프로필 개수 한도에 도달했습니다. 프로필을 삭제하거나 기존 프로필로 가져오세요.",
-  "Your changes are now active.": "변경 사항이 적용되었습니다.",
-  "Your changes are saved.": "변경 사항이 저장되었습니다.",
+  "Your changes are now active.": "변경사항이 적용되었습니다.",
+  "Your changes are saved.": "변경사항이 저장되었습니다.",
   "Your ChatGPT plan is connected": "ChatGPT 플랜이 연결되었습니다",
   "Your desktop doesn't support automatic capture. You'll choose the window to capture instead.":
     "데스크톱이 자동 캡처를 지원하지 않습니다. 대신 캡처할 창을 직접 선택합니다.",
