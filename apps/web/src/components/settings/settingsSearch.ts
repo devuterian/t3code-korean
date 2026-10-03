@@ -342,6 +342,12 @@ export const SETTINGS_SEARCH_ITEMS = [
     searchTerms: ["notification toast popup completion input approval failure"],
   },
   {
+    id: "interface-language",
+    title: "Interface language",
+    to: "/settings/general",
+    searchTerms: ["language locale english korean chinese 한국어 언어 menu ui translation"],
+  },
+  {
     id: "time-format",
     title: "Time format",
     to: "/settings/general",

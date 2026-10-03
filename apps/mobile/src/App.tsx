@@ -17,6 +17,7 @@ import {
   AppearancePreferencesProvider,
   useAppearancePreferences,
 } from "./features/settings/appearance/AppearancePreferencesProvider";
+import { InterfaceLanguageSync } from "./i18n/InterfaceLanguageSync";
 import { RootStack } from "./Stack";
 import { appAtomRegistry } from "./state/atom-registry";
 import { OverlayPortalHost } from "./components/OverlayPortal";
@@ -72,6 +73,7 @@ function AppContent() {
   return (
     <>
       <SplashScreenCoordinator />
+      <InterfaceLanguageSync />
       <SubscriptionUsageCoordinator />
       <GestureHandlerRootView className="flex-1">
         <KeyboardProvider statusBarTranslucent>

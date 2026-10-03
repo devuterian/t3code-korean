@@ -8,6 +8,10 @@ import * as Semaphore from "effect/Semaphore";
 import type { ProviderInstanceId, SidebarProjectGroupingMode } from "@t3tools/contracts";
 import type { ComposerEnterBehavior } from "../lib/composerEnterBehavior";
 import type { FollowUpBehavior } from "../lib/followUpBehavior";
+import {
+  isMobileInterfaceLanguage,
+  type MobileInterfaceLanguagePreference,
+} from "../i18n/language";
 import { MOBILE_THEME_IDS, type MobileThemeId, type MobileThemeMode } from "../lib/mobileTheme";
 import * as MobileDatabase from "./mobile-database";
 import * as MobileSecureStorage from "./mobile-secure-storage";
@@ -49,6 +53,8 @@ export interface Preferences {
   /** Fresh keys reset both shelves to collapsed when users update. */
   readonly threadListSettledShelfExpanded?: boolean;
   readonly threadListSnoozedShelfExpanded?: boolean;
+  /** UI language choice. Absent or "system" follows the device locale. */
+  readonly interfaceLanguage?: MobileInterfaceLanguagePreference;
 }
 
 export class MobilePreferencesLoadError extends Schema.TaggedError<MobilePreferencesLoadError>()(
@@ -110,6 +116,7 @@ function sanitizePreferences(parsed: Preferences): Preferences {
     modelFavorites?: Preferences["modelFavorites"];
     threadListSettledShelfExpanded?: boolean;
     threadListSnoozedShelfExpanded?: boolean;
+    interfaceLanguage?: MobileInterfaceLanguagePreference;
   } = {};
 
   if (typeof parsed.liveActivitiesEnabled === "boolean") {
@@ -196,6 +203,12 @@ function sanitizePreferences(parsed: Preferences): Preferences {
   }
   if (typeof parsed.threadListSnoozedShelfExpanded === "boolean") {
     preferences.threadListSnoozedShelfExpanded = parsed.threadListSnoozedShelfExpanded;
+  }
+  if (
+    parsed.interfaceLanguage === "system" ||
+    isMobileInterfaceLanguage(parsed.interfaceLanguage)
+  ) {
+    preferences.interfaceLanguage = parsed.interfaceLanguage;
   }
   return preferences;
 }

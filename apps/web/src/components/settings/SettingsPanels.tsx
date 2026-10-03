@@ -45,6 +45,7 @@ import {
   MIN_TERMINAL_FONT_SIZE,
   type QuitConfirmationMode,
   SidebarProjectSortOrder,
+  INTERFACE_LANGUAGE_LABELS,
 } from "@t3tools/contracts/settings";
 import { resolveServerBackgroundActivitySettings } from "@t3tools/shared/backgroundActivitySettings";
 import { createModelSelection } from "@t3tools/shared/model";
@@ -2516,6 +2517,47 @@ export function GeneralSettingsPanel() {
                 </SelectItem>
                 <SelectItem hideIndicator value="24-hour">
                   {TIMESTAMP_FORMAT_LABELS["24-hour"]}
+                </SelectItem>
+              </SelectPopup>
+            </Select>
+          }
+        />
+        <SettingsRow
+          {...searchableSetting("interface-language")}
+          description="Language used for menus, settings, and interface labels."
+          resetAction={
+            settings.interfaceLanguage !== DEFAULT_UNIFIED_SETTINGS.interfaceLanguage ? (
+              <SettingResetButton
+                label="interface language"
+                onClick={() =>
+                  updateSettings({
+                    interfaceLanguage: DEFAULT_UNIFIED_SETTINGS.interfaceLanguage,
+                  })
+                }
+              />
+            ) : null
+          }
+          control={
+            <Select
+              value={settings.interfaceLanguage}
+              onValueChange={(value) => {
+                if (value === "en" || value === "zh-CN" || value === "ko") {
+                  updateSettings({ interfaceLanguage: value });
+                }
+              }}
+            >
+              <SelectTrigger size="sm" className="w-full sm:w-40" aria-label="Interface language">
+                <SelectValue>{INTERFACE_LANGUAGE_LABELS[settings.interfaceLanguage]}</SelectValue>
+              </SelectTrigger>
+              <SelectPopup align="end" alignItemWithTrigger={false}>
+                <SelectItem hideIndicator value="en">
+                  {INTERFACE_LANGUAGE_LABELS.en}
+                </SelectItem>
+                <SelectItem hideIndicator value="ko">
+                  {INTERFACE_LANGUAGE_LABELS.ko}
+                </SelectItem>
+                <SelectItem hideIndicator value="zh-CN">
+                  {INTERFACE_LANGUAGE_LABELS["zh-CN"]}
                 </SelectItem>
               </SelectPopup>
             </Select>
