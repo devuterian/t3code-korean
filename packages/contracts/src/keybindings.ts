@@ -42,6 +42,7 @@ const THREAD_KEYBINDING_COMMANDS = [
   "thread.next",
   "thread.copyReference",
   "thread.settle",
+  "thread.unsettleLast",
   "thread.pin",
   "thread.undo",
   ...THREAD_JUMP_KEYBINDING_COMMANDS,
@@ -69,6 +70,7 @@ export const STATIC_KEYBINDING_COMMANDS = [
   "threadPanel.toggle",
   "rightPanel.toggleMaximized",
   "rightPanel.close",
+  "view.reopenClosed",
   "pullRequest.copyNumber",
   "diff.toggle",
   "preview.toggle",
@@ -97,6 +99,11 @@ export const STATIC_KEYBINDING_COMMANDS = [
   "chat.new",
   "chat.newLocal",
   "chat.newWithoutProject",
+  "chat.find",
+  "project.switcher",
+  "project.switcherPrevious",
+  "thread.switcher",
+  "thread.switcherPrevious",
   "editor.openFavorite",
   "usage.cost",
   "usage.tokens",
@@ -154,6 +161,13 @@ export const KeybindingShortcut = Schema.Struct({
   modKey: Schema.Boolean,
 });
 export type KeybindingShortcut = typeof KeybindingShortcut.Type;
+
+/** A chord the desktop preview hands back to the app instead of the embedded page. */
+export const PreviewForwardedShortcut = Schema.Struct({
+  command: KeybindingCommand,
+  shortcut: KeybindingShortcut,
+});
+export type PreviewForwardedShortcut = typeof PreviewForwardedShortcut.Type;
 
 const KeybindingWhenNodeRef = Schema.suspend(
   (): Schema.Codec<KeybindingWhenNode> => KeybindingWhenNode,

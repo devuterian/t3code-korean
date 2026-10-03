@@ -39,14 +39,24 @@ export const ProposedPlanCard = memo(function ProposedPlanCard({
   threadRef,
   cwd,
   workspaceRoot,
+  revealed = false,
 }: {
   planMarkdown: string;
   environmentId: EnvironmentId;
   threadRef?: ScopedThreadRef | undefined;
   cwd: string | undefined;
   workspaceRoot: string | undefined;
+  /** A find match landed inside; expand the collapsed preview so it can be seen. */
+  revealed?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
+  // A find match inside the clipped preview opens the plan for real, so the
+  // collapse button keeps working and the text stays once find closes.
+  const [revealedSeen, setRevealedSeen] = useState(revealed);
+  if (revealed !== revealedSeen) {
+    setRevealedSeen(revealed);
+    if (revealed) setExpanded(true);
+  }
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
   const [savePath, setSavePath] = useState("");
   const [isSavingToWorkspace, setIsSavingToWorkspace] = useState(false);
@@ -152,7 +162,9 @@ export const ProposedPlanCard = memo(function ProposedPlanCard({
           <Badge variant="secondary">Plan</Badge>
           {/* Same heading level as the message author headings in the timeline,
               so a plan's own headings nest beneath it in the outline. */}
-          <h3 className="truncate text-sm font-medium text-foreground">{title}</h3>
+          <h3 className="truncate text-sm font-medium text-foreground" data-chat-find-body="true">
+            {title}
+          </h3>
         </div>
         <Menu>
           <MenuTrigger
@@ -172,7 +184,10 @@ export const ProposedPlanCard = memo(function ProposedPlanCard({
         </Menu>
       </div>
       <div className="mt-4">
-        <div className={cn("relative", canCollapse && !expanded && "max-h-104 overflow-hidden")}>
+        <div
+          className={cn("relative", canCollapse && !expanded && "max-h-104 overflow-hidden")}
+          data-chat-find-body="true"
+        >
           {canCollapse && !expanded ? (
             <ChatMarkdown
               text={collapsedPreview ?? ""}

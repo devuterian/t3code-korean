@@ -226,6 +226,7 @@ import {
 } from "../types";
 import { useTheme } from "../hooks/useTheme";
 import { writeTextToClipboard } from "../hooks/useCopyToClipboard";
+import { useChatFindStore } from "../chatFindStore";
 import { isCommandPaletteOpen } from "../commandPaletteBus";
 import { subscribeSnapShotComposerFocus } from "../lib/desktopSnapShot";
 import { useMediaQuery } from "../hooks/useMediaQuery";
@@ -5655,9 +5656,17 @@ export default function ChatView(props: ChatViewProps) {
   const finishRightPanelSurfaceClose = useCallback(
     (surfaces: readonly RightPanelSurface[]) => {
       if (!activeThreadRef) return;
-      cleanupRightPanelSurfaces(surfaces);
       const store = useRightPanelStore.getState();
-      for (const surface of surfaces) {
+      // Close the active tab last so the reopen history restores it first.
+      const activeId = selectThreadRightPanelState(
+        store.byThreadKey,
+        activeThreadRef,
+      ).activeSurfaceId;
+      const ordered = surfaces.toSorted(
+        (left, right) => Number(left.id === activeId) - Number(right.id === activeId),
+      );
+      for (const surface of ordered) {
+        cleanupRightPanelSurfaces([surface]);
         store.closeSurface(activeThreadRef, surface.id);
       }
       syncActivePreviewSurface();
@@ -7529,6 +7538,22 @@ export default function ChatView(props: ChatViewProps) {
         return;
       }
 
+      if (command === "chat.find") {
+        // The file editor has its own find, a modal owns the keyboard while
+        // open, and a maximized panel hides the timeline the bar would search.
+        if (
+          rightPanelMaximized ||
+          (event.target instanceof Element &&
+            event.target.closest(".file-preview-virtualizer, [role=dialog]") !== null)
+        ) {
+          return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        if (!event.repeat) useChatFindStore.getState().show();
+        return;
+      }
+
       if (command === "modelPicker.toggle") {
         event.preventDefault();
         event.stopPropagation();
@@ -7627,6 +7652,7 @@ export default function ChatView(props: ChatViewProps) {
     onInterrupt,
     onToggleDiff,
     pinThread,
+    rightPanelMaximized,
     settleThread,
     supportsPinning,
     supportsSettlement,

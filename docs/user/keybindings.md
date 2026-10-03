@@ -37,6 +37,25 @@ on macOS and Ctrl on Windows and Linux, including GNOME, KDE Plasma, Niri, and
 Hyprland. If a custom desktop shortcut takes the same keys, choose another binding
 in Settings.
 
+## Switch projects and threads
+
+Hold the modifier and tap `Tab` to move between projects without leaving the
+keyboard. Keep it held and tap `Tab` to move forward or `Shift+Tab` to move
+back; release to open the highlighted project's most recent thread, or start a
+new thread when it has none. The active project is listed first.
+
+The same gesture switches between the **active threads in the current project**
+(settled and snoozed threads are left out), with the current thread first.
+The desktop app uses `Ctrl+Tab` / `Ctrl+Shift+Tab`.
+Browsers reserve those for their own tabs, so the web app uses `Alt+Backquote`
+(`Option+Backquote` on macOS) instead. Both are left-hand chords.
+
+Projects default to `Option+Tab` / `Option+Shift+Tab` on macOS. Windows and Linux
+reserve Alt+Tab for the operating system, so they use Ctrl plus the backtick key
+and its Shift variant instead. Change any of these in
+**Settings → Keybindings** via `project.switcher` / `project.switcherPrevious`
+and `thread.switcher` / `thread.switcherPrevious`.
+
 ## Copy pull request references
 
 With a PR open in the right panel or on the Pull Requests page, use `mod+shift+c`
@@ -92,10 +111,11 @@ Join modifiers and a key with `+`, such as `mod+shift+d` or `ctrl+l`.
 
 Available context keys are `terminalFocus`, `terminalOpen`, `previewFocus`,
 `previewOpen`, `modelPickerOpen`, `usagePageOpen`, `composerFocus`, `composerDraft`,
-`turnRunning`, `editableFocus`, `isWeb`, and `isDesktop`.
-`editableFocus` is true while a text field, the composer, or another editor has
-the keyboard. `isWeb` is true in a browser tab. `isDesktop` is true in the
-desktop app. Unknown keys evaluate to `false`.
+`turnRunning`, `editableFocus`, `isWeb`, `isDesktop`, `isMac`, `isWindows`, and
+`isLinux`. `editableFocus` is true while a text field, the composer, or another
+editor has the keyboard. `isWeb` is true in a browser tab. `isDesktop` is true in
+the desktop app. `isMac`, `isWindows`, and `isLinux` reflect the operating
+system. Unknown keys evaluate to `false`.
 
 `mod+1` through `mod+9` jump to the first nine threads, and to models while the
 model picker is open. Those defaults use `isDesktop` so they do not steal the
@@ -125,6 +145,9 @@ actions of the same kind undo together. The notice remains available for five
 seconds after the latest action. The default shortcut skips text fields and
 terminals so native undo keeps working there.
 
+`thread.unsettleLast` (`mod+shift+u` by default) un-settles the thread you settled
+most recently, across all connected environments.
+
 `navigation.back` (`mod+[` by default) and `navigation.forward` (`mod+]`) move
 through the pages you have visited, like a browser's back and forward buttons.
 
@@ -139,6 +162,13 @@ In the desktop app, `mod+w` closes the focused terminal or the active right-pane
 tab. When nothing remains to close, it closes the window. In a browser, `mod+w`
 closes the browser tab; rebind `rightPanel.close` and `terminal.close` to an available
 shortcut such as `alt+w`.
+
+`mod+shift+t` reopens the last closed tab across the app, including files,
+diffs, pull requests, browsers, and devices, in the order you closed them.
+A browser opens in a fresh session without its old page history. This shortcut
+does not undo deleted work.
+Browsers also use it to reopen browser tabs; choose another binding in Settings
+if the browser takes it first.
 
 Many defaults include `!terminalFocus` so they do not intercept terminal input.
 Keep that condition when remapping them if you want the same behavior.

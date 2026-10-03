@@ -10,6 +10,114 @@ import {
   THREAD_JUMP_KEYBINDING_COMMANDS,
 } from "@t3tools/contracts";
 
+export interface ShortcutEventLike {
+  getModifierState?: (key: "AltGraph") => boolean;
+  type?: string;
+  code?: string;
+  key: string;
+  repeat?: boolean;
+  metaKey: boolean;
+  ctrlKey: boolean;
+  shiftKey: boolean;
+  altKey: boolean;
+}
+
+export interface ShortcutModifierStateLike {
+  metaKey: boolean;
+  ctrlKey: boolean;
+  shiftKey: boolean;
+  altKey: boolean;
+}
+
+const EVENT_CODE_SHORTCUT_KEYS: Readonly<Record<string, string>> = {
+  Backquote: "`",
+  Backslash: "\\",
+  BracketLeft: "[",
+  BracketRight: "]",
+  Comma: ",",
+  Digit0: "0",
+  Digit1: "1",
+  Digit2: "2",
+  Digit3: "3",
+  Digit4: "4",
+  Digit5: "5",
+  Digit6: "6",
+  Digit7: "7",
+  Digit8: "8",
+  Digit9: "9",
+  Equal: "=",
+  Minus: "-",
+  Period: ".",
+  Quote: "'",
+  Semicolon: ";",
+  Slash: "/",
+};
+
+export function isMacPlatform(platform: string): boolean {
+  return /mac|iphone|ipad|ipod/i.test(platform);
+}
+
+export function normalizeEventKey(key: string): string {
+  const normalized = key.toLowerCase();
+  if (normalized === "esc") return "escape";
+  return normalized;
+}
+
+export function shortcutKeyFromEvent(event: Pick<ShortcutEventLike, "key" | "code">): string {
+  const layoutKey = normalizeEventKey(event.key);
+  if (/^[a-z]$/.test(layoutKey)) return layoutKey;
+  const physicalKey = event.code ? EVENT_CODE_SHORTCUT_KEYS[event.code] : undefined;
+  return physicalKey ?? layoutKey;
+}
+
+export function resolveEventKeys(event: ShortcutEventLike): Set<string> {
+  const layoutKey = normalizeEventKey(event.key);
+  const keys = new Set([layoutKey]);
+  // The physical-position fallback exists for layouts that type non-Latin
+  // letters (Cyrillic, Greek) and for Option-modified symbols on macOS.
+  // When the layout already produces a Latin letter, match on it alone;
+  // otherwise a remapped physical key triggers shortcuts for two different
+  // letters at once and shadows system shortcuts on non-QWERTY layouts.
+  const letterCode = event.code?.match(/^Key([A-Z])$/)?.[1];
+  if (letterCode && !/^[a-z]$/.test(layoutKey)) {
+    keys.add(letterCode.toLowerCase());
+  }
+  keys.add(shortcutKeyFromEvent(event));
+  return keys;
+}
+
+export function matchesKeybindingShortcutModifiers(
+  event: ShortcutModifierStateLike,
+  shortcut: KeybindingShortcut,
+  platform: string,
+): boolean {
+  const useMetaForMod = isMacPlatform(platform);
+  const expectedMeta = shortcut.metaKey || (shortcut.modKey && useMetaForMod);
+  const expectedCtrl = shortcut.ctrlKey || (shortcut.modKey && !useMetaForMod);
+  return (
+    event.metaKey === expectedMeta &&
+    event.ctrlKey === expectedCtrl &&
+    event.shiftKey === shortcut.shiftKey &&
+    event.altKey === shortcut.altKey
+  );
+}
+
+/** Shared by the web client and the desktop preview, which forwards matching chords. */
+export function matchesKeybindingShortcut(
+  event: ShortcutEventLike,
+  shortcut: KeybindingShortcut,
+  platform: string,
+): boolean {
+  if (
+    !isMacPlatform(platform) &&
+    event.getModifierState?.("AltGraph") &&
+    !/^[a-z0-9]$/i.test(event.key)
+  )
+    return false;
+  if (!matchesKeybindingShortcutModifiers(event, shortcut, platform)) return false;
+  return resolveEventKeys(event).has(shortcut.key);
+}
+
 type WhenToken =
   | { type: "identifier"; value: string }
   | { type: "not" }
@@ -29,6 +137,7 @@ export const DEFAULT_KEYBINDINGS: ReadonlyArray<KeybindingRule> = [
   { key: "mod+n", command: "terminal.new", when: "terminalFocus" },
   { key: "mod+w", command: "terminal.close", when: "terminalFocus" },
   { key: "mod+w", command: "rightPanel.close", when: "!terminalFocus" },
+  { key: "mod+shift+t", command: "view.reopenClosed" },
   { key: "mod+d", command: "diff.toggle", when: "!terminalFocus" },
   { key: "mod+shift+j", command: "preview.toggle" },
   { key: "mod+r", command: "preview.refresh", when: "previewFocus" },
@@ -67,6 +176,26 @@ export const DEFAULT_KEYBINDINGS: ReadonlyArray<KeybindingRule> = [
   { key: "mod+shift+o", command: "chat.new", when: "!terminalFocus" },
   { key: "mod+shift+n", command: "chat.newLocal", when: "!terminalFocus" },
   { key: "mod+alt+n", command: "chat.newWithoutProject", when: "!terminalFocus" },
+  { key: "mod+f", command: "chat.find", when: "!terminalFocus" },
+  // Cmd+Tab (macOS) and Alt+Tab (Windows/Linux) are claimed by the OS window
+  // switcher and never reach the page. macOS can still use Option+Tab; on
+  // Windows and Linux no Alt+Tab variant is deliverable in a browser, so the
+  // switcher uses Ctrl+` there instead. All are rebindable in Settings.
+  { key: "alt+tab", command: "project.switcher", when: "isMac && !terminalFocus" },
+  { key: "alt+shift+tab", command: "project.switcherPrevious", when: "isMac && !terminalFocus" },
+  { key: "ctrl+`", command: "project.switcher", when: "!isMac && !terminalFocus" },
+  { key: "ctrl+shift+`", command: "project.switcherPrevious", when: "!isMac && !terminalFocus" },
+  // Cycles active threads within the current project. Desktop can capture
+  // Ctrl+Tab (left hand, no browser in the way); browsers reserve Ctrl+Tab, so
+  // web uses Alt/Option+Backquote instead. Both are left-hand chords.
+  { key: "ctrl+tab", command: "thread.switcher", when: "isDesktop && !terminalFocus" },
+  {
+    key: "ctrl+shift+tab",
+    command: "thread.switcherPrevious",
+    when: "isDesktop && !terminalFocus",
+  },
+  { key: "alt+`", command: "thread.switcher", when: "isWeb && !terminalFocus" },
+  { key: "alt+shift+`", command: "thread.switcherPrevious", when: "isWeb && !terminalFocus" },
   { key: "mod+shift+m", command: "modelPicker.toggle", when: "!terminalFocus" },
   { key: "mod+shift+h", command: "composer.host", when: "!terminalFocus" },
   { key: "mod+shift+e", command: "composer.effort", when: "!terminalFocus" },
@@ -82,6 +211,7 @@ export const DEFAULT_KEYBINDINGS: ReadonlyArray<KeybindingRule> = [
   { key: "mod+shift+]", command: "thread.next" },
   { key: "mod+shift+c", command: "thread.copyReference", when: "!terminalFocus" },
   { key: "mod+shift+s", command: "thread.settle", when: "!terminalFocus" },
+  { key: "mod+shift+u", command: "thread.unsettleLast", when: "!terminalFocus" },
   { key: "mod+shift+p", command: "thread.pin", when: "!terminalFocus" },
   { key: "mod+z", command: "thread.undo", when: "!terminalFocus && !editableFocus" },
   ...THREAD_JUMP_KEYBINDING_COMMANDS.map((command, index) => ({

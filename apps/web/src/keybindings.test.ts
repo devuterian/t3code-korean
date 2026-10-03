@@ -12,6 +12,7 @@ import {
   type ResolvedKeybindingsConfig,
 } from "@t3tools/contracts";
 import {
+  effectiveShortcutsForCommand,
   formatShortcutLabel,
   isDiffToggleShortcut,
   isRichTextBoldShortcut,
@@ -179,6 +180,40 @@ const DEFAULT_BINDINGS = compile([
     whenAst: whenIdentifier("modelPickerOpen"),
   },
 ]);
+
+describe("effectiveShortcutsForCommand", () => {
+  it("passes only effective preview shortcuts to the desktop bridge", () => {
+    const reopen = modShortcut("t", { shiftKey: true });
+    const second = modShortcut("y", { shiftKey: true });
+    const keybindings = compile([
+      { shortcut: reopen, command: "view.reopenClosed" },
+      {
+        shortcut: second,
+        command: "view.reopenClosed",
+        whenAst: whenIdentifier("previewFocus"),
+      },
+      {
+        shortcut: reopen,
+        command: "preview.toggle",
+        whenAst: whenIdentifier("previewFocus"),
+      },
+    ]);
+    assert.deepEqual(
+      effectiveShortcutsForCommand(keybindings, "view.reopenClosed", {
+        platform: "MacIntel",
+        context: { previewFocus: true, previewOpen: true },
+      }),
+      [second],
+    );
+    assert.deepEqual(
+      effectiveShortcutsForCommand(keybindings, "view.reopenClosed", {
+        platform: "MacIntel",
+        context: { previewFocus: false },
+      }),
+      [reopen],
+    );
+  });
+});
 
 describe("isTerminalToggleShortcut", () => {
   it("matches Cmd+J on macOS", () => {
@@ -1511,6 +1546,74 @@ describe("Usage shortcuts", () => {
       resolveShortcutCommand(shortcut, DEFAULT_RESOLVED_KEYBINDINGS, {
         platform: "Linux",
       }),
+    );
+  });
+});
+
+describe("unsettle last thread shortcut", () => {
+  it("resolves mod+shift+u outside the terminal", () => {
+    assert.equal(
+      resolveShortcutCommand(
+        event({ key: "u", metaKey: true, shiftKey: true }),
+        DEFAULT_RESOLVED_KEYBINDINGS,
+        { platform: "MacIntel", context: { terminalFocus: false } },
+      ),
+      "thread.unsettleLast",
+    );
+    assert.isNull(
+      resolveShortcutCommand(
+        event({ key: "u", metaKey: true, shiftKey: true }),
+        DEFAULT_RESOLVED_KEYBINDINGS,
+        { platform: "MacIntel", context: { terminalFocus: true } },
+      ),
+    );
+  });
+});
+
+describe("cycle switcher shortcuts", () => {
+  it("uses Option+Tab for projects on macOS and Ctrl+Backquote elsewhere", () => {
+    assert.equal(
+      resolveShortcutCommand(event({ key: "Tab", altKey: true }), DEFAULT_RESOLVED_KEYBINDINGS, {
+        platform: "MacIntel",
+      }),
+      "project.switcher",
+    );
+    assert.equal(
+      resolveShortcutCommand(
+        event({ key: "Tab", altKey: true, shiftKey: true }),
+        DEFAULT_RESOLVED_KEYBINDINGS,
+        { platform: "MacIntel" },
+      ),
+      "project.switcherPrevious",
+    );
+    assert.equal(
+      resolveShortcutCommand(
+        event({ key: "`", code: "Backquote", ctrlKey: true }),
+        DEFAULT_RESOLVED_KEYBINDINGS,
+        { platform: "Linux x86_64" },
+      ),
+      "project.switcher",
+    );
+    assert.isNull(
+      resolveShortcutCommand(event({ key: "Tab", altKey: true }), DEFAULT_RESOLVED_KEYBINDINGS, {
+        platform: "Win32",
+      }),
+    );
+  });
+
+  it("derives OS context keys from the platform", () => {
+    const bindings = compileResolvedKeybindingsConfig([
+      { key: "mod+y", command: "terminal.toggle", when: "isWindows" },
+      { key: "mod+y", command: "sidebar.toggle", when: "isLinux" },
+    ]);
+    const shortcut = event({ key: "y", ctrlKey: true });
+    assert.equal(
+      resolveShortcutCommand(shortcut, bindings, { platform: "Win32" }),
+      "terminal.toggle",
+    );
+    assert.equal(
+      resolveShortcutCommand(shortcut, bindings, { platform: "Linux x86_64" }),
+      "sidebar.toggle",
     );
   });
 });
