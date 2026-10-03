@@ -1534,3 +1534,51 @@ describe("unsettle last thread shortcut", () => {
     );
   });
 });
+
+describe("cycle switcher shortcuts", () => {
+  it("uses Option+Tab for projects on macOS and Ctrl+Backquote elsewhere", () => {
+    assert.equal(
+      resolveShortcutCommand(event({ key: "Tab", altKey: true }), DEFAULT_RESOLVED_KEYBINDINGS, {
+        platform: "MacIntel",
+      }),
+      "project.switcher",
+    );
+    assert.equal(
+      resolveShortcutCommand(
+        event({ key: "Tab", altKey: true, shiftKey: true }),
+        DEFAULT_RESOLVED_KEYBINDINGS,
+        { platform: "MacIntel" },
+      ),
+      "project.switcherPrevious",
+    );
+    assert.equal(
+      resolveShortcutCommand(
+        event({ key: "`", code: "Backquote", ctrlKey: true }),
+        DEFAULT_RESOLVED_KEYBINDINGS,
+        { platform: "Linux x86_64" },
+      ),
+      "project.switcher",
+    );
+    assert.isNull(
+      resolveShortcutCommand(event({ key: "Tab", altKey: true }), DEFAULT_RESOLVED_KEYBINDINGS, {
+        platform: "Win32",
+      }),
+    );
+  });
+
+  it("derives OS context keys from the platform", () => {
+    const bindings = compileResolvedKeybindingsConfig([
+      { key: "mod+y", command: "terminal.toggle", when: "isWindows" },
+      { key: "mod+y", command: "sidebar.toggle", when: "isLinux" },
+    ]);
+    const shortcut = event({ key: "y", ctrlKey: true });
+    assert.equal(
+      resolveShortcutCommand(shortcut, bindings, { platform: "Win32" }),
+      "terminal.toggle",
+    );
+    assert.equal(
+      resolveShortcutCommand(shortcut, bindings, { platform: "Linux x86_64" }),
+      "sidebar.toggle",
+    );
+  });
+});
