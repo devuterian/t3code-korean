@@ -225,16 +225,19 @@ export function NewTaskEnvironmentPickerRouteScreen() {
       if (AsyncResult.isFailure(result)) {
         const error = Cause.squash(result.cause);
         Alert.alert(
-          "Could not switch machine",
+          t("Could not switch machine"),
           error instanceof Error
             ? error.message
-            : "The folder for threads without a project could not be created.",
+            : t("The folder for threads without a project could not be created."),
         );
         return;
       }
       const project = await waitForProject({ environmentId, projectId: result.value.projectId });
       if (project === null) {
-        Alert.alert("Could not switch machine", "It has not reached this device yet. Try again.");
+        Alert.alert(
+          t("Could not switch machine"),
+          t("It has not reached this device yet. Try again."),
+        );
         return;
       }
       flow.setProject(project);

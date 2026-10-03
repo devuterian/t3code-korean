@@ -601,8 +601,8 @@ export function AddProjectSourceScreen() {
           <ListSection>
             {selectedEnvironment.newProjectsRoot !== null ? (
               <ListRow
-                title="New project"
-                subtitle="Start a new Git repository from a name"
+                title={t("New project")}
+                subtitle={t("Start a new Git repository from a name")}
                 icon={
                   <SymbolView
                     name="plus"
@@ -947,6 +947,7 @@ function FolderBrowser(props: {
  * first commit. Optionally publishes it to GitHub as a private repository.
  */
 export function AddProjectNewScreen(props: { readonly environmentId?: string | string[] }) {
+  const t = useTranslate();
   const navigation = useNavigation();
   // Starts on the machine picked in Add project; the rows below switch it.
   const environmentOptions = useEnvironmentOptions().filter(
@@ -1037,7 +1038,7 @@ export function AddProjectNewScreen(props: { readonly environmentId?: string | s
       }
       const { projectId, workspaceRoot, commitError } = result.value;
       if (commitError !== undefined) {
-        Alert.alert("Created without a first commit", commitError);
+        Alert.alert(t("Created without a first commit"), commitError);
       }
       if (publishesToGitHub && githubTarget !== null) {
         void publishRepository({
@@ -1051,7 +1052,7 @@ export function AddProjectNewScreen(props: { readonly environmentId?: string | s
         }).then((publishResult) => {
           if (AsyncResult.isFailure(publishResult)) {
             Alert.alert(
-              "Could not create the GitHub repository",
+              t("Could not create the GitHub repository"),
               errorMessage(Cause.squash(publishResult.cause)),
             );
           }
@@ -1067,7 +1068,9 @@ export function AddProjectNewScreen(props: { readonly environmentId?: string | s
         // The project exists, so clearing the name keeps Create from making a `-2` copy.
         setName("");
         setError(
-          "The project was created but has not reached this device yet. It will appear in the project list once the connection catches up.",
+          t(
+            "The project was created but has not reached this device yet. It will appear in the project list once the connection catches up.",
+          ),
         );
         return;
       }
@@ -1083,7 +1086,7 @@ export function AddProjectNewScreen(props: { readonly environmentId?: string | s
   };
 
   return (
-    <AddProjectShell title="New project">
+    <AddProjectShell title={t("New project")}>
       {error ? <ErrorBanner message={error} /> : null}
       {environment ? (
         <>
@@ -1093,23 +1096,32 @@ export function AddProjectNewScreen(props: { readonly environmentId?: string | s
             onChangeText={setName}
             autoCorrect={false}
             autoFocus
-            placeholder="Project name"
+            placeholder={t("Project name")}
             returnKeyType="done"
             onSubmitEditing={() => void submit()}
           />
           {pathPreview !== null ? (
             <Text className="px-1 text-sm leading-snug text-foreground-muted" numberOfLines={2}>
               {trimmedName.length > 0
-                ? `Creates ${pathPreview}`
-                : `Goes in ${environment.newProjectsRoot}`}
-              {showMachines ? ` on ${environment.label}` : null}
+                ? showMachines
+                  ? t("Creates {path} on {environment}", {
+                      path: pathPreview,
+                      environment: environment.label,
+                    })
+                  : t("Creates {path}", { path: pathPreview })
+                : showMachines
+                  ? t("Goes in {path} on {environment}", {
+                      path: String(environment.newProjectsRoot),
+                      environment: environment.label,
+                    })
+                  : t("Goes in {path}", { path: String(environment.newProjectsRoot) })}
             </Text>
           ) : null}
           {machineRows}
           {githubTarget !== null ? (
             <ListSection>
               <ListRow
-                title="Create private repository on GitHub"
+                title={t("Create private repository on GitHub")}
                 subtitle={
                   trimmedName.length > 0 && pathPreview !== null
                     ? getNewProjectGitHubRepository(githubTarget, pathPreview)
@@ -1125,7 +1137,7 @@ export function AddProjectNewScreen(props: { readonly environmentId?: string | s
                 isFirst
                 right={
                   <ThemedSwitch
-                    accessibilityLabel="Create private repository on GitHub"
+                    accessibilityLabel={t("Create private repository on GitHub")}
                     value={publishesToGitHub}
                     onValueChange={setPublishesToGitHub}
                   />
@@ -1135,15 +1147,15 @@ export function AddProjectNewScreen(props: { readonly environmentId?: string | s
             </ListSection>
           ) : null}
           <PrimaryActionButton
-            label="Create project"
+            label={t("Create project")}
             disabled={isSubmitting || trimmedName.length === 0}
             onPress={() => void submit()}
             loading={isSubmitting}
           />
           <ListSection>
             <ListRow
-              title="Add existing project"
-              subtitle="Open a folder or clone a repository"
+              title={t("Add existing project")}
+              subtitle={t("Open a folder or clone a repository")}
               icon={
                 <SymbolView
                   name="folder.badge.plus"

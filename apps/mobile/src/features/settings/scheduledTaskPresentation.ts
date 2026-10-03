@@ -1,8 +1,28 @@
+import { getFormattingLocale, getInterfaceLanguage, translate } from "../../i18n/translate";
+
 const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
 const DAY = 24 * HOUR;
 
+const KO_INTERVAL_UNITS = {
+  week: "주",
+  day: "일",
+  hour: "시간",
+  minute: "분",
+  second: "초",
+  millisecond: "밀리초",
+} as const;
+const KO_SINGLE_INTERVAL = {
+  week: "매주",
+  day: "매일",
+  hour: "매시간",
+  minute: "매분",
+  second: "매초",
+  millisecond: "매 밀리초",
+} as const;
+
 export function formatScheduledTaskInterval(everyMs: number): string {
+  const korean = getInterfaceLanguage() === "ko";
   const units = [
     [7 * DAY, "week"],
     [DAY, "day"],
@@ -16,11 +36,15 @@ export function formatScheduledTaskInterval(everyMs: number): string {
   for (const [size, unit] of units) {
     const count = Math.floor(remaining / size);
     if (count === 0) continue;
-    if (count === 1 && remaining === everyMs && remaining === size) return `Every ${unit}`;
-    parts.push(`${count} ${unit}${count === 1 ? "" : "s"}`);
+    if (count === 1 && remaining === everyMs && remaining === size) {
+      return korean ? KO_SINGLE_INTERVAL[unit] : `Every ${unit}`;
+    }
+    parts.push(
+      korean ? `${count}${KO_INTERVAL_UNITS[unit]}` : `${count} ${unit}${count === 1 ? "" : "s"}`,
+    );
     remaining %= size;
   }
-  return `Every ${parts.join(" ")}`;
+  return korean ? `${parts.join(" ")}마다` : `Every ${parts.join(" ")}`;
 }
 
 function localCalendarDay(date: Date): number {
@@ -32,26 +56,37 @@ export function formatNextScheduledTaskRun(nextRunAt: string, now: number): stri
   const next = new Date(nextRunAt);
   const current = new Date(now);
   const remaining = next.getTime() - now;
-  if (!Number.isFinite(remaining)) return "Next run unavailable";
-  if (remaining <= 0) return "Next run due";
+  if (!Number.isFinite(remaining)) return translate("Next run unavailable");
+  if (remaining <= 0) return translate("Next run due");
 
   const days = localCalendarDay(next) - localCalendarDay(current);
   if (days === 0) {
-    if (remaining < MINUTE) return "Next run in less than a minute";
-    const unit = remaining < HOUR ? "minute" : "hour";
-    const count = Math.round(remaining / (remaining < HOUR ? MINUTE : HOUR));
-    return `Next run in ${count} ${unit}${count === 1 ? "" : "s"}`;
+    if (remaining < MINUTE) return translate("Next run in less than a minute");
+    const minutes = remaining < HOUR;
+    const count = Math.round(remaining / (minutes ? MINUTE : HOUR));
+    if (minutes) {
+      return count === 1
+        ? translate("Next run in 1 minute")
+        : translate("Next run in {count} minutes", { count });
+    }
+    return count === 1
+      ? translate("Next run in 1 hour")
+      : translate("Next run in {count} hours", { count });
   }
 
-  const time = next.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-  if (days === 1) return `Next run tomorrow at ${time}`;
+  const locale = getFormattingLocale();
+  const time = next.toLocaleTimeString(locale ?? [], { hour: "numeric", minute: "2-digit" });
+  if (days === 1) return translate("Next run tomorrow at {time}", { time });
   if (days <= 7) {
-    return `Next run next ${next.toLocaleDateString([], { weekday: "long" })} at ${time}`;
+    return translate("Next run next {weekday} at {time}", {
+      weekday: next.toLocaleDateString(locale ?? [], { weekday: "long" }),
+      time,
+    });
   }
-  const date = next.toLocaleDateString([], {
+  const date = next.toLocaleDateString(locale ?? [], {
     month: "short",
     day: "numeric",
     ...(next.getFullYear() !== current.getFullYear() ? { year: "numeric" as const } : {}),
   });
-  return `Next run ${date} at ${time}`;
+  return translate("Next run {date} at {time}", { date, time });
 }

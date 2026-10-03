@@ -182,14 +182,14 @@ const capabilitiesLayer = Layer.effectContext(
             Effect.fail(
               new ConnectionBlockedError({
                 reason: "unsupported",
-                detail: "SSH environments are only available in the desktop app.",
+                detail: translate("SSH environments are only available in the desktop app."),
               }),
             ),
           prepare: () =>
             Effect.fail(
               new ConnectionBlockedError({
                 reason: "unsupported",
-                detail: "SSH environments are only available in the desktop app.",
+                detail: translate("SSH environments are only available in the desktop app."),
               }),
             ),
           disconnect: () => Effect.void,

@@ -233,7 +233,7 @@ const SettingsContentStack = createNativeStackNavigator({
     SettingsProviderAccounts: createNativeStackScreen({
       screen: SettingsProviderAccountsRouteScreen,
       linking: "provider-accounts",
-      options: { title: "Provider accounts" },
+      options: () => ({ title: translate("Provider accounts") }),
     }),
     SettingsEnvironmentMaintenance: createNativeStackScreen({
       screen: SettingsEnvironmentMaintenanceRouteScreen,
@@ -305,31 +305,31 @@ const SettingsContentStack = createNativeStackNavigator({
     SettingsFollowUp: createNativeStackScreen({
       screen: SettingsFollowUpRouteScreen,
       linking: "follow-ups",
-      options: {
-        title: "Follow-ups",
-      },
+      options: () => ({
+        title: translate("Follow-ups"),
+      }),
     }),
     SettingsScheduledTasks: createNativeStackScreen({
       screen: SettingsScheduledTasksRouteScreen,
       linking: "scheduled-tasks",
-      options: {
-        title: "Scheduled Tasks",
+      options: () => ({
+        title: translate("Scheduled Tasks"),
         // Leave room to center UIKit's title beside the two trailing actions.
         headerTitleStyle: { fontSize: 16, fontWeight: "800" },
-      },
+      }),
     }),
     SettingsScheduledTaskNew: createNativeStackScreen({
       screen: SettingsScheduledTaskNewRouteScreen,
       linking: "scheduled-tasks/new",
-      options: { title: "New scheduled task" },
+      options: () => ({ title: translate("New scheduled task") }),
     }),
     SettingsScheduledTaskEdit: createNativeStackScreen({
       screen: SettingsScheduledTaskEditRouteScreen,
-      options: { title: "Edit scheduled task" },
+      options: () => ({ title: translate("Edit scheduled task") }),
     }),
     SettingsScheduledTaskBranch: createNativeStackScreen({
       screen: ScheduledTaskBranchPickerRouteScreen,
-      options: { title: "Base branch" },
+      options: () => ({ title: translate("Base branch") }),
     }),
     SettingsScheduledTaskModel: createNativeStackScreen({
       screen: ScheduledTaskModelPickerRouteScreen,

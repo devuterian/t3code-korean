@@ -723,37 +723,38 @@ function TotalsSection(props: { readonly merged: MergedUsage; readonly isPast24H
 }
 
 function CostSection(props: { readonly merged: MergedUsage }) {
+  const t = useTranslate();
   const { categoryCost, speedCost } = props.merged;
   const colors = useUsageMixColors();
   const byType = [
-    { label: "Input", value: categoryCost.input, color: colors.input },
-    { label: "Cache read", value: categoryCost.cacheRead, color: colors.cacheRead },
-    { label: "Cache write", value: categoryCost.cacheWrite, color: colors.cacheWrite },
-    { label: "Output", value: categoryCost.output, color: colors.output },
+    { label: t("Input"), value: categoryCost.input, color: colors.input },
+    { label: t("Cache read"), value: categoryCost.cacheRead, color: colors.cacheRead },
+    { label: t("Cache write"), value: categoryCost.cacheWrite, color: colors.cacheWrite },
+    { label: t("Output"), value: categoryCost.output, color: colors.output },
     // Reported cost with no rates to split it, or from older servers. Below a
     // cent it is rounding, not usage.
     {
-      label: "Other",
+      label: t("Other"),
       value: categoryCost.unsplit >= 0.005 ? categoryCost.unsplit : 0,
       color: colors.other,
     },
   ];
   const bySpeed = [
-    { label: "Standard", value: speedCost.standard, color: colors.standard },
-    { label: "Fast", value: speedCost.fast, color: colors.fast },
-    { label: "Ultrafast", value: speedCost.ultrafast, color: colors.ultrafast },
+    { label: t("Standard"), value: speedCost.standard, color: colors.standard },
+    { label: t("Fast"), value: speedCost.fast, color: colors.fast },
+    { label: t("Ultrafast"), value: speedCost.ultrafast, color: colors.ultrafast },
   ];
   if (props.merged.costUsd <= 0) return null;
 
   return (
-    <SettingsSection title="Cost">
-      <ShareBar label="By type" segments={byType} />
+    <SettingsSection title={t("Cost")}>
+      <ShareBar label={t("By type")} segments={byType} />
       {speedCost.fast + speedCost.ultrafast > 0 ? (
         <View className="border-t border-border-subtle">
           <ShareBar
-            label="By speed"
+            label={t("By speed")}
             segments={bySpeed}
-            aside={`${formatUsd(speedCost.premium)} premium`}
+            aside={t("{amount} premium", { amount: formatUsd(speedCost.premium) })}
           />
         </View>
       ) : null}

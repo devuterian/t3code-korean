@@ -125,7 +125,11 @@ export function selectIncomingShareAttachments(input: {
       continue;
     }
     if (input.maxFileAttachmentBytes === null) {
-      warnings.push(`'${attachment.name}' was skipped because this server does not support files.`);
+      warnings.push(
+        translate("'{name}' was skipped because this server does not support files.", {
+          name: attachment.name,
+        }),
+      );
       continue;
     }
     const maxFileAttachmentBytes = clampFileAttachmentUploadBytes(input.maxFileAttachmentBytes);
@@ -330,7 +334,7 @@ export async function buildIncomingShareDraft(input: {
           continue;
         }
         if (sizeBytes <= 0) {
-          warnings.push(`'${name}' is empty or could not be read.`);
+          warnings.push(translate("'{name}' is empty or could not be read.", { name: name }));
           if (persistedFileUri) {
             await releaseOwnedFiles(input.fileReader, [persistedFileUri]);
           }
@@ -354,7 +358,7 @@ export async function buildIncomingShareDraft(input: {
             sizeBytes = storedSize;
           }
           if (sizeBytes <= 0) {
-            warnings.push(`'${name}' is empty or could not be read.`);
+            warnings.push(translate("'{name}' is empty or could not be read.", { name: name }));
             await releaseOwnedFiles(input.fileReader, [persistedFileUri]);
             continue;
           }
@@ -397,7 +401,9 @@ export async function buildIncomingShareDraft(input: {
     }
     if (!isProviderSendTurnSupportedImageMimeType(mimeType)) {
       warnings.push(
-        `'${resolved?.originalName ?? fallbackName(uri, index, mimeType)}' is not a supported image type.`,
+        translate("'{name}' is not a supported image type.", {
+          name: resolved?.originalName ?? fallbackName(uri, index, mimeType),
+        }),
       );
       await releaseOwnedFiles(input.fileReader, [uri, payload.value]);
       continue;
@@ -408,7 +414,9 @@ export async function buildIncomingShareDraft(input: {
       resolved.contentSize > PROVIDER_SEND_TURN_MAX_IMAGE_BYTES
     ) {
       warnings.push(
-        `'${resolved.originalName ?? fallbackName(uri, index, mimeType)}' exceeds the 10 MB attachment limit.`,
+        translate("'{name}' exceeds the 10 MB attachment limit.", {
+          name: resolved.originalName ?? fallbackName(uri, index, mimeType),
+        }),
       );
       await releaseOwnedFiles(input.fileReader, [uri, payload.value]);
       continue;
@@ -419,7 +427,9 @@ export async function buildIncomingShareDraft(input: {
       const sizeBytes = resolved?.contentSize ?? estimateBase64ByteSize(base64);
       if (sizeBytes <= 0 || sizeBytes > PROVIDER_SEND_TURN_MAX_IMAGE_BYTES) {
         warnings.push(
-          `'${resolved?.originalName ?? fallbackName(uri, index, mimeType)}' exceeds the 10 MB attachment limit.`,
+          translate("'{name}' exceeds the 10 MB attachment limit.", {
+            name: resolved?.originalName ?? fallbackName(uri, index, mimeType),
+          }),
         );
         continue;
       }

@@ -172,24 +172,24 @@ function AutoSettleSettingsRows() {
         />
       ) : null}
       {!projectSelected ? (
-        <SettingsSection title="Usage limits">
+        <SettingsSection title={t("Usage limits")}>
           <SettingsSwitchRow
             icon="clock"
-            label="Auto-resume limited threads"
+            label={t("Auto-resume limited threads")}
             value={uniformMobileSetting(displayTargets, "autoResumeLimitedThreads")}
             disabled={disabled}
             onValueChange={(value) => writeToAll({ autoResumeLimitedThreads: value })}
           />
           <SettingsSwitchRow
             icon="clock"
-            label="Snooze limited threads"
+            label={t("Snooze limited threads")}
             value={uniformMobileSetting(displayTargets, "snoozeLimitedThreads")}
             disabled={disabled}
             onValueChange={(value) => writeToAll({ snoozeLimitedThreads: value })}
           />
         </SettingsSection>
       ) : null}
-      <SettingsSection title="Auto-settle">
+      <SettingsSection title={t("Auto-settle")}>
         <SettingsSwitchRow
           icon="arrow.triangle.branch"
           label={t("Auto-settle merged threads")}

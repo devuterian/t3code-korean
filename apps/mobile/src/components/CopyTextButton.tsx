@@ -3,6 +3,7 @@ import { memo, useEffect, useRef, useState } from "react";
 import { Alert, Pressable, type ColorValue } from "react-native";
 
 import { tryCopyTextWithHaptic } from "../lib/copyTextWithHaptic";
+import { useTranslate } from "../i18n/translate";
 
 const COPY_FEEDBACK_DURATION_MS = 1200;
 
@@ -17,6 +18,7 @@ export const CopyTextButton = memo(function CopyTextButton(props: {
   readonly iconSize?: number;
   readonly buttonSize?: number;
 }) {
+  const t = useTranslate();
   const [copied, setCopied] = useState(false);
   const resetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -32,7 +34,7 @@ export const CopyTextButton = memo(function CopyTextButton(props: {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={copied ? "Copied" : props.accessibilityLabel}
+      accessibilityLabel={copied ? t("Copied") : props.accessibilityLabel}
       disabled={props.text.length === 0}
       hitSlop={8}
       onPress={async () => {
@@ -40,11 +42,11 @@ export const CopyTextButton = memo(function CopyTextButton(props: {
           if (props.onCopy) await props.onCopy();
           else if (!(await tryCopyTextWithHaptic(props.text))) {
             // A refused clipboard write is the common failure, and silence reads as success.
-            Alert.alert("Could not copy", "Try again.");
+            Alert.alert(t("Could not copy"), t("Try again."));
             return;
           }
         } catch {
-          Alert.alert("Could not copy", "Try again.");
+          Alert.alert(t("Could not copy"), t("Try again."));
           return;
         }
         setCopied(true);
