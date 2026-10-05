@@ -322,6 +322,8 @@ export const ClientSettingsSchema = Schema.Struct({
   threadAutoSwitchMode: ThreadAutoSwitchMode.pipe(
     Schema.withDecodingDefault(Effect.succeed("off" as const)),
   ),
+  /** Middle-click a scrollable area, then move the pointer to scroll. */
+  middleClickAutoscroll: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(true))),
   diffColorScheme: DiffColorScheme.pipe(
     Schema.withDecodingDefault(Effect.succeed("red-green" as const)),
   ),
@@ -1744,6 +1746,7 @@ export const ClientSettingsPatch = Schema.Struct({
   notificationMode: Schema.optionalKey(NotificationMode),
   inAppNotificationsEnabled: Schema.optionalKey(Schema.Boolean),
   threadAutoSwitchMode: Schema.optionalKey(ThreadAutoSwitchMode),
+  middleClickAutoscroll: Schema.optionalKey(Schema.Boolean),
   diffColorScheme: Schema.optionalKey(DiffColorScheme),
   chatWidth: Schema.optionalKey(ChatWidth),
   loadBalancingEnabled: Schema.optionalKey(Schema.Boolean),

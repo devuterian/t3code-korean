@@ -361,6 +361,12 @@ export const SETTINGS_SEARCH_ITEMS = [
     searchTerms: ["automatically switch focus jump thread input approval failed done multitasking"],
   },
   {
+    id: "middle-click-autoscroll",
+    title: "Middle-click autoscroll",
+    to: "/settings/general",
+    searchTerms: ["scroll wheel mouse middle button autoscroll pan 자동 스크롤 가운데 휠"],
+  },
+  {
     id: "time-format",
     title: "Time format",
     to: "/settings/general",

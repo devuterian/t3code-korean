@@ -1302,6 +1302,11 @@ const KO_BASE_DICTIONARY: Readonly<Record<string, string>> = {
   "working section": "작업 중 섹션",
   "Fold working and monitoring threads into a Working section. They return to the top of the inbox when they need you.":
     "작업 중이거나 모니터링 중인 스레드를 작업 중 섹션으로 접습니다. 확인이 필요해지면 받은 편지함 맨 위로 돌아옵니다.",
+  // Middle-click autoscroll
+  "Middle-click autoscroll": "가운데 클릭 자동 스크롤",
+  "middle-click autoscroll": "가운데 클릭 자동 스크롤",
+  "Middle-click a scrollable area, then move the pointer to scroll. Click again, or release after dragging, to stop.":
+    "스크롤되는 곳을 휠로 클릭한 뒤 마우스를 움직이면 그 방향으로 스크롤합니다. 다시 클릭하거나, 누른 채 끌었다가 놓으면 멈춥니다.",
   // Thread auto-switch
   "Thread auto-switch": "스레드 자동 전환",
   "thread auto-switch": "스레드 자동 전환",

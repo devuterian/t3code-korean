@@ -582,6 +582,9 @@ export function useSettingsRestore(onRestored?: () => void) {
       ...(settings.threadAutoSwitchMode !== DEFAULT_UNIFIED_SETTINGS.threadAutoSwitchMode
         ? ["Thread auto-switch"]
         : []),
+      ...(settings.middleClickAutoscroll !== DEFAULT_UNIFIED_SETTINGS.middleClickAutoscroll
+        ? ["Middle-click autoscroll"]
+        : []),
       ...(settings.sidebarThreadPreviewCount !== DEFAULT_UNIFIED_SETTINGS.sidebarThreadPreviewCount
         ? ["Visible threads"]
         : []),
@@ -817,6 +820,7 @@ export function useSettingsRestore(onRestored?: () => void) {
       notificationMode: DEFAULT_UNIFIED_SETTINGS.notificationMode,
       inAppNotificationsEnabled: DEFAULT_UNIFIED_SETTINGS.inAppNotificationsEnabled,
       threadAutoSwitchMode: DEFAULT_UNIFIED_SETTINGS.threadAutoSwitchMode,
+      middleClickAutoscroll: DEFAULT_UNIFIED_SETTINGS.middleClickAutoscroll,
       wordWrap: DEFAULT_UNIFIED_SETTINGS.wordWrap,
       persistComposerContextStrip: DEFAULT_UNIFIED_SETTINGS.persistComposerContextStrip,
       diffFilesCollapsed: DEFAULT_UNIFIED_SETTINGS.diffFilesCollapsed,
@@ -2635,6 +2639,17 @@ export function GeneralSettingsPanel() {
                 ))}
               </SelectPopup>
             </Select>
+          }
+        />
+        <SettingsRow
+          {...searchableSetting("middle-click-autoscroll")}
+          description="Middle-click a scrollable area, then move the pointer to scroll. Click again, or release after dragging, to stop."
+          control={
+            <Switch
+              checked={settings.middleClickAutoscroll}
+              onCheckedChange={(checked) => updateSettings({ middleClickAutoscroll: checked })}
+              aria-label={t("Middle-click autoscroll")}
+            />
           }
         />
         <SettingsRow
