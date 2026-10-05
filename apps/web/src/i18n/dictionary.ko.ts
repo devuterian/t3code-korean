@@ -1302,6 +1302,9 @@ const KO_BASE_DICTIONARY: Readonly<Record<string, string>> = {
   "working section": "작업 중 섹션",
   "Fold working and monitoring threads into a Working section. They return to the top of the inbox when they need you.":
     "작업 중이거나 모니터링 중인 스레드를 작업 중 섹션으로 접습니다. 확인이 필요해지면 받은 편지함 맨 위로 돌아옵니다.",
+  // Chat file links
+  "Open with default app": "기본 앱으로 열기",
+  "Open in side panel": "사이드 패널에서 열기",
   // Middle-click autoscroll
   "Middle-click autoscroll": "가운데 클릭 자동 스크롤",
   "middle-click autoscroll": "가운데 클릭 자동 스크롤",

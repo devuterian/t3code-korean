@@ -1270,6 +1270,8 @@ interface MarkdownFileLinkProps {
   onOpenInBrowser?: (() => Promise<AtomCommandResult<unknown, unknown>>) | undefined;
   onOpenMedia?: (() => void) | undefined;
   onReveal?: (() => Promise<AtomCommandResult<unknown, unknown>>) | undefined;
+  /** Opens the file with the OS default app (Cmd/Ctrl+click). */
+  onOpenWithDefaultApp?: (() => Promise<AtomCommandResult<unknown, unknown>>) | undefined;
   /** Platform-specific menu label ("Reveal in Finder", ...); required for the
       reveal item to show. */
   revealLabel?: string | undefined;
@@ -2010,6 +2012,7 @@ const MarkdownFileLink = memo(function MarkdownFileLink({
   onOpenInBrowser,
   onOpenMedia,
   onReveal,
+  onOpenWithDefaultApp,
   revealLabel,
 }: MarkdownFileLinkProps) {
   const handleOpenInEditor = useCallback(() => {
@@ -2100,6 +2103,44 @@ const MarkdownFileLink = memo(function MarkdownFileLink({
     })();
   }, [onOpenInBrowser, targetPath]);
 
+  const handleOpenWithDefaultApp = useCallback(() => {
+    if (!onOpenWithDefaultApp) {
+      return;
+    }
+    void (async () => {
+      try {
+        const result = await onOpenWithDefaultApp();
+        if (result._tag === "Success" || isAtomCommandInterrupted(result)) {
+          return;
+        }
+        reportMarkdownActionFailure(
+          { operation: "open-file-with-default-app", target: targetPath },
+          result.cause,
+        );
+        const error = squashAtomCommandFailure(result);
+        toastManager.add(
+          stackedThreadToast({
+            type: "error",
+            title: translate("Unable to open file"),
+            description: error instanceof Error ? error.message : translate("An error occurred."),
+          }),
+        );
+      } catch (cause) {
+        reportMarkdownActionFailure(
+          { operation: "open-file-with-default-app", target: targetPath },
+          cause,
+        );
+        toastManager.add(
+          stackedThreadToast({
+            type: "error",
+            title: translate("Unable to open file"),
+            description: cause instanceof Error ? cause.message : translate("An error occurred."),
+          }),
+        );
+      }
+    })();
+  }, [onOpenWithDefaultApp, targetPath]);
+
   const handleRevealInFileManager = useCallback(() => {
     if (!onReveal) {
       return;
@@ -2188,7 +2229,13 @@ const MarkdownFileLink = memo(function MarkdownFileLink({
             ...(onOpenMedia
               ? ([{ id: "preview-media", label: translate("Preview media") }] as const)
               : []),
+            ...(onOpenWithDefaultApp
+              ? ([{ id: "open-default", label: translate("Open with default app") }] as const)
+              : []),
             ...(onOpen ? ([{ id: "open", label: openInEditorMenuLabel }] as const) : []),
+            ...(onReveal && threadRef && panelPath
+              ? ([{ id: "open-in-panel", label: translate("Open in side panel") }] as const)
+              : []),
             ...(onOpenInBrowser
               ? ([
                   { id: "open-in-browser", label: translate("Open in integrated browser") },
@@ -2205,8 +2252,16 @@ const MarkdownFileLink = memo(function MarkdownFileLink({
           onOpenMedia?.();
           return;
         }
+        if (clicked === "open-default") {
+          handleOpenWithDefaultApp();
+          return;
+        }
         if (clicked === "open") {
           handleOpenInEditor();
+          return;
+        }
+        if (clicked === "open-in-panel" && panelPath) {
+          onOpenInPanel(panelPath, line);
           return;
         }
         if (clicked === "open-in-browser") {
@@ -2236,14 +2291,20 @@ const MarkdownFileLink = memo(function MarkdownFileLink({
       handleCopy,
       handleOpenInBrowser,
       handleOpenInEditor,
+      handleOpenWithDefaultApp,
       handleRevealInFileManager,
+      line,
       onOpenInBrowser,
+      onOpenInPanel,
       onOpenMedia,
       onOpen,
+      onOpenWithDefaultApp,
       onReveal,
       openInEditorMenuLabel,
+      panelPath,
       revealLabel,
       targetPath,
+      threadRef,
     ],
   );
 
@@ -2292,8 +2353,21 @@ const MarkdownFileLink = memo(function MarkdownFileLink({
               onClick={(event) => {
                 event.preventDefault();
                 event.stopPropagation();
-                if (onOpen && shouldOpenMarkdownFileLinkInEditor(event)) {
-                  handleOpenInEditor();
+                // Cmd/Ctrl+click opens the file with the OS default app; a
+                // plain click shows it in Finder/Explorer. Without local shell
+                // access (hosted web, remote hosts) the in-app preview remains.
+                if (shouldOpenMarkdownFileLinkInEditor(event)) {
+                  if (onOpenWithDefaultApp) {
+                    handleOpenWithDefaultApp();
+                    return;
+                  }
+                  if (onOpen) {
+                    handleOpenInEditor();
+                    return;
+                  }
+                }
+                if (onReveal) {
+                  handleRevealInFileManager();
                   return;
                 }
                 if (useBrowserPrimaryAction) {
@@ -2354,6 +2428,7 @@ function areMarkdownFileLinkPropsEqual(
     previous.onOpenInBrowser === next.onOpenInBrowser &&
     previous.onOpenMedia === next.onOpenMedia &&
     previous.onReveal === next.onReveal &&
+    previous.onOpenWithDefaultApp === next.onOpenWithDefaultApp &&
     previous.revealLabel === next.revealLabel
   );
 }
@@ -2682,6 +2757,26 @@ function useChatMarkdownState({
     },
     [cwd, findWorkspaceBasenameMatch, revealFileInFileManager],
   );
+  const openMarkdownFileWithDefaultApp = useCallback(
+    async (fileLinkMeta: MarkdownFileLinkMeta) => {
+      if (environmentId === null) {
+        return AsyncResult.failure<void, PreferredEditorEnvironmentRequiredError>(
+          Cause.fail(
+            new PreferredEditorEnvironmentRequiredError({ targetPath: fileLinkMeta.filePath }),
+          ),
+        );
+      }
+      const workspaceRelativePath = fileLinkMeta.workspaceRelativePath;
+      const match = workspaceRelativePath
+        ? await findWorkspaceBasenameMatch(workspaceRelativePath)
+        : null;
+      const filePath = match && cwd ? resolvePathLinkTarget(match, cwd) : fileLinkMeta.filePath;
+      // The file manager without reveal hands the file to the OS opener
+      // (`open`, `explorer.exe`, `xdg-open`), which picks the default app.
+      return openInEditor({ environmentId, input: { cwd: filePath, editor: "file-manager" } });
+    },
+    [cwd, environmentId, findWorkspaceBasenameMatch, openInEditor],
+  );
   const fileLinkChip = useCallback(
     (fileLinkMeta: MarkdownFileLinkMeta, copyMarkdown: string, mediaSource?: string) => {
       const parentSuffix = fileLinkParentSuffixByPath.get(
@@ -2732,6 +2827,11 @@ function useChatMarkdownState({
               ? () => revealMarkdownFileInFileManager(fileLinkMeta)
               : undefined
           }
+          onOpenWithDefaultApp={
+            canUseShellActions && revealInFileManagerLabel !== undefined
+              ? () => openMarkdownFileWithDefaultApp(fileLinkMeta)
+              : undefined
+          }
           revealLabel={revealInFileManagerLabel}
           onOpenInBrowser={
             threadRef &&
@@ -2749,6 +2849,7 @@ function useChatMarkdownState({
       openFileInPanel,
       openInPreferredEditor,
       openMarkdownFileInPreview,
+      openMarkdownFileWithDefaultApp,
       openMarkdownMedia,
       preferredEditorMenuLabel,
       resolvedTheme,
