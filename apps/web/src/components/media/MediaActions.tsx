@@ -10,6 +10,7 @@ import { useCallback, useRef, useState, type ReactElement } from "react";
 
 import { useComposerHandleContext } from "../../composerHandleContext";
 import { writeTextToClipboard } from "../../hooks/useCopyToClipboard";
+import { translate } from "~/i18n/translate";
 import { readLocalApi } from "../../localApi";
 import { assetEnvironment } from "../../state/assets";
 import { readPreparedConnection } from "../../state/session";
@@ -115,7 +116,7 @@ export function MediaActions({
       }
       // A frame is only worth capturing when a mounted composer can take the citation.
       if (source.kind === "video" && source.onCiteFrame && video && composerRef?.current) {
-        items.push({ id: "cite-region", label: "Cite frame" });
+        items.push({ id: "cite-region", label: translate("Cite frame") });
       }
       if (source.onOpenFile) items.push({ id: "open-file", label: "Open in file viewer" });
       items.push({ id: "save", label: `Save ${noun}`, disabled: unavailable });
@@ -129,7 +130,10 @@ export function MediaActions({
 
       const action = await api.contextMenu.show(items, position);
       if (!action) return;
-      failureTitle = `Could not ${items.find((item) => item.id === action)?.label.toLowerCase() ?? "complete media action"}`;
+      failureTitle =
+        action === "cite-region"
+          ? translate("Could not cite frame")
+          : `Could not ${items.find((item) => item.id === action)?.label.toLowerCase() ?? "complete media action"}`;
       const text =
         action === "copy-full-path" && reference?.kind === "file"
           ? reference.path
@@ -149,7 +153,7 @@ export function MediaActions({
       } else if (action === "cite-region" && video && source.onCiteFrame) {
         video.pause();
         const seconds = video.currentTime;
-        progressToast = toastManager.add({ type: "loading", title: "Capturing frame…" });
+        progressToast = toastManager.add({ type: "loading", title: translate("Capturing frame…") });
         const still = await readVideoFrame(actionUrl, seconds, video);
         toastManager.close(progressToast);
         progressToast = undefined;

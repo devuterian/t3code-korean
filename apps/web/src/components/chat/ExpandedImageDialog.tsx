@@ -177,8 +177,8 @@ export const ExpandedImageDialog = memo(function ExpandedImageDialog({
       toastManager.add(
         stackedThreadToast({
           type: "error",
-          title: "Could not capture the frame",
-          description: error instanceof Error ? error.message : "The video could not be read.",
+          title: t("Could not capture the frame"),
+          description: error instanceof Error ? error.message : t("The video could not be read."),
         }),
       );
     } finally {
@@ -202,8 +202,8 @@ export const ExpandedImageDialog = memo(function ExpandedImageDialog({
       toastManager.add(
         stackedThreadToast({
           type: "warning",
-          title: "No composer to cite into",
-          description: "Open a thread, then cite the region again.",
+          title: t("No composer to cite into"),
+          description: t("Open a thread, then cite the region again."),
         }),
       );
       return;
@@ -227,9 +227,10 @@ export const ExpandedImageDialog = memo(function ExpandedImageDialog({
         toastManager.add(
           stackedThreadToast({
             type: "warning",
-            title: "The composer can't take this region right now",
-            description:
+            title: t("The composer can't take this region right now"),
+            description: t(
               "Finish any pending approval or question, or wait for the connection, then cite again.",
+            ),
           }),
         );
         return;
@@ -242,8 +243,8 @@ export const ExpandedImageDialog = memo(function ExpandedImageDialog({
       toastManager.add(
         stackedThreadToast({
           type: "error",
-          title: "Could not cite the region",
-          description: error instanceof Error ? error.message : "The image could not be read.",
+          title: t("Could not cite the region"),
+          description: error instanceof Error ? error.message : t("The image could not be read."),
         }),
       );
     } finally {
@@ -415,7 +416,7 @@ export const ExpandedImageDialog = memo(function ExpandedImageDialog({
                     ref={zoomableImageRef}
                     key={frame.src}
                     src={frame.src}
-                    name={`${item.name} at ${formatVideoTimestamp(frame.seconds)}`}
+                    name={t(`${item.name} at ${formatVideoTimestamp(frame.seconds)}`)}
                     onError={() => setFailedImageSrc(frame.src)}
                     selecting={selecting}
                     overlay={citeOverlay}
@@ -462,7 +463,7 @@ export const ExpandedImageDialog = memo(function ExpandedImageDialog({
                 align="start"
                 width="md"
                 padding="compact"
-                aria-label="Comment on selected region"
+                aria-label={t("Comment on selected region")}
                 initialFocus={() => {
                   commentInputRef.current?.focus({ preventScroll: true });
                   return false;
@@ -472,9 +473,11 @@ export const ExpandedImageDialog = memo(function ExpandedImageDialog({
                 {pendingRegion ? (
                   <CitationCommentEditor
                     key={`${pendingRegion.x}:${pendingRegion.y}:${pendingRegion.width}:${pendingRegion.height}`}
-                    label="Comment on selected region"
-                    description="Enter to cite the region with this comment; Shift+Enter for a new line."
-                    submitLabel={citing ? "Citing…" : "Cite"}
+                    label={t("Comment on selected region")}
+                    description={t(
+                      "Enter to cite the region with this comment; Shift+Enter for a new line.",
+                    )}
+                    submitLabel={citing ? t("Citing…") : t("Cite")}
                     submitDisabled={citing}
                     inputRef={commentInputRef}
                     onSubmit={(comment) => void citeRegion(pendingRegion, comment)}
@@ -485,8 +488,7 @@ export const ExpandedImageDialog = memo(function ExpandedImageDialog({
             </Popover>
             <div className="mt-2 flex max-w-[var(--media-width)] items-center justify-center gap-1.5 text-xs text-white/80">
               <span className="truncate" aria-live="polite" aria-atomic="true">
-                {item.name}
-                {frame ? ` at ${formatVideoTimestamp(frame.seconds)}` : ""}
+                {frame ? t(`${item.name} at ${formatVideoTimestamp(frame.seconds)}`) : item.name}
                 {preview.images.length > 1 ? ` (${index + 1}/${preview.images.length})` : ""}
               </span>
               {accessibilityDetails && item.source ? (
@@ -527,16 +529,16 @@ export const ExpandedImageDialog = memo(function ExpandedImageDialog({
                     }
                   >
                     <SquareDashedMousePointerIcon aria-hidden="true" />
-                    {capturingFrame ? "Capturing…" : "Cite"}
+                    {capturingFrame ? t("Capturing…") : t("Cite")}
                   </TooltipTrigger>
                   <TooltipPopup side="top">
                     {selecting
                       ? isVideo
-                        ? "Back to the video (C)"
-                        : "Stop selecting (C)"
+                        ? t("Back to the video (C)")
+                        : t("Stop selecting (C)")
                       : isVideo
-                        ? "Pause and cite a region of this frame (C)"
-                        : "Select a region to cite (C)"}
+                        ? t("Pause and cite a region of this frame (C)")
+                        : t("Select a region to cite (C)")}
                   </TooltipPopup>
                 </Tooltip>
               ) : null}

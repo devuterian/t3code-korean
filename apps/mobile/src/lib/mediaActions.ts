@@ -112,7 +112,7 @@ export function useMediaActions(
             ? [
                 {
                   id: "cite-region" as const,
-                  title: "Cite region",
+                  title: t("Cite region"),
                   run: () => {
                     onLeavePreview?.();
                     citeImage(source);

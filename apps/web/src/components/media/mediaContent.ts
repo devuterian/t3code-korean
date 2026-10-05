@@ -4,6 +4,8 @@ import {
   type PixelRect,
 } from "@t3tools/client-runtime/image-region-citation";
 
+import { translate } from "~/i18n/translate";
+
 /** Resolves web references without inheriting the desktop renderer's custom app scheme. */
 export function resolveProtocolRelativeMediaUrl(src: string): string {
   if (!src.startsWith("//")) return src;
@@ -72,7 +74,10 @@ async function withDecodedImage<T>(
 function canvasToPng(canvas: HTMLCanvasElement): Promise<Blob> {
   return new Promise<Blob>((resolve, reject) => {
     canvas.toBlob(
-      (png) => (png ? resolve(png) : reject(new Error("The image could not be converted to PNG."))),
+      (png) =>
+        png
+          ? resolve(png)
+          : reject(new Error(translate("The image could not be converted to PNG."))),
       "image/png",
     );
   });
@@ -82,7 +87,8 @@ function canvasToPng(canvas: HTMLCanvasElement): Promise<Blob> {
 function canvasToStill(canvas: HTMLCanvasElement): Promise<Blob> {
   return new Promise<Blob>((resolve, reject) => {
     canvas.toBlob(
-      (still) => (still ? resolve(still) : reject(new Error("The video frame could not be read."))),
+      (still) =>
+        still ? resolve(still) : reject(new Error(translate("The video frame could not be read."))),
       "image/jpeg",
       0.95,
     );
@@ -116,12 +122,12 @@ const VIDEO_FRAME_TIMEOUT_MS = 15_000;
 
 function drawVideoFrame(video: HTMLVideoElement): Promise<Blob> {
   const { videoWidth: width, videoHeight: height } = video;
-  if (width <= 0 || height <= 0) throw new Error("The video has no frame to cite.");
+  if (width <= 0 || height <= 0) throw new Error(translate("The video has no frame to cite."));
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
   const context = canvas.getContext("2d");
-  if (!context) throw new Error("Video citing is unavailable in this browser.");
+  if (!context) throw new Error(translate("Video citing is unavailable in this browser."));
   context.drawImage(video, 0, 0, width, height);
   return canvasToStill(canvas);
 }
@@ -132,7 +138,7 @@ function blobToDataUrl(blob: Blob): Promise<string> {
     reader.addEventListener("load", () => resolve(String(reader.result)), { once: true });
     reader.addEventListener(
       "error",
-      () => reject(new Error("The video frame could not be read.")),
+      () => reject(new Error(translate("The video frame could not be read."))),
       {
         once: true,
       },
@@ -168,7 +174,7 @@ export async function readVideoFrame(
     new Promise<void>((resolve, reject) => {
       const timer = window.setTimeout(() => {
         cleanup();
-        reject(new Error("The video frame took too long to load. Try again."));
+        reject(new Error(translate("The video frame took too long to load. Try again.")));
       }, VIDEO_FRAME_TIMEOUT_MS);
       const done = () => {
         cleanup();
@@ -178,7 +184,9 @@ export async function readVideoFrame(
         cleanup();
         reject(
           new Error(
-            "The video could not be loaded for citing. The host may block browser access (CORS).",
+            translate(
+              "The video could not be loaded for citing. The host may block browser access (CORS).",
+            ),
           ),
         );
       };
@@ -204,7 +212,7 @@ export async function readVideoFrame(
       return await blobToDataUrl(await drawVideoFrame(video));
     } catch (cause) {
       if (cause instanceof DOMException && cause.name === "SecurityError") {
-        throw new Error("The video's host blocks reading its frames.", { cause });
+        throw new Error(translate("The video's host blocks reading its frames."), { cause });
       }
       throw cause;
     }
@@ -238,8 +246,8 @@ export async function readMediaImageRegion(
   const png = await withDecodedImage(
     blob,
     {
-      decode: "The browser could not decode this image for citing.",
-      size: "This image is too large or has no usable dimensions.",
+      decode: translate("The browser could not decode this image for citing."),
+      size: translate("This image is too large or has no usable dimensions."),
     },
     async (image) => {
       const crop = imageRegionCrop(region, {
@@ -250,7 +258,7 @@ export async function readMediaImageRegion(
       canvas.width = crop.width;
       canvas.height = crop.height;
       const context = canvas.getContext("2d");
-      if (!context) throw new Error("Image citing is unavailable in this browser.");
+      if (!context) throw new Error(translate("Image citing is unavailable in this browser."));
       context.imageSmoothingQuality = "high";
       context.drawImage(
         image,

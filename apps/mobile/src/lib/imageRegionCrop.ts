@@ -1,6 +1,7 @@
 import { imageRegionPixels, type ImageRegion } from "@t3tools/client-runtime/image-region-citation";
 import { PROVIDER_SEND_TURN_MAX_IMAGE_BYTES } from "@t3tools/contracts";
 
+import { translate } from "../i18n/translate";
 import { estimateBase64ByteSize } from "./base64";
 import type { DraftComposerImageAttachment } from "./composerImages";
 import { uuidv4 } from "./uuid";
@@ -41,10 +42,10 @@ export async function cropImageRegionAttachment(input: {
   })();
   try {
     const saved = await crop.saveAsync({ format: SaveFormat.PNG, base64: true });
-    if (!saved.base64) throw new Error("The cropped region has no bytes.");
+    if (!saved.base64) throw new Error(translate("The cropped region has no bytes."));
     const sizeBytes = estimateBase64ByteSize(saved.base64);
     if (sizeBytes <= 0 || sizeBytes > PROVIDER_SEND_TURN_MAX_IMAGE_BYTES) {
-      throw new Error("The region is too large to attach. Select a smaller region.");
+      throw new Error(translate("The region is too large to attach. Select a smaller region."));
     }
     return {
       id: uuidv4(),

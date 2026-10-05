@@ -201,9 +201,11 @@ export function AssistantCitationChip({
               <CitationCommentEditor
                 key={serializeAssistantCitation(citation)}
                 initialComment={citation.comment ?? ""}
-                label="Comment on selected text"
-                description="Enter to save the citation comment; Command/Ctrl+Enter to save and send; Shift+Enter for a new line."
-                submitLabel="Save"
+                label={t("Comment on selected text")}
+                description={t(
+                  "Enter to save the citation comment; Command/Ctrl+Enter to save and send; Shift+Enter for a new line.",
+                )}
+                submitLabel={t("Save")}
                 inputRef={commentInputRef}
                 onDraftChange={(comment) => {
                   draftCommentRef.current = comment;
