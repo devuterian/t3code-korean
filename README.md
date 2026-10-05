@@ -1,134 +1,128 @@
-# T3 Code
+<div align="center">
+<img src="assets/nightly/nightly-macos-1024.png" width="180" alt="T3 Code Korean 아이콘">
 
-T3 Code is an "agent harness control surface". It enables control of the agents on your machine with a best-in-class mobile app ([iOS](https://apps.apple.com/us/app/t3-code-remote-claude-more/id6787819824), [Android](https://play.google.com/store/apps/details?id=com.t3tools.t3code)), [web app](https://app.t3.codes) and [Electron-based desktop app](https://t3.codes).
+# T3 Code Korean
 
-Works with your subscriptions on Claude Code, Codex, Cursor, Grok Build, OpenCode, and Google Antigravity. If they're set up on your computer, T3 Code can control them.
+<p>T3 Code 비공식 한국어판</p>
+</div>
 
-## "Wait, what are you selling me?"
+## 이게 뭔데
 
-Nothing. We built T3 Code because we wanted the best possible development experience with agents. We were inspired by existing solutions like the Codex desktop app, Conductor, Claude Desktop and Cursor Glass, but none met our bar.
+T3 Code Korean은 제가 쓰려고 만든 [T3 Code](https://github.com/pingdotgg/t3code)의 **비공식 한국어판**입니다~~~~
+Claude Code, Codex, Cursor 같은 코딩 에이전트를 한 화면에서 굴리는 앱인데, 영어만 있길래 한국어를 넣었습니다.
+그러다 T3 Code의 Pull Request 중에 괜찮아 보이는 기능, 잘 작동할 것 같은 기능도 제가 직접 골라왔습니다요.
 
-We wanted something performant, remote-ready, and truly open. If we ever go the wrong direction, we want you to have everything you need to fork and build the editor that you want.
+## 뭐가 다른데
 
-## Installation
+아래는 **지금까지 쌓인 한국어판 기능**입니다. 최신 릴리즈는 [0.0.46-ko.2](https://github.com/devuterian/t3code-korean/releases/tag/v0.0.46-ko.2)입니다. 업스트림 **Nightly 0.0.46** 기준이고, 새 오케스트레이터 V2가 들어 있습니다.
+
+**한국어**
+
+- **한국어 번역을 넣었습니다.** 설정 → General → Interface language에서 한국어를 고르면 됩니다. 설정, 대화 화면, 입력창, 사이드바, 명령 팔레트, Git·PR·사용량 페이지, 브라우저 미리보기, 온보딩까지 약 4,400개 문구를 번역했습니다.
+- **Android 앱도 한국어로 나옵니다.** 폰 언어가 한국어면 자동으로 바뀌고, 설정 → 언어에서 따로 고를 수도 있습니다.
+- **날짜와 시간도 한국식입니다.** `5 minutes ago` 대신 `5분 전`, `1h 5m` 대신 `1시간 5분`처럼 나옵니다.
+- **같은 영어를 영역마다 다르게 번역하던 61곳을 맞췄습니다.** 공유 버튼이 "비중"으로 나오던 걸 "공유"로 고친 게 대표적입니다. 이건 좀 웃겼습니다잉.
+- **모델 이름, 추론 레벨 이름, 에이전트에게 보내는 문구는 일부러 영어로 남겼습니다.** 에이전트가 헷갈리면 안 되니까요.
+
+**사이드바와 스레드**
+
+- **말 건 순으로 정렬할 수 있습니다.** 사이드바 정렬 메뉴에서 "마지막 메시지"를 고르면 방금 대화한 스레드가 위로 올라옵니다. 데스크톱이랑 폰이 같은 설정을 씁니다.
+- **확인이 필요한 스레드로 알아서 넘어가게 할 수 있습니다.** 다른 스레드가 입력이나 승인을 기다리거나 실패하면 그쪽으로 바로 이동합니다. 처음에는 꺼져 있어요.
+- **방금 정리한 스레드를 되돌릴 수 있습니다.** `Cmd+Shift+U`를 누르면 됩니다. 실수로 정리했을 때 좋습니다.
+- **보관함을 한꺼번에 복원하거나 삭제할 수 있습니다.** 하나씩 누르다가 손가락 나갈 뻔했습니다.
+- **프로젝트·스레드 전환기를 넣었습니다.** 맥 앱 전환처럼 `Option+Tab`은 프로젝트를, `Ctrl+Tab`은 지금 프로젝트의 스레드를 돌아가며 고릅니다. 키를 떼면 그쪽으로 넘어갑니다.
+
+**대화 화면**
+
+- **스레드 안에서 `Cmd+F`로 찾을 수 있습니다.** 브라우저 찾기처럼 대화 내용 안에서 글자를 찾아줍니다.
+- **닫은 탭을 `Cmd+Shift+T`로 다시 엽니다.** 브라우저랑 똑같습니다.
+- **대화 폭을 조절할 수 있습니다.** 넓은 표는 화면에 맞춰 보여주는 옵션도 있습니다.
+- **대화 글자 크기를 따로 키울 수 있습니다.** 앱 전체는 그대로 두고 대화 내용만 크게 볼 수 있습니다.
+- **가운데 클릭 자동 스크롤을 넣었습니다.** 스크롤되는 곳을 휠로 한 번 누르고 마우스를 움직이면 그 방향으로 쭉 내려갑니다. 멀리 움직일수록 빨라지고, 한 번 더 누르거나 Esc를 누르면 멈춥니다. 윈도우나 크롬 확장 프로그램 Mac Autoscroll이랑 같은 방식이고, 싫으시면 설정 → 동작에서 끄시면 됩니다.
+
+**이미지와 동영상 인용**
+
+- **이미지의 한 부분을 콕 집어서 물어볼 수 있습니다.** 채팅에 온 이미지를 크게 열고 `C`나 "인용"을 누른 다음 드래그하면 됩니다. 코멘트를 쓰고 Enter를 누르면 그 부분에 테두리를 친 이미지와 코멘트가 입력창에 들어갑니다.
+- **여러 군데를 연달아 찍을 수 있습니다.** 찍은 곳에는 1, 2, 3 번호가 남아서 어디까지 했는지 헷갈리지 않습니다.
+- **Android에서도 됩니다.** 이미지를 길게 누르고 "영역 인용"을 고르면 됩니다.
+- **동영상도 됩니다.** 보다가 `C`를 누르면 멈추고, 그 장면의 한 부분을 인용할 수 있습니다.
+- **Codex처럼 펜으로 자유롭게 그리는 방식은 아닙니다.** 네모로 영역을 고르고 코멘트를 다는 방식인데, 에이전트한테 "여기 고쳐줘" 하기에는 이쪽이 더 정확했습니다.
+
+**파일 링크**
+
+- **채팅 속 파일 링크를 누르면 Finder에서 보여줍니다.** 앱 안 사이드 패널에 띄우는 대신 그 파일이 든 폴더를 열고 파일을 선택해 둡니다. Windows에서는 탐색기로 열립니다.
+- **`Cmd+클릭`하면 맥 기본 앱으로 엽니다.** `.png`는 미리보기로, `.blend`는 블렌더로 열립니다.
+- **원래 방식도 남겨뒀습니다.** 우클릭 메뉴에서 "사이드 패널에서 열기"나 "에디터에서 열기"를 고르면 됩니다. 다른 컴퓨터에 원격으로 연결된 대화나 웹판에서는 Finder를 못 쓰니까 원래처럼 앱 안에서 엽니다.
+
+**설정**
+
+- **컨텍스트 사용량 표시를 레거시 설정 밖으로 꺼냈습니다.** 멀쩡한 기능인데 "레거시 기능" 안에 숨어 있어서 없어지는 기능인 줄 알았습니다. 이제 입력창 설정에 있습니다.
+
+## 버전별로 뭐가 바뀌었는데
+
+기능이 들어온 순서만 쭉 적었습니다.
+
+**[0.0.42-ko.1](https://github.com/devuterian/t3code-korean/releases/tag/v0.0.42-ko.1) · 프리릴리즈**
+
+- 원본 `main`(0.0.42) 기준으로 처음 만들었습니다. 데스크톱 번역 약 1,200개와 Android 번역을 넣었습니다.
+- 말 건 순 정렬, `Cmd+F` 찾기, 닫은 탭 다시 열기 같은 업스트림 PR 13개를 같이 넣었습니다. 여기서 시작했습니다잉.
+
+**[0.0.46-ko.1](https://github.com/devuterian/t3code-korean/releases/tag/v0.0.46-ko.1) · 프리릴리즈**
+
+- 업스트림 Nightly 0.0.46으로 올라가면서 새 오케스트레이터 V2가 들어왔습니다.
+- V2 전환 때 원본에서 닫혀버린 PR 9개를 새 구조에 맞게 다시 만들었습니다.
+- 번역을 약 4,400개로 늘리고, 영역마다 다르게 번역된 61곳을 맞췄습니다.
+
+**[0.0.46-ko.2](https://github.com/devuterian/t3code-korean/releases/tag/v0.0.46-ko.2) · 프리릴리즈**
+
+- 이미지 영역 인용, Android 이미지 인용, 동영상 프레임 인용을 넣었습니다.
+- 가운데 클릭 자동 스크롤과 파일 링크 Finder 열기를 직접 만들었습니다.
+- 컨텍스트 사용량 표시를 입력창 설정으로 옮겼습니다.
+
+## 조잡해보이는데
+
+네. 제가 쓰려고 만들었기 때문에 조잡합니다. 그래서 (혹시나 버그가 생긴다면) 대화 기록이 꼬인다든지 에이전트가 이상하게 군다든지 할 수 있습니다. 이 레포지토리의 모든 파일을 컴퓨터, 또는 안드로이드 폰에 설치했을 때 생기는 물적, 심적인 책임은 이용자에게 전부 있음을 인정한다고 간주합니다.
+
+T3 Code 팀의 공식 릴리즈가 아닙니다. 이 앱에서 생긴 문제는 원본 저장소가 아니라 여기로 알려주세요.
+
+그렇지만 제가 쓰려고 만들었기 때문에 잘 작동 안 되는 건 제가 용서를 못 합니다. [이슈](https://github.com/devuterian/t3code-korean/issues)를 보내주시면 최대한 수정해볼 수 있도록 노력하겠습니다.
+
+## 까는 법
+
+파일은 [릴리즈 페이지](https://github.com/devuterian/t3code-korean/releases)에 있습니다. 본인 기기에 맞는 걸 받아주세요.
 
 > [!WARNING]
-> T3 Code currently supports Codex, Claude, Cursor, Grok Build, OpenCode, and Antigravity. Install and authenticate at least one provider before use:
->
-> - Codex: install [Codex CLI](https://developers.openai.com/codex/cli) and run `codex login`
-> - Claude: install [Claude Code](https://claude.com/product/claude-code) and run `claude auth login`
-> - Cursor: install [Cursor CLI](https://cursor.com/cli) and run `agent login`
-> - Grok Build: install [Grok Build CLI](https://x.ai/cli) and run `grok login`
-> - OpenCode: install [OpenCode](https://opencode.ai) and run `opencode auth login`
-> - Antigravity: enable it in Settings, then use **Install Antigravity** and **Sign in with Google**. No CLI is required.
+> **처음 설치하기 전에 `~/.t3` 폴더를 꼭 백업하세요.** 0.0.45 이하에서 올라오면 처음 켤 때 기존 대화 기록을 V2 형식으로 옮깁니다. Windows는 `%USERPROFILE%\.t3`입니다.
 
-### Command line
+- **Mac (Apple Silicon):** `…-mac-arm64.dmg`를 받으세요. 서명이 없어서 처음엔 앱을 우클릭하고 "열기"를 눌러야 합니다.
+- **Windows (x64):** `…-windows-x64-setup.exe`를 받으세요. SmartScreen 경고가 뜨면 "추가 정보" → "실행"을 누르면 됩니다.
+- **Android (arm64):** `…-android-arm64.apk`를 받으세요. 패키지 이름이 공식 앱과 같아서 공식 앱을 지우고 깔거나 서명 검사를 우회해야 합니다. Google 로그인은 안 될 수 있습니다.
 
-```bash
-curl -fsSL https://t3.codes/install.sh | sh
-```
+몇 가지 알아두시면 좋은 것들입니다.
 
-On Windows, in PowerShell:
+- **공식 앱이랑 같이 켜지 마세요.** 앱 이름은 `T3 Code Korean`이라 따로 설치되지만, 대화 기록(`~/.t3`)은 같이 씁니다.
+- **T3 Connect로 묶인 다른 컴퓨터도 V2로 올려주세요.** V2 앱은 V1(0.0.45 이하) 컴퓨터에 연결하지 못해서 목록에 안 뜹니다. 제가 이거 때문에 한참 헤맸습니다요.
+- **자동 업데이트는 꺼져 있습니다.** 원본 업데이트가 한국어판을 덮어쓰지 않게 막아뒀습니다. 새 버전은 릴리즈 페이지에서 받아주세요.
+- **T3 계정 연결은 됩니다.** 원본에 공개된 설정 그대로 빌드했습니다.
 
-```powershell
-irm https://t3.codes/install.ps1 | iex
-```
+## 가져온 프로젝트들
 
-Then run `t3` to start the server and open the local web app. `t3 service install` keeps it running in the background, `t3 update` moves to a newer release, and `t3 --help` has the full reference.
+여러 분이 만들어주신 코드를 가져와 제 취향에 맞게 수정했습니다. 만들어주신 분들께 진심으로 감사드립니다.
 
-To try it once without installing, run `npx t3@latest` instead.
+- **[T3 Code](https://github.com/pingdotgg/t3code)** 이 앱의 바탕이 된 프로젝트입니다.
+- **[yu381792 · #12563](https://github.com/pingdotgg/t3code/pull/12563)** 중국어 번역용으로 만든 번역 구조를 가져와 한국어를 얹었습니다.
+- **[Dwite · #12895](https://github.com/pingdotgg/t3code/pull/12895)** 말 건 순 정렬을 가져와 V2 구조에 맞게 다시 만들었습니다.
+- **[rodrigohpalmeirim · #12959](https://github.com/pingdotgg/t3code/pull/12959)** 스레드 안 `Cmd+F` 찾기를 가져왔습니다.
+- **[Bil0000 · #13063](https://github.com/pingdotgg/t3code/pull/13063)** 닫은 탭 다시 열기를 가져왔습니다.
+- **[sanjay-29218 · #13785](https://github.com/pingdotgg/t3code/pull/13785)** 프로젝트·스레드 전환기를 가져왔습니다.
+- **[maria-rcks · #12958](https://github.com/pingdotgg/t3code/pull/12958)** 정리한 스레드 되돌리기 단축키를 가져왔습니다.
+- **[voltcrash · #13936](https://github.com/pingdotgg/t3code/pull/13936)** 보관함 일괄 복원·삭제를 가져왔습니다.
+- **[OmarAlaaeldein · #12880](https://github.com/pingdotgg/t3code/pull/12880)** 확인이 필요한 스레드로 자동 이동하는 기능을 가져왔습니다.
+- **[rohan-patnaik · #12785](https://github.com/pingdotgg/t3code/pull/12785)** 대화 폭 조절과 표 맞춤을 가져왔습니다.
+- **[alexito4 · #13234](https://github.com/pingdotgg/t3code/pull/13234)** 대화 글자 크기 따로 조절을 가져왔습니다.
+- **[Dwite · #13377](https://github.com/pingdotgg/t3code/pull/13377), [#13378](https://github.com/pingdotgg/t3code/pull/13378), [#13379](https://github.com/pingdotgg/t3code/pull/13379)** 이미지·Android·동영상 영역 인용을 가져와 V2에 맞추고 번역했습니다.
+- **[otavio · #14957](https://github.com/pingdotgg/t3code/pull/14957)** 컨텍스트 사용량 표시를 레거시 설정 밖으로 옮기는 수정을 가져왔습니다.
 
-### Desktop app
+## 라이선스
 
-Install the latest version of the desktop app from [GitHub Releases](https://github.com/pingdotgg/t3code/releases), or from your favorite package registry:
-
-#### Windows (`winget`)
-
-```bash
-winget install T3Tools.T3Code
-```
-
-#### macOS (Homebrew)
-
-```bash
-brew install --cask t3-code
-```
-
-#### Debian, Ubuntu (`.deb`)
-
-Download the `.deb` from [GitHub Releases](https://github.com/pingdotgg/t3code/releases), then:
-
-```bash
-sudo apt install ./T3-Code-*.deb
-```
-
-#### Arch Linux (AUR)
-
-Stable:
-
-```bash
-yay -S t3code-bin
-```
-
-Nightly:
-
-```bash
-yay -S t3code-nightly-bin
-```
-
-The AUR packaging is maintained in this repository under [`packaging/aur`](./packaging/aur).
-
-## Some notes
-
-We are very very early in this project. Expect bugs.
-
-We are (mostly) not accepting contributions yet. Small fixes may be considered. Big features will not be.
-
-## Documentation
-
-Full docs live in [docs/](./docs). There's no docs site yet.
-
-- [Install and first run](./docs/user/install.md)
-- [Permission modes](./docs/user/permission-modes.md)
-- [Keyboard shortcuts](./docs/user/keybindings.md)
-- [Project settings](./docs/user/project-settings.md)
-- [Appearance preferences](./docs/user/appearance.md)
-- [Remote access from a phone or another machine](./docs/user/remote-access.md)
-- [Keeping app and server in sync](./docs/user/updating.md)
-- [Source control integrations](./docs/user/source-control.md)
-- Multiple accounts: [Codex](./docs/user/providers-codex.md) · [Claude](./docs/user/providers-claude.md)
-- [Run T3 Code as a background service](./docs/user/background-service.md)
-
-Building from source? Start at [docs/internals/overview.md](./docs/internals/overview.md).
-
-## If you REALLY want to contribute still.... read this first
-
-### Install `vp`
-
-T3 Code uses Vite+ so you'll need to install the global `vp` command-line tool.
-
-#### macOS / Linux
-
-```bash
-curl -fsSL https://vite.plus | bash
-```
-
-#### Windows
-
-```bash
-irm https://vite.plus/ps1 | iex
-```
-
-Checkout their getting started guide for more information: https://viteplus.dev/guide/
-
-### Install dependencies
-
-```bash
-vp i
-```
-
-Read [CONTRIBUTING.md](./CONTRIBUTING.md) before reporting a bug or opening a PR.
-
-Have a feature request? Start an [Ideas discussion](https://github.com/pingdotgg/t3code/discussions/categories/ideas).
-
-Need support? Join the [Discord](https://discord.gg/jn4EGJjrvv).
+T3 Code의 라이선스를 그대로 따릅니다. [LICENSE](LICENSE)를 확인해주세요.
