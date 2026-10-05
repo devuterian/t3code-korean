@@ -154,4 +154,21 @@ export const KO_V2_THREAD: Readonly<Record<string, string>> = {
   Restart: "다시 시작",
   "Retry or remove the failed attachment": "실패한 첨부 파일을 다시 시도하거나 제거하세요",
   "Upload failed. Tap to retry.": "업로드에 실패했습니다. 탭하여 다시 시도하세요.",
+  // Image region citation.
+  "The image could not be loaded.": "이미지를 불러올 수 없습니다.",
+  "Image. Drag over the part you want to cite.": "이미지. 인용할 부분을 드래그하세요.",
+  "This image could not be opened for citing.": "인용할 이미지를 열 수 없습니다.",
+  "Could not add the region": "영역을 추가할 수 없음",
+  "Remove some attachments or context from the draft and try again.":
+    "초안에서 첨부 파일이나 컨텍스트를 일부 제거한 뒤 다시 시도하세요.",
+  "Could not cite region": "영역을 인용할 수 없음",
+  "Add a comment": "코멘트 추가",
+  "Drag over a region": "영역을 드래그하세요",
+  "Add an optional comment...": "선택 사항 코멘트 추가…",
+  "Cite region": "영역 인용",
+  "Citing…": "인용 중…",
+  Cite: "인용",
+  "The cropped region has no bytes.": "잘라낸 영역에 데이터가 없습니다.",
+  "The region is too large to attach. Select a smaller region.":
+    "영역이 너무 커서 첨부할 수 없습니다. 더 작은 영역을 선택하세요.",
 };

@@ -902,6 +902,47 @@ export const KO_V2_CHAT: Readonly<Record<string, string>> = {
   Zoom: "확대/축소",
   "Zoom in": "확대",
   "Zoom out": "축소",
+  // Image and video region citation.
+  "Select a region to cite (C)": "인용할 영역 선택 (C)",
+  "Stop selecting (C)": "선택 중지 (C)",
+  "Back to the video (C)": "동영상으로 돌아가기 (C)",
+  "Pause and cite a region of this frame (C)": "일시정지하고 이 프레임의 영역 인용 (C)",
+  "Citing…": "인용 중…",
+  "Capturing…": "캡처 중…",
+  "Capturing frame…": "프레임 캡처 중…",
+  "Cite frame": "프레임 인용",
+  "Could not cite frame": "프레임을 인용할 수 없습니다",
+  "Comment on selected region": "선택한 영역에 코멘트",
+  "Enter to cite the region with this comment; Shift+Enter for a new line.":
+    "Enter로 이 코멘트와 함께 영역을 인용하고, Shift+Enter로 줄을 바꿉니다.",
+  "Drag over the image to select a region. Scroll to zoom. Use Enter to toggle zoom, plus or minus to zoom, and 0 to fit.":
+    "이미지 위를 드래그해 영역을 선택하세요. 스크롤로 확대/축소합니다. Enter로 확대를 전환하고, 플러스/마이너스로 확대/축소하며, 0으로 화면에 맞춥니다.",
+  "Could not capture the frame": "프레임을 캡처할 수 없습니다",
+  "The video could not be read.": "동영상을 읽을 수 없습니다.",
+  "No composer to cite into": "인용을 넣을 입력창이 없습니다",
+  "Open a thread, then cite the region again.": "스레드를 연 뒤 영역을 다시 인용하세요.",
+  "The composer can't take this region right now": "지금은 입력창에 이 영역을 넣을 수 없습니다",
+  "Finish any pending approval or question, or wait for the connection, then cite again.":
+    "대기 중인 승인이나 질문을 마치거나 연결될 때까지 기다린 뒤 다시 인용하세요.",
+  "Could not cite the region": "영역을 인용할 수 없습니다",
+  "The image could not be read.": "이미지를 읽을 수 없습니다.",
+  "Still adding an attachment to this message.": "아직 이 메시지에 첨부 파일을 추가하는 중입니다.",
+  "The image could not be converted to PNG.": "이미지를 PNG로 변환할 수 없습니다.",
+  "The video frame could not be read.": "동영상 프레임을 읽을 수 없습니다.",
+  "The video has no frame to cite.": "동영상에 인용할 프레임이 없습니다.",
+  "Video citing is unavailable in this browser.":
+    "이 브라우저에서는 동영상 인용을 사용할 수 없습니다.",
+  "The video frame took too long to load. Try again.":
+    "동영상 프레임을 불러오는 데 너무 오래 걸렸습니다. 다시 시도하세요.",
+  "The video could not be loaded for citing. The host may block browser access (CORS).":
+    "인용할 동영상을 불러올 수 없습니다. 호스트가 브라우저 접근(CORS)을 차단했을 수 있습니다.",
+  "The video's host blocks reading its frames.": "동영상 호스트가 프레임 읽기를 차단합니다.",
+  "The browser could not decode this image for citing.":
+    "브라우저가 인용할 이미지를 디코딩할 수 없습니다.",
+  "This image is too large or has no usable dimensions.":
+    "이미지가 너무 크거나 사용할 수 있는 크기 정보가 없습니다.",
+  "Image citing is unavailable in this browser.":
+    "이 브라우저에서는 이미지 인용을 사용할 수 없습니다.",
 };
 
 type Pattern = readonly [pattern: RegExp, render: (match: string) => string];
@@ -1060,6 +1101,14 @@ export const KO_V2_CHAT_PATTERNS: ReadonlyArray<Pattern> = [
     (kind) => `${kind === "video" ? "동영상" : "이미지"} 미리보기 닫기`,
   ],
   [/^(.+), zoomable image$/, (name) => `${name}, 확대 가능한 이미지`],
+  // A video frame still: "clip.mp4 at 1:23" (formatVideoTimestamp).
+  [
+    /^(.+ at \d+(?::\d{2}){1,2})$/,
+    (text) => {
+      const [, name, time] = /^(.+) at (\d+(?::\d{2}){1,2})$/.exec(text) ?? [];
+      return `${name} ${time} 지점`;
+    },
+  ],
   [/^View cited assistant text: ([\s\S]*)$/, (label) => `인용된 어시스턴트 텍스트 보기: ${label}`],
   [
     /^Comments can contain up to ([\d.,\s]+) characters\.$/,

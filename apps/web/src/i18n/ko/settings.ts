@@ -1862,6 +1862,9 @@ export const KO_V2_SETTINGS: Readonly<Record<string, string>> = {
     "{name}이(가) 열려 있어 아직 쿠키를 읽을 수 없습니다. 종료한 뒤 계속하세요.",
   "⌘ + Enter always": "⌘ + Enter (항상)",
   "⌘ + Enter for multiline prompts": "⌘ + Enter (여러 줄 프롬프트일 때)",
+  "Show context window usage as a circular indicator in the composer.":
+    "입력창에 컨텍스트 창 사용량을 원형 표시기로 표시합니다.",
+  "context window indicator": "컨텍스트 창 표시기",
 };
 
 /** Settings and onboarding strings with embedded counts, tried after a dictionary miss. */
