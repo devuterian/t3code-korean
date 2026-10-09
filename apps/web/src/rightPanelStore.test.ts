@@ -29,12 +29,7 @@ beforeEach(() => {
   });
 });
 
-const closedSurfaceIds = () =>
-  useClosedViewStore
-    .getState()
-    .entries.map((entry) => (entry.kind === "panel-tab" ? entry.surface.id : null));
-
-describe("rightPanelStore closed view history", () => {
+describe("rightPanelStore", () => {
   it("records single and bulk tab closes, newest first", () => {
     const store = useRightPanelStore.getState();
     const pr = pullRequestSurface({
@@ -43,28 +38,41 @@ describe("rightPanelStore closed view history", () => {
       number: 42,
     });
     store.openFile(refA, "src/app.ts");
-    store.open(refA, "files");
+    store.open(refA, "device");
     store.openPullRequest(refA, pr);
     store.open(refA, "diff");
     store.closeSurface(refA, pr.id);
-    store.closeSurfacesToRight(refA, "files");
+    store.closeSurfacesToRight(refA, "device");
     store.closeOtherSurfaces(refA, "file:src/app.ts");
-    expect(closedSurfaceIds()).toEqual(["files", "diff", pr.id]);
+    expect(
+      useClosedViewStore
+        .getState()
+        .entries.map((entry) => (entry.kind === "panel-tab" ? entry.surface.id : null)),
+    ).toEqual(["device", "diff", pr.id]);
   });
 
   it("reopens the active tab first after a bulk close", () => {
     const store = useRightPanelStore.getState();
-    const pr = pullRequestSurface({
-      projectId: "project-a",
-      repository: "pingdotgg/t3code",
-      number: 7,
-    });
     store.open(refA, "files");
     store.open(refA, "diff");
-    store.openPullRequest(refA, pr);
+    store.open(refA, "device");
     store.activateSurface(refA, "diff");
     store.closeAllSurfaces(refA);
-    expect(closedSurfaceIds()).toEqual(["diff", pr.id, "files"]);
+
+    expect(
+      useClosedViewStore
+        .getState()
+        .entries.map((entry) => entry.kind === "panel-tab" && entry.surface.id),
+    ).toEqual(["diff", "device", "files"]);
+  });
+
+  it("does not save an incidental Files replacement when opening an existing file", () => {
+    const store = useRightPanelStore.getState();
+    store.openFile(refA, "src/app.ts");
+    store.open(refA, "files");
+    store.openFile(refA, "src/app.ts");
+
+    expect(useClosedViewStore.getState().entries).toEqual([]);
   });
 
   it("ignores session tabs without browser snapshots and records the empty browser tab", () => {
@@ -79,12 +87,37 @@ describe("rightPanelStore closed view history", () => {
     ]);
   });
 
+  it("keeps a dismissed device hidden after another file opens", () => {
+    const store = useRightPanelStore.getState();
+    const device = {
+      hostId: "nucbox",
+      deviceId: "emulator-5580",
+      name: "Pixel",
+      platform: "android",
+    } as const;
+    store.openFile(refA, "src/app.ts");
+    store.closeSurface(refA, "file:src/app.ts");
+    store.openDevice(refA, device);
+    store.closeSurface(refA, "device:nucbox:emulator-5580");
+
+    store.openFile(refA, "src/app.ts");
+    store.openDevice(refA, device, true);
+
+    expect(
+      selectThreadRightPanelState(useRightPanelStore.getState().byThreadKey, refA).surfaces,
+    ).toEqual([expect.objectContaining({ id: "file:src/app.ts" })]);
+  });
+
   it("records only closed tabs when a panel is hidden or a terminal tab closes", () => {
     const store = useRightPanelStore.getState();
     store.open(refA, "diff");
     store.openFile(refA, "src/app.ts");
     store.closeSurface(refA, "file:src/app.ts");
     store.close(refA);
+    expect(useClosedViewStore.getState().entries).toMatchObject([
+      { kind: "panel-tab", threadRef: refA, surface: { id: "file:src/app.ts" } },
+    ]);
+    store.toggleVisibility(refA);
     store.toggle(refA, "diff");
     store.openTerminal(refA, "term-1");
     store.closeSurface(refA, "terminal:term-1");
@@ -93,9 +126,7 @@ describe("rightPanelStore closed view history", () => {
     ]);
     expect(useClosedViewStore.getState().entries).toHaveLength(1);
   });
-});
 
-describe("rightPanelStore", () => {
   it("gives each host/device its own tab and preserves renamed tabs", () => {
     const store = useRightPanelStore.getState();
     const android = {
@@ -1115,6 +1146,32 @@ describe("rightPanelStore", () => {
       isOpen: false,
       activeSurfaceId: null,
       surfaces: [],
+    });
+  });
+
+  it("does not replace a stale surface with a hidden tab, but preserves explicit opens", () => {
+    const store = useRightPanelStore.getState();
+    store.openBrowser(refA, "stale-tab");
+    store.reconcileBrowserSurfaces(refA, ["hidden-tab"], new Set(["hidden-tab"]));
+    expect(
+      selectThreadRightPanelState(useRightPanelStore.getState().byThreadKey, refA),
+    ).toMatchObject({
+      activeSurfaceId: null,
+      surfaces: [],
+    });
+
+    store.openBrowser(refA, "hidden-tab");
+    store.reconcileBrowserSurfaces(
+      refA,
+      ["hidden-tab", "other-tab"],
+      new Set(["hidden-tab", "other-tab"]),
+    );
+    expect(
+      selectThreadRightPanelState(useRightPanelStore.getState().byThreadKey, refA),
+    ).toMatchObject({
+      isOpen: true,
+      activeSurfaceId: "browser:hidden-tab",
+      surfaces: [{ id: "browser:hidden-tab", kind: "preview", resourceId: "hidden-tab" }],
     });
   });
 

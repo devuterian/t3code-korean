@@ -13,6 +13,7 @@ import {
 } from "../ui/combobox";
 import { SelectButton } from "../ui/select";
 import { useTranslate } from "../../i18n/translate";
+import { stackedThreadToast, toastManager } from "../ui/toast";
 
 const DEFAULT_FONT_VALUE = "__default__";
 
@@ -143,8 +144,8 @@ export function FontFamilyPicker({
 
   const families = useMemo(() => {
     if (enumeration.status !== "granted") return [];
-    return requireMonospace ? enumeration.families.filter(isMonospaceFamily) : enumeration.families;
-  }, [enumeration, requireMonospace]);
+    return enumeration.families;
+  }, [enumeration]);
 
   const items = useMemo(() => {
     const trimmedQuery = query.trim().toLowerCase();
@@ -162,6 +163,16 @@ export function FontFamilyPicker({
 
   const handlePick = (value: string) => {
     setOpen(false);
+    if (value !== DEFAULT_FONT_VALUE && requireMonospace && !isMonospaceFamily(value)) {
+      toastManager.add(
+        stackedThreadToast({
+          type: "error",
+          title: `"${value}" isn't monospace`,
+          description: "Code and terminal need a fixed-width font, so the current font was kept.",
+        }),
+      );
+      return;
+    }
     onSelect(value === DEFAULT_FONT_VALUE ? "" : value);
   };
 

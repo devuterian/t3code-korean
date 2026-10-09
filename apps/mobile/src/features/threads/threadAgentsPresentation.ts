@@ -1,8 +1,8 @@
-import { formatSubagentDisplayTitle } from "@t3tools/client-runtime/state/subagent-display";
 import {
-  isActiveSubagentStatus,
-  isTerminalSubagentStatus,
-} from "@t3tools/client-runtime/state/subagentRuntime";
+  formatSubagentDisplayTitle,
+  subagentDetailPreview,
+} from "@t3tools/client-runtime/state/subagent-display";
+import { isActiveSubagentStatus } from "@t3tools/client-runtime/state/subagentRuntime";
 import type { OrchestrationV2Subagent } from "@t3tools/contracts";
 
 import { translate } from "../../i18n/translate";
@@ -66,13 +66,9 @@ export function resolveSubagentRowPresentation(
   >,
 ): SubagentRowPresentation {
   const live = isActiveSubagentStatus(subagent.status);
-  const progress = subagent.progress?.trim() ?? "";
-  const result = subagent.result?.trim() ?? "";
-  const settled = isTerminalSubagentStatus(subagent.status);
-  const detail = settled ? result || progress : progress || result;
   return {
     title: rowTitle(subagent),
-    detail: detail.length > 0 ? detail.replace(/\s+/gu, " ") : null,
+    detail: subagentDetailPreview(subagent),
     statusLabel: rowStatusLabel(subagent.status),
     tone: rowTone(subagent.status),
     live,

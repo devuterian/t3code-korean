@@ -1,3 +1,9 @@
+import {
+  AuthOrchestrationOperateScope,
+  AuthProvidersManageScope,
+  AuthOrchestrationReadScope,
+} from "@t3tools/contracts";
+import { useEnvironmentScope, readEnvironmentScope } from "~/state/session";
 import type {
   AcpRegistryConfigurableProvider,
   AcpRegistrySession,
@@ -47,6 +53,8 @@ export function AcpSessionManagementSection(props: {
   readonly readOnly: boolean;
 }) {
   const t = useTranslate();
+  const canOperate = useEnvironmentScope(props.environmentId, AuthOrchestrationOperateScope);
+  const canRead = useEnvironmentScope(props.environmentId, AuthOrchestrationReadScope);
   const [projectId, setProjectId] = useState<ProjectId | null>(props.projects[0]?.id ?? null);
   const [sessions, setSessions] = useState<ReadonlyArray<AcpRegistrySession>>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
@@ -119,7 +127,12 @@ export function AcpSessionManagementSection(props: {
   };
 
   const importNativeSession = async (session: AcpRegistrySession) => {
-    if (projectId === null || importingSessionId !== null) return;
+    if (
+      !readEnvironmentScope(props.environmentId, AuthOrchestrationOperateScope) ||
+      projectId === null ||
+      importingSessionId !== null
+    )
+      return;
     setImportingSessionId(session.sessionId);
     const result = await importSession({
       environmentId: props.environmentId,
@@ -158,7 +171,8 @@ export function AcpSessionManagementSection(props: {
       `${t("Permanently delete native ACP session")} "${session.title ?? session.sessionId}"?`,
       { variant: "destructive" },
     );
-    if (!confirmed) return;
+    if (!confirmed || !readEnvironmentScope(props.environmentId, AuthOrchestrationOperateScope))
+      return;
     setDeletingSessionId(session.sessionId);
     const result = await deleteSession({
       environmentId: props.environmentId,
@@ -203,7 +217,12 @@ export function AcpSessionManagementSection(props: {
   };
 
   const saveProvider = async (provider: AcpRegistryConfigurableProvider) => {
-    if (projectId === null || savingProviderId !== null) return;
+    if (
+      !readEnvironmentScope(props.environmentId, AuthProvidersManageScope) ||
+      projectId === null ||
+      savingProviderId !== null
+    )
+      return;
     const draft = providerDrafts[provider.providerId];
     if (draft === undefined || draft.apiType.length === 0 || draft.baseUrl.length === 0) return;
     let headers: Record<string, string> | undefined;
@@ -255,7 +274,7 @@ export function AcpSessionManagementSection(props: {
       `${t("Disable ACP provider")} "${provider.providerId}"?`,
       { variant: "destructive" },
     );
-    if (!confirmed) return;
+    if (!confirmed || !readEnvironmentScope(props.environmentId, AuthProvidersManageScope)) return;
     setSavingProviderId(provider.providerId);
     const result = await disableProvider({
       environmentId: props.environmentId,
@@ -271,7 +290,7 @@ export function AcpSessionManagementSection(props: {
   };
 
   const logoutProvider = async () => {
-    if (loggingOut) return;
+    if (loggingOut || !readEnvironmentScope(props.environmentId, AuthProvidersManageScope)) return;
     setLoggingOut(true);
     const result = await logout({
       environmentId: props.environmentId,
@@ -314,7 +333,7 @@ export function AcpSessionManagementSection(props: {
               <>
                 <Select
                   value={projectId ?? ""}
-                  disabled={props.readOnly || projectOperationPending}
+                  disabled={!canRead || projectOperationPending}
                   onValueChange={(value) => {
                     if (value === null) return;
                     setProjectId(value as ProjectId);
@@ -345,7 +364,7 @@ export function AcpSessionManagementSection(props: {
                   type="button"
                   size="sm"
                   variant="outline"
-                  disabled={props.readOnly || loading || projectId === null}
+                  disabled={!canRead || loading || projectId === null}
                   onClick={() => void loadSessions()}
                 >
                   {loading
@@ -382,7 +401,7 @@ export function AcpSessionManagementSection(props: {
                         size="xs"
                         variant="ghost-muted"
                         disabled={
-                          props.readOnly ||
+                          !canOperate ||
                           !canImport ||
                           session.importedThreadId !== null ||
                           importingSessionId !== null
@@ -401,7 +420,7 @@ export function AcpSessionManagementSection(props: {
                           size="xs"
                           variant="ghost-muted"
                           disabled={
-                            props.readOnly ||
+                            !canOperate ||
                             session.importedThreadId !== null ||
                             deletingSessionId !== null
                           }
@@ -422,7 +441,7 @@ export function AcpSessionManagementSection(props: {
                 size="xs"
                 variant="ghost-muted"
                 className="w-fit"
-                disabled={props.readOnly || loading}
+                disabled={!canRead || loading}
                 onClick={() => void loadSessions(nextCursor)}
               >
                 {loading ? t("Loading") : t("Load more")}
@@ -445,7 +464,7 @@ export function AcpSessionManagementSection(props: {
               type="button"
               size="xs"
               variant="outline"
-              disabled={props.readOnly || loadingProviders || projectId === null}
+              disabled={!canRead || loadingProviders || projectId === null}
               onClick={() => void loadProviders()}
             >
               {loadingProviders
@@ -459,7 +478,7 @@ export function AcpSessionManagementSection(props: {
           {!canList && props.projects.length > 1 ? (
             <Select
               value={projectId ?? ""}
-              disabled={props.readOnly || projectOperationPending}
+              disabled={!canRead || projectOperationPending}
               onValueChange={(value) => {
                 if (value === null) return;
                 setProjectId(value as ProjectId);

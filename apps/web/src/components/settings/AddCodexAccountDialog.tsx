@@ -1,3 +1,5 @@
+import { AuthProvidersManageScope } from "@t3tools/contracts";
+import { readEnvironmentScope, useEnvironmentScope } from "../../state/session";
 import { useAtomValue } from "@effect/atom-react";
 import {
   ProviderDriverKind,
@@ -33,6 +35,7 @@ export function AddCodexAccountDialog({
   readonly renderSetup: (instanceId: ProviderInstanceId, provider: ServerProvider) => ReactNode;
 }) {
   const t = useTranslate();
+  const canManageProviders = useEnvironmentScope(environmentId, AuthProvidersManageScope);
   const settings = useEnvironmentSettings(environmentId);
   const providers = useAtomValue(serverEnvironment.providersValueAtom(environmentId));
   const update = useAtomCommand(serverEnvironment.updateSettings, "Add ChatGPT account");
@@ -49,7 +52,8 @@ export function AddCodexAccountDialog({
   }, [connected]);
 
   const createAccount = async () => {
-    if (pending || !name.trim()) return;
+    if (pending || !name.trim() || !readEnvironmentScope(environmentId, AuthProvidersManageScope))
+      return;
     setPending(true);
     // The ID is routing identity; the name is editable and need not be unique.
     const id = ProviderInstanceId.make(`codex_${randomUUID()}`);
@@ -135,7 +139,11 @@ export function AddCodexAccountDialog({
               <Button variant="outline" disabled={pending} onClick={onClose}>
                 {t("Cancel")}
               </Button>
-              <Button type="submit" form="add-codex-account" disabled={pending || !name.trim()}>
+              <Button
+                type="submit"
+                form="add-codex-account"
+                disabled={pending || !name.trim() || !canManageProviders}
+              >
                 {pending ? t("Adding account…") : t("Continue")}
               </Button>
             </>

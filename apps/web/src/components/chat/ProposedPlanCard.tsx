@@ -1,16 +1,20 @@
-import { memo, useState, useId } from "react";
+import { proposedPlanTitle, stripDisplayedPlanMarkdown } from "@t3tools/shared/proposedPlanText";
+import { memo, useCallback, useState, useId } from "react";
+import { useFindRevealRef } from "./markdownFindContext";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
 } from "@t3tools/client-runtime/state/runtime";
-import type { EnvironmentId, ScopedThreadRef } from "@t3tools/contracts";
+import {
+  AuthFilesystemWriteScope,
+  type EnvironmentId,
+  type ScopedThreadRef,
+} from "@t3tools/contracts";
 import {
   buildCollapsedProposedPlanPreviewMarkdown,
   buildProposedPlanMarkdownFilename,
   downloadPlanAsTextFile,
   normalizePlanMarkdownForExport,
-  proposedPlanTitle,
-  stripDisplayedPlanMarkdown,
 } from "../../proposedPlan";
 import ChatMarkdown from "../ChatMarkdown";
 import { EllipsisIcon } from "lucide-react";
@@ -33,6 +37,7 @@ import { projectEnvironment } from "~/state/projects";
 import { useCopyToClipboard } from "~/hooks/useCopyToClipboard";
 import { useAtomCommand } from "~/state/use-atom-command";
 import { translate, useTranslate } from "~/i18n/translate";
+import { readEnvironmentScope, useEnvironmentScope } from "~/state/session";
 
 export const ProposedPlanCard = memo(function ProposedPlanCard({
   planMarkdown,
@@ -40,25 +45,18 @@ export const ProposedPlanCard = memo(function ProposedPlanCard({
   threadRef,
   cwd,
   workspaceRoot,
-  revealed = false,
+  findActive = false,
 }: {
   planMarkdown: string;
   environmentId: EnvironmentId;
   threadRef?: ScopedThreadRef | undefined;
   cwd: string | undefined;
   workspaceRoot: string | undefined;
-  /** A find match landed inside; expand the collapsed preview so it can be seen. */
-  revealed?: boolean;
+  findActive?: boolean;
 }) {
   const t = useTranslate();
   const [expanded, setExpanded] = useState(false);
-  // A find match inside the clipped preview opens the plan for real, so the
-  // collapse button keeps working and the text stays once find closes.
-  const [revealedSeen, setRevealedSeen] = useState(revealed);
-  if (revealed !== revealedSeen) {
-    setRevealedSeen(revealed);
-    if (revealed) setExpanded(true);
-  }
+  const canWriteFiles = useEnvironmentScope(environmentId, AuthFilesystemWriteScope);
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
   const [savePath, setSavePath] = useState("");
   const [isSavingToWorkspace, setIsSavingToWorkspace] = useState(false);
@@ -86,6 +84,12 @@ export const ProposedPlanCard = memo(function ProposedPlanCard({
   const collapsedPreview = canCollapse
     ? buildCollapsedProposedPlanPreviewMarkdown(planMarkdown, { maxLines: 10 })
     : null;
+  const isCollapsed = canCollapse && !expanded;
+  // While finding, the full plan stays mounted but clipped, so a match past the
+  // preview can be counted and then opened only once it is selected.
+  const showPreview = isCollapsed && !findActive;
+  const revealForFind = useCallback(() => setExpanded(true), []);
+  const findRevealRef = useFindRevealRef(revealForFind);
   const downloadFilename = buildProposedPlanMarkdownFilename(planMarkdown);
   const saveContents = normalizePlanMarkdownForExport(planMarkdown);
 
@@ -98,6 +102,7 @@ export const ProposedPlanCard = memo(function ProposedPlanCard({
   };
 
   const openSaveDialog = () => {
+    if (!canWriteFiles) return;
     if (!workspaceRoot) {
       toastManager.add(
         stackedThreadToast({
@@ -114,7 +119,7 @@ export const ProposedPlanCard = memo(function ProposedPlanCard({
 
   const handleSaveToWorkspace = () => {
     const relativePath = savePath.trim();
-    if (!workspaceRoot) {
+    if (!workspaceRoot || !readEnvironmentScope(environmentId, AuthFilesystemWriteScope)) {
       return;
     }
     if (!relativePath) {
@@ -166,7 +171,7 @@ export const ProposedPlanCard = memo(function ProposedPlanCard({
           <Badge variant="secondary">{t("Plan")}</Badge>
           {/* Same heading level as the message author headings in the timeline,
               so a plan's own headings nest beneath it in the outline. */}
-          <h3 className="truncate text-sm font-medium text-foreground" data-chat-find-body="true">
+          <h3 data-thread-find-text="true" className="truncate text-sm font-medium text-foreground">
             {title}
           </h3>
         </div>
@@ -181,7 +186,10 @@ export const ProposedPlanCard = memo(function ProposedPlanCard({
               {isCopied ? t("Copied!") : t("Copy to clipboard")}
             </MenuItem>
             <MenuItem onClick={handleDownload}>{t("Download as markdown")}</MenuItem>
-            <MenuItem onClick={openSaveDialog} disabled={!workspaceRoot || isSavingToWorkspace}>
+            <MenuItem
+              onClick={openSaveDialog}
+              disabled={!canWriteFiles || !workspaceRoot || isSavingToWorkspace}
+            >
               {t("Save to workspace")}
             </MenuItem>
           </MenuPopup>
@@ -189,10 +197,12 @@ export const ProposedPlanCard = memo(function ProposedPlanCard({
       </div>
       <div className="mt-4">
         <div
-          className={cn("relative", canCollapse && !expanded && "max-h-104 overflow-hidden")}
-          data-chat-find-body="true"
+          ref={findRevealRef}
+          className={cn("relative", isCollapsed && "max-h-104 overflow-hidden")}
+          data-thread-find-text="true"
+          data-thread-find-fold={isCollapsed ? "" : undefined}
         >
-          {canCollapse && !expanded ? (
+          {showPreview ? (
             <ChatMarkdown
               text={collapsedPreview ?? ""}
               cwd={cwd}
@@ -211,7 +221,7 @@ export const ProposedPlanCard = memo(function ProposedPlanCard({
               headingLevelOffset={3}
             />
           )}
-          {canCollapse && !expanded ? (
+          {isCollapsed ? (
             <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-linear-to-t from-card/95 via-card/80 to-transparent" />
           ) : null}
         </div>
@@ -269,7 +279,7 @@ export const ProposedPlanCard = memo(function ProposedPlanCard({
             <Button
               size="sm"
               onClick={() => void handleSaveToWorkspace()}
-              disabled={isSavingToWorkspace}
+              disabled={!canWriteFiles || isSavingToWorkspace}
             >
               {isSavingToWorkspace ? t("Saving...") : t("Save")}
             </Button>

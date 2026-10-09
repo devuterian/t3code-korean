@@ -17,7 +17,8 @@ export {
 
 export interface EnvironmentOption {
   environmentId: EnvironmentId;
-  projectId: ProjectId;
+  /** Null when the machine's "No project" folder is not created yet. */
+  projectId: ProjectId | null;
   label: string;
   isPrimary: boolean;
   machine: EnvironmentMachineKind;
@@ -125,13 +126,6 @@ export function resolveLockedWorkspaceLabel(
   return effectiveEnvMode === "worktree"
     ? resolveEnvModeLabel("worktree")
     : translate("Local checkout");
-}
-
-export function resolveWorkspaceDisplayName(path: string | null): string | null {
-  if (!path) return null;
-  const normalizedPath = path.replace(/[\\/]+$/, "");
-  if (normalizedPath.length === 0) return path;
-  return normalizedPath.split(/[\\/]/).at(-1) ?? normalizedPath;
 }
 
 export interface PreviousWorktreeSeed {

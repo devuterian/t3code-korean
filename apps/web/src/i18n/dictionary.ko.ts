@@ -5,6 +5,10 @@ import { KO_V2_SORT } from "./ko/sort";
 import { KO_V2_QOL_A } from "./ko/qolA";
 import { KO_V2_QOL_B } from "./ko/qolB";
 import { KO_V2_RESOLVED } from "./ko/resolved";
+import { KO_MERGE_1009_A } from "./ko/merge1009A";
+import { KO_MERGE_1009_B } from "./ko/merge1009B";
+import { KO_MERGE_1009_C } from "./ko/merge1009C";
+import { KO_MERGE_1009_D } from "./ko/merge1009D";
 
 /**
  * Korean dictionary. Keys are the exact English source strings rendered by
@@ -1388,5 +1392,9 @@ export const KO_DICTIONARY: Readonly<Record<string, string>> = {
   ...KO_V2_SORT,
   ...KO_V2_QOL_A,
   ...KO_V2_QOL_B,
+  ...KO_MERGE_1009_A,
+  ...KO_MERGE_1009_B,
+  ...KO_MERGE_1009_C,
+  ...KO_MERGE_1009_D,
   ...KO_V2_RESOLVED,
 };

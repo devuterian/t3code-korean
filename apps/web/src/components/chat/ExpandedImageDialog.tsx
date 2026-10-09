@@ -10,11 +10,10 @@ import {
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
-  ImageIcon,
   SquareDashedMousePointerIcon,
-  TextIcon,
   XIcon,
 } from "lucide-react";
+import { Image as ImageGlyph, Text as TextGlyph } from "lucide";
 import {
   formatVideoTimestamp,
   imageRegionCitationName,
@@ -22,6 +21,7 @@ import {
   type ImageRegion,
 } from "@t3tools/client-runtime/image-region-citation";
 import { Button } from "../ui/button";
+import { MorphIcon } from "~/components/MorphIcon";
 import { Dialog, DialogPopup, DialogTitle } from "../ui/dialog";
 import { Popover, PopoverPopup } from "../ui/popover";
 import { stackedThreadToast, toastManager } from "../ui/toast";
@@ -356,7 +356,6 @@ export const ExpandedImageDialog = memo(function ExpandedImageDialog({
     : accessibilityDetails?.format === "json"
       ? t("Show accessibility JSON")
       : t("Show extracted text");
-  const ContentsIcon = showingAccessibilityDetails ? ImageIcon : TextIcon;
 
   return (
     <Dialog
@@ -506,7 +505,11 @@ export const ExpandedImageDialog = memo(function ExpandedImageDialog({
                       />
                     }
                   >
-                    <ContentsIcon className="size-3" aria-hidden="true" />
+                    <MorphIcon
+                      className="size-3"
+                      aria-hidden="true"
+                      icon={showingAccessibilityDetails ? ImageGlyph : TextGlyph}
+                    />
                   </TooltipTrigger>
                   <TooltipPopup side="top">{contentsLabel}</TooltipPopup>
                 </Tooltip>

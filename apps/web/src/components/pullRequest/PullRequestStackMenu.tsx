@@ -89,6 +89,11 @@ export function PullRequestStackMenu({
       layer.headSha ? [{ number: layer.number, headSha: layer.headSha }] : [],
     );
     setPending(true);
+    setConfirmation(null);
+    const toastId = toastManager.add({
+      type: "loading",
+      title: action === "merge" ? "Merging stack..." : "Rebasing stack...",
+    });
     const result = await runAction({
       environmentId,
       input: {
@@ -101,16 +106,16 @@ export function PullRequestStackMenu({
       },
     });
     setPending(false);
-    setConfirmation(null);
     onActed();
     if (result._tag === "Failure") {
-      toastManager.add({
+      toastManager.update(toastId, {
         type: "error",
-        title: t("Stack operation did not complete"),
+        title:
+          action === "merge" ? t("Could not merge the stack") : t("Could not rebase the stack"),
         description: String(squashAtomCommandFailure(result)),
       });
     } else {
-      toastManager.add({
+      toastManager.update(toastId, {
         type: "success",
         title: action === "merge" ? t("Stack merge request completed") : t("Stack rebased"),
         description:
@@ -221,10 +226,10 @@ export function PullRequestStackMenu({
       <Dialog
         open={confirmation !== null}
         onOpenChange={(value) => {
-          if (!value && !pending) setConfirmation(null);
+          if (!value) setConfirmation(null);
         }}
       >
-        <DialogPopup className="max-w-md" showCloseButton={!pending}>
+        <DialogPopup className="max-w-md">
           <DialogHeader>
             <DialogTitle>
               {confirmation === "merge"
@@ -254,15 +259,11 @@ export function PullRequestStackMenu({
             </ul>
           </DialogPanel>
           <DialogFooter>
-            <Button variant="outline" disabled={pending} onClick={() => setConfirmation(null)}>
+            <Button variant="outline" onClick={() => setConfirmation(null)}>
               {t("Cancel")}
             </Button>
-            <Button disabled={pending} onClick={() => void run()}>
-              {pending
-                ? t("Working…")
-                : confirmation === "merge"
-                  ? t("Merge stack")
-                  : t("Rebase stack")}
+            <Button onClick={() => void run()}>
+              {confirmation === "merge" ? t("Merge stack") : t("Rebase stack")}
             </Button>
           </DialogFooter>
         </DialogPopup>

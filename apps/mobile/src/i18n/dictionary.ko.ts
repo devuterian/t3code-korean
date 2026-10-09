@@ -13,6 +13,7 @@ import { KO_NEWTASK } from "./ko/newtask";
 import { KO_V2_HOME } from "./ko/v2_home";
 import { KO_V2_THREAD } from "./ko/v2_thread";
 import { KO_V2_MOBILE_SORT } from "./ko/v2_sort";
+import { KO_MERGE_1009 } from "./ko/merge1009";
 
 export const KO_DICTIONARY: Readonly<Record<string, string>> = {
   ...KO_COMMON,
@@ -25,4 +26,5 @@ export const KO_DICTIONARY: Readonly<Record<string, string>> = {
   ...KO_V2_HOME,
   ...KO_V2_THREAD,
   ...KO_V2_MOBILE_SORT,
+  ...KO_MERGE_1009,
 };

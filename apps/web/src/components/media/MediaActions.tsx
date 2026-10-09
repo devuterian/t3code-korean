@@ -5,15 +5,27 @@ import {
 } from "@t3tools/client-runtime/media-reference";
 import { resolveAssetUrl } from "@t3tools/client-runtime/state/assets";
 import { squashAtomCommandFailure } from "@t3tools/client-runtime/state/runtime";
-import type { AssetResource, ContextMenuItem, EnvironmentId } from "@t3tools/contracts";
+import {
+  AuthFilesystemReadScope,
+  type AssetResource,
+  type AuthSessionState,
+  type ContextMenuItem,
+  type EnvironmentId,
+  sessionGrantsScope,
+  type SessionGrantInput,
+} from "@t3tools/contracts";
+import * as Option from "effect/Option";
+import { AsyncResult } from "effect/reactivity";
 import { useCallback, useRef, useState, type ReactElement } from "react";
 
 import { useComposerHandleContext } from "../../composerHandleContext";
 import { writeTextToClipboard } from "../../hooks/useCopyToClipboard";
 import { translate } from "~/i18n/translate";
 import { readLocalApi } from "../../localApi";
+import { appAtomRegistry } from "../../rpc/atomRegistry";
 import { assetEnvironment } from "../../state/assets";
-import { readPreparedConnection } from "../../state/session";
+import { useEnvironmentQuery } from "../../state/query";
+import { environmentSession, readPreparedConnection } from "../../state/session";
 import { useAtomQueryRunner } from "../../state/use-atom-query-runner";
 import { stackedThreadToast, toastManager } from "../ui/toast";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
@@ -36,13 +48,46 @@ function mediaFileName(source: MediaActionSource): string {
   );
 }
 
+/** An explicit action may ask the server while its grant is still unresolved. */
+function allowsHostMedia(session: SessionGrantInput | null) {
+  return session === null || sessionGrantsScope(session, AuthFilesystemReadScope);
+}
+
+function canReadHostMedia(environmentId: EnvironmentId | null): boolean {
+  if (environmentId === null) return true;
+  const result = appAtomRegistry.get(environmentSession.sessionStateAtom(environmentId));
+  return result._tag !== "Failure" && allowsHostMedia(Option.getOrNull(AsyncResult.value(result)));
+}
+
 /** Explicit byte operations get fresh capabilities without replacing a player's active source. */
 export function useMediaActionUrl(source: MediaActionSource): () => Promise<string> {
+  return useMediaActions(source).actionUrl;
+}
+
+/** Exported for tests that drive the byte operations without the menu. */
+export function useMediaActions(source: MediaActionSource) {
+  const hostEnvironmentId =
+    source.asset &&
+    (source.asset.resource._tag === "workspace-file" || source.asset.resource._tag === "media-file")
+      ? source.asset.environmentId
+      : null;
+  const fileSession = useEnvironmentQuery(
+    hostEnvironmentId === null ? null : environmentSession.sessionStateAtom(hostEnvironmentId),
+  );
+  const canReadMedia =
+    hostEnvironmentId === null ||
+    (fileSession.error === null && fileSession.data !== null && allowsHostMedia(fileSession.data));
+  const assertCanReadMedia = useCallback(() => {
+    if (!canReadHostMedia(hostEnvironmentId)) {
+      throw new Error("This connection cannot read host files.");
+    }
+  }, [hostEnvironmentId]);
   const createAssetUrl = useAtomQueryRunner(assetEnvironment.createUrl, {
     reportFailure: false,
     refresh: true,
   });
-  return useCallback(async () => {
+  const actionUrl = useCallback(async () => {
+    assertCanReadMedia();
     if (!source.asset) {
       if (!source.src) throw new Error("This media is unavailable. Try reopening the preview.");
       return source.src;
@@ -52,18 +97,16 @@ export function useMediaActionUrl(source: MediaActionSource): () => Promise<stri
     if (!connection) throw new Error("Reconnect to this environment and try again.");
     const result = await createAssetUrl({ environmentId, input: { resource } });
     if (result._tag === "Failure") throw squashAtomCommandFailure(result);
+    assertCanReadMedia();
     const url = resolveAssetUrl(connection.httpBaseUrl, result.value.relativeUrl);
     if (!url) throw new Error("The environment returned an invalid media URL.");
     return url;
-  }, [source, createAssetUrl]);
-}
-
-function useMediaActions(source: MediaActionSource) {
-  const actionUrl = useMediaActionUrl(source);
+  }, [source, createAssetUrl, assertCanReadMedia]);
   const save = useCallback(async () => {
     await downloadMedia(await actionUrl(), mediaFileName(source));
   }, [actionUrl, source]);
   const copyImage = useCallback(async () => {
+    assertCanReadMedia();
     if (!navigator.clipboard?.write || typeof ClipboardItem === "undefined") {
       throw new Error(
         "Image copying is unavailable. Use a secure browser connection or save the image.",
@@ -73,8 +116,8 @@ function useMediaActions(source: MediaActionSource) {
     await navigator.clipboard.write([
       new ClipboardItem({ "image/png": actionUrl().then(readMediaPng) }),
     ]);
-  }, [actionUrl]);
-  return { save, copyImage, actionUrl };
+  }, [actionUrl, assertCanReadMedia]);
+  return { save, copyImage, actionUrl, canReadMedia, assertCanReadMedia };
 }
 
 /** Adds source-aware actions and a tooltip to the existing media element without a layout wrapper. */
@@ -85,7 +128,7 @@ export function MediaActions({
   source: MediaActionSource;
   children: ReactElement;
 }) {
-  const { save, copyImage, actionUrl } = useMediaActions(source);
+  const { save, copyImage, actionUrl, canReadMedia, assertCanReadMedia } = useMediaActions(source);
   const composerRef = useComposerHandleContext();
   const [tooltipOpen, setTooltipOpen] = useState(false);
   const menuOpen = useRef(false);
@@ -101,7 +144,7 @@ export function MediaActions({
     let progressToast: ReturnType<typeof toastManager.add> | undefined;
     try {
       const noun = source.kind === "image" ? "image" : "video";
-      const unavailable = source.src === null && source.asset === undefined;
+      const unavailable = !canReadMedia || (source.src === null && source.asset === undefined);
       const canCopyImage =
         typeof navigator !== "undefined" &&
         Boolean(navigator.clipboard?.write) &&
@@ -116,9 +159,10 @@ export function MediaActions({
       }
       // A frame is only worth capturing when a mounted composer can take the citation.
       if (source.kind === "video" && source.onCiteFrame && video && composerRef?.current) {
-        items.push({ id: "cite-region", label: translate("Cite frame") });
+        items.push({ id: "cite-region", label: translate("Cite frame"), disabled: !canReadMedia });
       }
-      if (source.onOpenFile) items.push({ id: "open-file", label: "Open in file viewer" });
+      if (source.onOpenFile)
+        items.push({ id: "open-file", label: "Open in file viewer", disabled: !canReadMedia });
       items.push({ id: "save", label: `Save ${noun}`, disabled: unavailable });
       if (source.kind === "image") {
         items.push({
@@ -149,6 +193,7 @@ export function MediaActions({
           title: action === "copy-url" ? "URL copied" : "Path copied",
         });
       } else if (action === "open-file") {
+        assertCanReadMedia();
         source.onOpenFile?.();
       } else if (action === "cite-region" && video && source.onCiteFrame) {
         video.pause();

@@ -19,13 +19,10 @@ import { AndroidSheetHeader } from "../../components/AndroidScreenHeader";
 import { AppText as Text } from "../../components/AppText";
 import { useTranslate } from "../../i18n/translate";
 import { localizeDurationUnits } from "../../lib/threadActivity";
-import { SymbolView } from "../../components/AppSymbol";
 import { useUniwindTheme } from "../../lib/useUniwindTheme";
 import { environmentThreadDetails } from "../../state/threads";
 import { nativeHeaderScrollEdgeEffects } from "../../native/StackHeader";
-import { resolveSubagentRowPresentation } from "./threadAgentsPresentation";
-
-import { SubagentStatusDot } from "./SubagentStatusDot";
+import { SubagentRow } from "./SubagentRow";
 
 const HEADER_SCROLL_EDGE_EFFECTS = nativeHeaderScrollEdgeEffects(Platform.OS, Platform.Version);
 
@@ -75,6 +72,7 @@ export function ThreadAgentsSheet({ route }: StaticScreenProps<AgentsTarget>) {
           <AgentRow
             key={subagent.id}
             subagent={subagent}
+            environmentId={target.environmentId}
             tickSeconds={hasLiveAgent}
             onOpen={openChildThread}
           />
@@ -124,33 +122,22 @@ export function ThreadAgentsSheet({ route }: StaticScreenProps<AgentsTarget>) {
 }
 
 function AgentRow(props: {
+  readonly environmentId: EnvironmentId;
   readonly subagent: OrchestrationV2Subagent;
   readonly tickSeconds: boolean;
   readonly onOpen: (childThreadId: ThreadId) => void;
 }) {
   const t = useTranslate();
   const { subagent } = props;
-  const presentation = resolveSubagentRowPresentation(subagent);
   const childThreadId = subagent.childThreadId;
-  const elapsed = useSubagentElapsed(subagent, props.tickSeconds);
 
   const row = (
-    <View className="min-h-14 flex-row items-center gap-3 border-b border-border py-3">
-      <SubagentStatusDot tone={presentation.tone} placement="sheet" />
-      <View className="min-w-0 flex-1 gap-0.5">
-        <Text className="font-t3-medium text-sm text-foreground" numberOfLines={1}>
-          {presentation.title}
-        </Text>
-        <Text className="text-xs text-foreground-muted" numberOfLines={1}>
-          {presentation.detail ?? presentation.statusLabel}
-        </Text>
-      </View>
-      {elapsed === null ? null : (
-        <Text className="shrink-0 text-2xs tabular-nums text-foreground-muted">{elapsed}</Text>
-      )}
-      {presentation.canOpenThread ? (
-        <SymbolView name="chevron.right" size={12} tintColorClassName="accent-icon-subtle" />
-      ) : null}
+    <View className="border-b border-border py-3.5">
+      <SubagentRow
+        environmentId={props.environmentId}
+        subagent={subagent}
+        elapsed={<AgentElapsed subagent={subagent} tickSeconds={props.tickSeconds} />}
+      />
     </View>
   );
 
@@ -158,7 +145,6 @@ function AgentRow(props: {
     return (
       <View
         accessible
-        accessibilityLabel={`${presentation.title}, ${presentation.statusLabel}`}
         accessibilityHint={t("Provider-managed agent. Its work appears in the transcript.")}
       >
         {row}
@@ -169,7 +155,6 @@ function AgentRow(props: {
   return (
     <Pressable
       accessibilityRole="link"
-      accessibilityLabel={`${presentation.title}, ${presentation.statusLabel}`}
       accessibilityHint={t("Opens this agent's thread")}
       onPress={() => props.onOpen(childThreadId)}
       className="active:opacity-70"
@@ -179,9 +164,19 @@ function AgentRow(props: {
   );
 }
 
+function AgentElapsed(props: {
+  readonly subagent: OrchestrationV2Subagent;
+  readonly tickSeconds: boolean;
+}) {
+  const elapsed = useSubagentElapsed(props.subagent, props.tickSeconds);
+  return elapsed === null ? null : (
+    <Text className="shrink-0 text-xs tabular-nums text-foreground-muted">{elapsed}</Text>
+  );
+}
+
 /**
- * Elapsed time for one agent. Only a roster with live work subscribes to the
- * shared second tick, so a settled sheet never repaints.
+ * Elapsed time for one agent. Only live work ticks, inside AgentElapsed,
+ * so the timer never repaints the metadata or a settled sheet.
  */
 function useSubagentElapsed(
   subagent: Pick<OrchestrationV2Subagent, "status" | "startedAt" | "completedAt">,

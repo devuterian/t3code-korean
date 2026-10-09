@@ -7,7 +7,8 @@ import { ActivityIndicator, AppState, Pressable, View } from "react-native";
 import { AppText } from "./AppText";
 import { SymbolView } from "./AppSymbol";
 import { VideoThumbnailImage } from "./VideoThumbnailImage";
-import { useMediaActions, type MediaActionsSource } from "../lib/mediaActions";
+import { useMediaActions } from "../state/mediaActions";
+import { type MediaActionsSource } from "../lib/mediaActionsSource";
 import { MediaActionsMenu } from "./MediaActionsMenu";
 import { useTranslate } from "../i18n/translate";
 

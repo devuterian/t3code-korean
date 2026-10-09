@@ -3,6 +3,7 @@ import {
   orchestrationProtocolCompatibilityError,
   type EnvironmentConnectionPhase,
 } from "@t3tools/client-runtime/connection";
+import { relayOfflineReasonMessage } from "@t3tools/client-runtime/relay";
 import { translate } from "../../i18n/translate";
 
 export interface AvailableCloudEnvironmentPresentation {
@@ -40,7 +41,11 @@ export function availableCloudEnvironmentPresentation(input: {
   }
 
   if (input.status?.status === "offline") {
-    const connectionError = input.status.error ?? translate("Relay is offline.");
+    const offlineReason = relayOfflineReasonMessage(input.status);
+    const connectionError =
+      (offlineReason === null ? null : translate(offlineReason)) ??
+      input.status.error ??
+      translate("Relay is offline.");
     return {
       connectionError,
       connectionErrorTraceId: input.status.traceId ?? null,

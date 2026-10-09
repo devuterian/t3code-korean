@@ -1,6 +1,6 @@
 import { toastManager } from "../components/ui/toast";
 import { translate } from "../i18n/translate";
-import { AsyncResult } from "effect/unstable/reactivity";
+import { AsyncResult } from "effect/reactivity";
 import { useAtomValue } from "@effect/atom-react";
 import { useCallback, useMemo } from "react";
 import type { ActiveThreadSortOrder } from "@t3tools/contracts/settings";

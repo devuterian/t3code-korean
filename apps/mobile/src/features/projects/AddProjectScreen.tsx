@@ -30,6 +30,7 @@ import {
   createBrowseNavigationCoordinator,
   filterFilesystemBrowseEntries,
   getFilesystemBrowsePath,
+  resolveFilesystemReadAccess,
 } from "@t3tools/client-runtime/state/filesystem";
 import {
   appendBrowsePathSegment,
@@ -37,6 +38,9 @@ import {
   isWindowsPlatform,
 } from "@t3tools/client-runtime/state/projects";
 import {
+  AuthOrchestrationOperateScope,
+  AuthSourceControlWriteScope,
+  AuthFilesystemReadScope,
   CommandId,
   type EnvironmentId,
   type EnvironmentMachineKind,
@@ -51,12 +55,14 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Arr from "effect/Array";
 import * as Cause from "effect/Cause";
 import * as Order from "effect/Order";
-import { AsyncResult } from "effect/unstable/reactivity";
+import { AsyncResult } from "effect/reactivity";
 import { cn } from "../../lib/cn";
 import { useProjects, useServerConfigs, waitForProject } from "../../state/entities";
 import { filesystemEnvironment } from "../../state/filesystem";
 import { projectEnvironment } from "../../state/projects";
 import { useEnvironmentQuery } from "../../state/query";
+import { environmentSession, useEnvironmentScope, readEnvironmentScope } from "../../state/session";
+import { useEnvironmentPresentation } from "../../state/presentation";
 import { sourceControlEnvironment } from "../../state/sourceControl";
 import { AppText as Text, AppTextInput as TextInput } from "../../components/AppText";
 import { EnvironmentMachineSymbol } from "../../components/EnvironmentMachineSymbol";
@@ -341,7 +347,11 @@ function useBrowsePathInput(environment: EnvironmentOption | null, pinnedDirecto
       setIsBrowseNavigating(true);
       const committed = await browseNavigation.run(
         async () => {
-          if (environment && canPreloadBrowsePath(environmentRuntime?.connectionState)) {
+          if (
+            environment &&
+            readEnvironmentScope(environment.environmentId, AuthFilesystemReadScope) &&
+            canPreloadBrowsePath(environmentRuntime?.connectionState)
+          ) {
             await loadBrowsePath({
               environmentId: environment.environmentId,
               input: { partialPath: selectedDirectoryPath },
@@ -535,6 +545,15 @@ export function AddProjectSourceScreen() {
   const navigation = useNavigation();
   const { environmentOptions, selectedEnvironment, setSelectedEnvironmentId } =
     useSelectedEnvironment();
+  const canWriteSourceControl = useEnvironmentScope(
+    selectedEnvironment?.environmentId ?? null,
+    AuthSourceControlWriteScope,
+  );
+  const canCreateProject = useEnvironmentScope(
+    selectedEnvironment?.environmentId ?? null,
+    AuthOrchestrationOperateScope,
+  );
+  const canCloneProject = canWriteSourceControl && canCreateProject;
   const discoveryState = useEnvironmentQuery(
     selectedEnvironment === null
       ? null
@@ -623,7 +642,11 @@ export function AddProjectSourceScreen() {
             ) : null}
             <ListRow
               title={t("Local folder")}
-              subtitle={t("Browse a folder on disk")}
+              subtitle={
+                canCreateProject
+                  ? t("Browse a folder on disk")
+                  : t("This connection cannot add projects.")
+              }
               icon={
                 <SymbolView
                   name="folder.badge.plus"
@@ -633,6 +656,7 @@ export function AddProjectSourceScreen() {
                 />
               }
               isFirst={selectedEnvironment.newProjectsRoot === null}
+              disabled={!canCreateProject}
               onPress={() =>
                 navigation.dispatch(
                   StackActions.push("AddProjectLocal", {
@@ -647,11 +671,13 @@ export function AddProjectSourceScreen() {
                   key={candidate}
                   source={candidate}
                   selectedEnvironmentId={selectedEnvironment.environmentId}
-                  ready={readiness[candidate].ready}
+                  ready={canCloneProject && readiness[candidate].ready}
                   hint={
-                    readiness[candidate].ready
-                      ? addProjectRemoteSourcePathHint(candidate)
-                      : (readiness[candidate].hint ?? "")
+                    !canCloneProject
+                      ? "This connection cannot clone projects."
+                      : readiness[candidate].ready
+                        ? addProjectRemoteSourcePathHint(candidate)
+                        : (readiness[candidate].hint ?? "")
                   }
                   isFirst={false}
                 />
@@ -683,7 +709,20 @@ function useCreateProject(environment: EnvironmentOption | null) {
 
   return useCallback(
     async (workspaceRoot: string) => {
-      if (!environment || !canCreateProjectInEnvironment(environment.connectionState)) return;
+      if (
+        !environment ||
+        !canCreateProjectInEnvironment(environment.connectionState) ||
+        !readEnvironmentScope(environment.environmentId, AuthOrchestrationOperateScope)
+      ) {
+        Alert.alert(
+          translate("Project not added"),
+          translate(
+            "This connection cannot add projects right now. Any existing files remain at {path}.",
+            { path: workspaceRoot },
+          ),
+        );
+        return;
+      }
 
       const existing = findExistingAddProject({
         projects,
@@ -863,8 +902,19 @@ function FolderBrowser(props: {
     () => (browsePath.directoryPath.length > 0 ? { partialPath: browsePath.directoryPath } : null),
     [browsePath.directoryPath],
   );
+  const fileAccessSession = useEnvironmentQuery(
+    environmentSession.sessionStateAtom(props.environment.environmentId),
+  );
+  const fileEnvironment = useEnvironmentPresentation(props.environment.environmentId);
+  const fileAccess = resolveFilesystemReadAccess({
+    isCatalogReady: fileEnvironment.isReady,
+    connection: fileEnvironment.presentation?.connection ?? null,
+    session: fileAccessSession.data,
+    sessionError: fileAccessSession.error,
+  });
+  const { canReadFiles } = fileAccess;
   const browseState = useEnvironmentQuery(
-    browseInput === null
+    !canReadFiles || browseInput === null
       ? null
       : filesystemEnvironment.browse({
           environmentId: props.environment.environmentId,
@@ -886,9 +936,14 @@ function FolderBrowser(props: {
   return (
     <>
       <SectionTitle>{t("Browse folders")}</SectionTitle>
+      {!canReadFiles && !fileAccess.isPending ? (
+        <ErrorBanner
+          message={t(fileAccess.error ?? "This connection cannot browse host folders.")}
+        />
+      ) : null}
       {browseState.error ? <ErrorBanner message={browseState.error} /> : null}
       <ListSection>
-        {browseState.isPending && browseState.data === null ? (
+        {fileAccess.isPending || (browseState.isPending && browseState.data === null) ? (
           <View className="items-center py-5">
             <ActivityIndicator colorClassName="accent-icon-muted" />
           </View>
@@ -1187,6 +1242,10 @@ export function AddProjectNewScreen(props: { readonly environmentId?: string | s
 export function AddProjectLocalFolderScreen(props: { readonly environmentId?: string | string[] }) {
   const t = useTranslate();
   const environment = useEnvironmentFromParam(props.environmentId);
+  const canCreateProject = useEnvironmentScope(
+    environment?.environmentId ?? null,
+    AuthOrchestrationOperateScope,
+  );
   const createProject = useCreateProject(environment);
   const { isBrowseNavigating, navigateToBrowsePath, pathInput, setPathInput } =
     useBrowsePathInput(environment);
@@ -1219,15 +1278,14 @@ export function AddProjectLocalFolderScreen(props: { readonly environmentId?: st
       {error ? <ErrorBanner message={error} /> : null}
       {environment ? (
         <>
-          <ProjectPathInput
-            value={pathInput}
-            onChangeText={setPathInput}
-            onSubmit={() => void submitPath()}
-          />
+          {!canCreateProject ? (
+            <ErrorBanner message={t("This connection cannot add projects.")} />
+          ) : null}
+          <ProjectPathInput value={pathInput} onChangeText={setPathInput} onSubmit={submitPath} />
           <PrimaryActionButton
             label={t("Add project")}
-            disabled={isBrowseNavigating || isSubmitting}
-            onPress={() => void submitPath()}
+            disabled={!canCreateProject || isBrowseNavigating || isSubmitting}
+            onPress={submitPath}
             loading={isSubmitting}
           />
           <FolderBrowser
@@ -1259,6 +1317,15 @@ export function AddProjectDestinationScreen(props: {
   });
   const navigation = useNavigation();
   const environment = useEnvironmentFromParam(props.environmentId);
+  const canWriteSourceControl = useEnvironmentScope(
+    environment?.environmentId ?? null,
+    AuthSourceControlWriteScope,
+  );
+  const canCreateProject = useEnvironmentScope(
+    environment?.environmentId ?? null,
+    AuthOrchestrationOperateScope,
+  );
+  const canCloneProject = canWriteSourceControl && canCreateProject;
   const createProject = useCreateProject(environment);
   const remoteUrl = stringParam(props.remoteUrl);
   const repositoryTitle = stringParam(props.repositoryTitle);
@@ -1275,7 +1342,16 @@ export function AddProjectDestinationScreen(props: {
   const [error, setError] = useState<string | null>(null);
 
   const submitPath = useCallback(async () => {
-    if (!environment || !remoteUrl || isBrowseNavigating || isSubmitting) return;
+    if (
+      !environment ||
+      !readEnvironmentScope(environment.environmentId, AuthSourceControlWriteScope) ||
+      !readEnvironmentScope(environment.environmentId, AuthOrchestrationOperateScope) ||
+      !remoteUrl ||
+      isBrowseNavigating ||
+      isSubmitting
+    ) {
+      return;
+    }
     setError(null);
     const resolved = resolveAddProjectPath({
       rawPath: pathInput,
@@ -1373,17 +1449,18 @@ export function AddProjectDestinationScreen(props: {
       ) : null}
       {environment ? (
         <>
-          <ProjectPathInput
-            value={pathInput}
-            onChangeText={setPathInput}
-            onSubmit={() => void submitPath()}
-          />
+          <ProjectPathInput value={pathInput} onChangeText={setPathInput} onSubmit={submitPath} />
           <PrimaryActionButton
             label={t("Clone project")}
-            disabled={isBrowseNavigating || isSubmitting || !remoteUrl}
-            onPress={() => void submitPath()}
+            disabled={!canCloneProject || isBrowseNavigating || isSubmitting || !remoteUrl}
+            onPress={submitPath}
             loading={isSubmitting}
           />
+          {!canCloneProject ? (
+            <Text className="text-sm text-foreground-muted">
+              {t("This connection cannot clone projects.")}
+            </Text>
+          ) : null}
           <FolderBrowser
             environment={environment}
             navigateToBrowsePath={navigateToBrowsePath}

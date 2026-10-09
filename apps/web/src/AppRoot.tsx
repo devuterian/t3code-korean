@@ -1,8 +1,8 @@
 import { RouterProvider } from "@tanstack/react-router";
 import { useEffect } from "react";
 
+import { BrowserProfileReporter } from "./browser/BrowserProfileReporter";
 import { ElectronBrowserHost } from "./browser/ElectronBrowserHost";
-import { PreviewAutomationHosts } from "./components/preview/PreviewAutomationHosts";
 import { QuitHoldOverlay } from "./components/QuitHoldOverlay";
 import { useClientSettings, useClientSettingsHydrated } from "./hooks/useSettings";
 import { markInterfaceLanguageConfigured, setInterfaceLanguage } from "./i18n/translate";
@@ -32,8 +32,8 @@ export function AppRoot({ router }: { readonly router: AppRouter }) {
     <AppAtomRegistryProvider>
       <InterfaceLanguageBootstrap />
       <RouterProvider router={router} />
-      <PreviewAutomationHosts />
       <ElectronBrowserHost />
+      <BrowserProfileReporter />
       <QuitHoldOverlay />
     </AppAtomRegistryProvider>
   );

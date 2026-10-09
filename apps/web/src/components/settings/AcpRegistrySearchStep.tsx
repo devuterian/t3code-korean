@@ -1,3 +1,5 @@
+import { AuthProvidersManageScope } from "@t3tools/contracts";
+import { readEnvironmentScope, useEnvironmentScope } from "../../state/session";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
@@ -35,6 +37,7 @@ interface AcpRegistrySearchStepProps {
   readonly providerInstances: Readonly<Record<string, ProviderInstanceConfig>>;
   readonly onPrepared: (agent: AcpRegistrySearchAgent) => void;
   readonly onManualConfiguration: () => void;
+  readonly onLocalConfiguration?: () => void;
   readonly onLoadingChange?: (loading: boolean) => void;
   readonly onPreparingChange?: (preparing: boolean) => void;
 }
@@ -56,6 +59,7 @@ export function AcpRegistrySearchStep({
   providerInstances,
   onPrepared,
   onManualConfiguration,
+  onLocalConfiguration,
   onLoadingChange,
   onPreparingChange,
 }: AcpRegistrySearchStepProps) {
@@ -64,6 +68,7 @@ export function AcpRegistrySearchStep({
   // An empty registry query is the compact compatible catalog. Start there so
   // entering this step is useful before the user knows what to search for.
   const [submittedQuery, setSubmittedQuery] = useState("");
+  const canManageProviders = useEnvironmentScope(environmentId, AuthProvidersManageScope);
   const [preparingId, setPreparingId] = useState<string | null>(null);
   const [prepareError, setPrepareError] = useState<string | null>(null);
   const prepareGeneration = useRef(0);
@@ -105,6 +110,7 @@ export function AcpRegistrySearchStep({
   };
 
   const handlePrepare = async (agent: AcpRegistrySearchAgent) => {
+    if (!readEnvironmentScope(environmentId, AuthProvidersManageScope)) return;
     const generation = ++prepareGeneration.current;
     setPrepareError(null);
     setPreparingId(agent.id);
@@ -171,6 +177,17 @@ export function AcpRegistrySearchStep({
         >
           {t("Enter manually")}
         </Button>
+        {onLocalConfiguration ? (
+          <Button
+            disabled={preparingId !== null}
+            onClick={onLocalConfiguration}
+            size="sm"
+            type="button"
+            variant="outline"
+          >
+            Local ACP command
+          </Button>
+        ) : null}
       </form>
 
       <div className="sr-only" role="status">
@@ -263,7 +280,7 @@ export function AcpRegistrySearchStep({
                         ) : null}
                         <Button
                           aria-label={`${alreadyAdded ? t("Already added") : isPreparing ? progressLabel : t("Add")} ${agent.name}`}
-                          disabled={alreadyAdded || preparingId !== null}
+                          disabled={!canManageProviders || alreadyAdded || preparingId !== null}
                           onClick={() => void handlePrepare(agent)}
                           size="xs"
                           variant={isPreparing ? "secondary" : "outline"}

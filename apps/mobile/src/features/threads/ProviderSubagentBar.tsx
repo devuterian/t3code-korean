@@ -3,7 +3,6 @@ import {
   type ProviderSubagentStatus,
 } from "@t3tools/client-runtime/state/thread-execution";
 import { isOrchestrationV2WorkActive } from "@t3tools/contracts";
-import { useEffect, useState } from "react";
 import { View } from "react-native";
 
 import { AppText as Text } from "../../components/AppText";
@@ -11,6 +10,7 @@ import { ProviderIcon } from "../../components/ProviderIcon";
 import { useTranslate } from "../../i18n/translate";
 import { localizeDurationUnits } from "../../lib/threadActivity";
 import { RequestActionButton } from "./RequestActionButton";
+import { useVisibleSecondClock } from "./use-visible-second-clock";
 
 /** Shared status text ("Working 1m 5s", "Completed in 3s") in the active language. */
 function useLocalizedSubagentStatus(status: string): string {
@@ -41,12 +41,7 @@ export function ProviderSubagentBar(props: {
   readonly onOpenParent: (() => void) | null;
 }) {
   const live = props.status !== null && isOrchestrationV2WorkActive(props.status.status);
-  const [nowMs, setNowMs] = useState(() => Date.now());
-  useEffect(() => {
-    if (!live) return;
-    const id = setInterval(() => setNowMs(Date.now()), 1_000);
-    return () => clearInterval(id);
-  }, [live]);
+  const nowMs = useVisibleSecondClock(live);
   const t = useTranslate();
   const statusLabel = useLocalizedSubagentStatus(formatProviderSubagentStatus(props.status, nowMs));
   const modelDescription =

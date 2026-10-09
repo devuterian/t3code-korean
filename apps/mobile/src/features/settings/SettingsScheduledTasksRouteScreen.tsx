@@ -1,10 +1,16 @@
+import { useAtomValue } from "@effect/atom-react";
+import { AuthOrchestrationOperateScope } from "@t3tools/contracts";
+import { readEnvironmentScope } from "../../state/session";
 import type {
   EnvironmentId,
   ProjectId,
   ScheduledTask,
   ScheduledTaskUpsertInput,
 } from "@t3tools/contracts";
-import { resolveEnvironmentMachineKind } from "@t3tools/contracts";
+import {
+  MAX_WEBHOOK_DELIVERY_AGE_MINUTES,
+  resolveEnvironmentMachineKind,
+} from "@t3tools/contracts";
 import type { MenuAction } from "@react-native-menu/menu";
 import { DateTimePicker } from "@expo/ui/community/datetime-picker";
 import {
@@ -13,9 +19,12 @@ import {
   type AtomCommandResult,
 } from "@t3tools/client-runtime/state/runtime";
 import {
+  DEFAULT_WEBHOOK_PROMPT,
+  parseMaxDeliveryAge,
+} from "@t3tools/client-runtime/scheduled-task-webhook";
+import {
   useCallback,
   useEffect,
-  useId,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -38,6 +47,9 @@ import type { ComposerEditorSelection } from "../../components/ComposerEditor";
 import { ScreenScrollView as ScrollView } from "../../components/ScreenScrollView";
 import { SegmentedControl } from "../../components/SegmentedControl";
 import { ThemedSwitch } from "../../components/ThemedSwitch";
+import { webhookAddress } from "@t3tools/client-runtime/webhook-address";
+import { tryCopyTextWithHaptic } from "../../lib/copyTextWithHaptic";
+import { usePreparedConnection } from "../../state/session";
 import { buildModelOptions } from "../../lib/modelOptions";
 import { NativeStackScreenOptions } from "../../native/StackHeader";
 import { useProjects, useEnvironmentServerConfig } from "../../state/entities";
@@ -63,6 +75,8 @@ import {
 } from "./scheduledTaskDraft";
 import { settingsTargetsForProject } from "./settings-environment-filter.logic";
 import { useScheduledTaskEditor } from "./scheduled-task-editor";
+import { scheduledTaskEditorSessionAtom } from "./scheduled-task-editor-state";
+import { appAtomRegistry } from "../../state/atom-registry";
 import { getFormattingLocale, translate, useTranslate } from "../../i18n/translate";
 import {
   formatNextScheduledTaskRun,
@@ -87,6 +101,7 @@ const DAYS = [
 ] as const;
 
 function describeSchedule(task: ScheduledTask): string {
+  if (task.schedule.type === "webhook") return translate("On webhook");
   if (task.schedule.type === "interval") return formatScheduledTaskInterval(task.schedule.everyMs);
   const days = task.schedule.weekdays?.length
     ? repeatLabel(task.schedule.weekdays)
@@ -134,7 +149,7 @@ function FormField(props: {
   readonly label: string;
   readonly value: string;
   readonly onChange: (value: string) => void;
-  readonly keyboardType?: "decimal-pad";
+  readonly keyboardType?: "decimal-pad" | "number-pad";
   readonly disabled?: boolean;
   readonly placeholder?: string;
   readonly borderTop?: boolean;
@@ -384,14 +399,21 @@ export function SettingsScheduledTaskEditRouteScreen() {
 
 function SettingsScheduledTaskEditorScreen({ title }: { readonly title: string }) {
   const t = useTranslate();
-  const { editor, setEditor, hasChanges, draftForEnvironment } = useScheduledTaskEditor();
+  const {
+    editor,
+    voiceOwnerKey,
+    readEditor,
+    setEditor,
+    startEditor,
+    hasChanges,
+    draftForEnvironment,
+  } = useScheduledTaskEditor();
   const { availableTargets } = useSettingsEnvironmentFilter();
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const voiceOwnerId = useId();
-  const ownerKey = editor ? `${voiceOwnerId}:${editor.environmentId}` : null;
+  const ownerKey = editor ? `${voiceOwnerKey}:${editor.environmentId}` : null;
   const prompt = editor?.draft.prompt ?? "";
   const [selectionState, setSelectionState] = useState<{
     readonly ownerKey: string | null;
@@ -414,32 +436,40 @@ function SettingsScheduledTaskEditorScreen({ title }: { readonly title: string }
     );
   const voiceInput = useVoiceInputController({
     ownerKey,
-    draftMessage: prompt,
+    label: editor?.draft.title.trim() || title,
+    subscribeToDraftChanges: (onChange) =>
+      appAtomRegistry.subscribe(scheduledTaskEditorSessionAtom, onChange),
     selection,
+    readDraftMessage: () => {
+      const current = readEditor();
+      return current?.environmentId === editor?.environmentId
+        ? (current?.draft.prompt ?? null)
+        : null;
+    },
     onChangeSelection: setSelection,
-    onChangeDraftMessage: setPrompt,
+    onChangeDraftMessage: (text) => {
+      if (readEditor()?.environmentId === editor?.environmentId) setPrompt(text);
+    },
     disabled: saving,
   });
-  const preventRemove = !saved && (hasChanges || saving || voiceInput.isBusy);
+  const preventRemove = !saved && (hasChanges || saving);
   usePreventRemove(preventRemove, ({ data }) => {
     if (saving) {
       Alert.alert(t("Saving task"), t("Wait for the task to finish saving before leaving."));
       return;
     }
-    Alert.alert(
-      t("Discard changes?"),
-      voiceInput.isBusy
-        ? t("Your dictation and unsaved changes will be lost.")
-        : t("Your unsaved changes will be lost."),
-      [
-        { text: t("Keep editing"), style: "cancel" },
-        {
-          text: t("Discard changes"),
-          style: "destructive",
-          onPress: () => navigation.dispatch(data.action),
+    Alert.alert(t("Discard changes?"), t("Your unsaved changes will be lost."), [
+      { text: t("Keep editing"), style: "cancel" },
+      {
+        text: t("Discard changes"),
+        style: "destructive",
+        onPress: () => {
+          if (voiceInput.isBusy) voiceInput.cancel();
+          startEditor(null);
+          navigation.dispatch(data.action);
         },
-      ],
-    );
+      },
+    ]);
   });
   useEffect(() => {
     if (!saved) return;
@@ -568,6 +598,9 @@ function TaskForm({
   const projects = useProjects().filter((project) => project.environmentId === environmentId);
   const config = useEnvironmentServerConfig(environmentId);
   const modelOptions = useMemo(() => buildModelOptions(config, null), [config]);
+  const canOperate = useAtomValue(
+    serverEnvironment.upsertScheduledTask.permissionAtom(environmentId),
+  );
   const upsert = useAtomCommand(serverEnvironment.upsertScheduledTask, {
     label: "scheduled task upsert",
     reportFailure: false,
@@ -590,6 +623,7 @@ function TaskForm({
 
   const save = async () => {
     if (
+      !readEnvironmentScope(environmentId, AuthOrchestrationOperateScope) ||
       submissionPending.current ||
       saving ||
       dictationPending ||
@@ -597,7 +631,26 @@ function TaskForm({
       environmentUnavailable
     )
       return;
-    const schedule = scheduleFromDraft(draft.schedule);
+    // Signatures are edited on desktop and web; send the task's current one,
+    // not the copy taken when this form opened, so a newer edit survives.
+    const liveTask = tasks.data?.tasks.find((task) => task.id === draft.task?.id);
+    const schedule = scheduleFromDraft(
+      draft.schedule.mode === "webhook" && liveTask?.schedule.type === "webhook"
+        ? { ...draft.schedule, signature: liveTask.schedule.signature }
+        : draft.schedule,
+    );
+    if (
+      draft.schedule.mode === "webhook" &&
+      parseMaxDeliveryAge(draft.schedule.maxDeliveryAgeMinutes) === undefined
+    ) {
+      Alert.alert(
+        t("Invalid age limit"),
+        t("Enter whole minutes from 1 to {max}, or leave it blank.", {
+          max: MAX_WEBHOOK_DELIVERY_AGE_MINUTES,
+        }),
+      );
+      return;
+    }
     if (
       !draft.title.trim() ||
       !draft.prompt.trim() ||
@@ -811,12 +864,20 @@ function TaskForm({
           <SegmentedControl
             options={[
               { value: "fixed_time", label: t("At a time") },
-              { value: "interval", label: t("Every interval") },
+              { value: "interval", label: t("Interval") },
+              { value: "webhook", label: t("On webhook") },
             ]}
             selected={draft.schedule.mode}
             onSelect={(mode) => {
               setTimePickerOpen(false);
-              setDraft({ ...draft, schedule: { ...draft.schedule, mode } });
+              setDraft({
+                ...draft,
+                prompt:
+                  mode === "webhook" && !draft.prompt.trim()
+                    ? DEFAULT_WEBHOOK_PROMPT
+                    : draft.prompt,
+                schedule: { ...draft.schedule, mode },
+              });
             }}
           />
         </View>
@@ -890,6 +951,32 @@ function TaskForm({
               }}
             />
           </>
+        ) : draft.schedule.mode === "webhook" ? (
+          <>
+            <WebhookScheduleDetails
+              environmentId={environmentId}
+              // The live row, so a rotated URL shows up without reopening the form.
+              // Once the list has loaded, a missing task is gone; don't keep showing its URL.
+              task={
+                tasks.data
+                  ? (tasks.data.tasks.find((task) => task.id === draft.task?.id) ?? null)
+                  : draft.task
+              }
+              signatureConfigured={draft.schedule.signature !== null}
+              disabled={!canOperate || saving || environmentUnavailable}
+            />
+            <FormField
+              label={t("Skip requests older than (minutes)")}
+              value={draft.schedule.maxDeliveryAgeMinutes}
+              placeholder={t("Run every request")}
+              keyboardType="number-pad"
+              disabled={saving}
+              borderTop
+              onChange={(maxDeliveryAgeMinutes) =>
+                setDraft({ ...draft, schedule: { ...draft.schedule, maxDeliveryAgeMinutes } })
+              }
+            />
+          </>
         ) : (
           <>
             <FormField
@@ -934,7 +1021,9 @@ function TaskForm({
         accessibilityState={{
           disabled: saving || dictationPending || taskMissing || environmentUnavailable,
         }}
-        disabled={saving || dictationPending || taskMissing || environmentUnavailable}
+        disabled={
+          !canOperate || saving || dictationPending || taskMissing || environmentUnavailable
+        }
         onPress={() => void save()}
         className="min-h-12 items-center justify-center rounded-[14px] bg-primary px-4 disabled:opacity-50"
       >
@@ -942,6 +1031,103 @@ function TaskForm({
           {saving ? t("Saving…") : draft.task ? t("Save changes") : t("Create task")}
         </Text>
       </Pressable>
+    </View>
+  );
+}
+
+function WebhookScheduleDetails({
+  environmentId,
+  task,
+  signatureConfigured,
+  disabled,
+}: {
+  readonly environmentId: EnvironmentId;
+  readonly task: ScheduledTask | null;
+  readonly signatureConfigured: boolean;
+  readonly disabled: boolean;
+}) {
+  const t = useTranslate();
+  const [rotating, setRotating] = useState(false);
+  const rotate = useAtomCommand(serverEnvironment.rotateScheduledTaskWebhookToken, {
+    label: "scheduled task rotate webhook token",
+    reportFailure: false,
+  });
+  const preparedConnection = usePreparedConnection(environmentId);
+  const httpBaseUrl =
+    preparedConnection._tag === "Some" ? preparedConnection.value.httpBaseUrl : null;
+  const webhook = task?.schedule.type === "webhook" ? task.webhook : undefined;
+  // Without T3 Connect, the path is resolved on the address this phone uses.
+  const resolved = webhook ? webhookAddress(webhook, httpBaseUrl) : null;
+  return (
+    <View className="gap-2 border-t border-border-subtle px-4 py-3">
+      <Text className="text-sm text-foreground-muted">
+        {t(
+          "The prompt can use {{body.a.b}}, {{headers.name}}, {{query.name}}, {{body}} and {{request}}. The filled-in prompt is all the agent sees.",
+        )}
+      </Text>
+      {task === null || resolved === null ? (
+        <Text className="text-sm text-foreground-muted">
+          {t("Save the task to get its webhook URL.")}
+        </Text>
+      ) : (
+        <>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t("Copy webhook URL")}
+            accessibilityHint={t("Copies the URL to the clipboard")}
+            // A bare path is not something a sender can call, so only full URLs copy.
+            disabled={!resolved.copyable}
+            onPress={() => void tryCopyTextWithHaptic(resolved.address)}
+            className="gap-1 active:opacity-70"
+          >
+            <Text className="text-lg text-foreground">
+              {resolved.copyable ? t("Webhook URL") : t("Webhook path")}
+            </Text>
+            <Text className="text-sm text-foreground-muted" numberOfLines={2} selectable>
+              {resolved.address}
+            </Text>
+          </Pressable>
+          {resolved.note !== null ? (
+            <Text className="text-sm text-foreground-muted">{t(resolved.note)}</Text>
+          ) : null}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ disabled: disabled || rotating }}
+            disabled={disabled || rotating}
+            onPress={() =>
+              Alert.alert(t("Rotate URL?"), t("The current URL stops working immediately."), [
+                { text: t("Cancel"), style: "cancel" },
+                {
+                  text: t("Rotate"),
+                  style: "destructive",
+                  onPress: () => {
+                    setRotating(true);
+                    void rotate({ environmentId, input: { id: task.id } }).then((result) => {
+                      setRotating(false);
+                      if (result._tag === "Failure" && !isAtomCommandInterrupted(result)) {
+                        Alert.alert(
+                          t("Could not rotate URL"),
+                          String(squashAtomCommandFailure(result)),
+                        );
+                      }
+                    });
+                  },
+                },
+              ])
+            }
+            className="min-h-11 justify-center active:opacity-70 disabled:opacity-50"
+          >
+            <Text className="text-base text-danger-foreground">
+              {rotating ? t("Rotating…") : t("Rotate URL")}
+            </Text>
+          </Pressable>
+        </>
+      )}
+      {signatureConfigured ? (
+        <Text className="text-sm text-foreground-muted">
+          {t("Signature check configured on desktop/web.")}
+        </Text>
+      ) : null}
     </View>
   );
 }
@@ -965,6 +1151,9 @@ function EnvironmentTasks({
   const visibleTasks = tasks.data?.tasks.filter(
     (task) => projectIds === null || projectIds.includes(task.projectId),
   );
+  const canOperate = useAtomValue(
+    serverEnvironment.upsertScheduledTask.permissionAtom(environmentId),
+  );
   const setEnabled = useAtomCommand(serverEnvironment.setScheduledTaskEnabled, {
     label: "scheduled task enabled",
     reportFailure: false,
@@ -984,6 +1173,7 @@ function EnvironmentTasks({
   };
 
   const act = async (task: ScheduledTask, action: "run" | "toggle" | "delete") => {
+    if (!readEnvironmentScope(environmentId, AuthOrchestrationOperateScope)) return;
     const result =
       action === "run"
         ? await runNow({ environmentId, input: { id: task.id } })
@@ -1059,9 +1249,19 @@ function EnvironmentTasks({
             <ControlPillMenu
               actions={[
                 { id: "edit", title: t("Edit") },
-                { id: "toggle", title: task.enabled ? t("Pause") : t("Resume") },
-                { id: "run", title: t("Run now") },
-                { id: "delete", title: t("Delete"), attributes: { destructive: true } },
+                {
+                  id: "toggle",
+                  title: task.enabled ? t("Pause") : t("Resume"),
+                  attributes: { disabled: !canOperate },
+                },
+                ...(task.schedule.type === "webhook"
+                  ? []
+                  : [{ id: "run", title: t("Run now"), attributes: { disabled: !canOperate } }]),
+                {
+                  id: "delete",
+                  title: t("Delete"),
+                  attributes: { destructive: true, disabled: !canOperate },
+                },
               ]}
               onPressAction={({ nativeEvent }) => {
                 const action = nativeEvent.event;

@@ -1,7 +1,8 @@
 import type { EnvironmentId, ThreadId } from "@t3tools/contracts";
 import { useState, type ReactNode } from "react";
 
-import { ImageCiteContext, type MediaActionsSource } from "../../lib/mediaActions";
+import type { MediaActionsSource } from "../../lib/mediaActionsSource";
+import { ImageCiteContext } from "../../state/mediaActions";
 import { ImageRegionCiteModal } from "./ImageRegionCiteModal";
 
 /** Lets image menus under a thread offer "Cite region" into that thread's draft. */

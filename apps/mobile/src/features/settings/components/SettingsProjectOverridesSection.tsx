@@ -9,6 +9,7 @@ export function SettingsProjectOverridesSection(props: {
   readonly hasOverrides: boolean;
   readonly supportsOverrides: boolean;
   readonly pending: boolean;
+  readonly disabled?: boolean;
   readonly onClear: () => void;
 }) {
   const t = useTranslate();
@@ -22,6 +23,7 @@ export function SettingsProjectOverridesSection(props: {
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={t("Use environment defaults")}
+            disabled={props.disabled}
             onPress={props.onClear}
             className="px-2 py-2 active:opacity-70"
           >

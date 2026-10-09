@@ -21,7 +21,7 @@ import { translate, useTranslate } from "../../i18n/translate";
 import { downloadAttachmentForPreview } from "../../lib/attachmentDownload";
 import { cropImageRegionAttachment } from "../../lib/imageRegionCrop";
 import { loadLocalAttachmentPreview } from "../../lib/localAttachmentPreview";
-import type { MediaActionsSource } from "../../lib/mediaActions";
+import type { MediaActionsSource } from "../../lib/mediaActionsSource";
 import { scopedThreadKey } from "../../lib/scopedEntities";
 import { useRefreshAssetUrl } from "../../state/assets";
 import { insertComposerDraftImageCitation } from "../../state/use-composer-drafts";
