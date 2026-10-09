@@ -1,13 +1,18 @@
 import { describe, expect, it } from "vite-plus/test";
 
 import {
+  formatImagePoint,
   formatVideoTimestamp,
+  imagePointCitationName,
   imagePointFromClient,
+  imagePointMarkup,
+  imagePointRegion,
   imageRegionBetween,
   imageRegionCitationName,
   imageRegionCrop,
   imageRegionPixels,
   isCitableImageRegion,
+  isImagePointRegion,
   videoFrameCitationName,
 } from "./imageRegionCitation.ts";
 
@@ -116,5 +121,33 @@ describe("video frame citations", () => {
   it("names the frame after its source and position", () => {
     expect(videoFrameCitationName("clips/demo.mp4", 72.4)).toBe("demo at 1:12 region.png");
     expect(videoFrameCitationName("", 5)).toBe("video at 0:05 region.png");
+  });
+});
+
+describe("image point marks", () => {
+  it("stores a point as a region with no size, clamped to the image", () => {
+    const region = imagePointRegion({ x: 1.2, y: 0.25 });
+    expect(region).toEqual({ x: 1, y: 0.25, width: 0, height: 0 });
+    expect(isImagePointRegion(region)).toBe(true);
+    expect(isImagePointRegion({ x: 0, y: 0, width: 0.1, height: 0.1 })).toBe(false);
+  });
+
+  it("formats a point in whole percentages", () => {
+    expect(formatImagePoint({ x: 0.344, y: 0.5251 })).toBe("x 34%, y 53%");
+  });
+
+  it("marks the point on the whole image, downscaled like a crop", () => {
+    expect(imagePointMarkup({ x: 0.5, y: 0.25 }, { width: 4096, height: 2048 })).toEqual({
+      width: 2048,
+      height: 1024,
+      x: 1024,
+      y: 256,
+      radius: 34,
+      lineWidth: 5,
+    });
+  });
+
+  it("names the marked copy after the source file", () => {
+    expect(imagePointCitationName("/tmp/screen shot.png")).toBe("screen shot point.png");
   });
 });

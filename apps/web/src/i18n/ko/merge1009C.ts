@@ -45,4 +45,5 @@ export const KO_MERGE_1009_C: Readonly<Record<string, string>> = {
   "This connection cannot change threads.": "이 연결에서는 스레드를 변경할 수 없습니다.",
   "Preparing machine": "머신 준비 중",
   "Run context": "실행 컨텍스트",
+  "Drag a region or click a point to cite (C)": "영역을 드래그하거나 지점을 클릭해 인용 (C)",
 };

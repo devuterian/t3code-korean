@@ -15,8 +15,11 @@ import {
 } from "lucide-react";
 import { Image as ImageGlyph, Text as TextGlyph } from "lucide";
 import {
+  formatImagePoint,
   formatVideoTimestamp,
+  imagePointCitationName,
   imageRegionCitationName,
+  isImagePointRegion,
   videoFrameCitationName,
   type ImageRegion,
 } from "@t3tools/client-runtime/image-region-citation";
@@ -31,7 +34,7 @@ import { useAssetUrlRefresh, useAssetUrlState } from "../../assets/assetUrls";
 import { useComposerHandleContext } from "../../composerHandleContext";
 import { OpenMediaLink } from "../media/OpenMediaLink";
 import { MediaActions, useMediaActionUrl, type MediaActionSource } from "../media/MediaActions";
-import { readMediaImageRegion, readVideoFrame } from "../media/mediaContent";
+import { readMediaImagePoint, readMediaImageRegion, readVideoFrame } from "../media/mediaContent";
 import { MediaVideoPlayer } from "../media/MediaVideoPlayer";
 import { isContextMenuOpen } from "../../contextMenuFallback";
 import {
@@ -209,21 +212,29 @@ export const ExpandedImageDialog = memo(function ExpandedImageDialog({
       return;
     }
     const src = citableSrc;
-    const name = frame
-      ? videoFrameCitationName(item.name, frame.seconds)
-      : imageRegionCitationName(item.name);
+    // A clicked point is sent on the whole image with a pin, and its position leads the comment.
+    const point = isImagePointRegion(region);
+    const name = point
+      ? imagePointCitationName(item.name)
+      : frame
+        ? videoFrameCitationName(item.name, frame.seconds)
+        : imageRegionCitationName(item.name);
+    const citedComment = point
+      ? `[${formatImagePoint(region)}]${comment.trim() ? ` ${comment}` : ""}`
+      : comment;
     // The crop's outline matches the one the user drew.
     const outlineColor = pendingRegionRef.current
       ? getComputedStyle(pendingRegionRef.current).borderTopColor
       : "";
     setCiting(true);
     try {
-      const crop = async () =>
-        readMediaImageRegion(frame ? frame.src : await actionUrl(), region, {
-          name,
-          outlineColor,
-        });
-      if (!(await composer.citeImageRegion(crop, comment))) {
+      const crop = async () => {
+        const imageSrc = frame ? frame.src : await actionUrl();
+        return point
+          ? readMediaImagePoint(imageSrc, region, { name, markerColor: outlineColor })
+          : readMediaImageRegion(imageSrc, region, { name, outlineColor });
+      };
+      if (!(await composer.citeImageRegion(crop, citedComment))) {
         toastManager.add(
           stackedThreadToast({
             type: "warning",
@@ -541,7 +552,7 @@ export const ExpandedImageDialog = memo(function ExpandedImageDialog({
                         : t("Stop selecting (C)")
                       : isVideo
                         ? t("Pause and cite a region of this frame (C)")
-                        : t("Select a region to cite (C)")}
+                        : t("Drag a region or click a point to cite (C)")}
                   </TooltipPopup>
                 </Tooltip>
               ) : null}

@@ -150,6 +150,62 @@ export function imageRegionCitationName(sourceName: string): string {
   return `${fileStem(sourceName) || "image"} region.png`;
 }
 
+/**
+ * A click marks a point instead of a region. It is stored as a region with no size, so it travels
+ * through the same selection and citation paths.
+ */
+export function imagePointRegion(point: ImagePoint): ImageRegion {
+  return { x: clamp01(point.x), y: clamp01(point.y), width: 0, height: 0 };
+}
+
+export function isImagePointRegion(region: ImageRegion): boolean {
+  return region.width === 0 && region.height === 0;
+}
+
+/** Where a point sits, in whole percentages of the image: `x 34%, y 52%`. */
+export function formatImagePoint(point: ImagePoint): string {
+  const percent = (value: number) => Math.round(clamp01(value) * 100);
+  return `x ${percent(point.x)}%, y ${percent(point.y)}%`;
+}
+
+export interface ImagePointMarkup {
+  /** Output size; the whole image, downscaled like a region crop. */
+  readonly width: number;
+  readonly height: number;
+  /** The marked point in output pixels. */
+  readonly x: number;
+  readonly y: number;
+  readonly radius: number;
+  readonly lineWidth: number;
+}
+
+/**
+ * A marked point is sent on the whole image, so its percentages read against what the agent sees.
+ * The marker grows with the image to stay visible after providers downscale it.
+ */
+export function imagePointMarkup(
+  point: ImagePoint,
+  image: { readonly width: number; readonly height: number },
+): ImagePointMarkup {
+  const scale = Math.min(1, MAX_CROP_EDGE_PX / Math.max(image.width, image.height));
+  const width = Math.max(1, Math.round(image.width * scale));
+  const height = Math.max(1, Math.round(image.height * scale));
+  const longEdge = Math.max(width, height);
+  return {
+    width,
+    height,
+    x: clamp01(point.x) * width,
+    y: clamp01(point.y) * height,
+    radius: Math.max(10, Math.round(longEdge / 60)),
+    lineWidth: Math.max(2, Math.round(longEdge / 400)),
+  };
+}
+
+/** Names the marked copy after its source, like a region crop. */
+export function imagePointCitationName(sourceName: string): string {
+  return `${fileStem(sourceName) || "image"} point.png`;
+}
+
 /** A playback position the way video controls show it: m:ss, or h:mm:ss past an hour. */
 export function formatVideoTimestamp(seconds: number): string {
   const total = Math.max(0, Math.floor(seconds));

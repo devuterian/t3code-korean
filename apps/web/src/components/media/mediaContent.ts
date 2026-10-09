@@ -1,5 +1,7 @@
 import {
+  imagePointMarkup,
   imageRegionCrop,
+  type ImagePoint,
   type ImageRegion,
   type PixelRect,
 } from "@t3tools/client-runtime/image-region-citation";
@@ -276,6 +278,53 @@ export async function readMediaImageRegion(
       strokeOutside(context, crop.region, crop.lineWidth * 2);
       context.strokeStyle = options.outlineColor;
       strokeOutside(context, crop.region, crop.lineWidth);
+      return canvasToPng(canvas);
+    },
+  );
+  return new File([png], options.name, { type: "image/png" });
+}
+
+/**
+ * The whole image with a pin on a marked point, for citing a spot rather than a region. The pin is
+ * a ring with a dark halo so it reads on light and dark images alike.
+ */
+export async function readMediaImagePoint(
+  src: string,
+  point: ImagePoint,
+  options: { readonly name: string; readonly markerColor: string },
+): Promise<File> {
+  const blob = await readMediaBlob(src);
+  const png = await withDecodedImage(
+    blob,
+    {
+      decode: translate("The browser could not decode this image for citing."),
+      size: translate("This image is too large or has no usable dimensions."),
+    },
+    async (image) => {
+      const markup = imagePointMarkup(point, {
+        width: image.naturalWidth,
+        height: image.naturalHeight,
+      });
+      const canvas = document.createElement("canvas");
+      canvas.width = markup.width;
+      canvas.height = markup.height;
+      const context = canvas.getContext("2d");
+      if (!context) throw new Error(translate("Image citing is unavailable in this browser."));
+      context.imageSmoothingQuality = "high";
+      context.drawImage(image, 0, 0, markup.width, markup.height);
+      const ring = (radius: number, lineWidth: number, color: string) => {
+        context.beginPath();
+        context.arc(markup.x, markup.y, radius, 0, Math.PI * 2);
+        context.lineWidth = lineWidth;
+        context.strokeStyle = color;
+        context.stroke();
+      };
+      ring(markup.radius, markup.lineWidth * 3, "rgb(0 0 0 / 0.45)");
+      ring(markup.radius, markup.lineWidth, options.markerColor);
+      context.beginPath();
+      context.arc(markup.x, markup.y, Math.max(2, markup.lineWidth), 0, Math.PI * 2);
+      context.fillStyle = options.markerColor;
+      context.fill();
       return canvasToPng(canvas);
     },
   );

@@ -2,11 +2,16 @@ import { useRef, type CSSProperties, type PointerEvent, type Ref } from "react";
 
 import {
   imagePointFromClient,
+  imagePointRegion,
   imageRegionBetween,
   isCitableImageRegion,
+  isImagePointRegion,
   type ImagePoint,
   type ImageRegion,
 } from "@t3tools/client-runtime/image-region-citation";
+
+/** A press that moves less than this many screen pixels is a click, which marks a point. */
+const MAX_CLICK_TRAVEL_PX = 4;
 
 const REGION_BOX_CLASS_NAME =
   "pointer-events-none absolute rounded-[3px] border-2 border-primary bg-primary/10";
@@ -20,7 +25,37 @@ function regionStyle(region: ImageRegion): CSSProperties {
   };
 }
 
+function pointStyle(region: ImageRegion): CSSProperties {
+  return { left: `${region.x * 100}%`, top: `${region.y * 100}%` };
+}
+
+/** A marked point: a ring centered on the spot, with its number beside it once cited. */
+function PointMarker({
+  region,
+  number,
+  markerRef,
+}: {
+  region: ImageRegion;
+  number?: number;
+  markerRef?: Ref<HTMLDivElement>;
+}) {
+  return (
+    <div
+      ref={markerRef}
+      className="pointer-events-none absolute size-4 -translate-1/2 rounded-full border-2 border-primary bg-primary/25 shadow-[0_0_0_2px_rgb(0_0_0/0.35)]"
+      style={pointStyle(region)}
+    >
+      {number === undefined ? null : (
+        <span className="absolute top-full left-full rounded-[3px] bg-primary px-1 text-[10px] leading-4 font-medium text-primary-foreground">
+          {number}
+        </span>
+      )}
+    </div>
+  );
+}
+
 function CitedRegion({ region, number }: { region: ImageRegion; number: number }) {
+  if (isImagePointRegion(region)) return <PointMarker region={region} number={number} />;
   return (
     <div
       className="pointer-events-none absolute rounded-[3px] border-2 border-primary"
@@ -35,7 +70,7 @@ function CitedRegion({ region, number }: { region: ImageRegion; number: number }
 
 /**
  * Covers a zoomable image while citing: draws the region being selected, the pending region, and
- * numbered regions already cited from this image. Positions are percentages of the image, so
+ * numbered regions already cited from this image. A click without a drag marks a point instead. Positions are percentages of the image, so
  * zooming never needs a re-render. A drag moves its box directly, without React updates.
  */
 export function ImageRegionCiteLayer({
@@ -50,7 +85,12 @@ export function ImageRegionCiteLayer({
   /** Receives each finished drag, or null when a press cleared the pending region. */
   onSelect: (region: ImageRegion | null) => void;
 }) {
-  const dragRef = useRef<{ pointerId: number; start: ImagePoint } | null>(null);
+  const dragRef = useRef<{
+    pointerId: number;
+    start: ImagePoint;
+    clientX: number;
+    clientY: number;
+  } | null>(null);
   const dragBoxRef = useRef<HTMLDivElement>(null);
 
   const measure = (event: PointerEvent<HTMLDivElement>, start: ImagePoint) => {
@@ -84,6 +124,8 @@ export function ImageRegionCiteLayer({
             { x: event.clientX, y: event.clientY },
             event.currentTarget.getBoundingClientRect(),
           ),
+          clientX: event.clientX,
+          clientY: event.clientY,
         };
         event.currentTarget.setPointerCapture(event.pointerId);
         onSelect(null);
@@ -103,8 +145,12 @@ export function ImageRegionCiteLayer({
         const drag = dragRef.current;
         if (!drag || drag.pointerId !== event.pointerId) return;
         const region = measure(event, drag.start);
+        const clicked =
+          Math.hypot(event.clientX - drag.clientX, event.clientY - drag.clientY) <=
+          MAX_CLICK_TRAVEL_PX;
         endDrag();
         if (region) onSelect(region);
+        else if (clicked) onSelect(imagePointRegion(drag.start));
       }}
       onPointerCancel={(event) => {
         if (dragRef.current?.pointerId === event.pointerId) endDrag();
@@ -118,9 +164,11 @@ export function ImageRegionCiteLayer({
         // oxlint-disable-next-line react/no-array-index-key
         <CitedRegion key={index} region={region} number={index + 1} />
       ))}
-      {pending ? (
+      {pending === null ? null : isImagePointRegion(pending) ? (
+        <PointMarker region={pending} markerRef={pendingRef} />
+      ) : (
         <div ref={pendingRef} className={REGION_BOX_CLASS_NAME} style={regionStyle(pending)} />
-      ) : null}
+      )}
       <div ref={dragBoxRef} className={`${REGION_BOX_CLASS_NAME} hidden`} />
     </div>
   );
