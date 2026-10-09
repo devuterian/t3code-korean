@@ -1,5 +1,6 @@
 import { imageRegionPixels, type ImageRegion } from "@t3tools/client-runtime/image-region-citation";
 import { PROVIDER_SEND_TURN_MAX_IMAGE_BYTES } from "@t3tools/contracts";
+import type { ImageRef } from "expo-image-manipulator";
 
 import { translate } from "../i18n/translate";
 import { estimateBase64ByteSize } from "./base64";
@@ -19,7 +20,7 @@ export async function cropImageRegionAttachment(input: {
   readonly region: ImageRegion;
   readonly name: string;
 }): Promise<DraftComposerImageAttachment> {
-  const { ImageManipulator, SaveFormat } = await import("expo-image-manipulator");
+  const { ImageManipulator } = await import("expo-image-manipulator");
   const source = await ImageManipulator.manipulate(input.uri).renderAsync();
   const crop = await (async () => {
     try {
@@ -40,23 +41,68 @@ export async function cropImageRegionAttachment(input: {
       source.release();
     }
   })();
+  return savePngAttachment(
+    crop,
+    input.name,
+    translate("The region is too large to attach. Select a smaller region."),
+  );
+}
+
+/**
+ * The whole image for a marked point, downscaled like a crop. The native manipulator cannot draw a
+ * marker, so the point travels as the percentages that lead the comment.
+ */
+export async function imagePointAttachment(input: {
+  readonly uri: string;
+  readonly name: string;
+}): Promise<DraftComposerImageAttachment> {
+  const { ImageManipulator } = await import("expo-image-manipulator");
+  const source = await ImageManipulator.manipulate(input.uri).renderAsync();
+  const image = await (async () => {
+    try {
+      let context = ImageManipulator.manipulate(source);
+      if (Math.max(source.width, source.height) > MAX_CROP_EDGE_PX) {
+        context = context.resize(
+          source.width >= source.height
+            ? { width: MAX_CROP_EDGE_PX }
+            : { height: MAX_CROP_EDGE_PX },
+        );
+      }
+      return await context.renderAsync();
+    } finally {
+      source.release();
+    }
+  })();
+  return savePngAttachment(
+    image,
+    input.name,
+    translate("The image is too large to attach. Select a region instead."),
+  );
+}
+
+async function savePngAttachment(
+  image: ImageRef,
+  name: string,
+  tooLargeMessage: string,
+): Promise<DraftComposerImageAttachment> {
+  const { SaveFormat } = await import("expo-image-manipulator");
   try {
-    const saved = await crop.saveAsync({ format: SaveFormat.PNG, base64: true });
+    const saved = await image.saveAsync({ format: SaveFormat.PNG, base64: true });
     if (!saved.base64) throw new Error(translate("The cropped region has no bytes."));
     const sizeBytes = estimateBase64ByteSize(saved.base64);
     if (sizeBytes <= 0 || sizeBytes > PROVIDER_SEND_TURN_MAX_IMAGE_BYTES) {
-      throw new Error(translate("The region is too large to attach. Select a smaller region."));
+      throw new Error(tooLargeMessage);
     }
     return {
       id: uuidv4(),
       type: "image",
-      name: input.name,
+      name,
       mimeType: "image/png",
       sizeBytes,
       dataUrl: `data:image/png;base64,${saved.base64}`,
       previewUri: saved.uri,
     };
   } finally {
-    crop.release();
+    image.release();
   }
 }

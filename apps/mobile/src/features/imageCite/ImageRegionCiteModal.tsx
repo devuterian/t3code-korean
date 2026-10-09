@@ -1,7 +1,11 @@
 import {
+  formatImagePoint,
+  imagePointCitationName,
+  imagePointRegion,
   imageRegionBetween,
   imageRegionCitationName,
   isCitableImageRegion,
+  isImagePointRegion,
   type ImageRegion,
 } from "@t3tools/client-runtime/image-region-citation";
 import type { EnvironmentId, ThreadId } from "@t3tools/contracts";
@@ -19,7 +23,7 @@ import { SymbolView } from "../../components/AppSymbol";
 import { ControlPill } from "../../components/ControlPill";
 import { translate, useTranslate } from "../../i18n/translate";
 import { downloadAttachmentForPreview } from "../../lib/attachmentDownload";
-import { cropImageRegionAttachment } from "../../lib/imageRegionCrop";
+import { cropImageRegionAttachment, imagePointAttachment } from "../../lib/imageRegionCrop";
 import { loadLocalAttachmentPreview } from "../../lib/localAttachmentPreview";
 import type { MediaActionsSource } from "../../lib/mediaActionsSource";
 import { scopedThreadKey } from "../../lib/scopedEntities";
@@ -30,6 +34,9 @@ type LocalImage = { readonly uri: string; readonly dispose: () => void };
 type Size = { readonly width: number; readonly height: number };
 
 const REGION_BOX_CLASS_NAME = "absolute rounded-[3px] border-2 border-primary bg-primary/10";
+/** A touch that travels less than this many points is a tap, which marks a point. */
+const MAX_TAP_TRAVEL = 6;
+const POINT_MARKER_SIZE = 22;
 
 /** The cropper reads bytes on the device, so a remote image is downloaded once and shown from there. */
 function useLocalImage(source: MediaActionsSource) {
@@ -118,6 +125,10 @@ function RegionSelector(props: {
   const finish = useCallback(
     (x0: number, y0: number, x1: number, y1: number) => {
       if (width <= 0 || height <= 0) return;
+      if (Math.hypot(x1 - x0, y1 - y0) <= MAX_TAP_TRAVEL) {
+        onSelect(imagePointRegion({ x: x0 / width, y: y0 / height }));
+        return;
+      }
       const region = imageRegionBetween(
         { x: x0 / width, y: y0 / height },
         { x: x1 / width, y: y1 / height },
@@ -188,7 +199,7 @@ function RegionSelector(props: {
         <GestureDetector gesture={gesture}>
           <View
             accessible
-            accessibilityLabel={t("Image. Drag over the part you want to cite.")}
+            accessibilityLabel={t("Image. Drag over a part or tap a point to cite.")}
             style={{
               position: "absolute",
               left: fitted.left,
@@ -197,7 +208,18 @@ function RegionSelector(props: {
               height,
             }}
           >
-            {props.region ? (
+            {props.region && isImagePointRegion(props.region) ? (
+              <View
+                pointerEvents="none"
+                className="absolute rounded-full border-2 border-primary bg-primary/25"
+                style={{
+                  left: props.region.x * width - POINT_MARKER_SIZE / 2,
+                  top: props.region.y * height - POINT_MARKER_SIZE / 2,
+                  width: POINT_MARKER_SIZE,
+                  height: POINT_MARKER_SIZE,
+                }}
+              />
+            ) : props.region ? (
               <View
                 pointerEvents="none"
                 className={REGION_BOX_CLASS_NAME}
@@ -256,13 +278,23 @@ export function ImageRegionCiteModal(props: {
     if (!image || !region || citing) return;
     setCiting(true);
     try {
-      const attachment = await cropImageRegionAttachment({
-        uri: image.uri,
-        region,
-        name: imageRegionCitationName(props.source.name),
-      });
+      // A tapped point is sent as the whole image, with its position leading the comment.
+      const point = isImagePointRegion(region);
+      const attachment = point
+        ? await imagePointAttachment({
+            uri: image.uri,
+            name: imagePointCitationName(props.source.name),
+          })
+        : await cropImageRegionAttachment({
+            uri: image.uri,
+            region,
+            name: imageRegionCitationName(props.source.name),
+          });
+      const citedComment = point
+        ? `[${formatImagePoint(region)}]${comment.trim() ? ` ${comment}` : ""}`
+        : comment;
       const draftKey = scopedThreadKey(props.environmentId, props.threadId);
-      if (!insertComposerDraftImageCitation(draftKey, attachment, comment)) {
+      if (!insertComposerDraftImageCitation(draftKey, attachment, citedComment)) {
         Alert.alert(
           t("Could not add the region"),
           t("Remove some attachments or context from the draft and try again."),
@@ -299,7 +331,7 @@ export function ImageRegionCiteModal(props: {
               <SymbolView name="xmark" size={20} tintColor="#ffffff" type="monochrome" />
             </Pressable>
             <Text className="flex-1 text-center text-base font-t3-semibold text-white">
-              {region ? t("Add a comment") : t("Drag over a region")}
+              {region ? t("Add a comment") : t("Drag a region or tap a point")}
             </Text>
             <View className="min-h-11 min-w-11" />
           </View>

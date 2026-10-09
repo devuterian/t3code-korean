@@ -161,4 +161,9 @@ export const KO_MERGE_1009_B: Readonly<Record<string, string>> = {
   "Shows dictation controls": "받아쓰기 컨트롤을 표시합니다",
   "Hides dictation controls": "받아쓰기 컨트롤을 숨깁니다",
   "Retry dictation": "받아쓰기 다시 시도",
+  "Drag a region or tap a point": "영역을 드래그하거나 지점을 탭하세요",
+  "Image. Drag over a part or tap a point to cite.":
+    "이미지. 인용할 부분을 드래그하거나 지점을 탭하세요.",
+  "The image is too large to attach. Select a region instead.":
+    "이미지가 너무 커서 첨부할 수 없습니다. 대신 영역을 선택하세요.",
 };
