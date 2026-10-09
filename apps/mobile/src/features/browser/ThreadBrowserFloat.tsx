@@ -5,6 +5,7 @@ import { AppState, Pressable, View } from "react-native";
 import Animated, { FadeIn, FadeOut, ReduceMotion } from "react-native-reanimated";
 
 import { SymbolView } from "../../components/AppSymbol";
+import { useTranslate } from "../../i18n/translate";
 import { useAppearancePreferences } from "../settings/appearance/AppearancePreferencesProvider";
 import { browserTabTitle } from "./browserTabs";
 import { PreviewStreamWebView } from "./PreviewStreamWebView";
@@ -77,6 +78,7 @@ function FloatingBrowserPlayer(props: {
   readonly onOpen: () => void;
   readonly onClose: () => void;
 }) {
+  const t = useTranslate();
   const { themeVariables } = useAppearancePreferences();
   const [viewport, setViewport] = useState<{ width: number; height: number } | null>(null);
   // The page keeps its own size; the player scales it into a box of the same shape.
@@ -93,8 +95,8 @@ function FloatingBrowserPlayer(props: {
     >
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`Open browser, ${browserTabTitle(props.tab)}`}
-        accessibilityHint="Opens the browser tab full screen"
+        accessibilityLabel={t("Open browser, {title}", { title: browserTabTitle(props.tab) })}
+        accessibilityHint={t("Opens the browser tab full screen")}
         onPress={props.onOpen}
         className="flex-1"
       >
@@ -114,7 +116,7 @@ function FloatingBrowserPlayer(props: {
       </Pressable>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Close floating preview"
+        accessibilityLabel={t("Close floating preview")}
         hitSlop={8}
         onPress={props.onClose}
         className="absolute right-1.5 top-1.5 size-6 items-center justify-center rounded-full bg-black/55"

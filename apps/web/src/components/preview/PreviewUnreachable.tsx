@@ -32,26 +32,31 @@ export function PreviewFileNotShown({
   downloadUrl: string | null;
   onOpen: () => void;
 }) {
+  const t = useTranslate();
   const host = safeHost(url) ?? url;
+  const [beforeFile = "", afterFile = ""] = t("{file} from {host} was downloaded instead.")
+    .replace("{host}", () => host)
+    .split("{file}");
   return (
     <div className="scrollbar-gutter-both relative flex h-full min-h-0 w-full overflow-y-auto bg-background">
       <div className="mx-auto flex w-full max-w-xl flex-1 flex-col px-8 py-12 sm:py-16">
         <ErrorIcon className="mb-6 size-12 text-muted-foreground/70" />
         <h1 className="mb-3 text-2xl font-semibold leading-tight text-foreground">
-          This file can&rsquo;t be shown here
+          {t("This file can’t be shown here")}
         </h1>
         <p className="text-sm leading-relaxed text-muted-foreground">
-          <span className="font-semibold text-foreground">{fileName}</span> from {host} was
-          downloaded instead.
+          {beforeFile}
+          <span className="font-semibold text-foreground">{fileName}</span>
+          {afterFile}
         </p>
         <div className="mt-auto flex items-center gap-2 pt-8">
           <div className="flex-1" />
           <Button type="button" variant="outline" size="sm" onClick={onOpen}>
-            Open in browser
+            {t("Open in browser")}
           </Button>
           {downloadUrl ? (
             <Button type="button" size="sm" render={<a href={downloadUrl} download={fileName} />}>
-              Download
+              {t("Download")}
             </Button>
           ) : null}
         </div>

@@ -378,10 +378,16 @@ export function UsagePage() {
   }, [showingLimits, connectedLimitsEnvironments]);
 
   // Names the period on screen, which is the previous one until the new one answers.
-  const windowLabel =
+  const [windowStart, windowEnd] =
     shownHourly && shownWindow.sinceTime !== undefined && shownWindow.untilTime !== undefined
-      ? `${formatDateTimeShort(shownWindow.sinceTime, shownWindow.timeZone)} to ${formatDateTimeShort(shownWindow.untilTime, shownWindow.timeZone)}`
-      : `${formatDayShort(shownWindow.sinceDay)} to ${formatDayShort(shownWindow.untilDay)}`;
+      ? [
+          formatDateTimeShort(shownWindow.sinceTime, shownWindow.timeZone),
+          formatDateTimeShort(shownWindow.untilTime, shownWindow.timeZone),
+        ]
+      : [formatDayShort(shownWindow.sinceDay), formatDayShort(shownWindow.untilDay)];
+  const windowLabel = t("{start} to {end}")
+    .replace("{start}", () => windowStart)
+    .replace("{end}", () => windowEnd);
   const topbarContent = (
     <div className="grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 py-2 xl:flex">
       <WorkspaceBreadcrumb ariaLabel={t("Usage breadcrumb")} className="min-w-0">
@@ -1400,15 +1406,16 @@ function UsageProviderFilter({
   readonly hiddenProviders: ReadonlySet<UsageProviderKind>;
   readonly onChange: (hiddenProviders: readonly UsageProviderKind[]) => void;
 }) {
+  const t = useTranslate();
   const visible = PROVIDER_ORDER.filter((provider) => !hiddenProviders.has(provider));
   const label =
     visible.length === PROVIDER_ORDER.length
-      ? "All providers"
+      ? t("All providers")
       : visible.length === 0
-        ? "No providers"
+        ? t("No providers")
         : visible.length === 1
           ? PROVIDER_PRESENTATION[visible[0]!].label
-          : `${visible.length} providers`;
+          : t("{count} providers").replace("{count}", String(visible.length));
 
   return (
     <Menu>
@@ -1425,7 +1432,7 @@ function UsageProviderFilter({
           closeOnClick={false}
           onCheckedChange={(checked) => onChange(checked ? [] : PROVIDER_ORDER)}
         >
-          All providers
+          {t("All providers")}
         </MenuCheckboxItem>
         <MenuSeparator />
         {PROVIDER_ORDER.map((provider) => (

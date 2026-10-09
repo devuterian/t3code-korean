@@ -4047,9 +4047,9 @@ function LiveWorkEntryTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "
         label={
           thoughtIsStatus ? (
             row.active ? (
-              "Thinking"
+              t("Thinking")
             ) : (
-              "Thought"
+              t("Thought")
             )
           ) : row.entry.questionAnswer && hasQuestionAnswer(row.entry.questionAnswer) ? (
             <span className="flex min-w-0 gap-1.5">
@@ -5516,7 +5516,7 @@ function WorkEntryLogRow(props: WorkEntryRowProps) {
               onClick={() => onRetryWorkspacePreparation(retryRunId)}
             >
               <RotateCcwIcon aria-hidden />
-              Retry
+              {t("Retry")}
             </Button>
           </div>
         ) : null}

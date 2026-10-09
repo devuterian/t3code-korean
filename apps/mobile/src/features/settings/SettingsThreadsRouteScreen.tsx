@@ -270,6 +270,7 @@ function AutoSettleSettingsRows() {
  * in Settings → General.
  */
 function BetaSettingsSection() {
+  const t = useTranslate();
   const savePreferences = useAtomSet(updateMobilePreferencesAtom);
   const preferences = useAtomValue(mobilePreferencesAtom);
   const workingShelfEnabled =
@@ -277,18 +278,18 @@ function BetaSettingsSection() {
 
   return (
     <View className="gap-3">
-      <SettingsSection title="Beta">
+      <SettingsSection title={t("Beta")}>
         <SettingsSwitchRow
           icon="bolt.circle"
-          label="Working section"
+          label={t("Working section")}
           value={workingShelfEnabled}
           onValueChange={(value) => savePreferences({ workingShelfEnabled: value })}
         />
       </SettingsSection>
       <Text className="px-2 text-sm text-foreground-muted">
-        Fold working and monitoring threads into a Working section. They return to the top of the
-        list when they need you. While this is on, active threads are ordered by time and cannot be
-        moved.
+        {t(
+          "Fold working and monitoring threads into a Working section. They return to the top of the list when they need you. While this is on, active threads are ordered by time and cannot be moved.",
+        )}
       </Text>
     </View>
   );

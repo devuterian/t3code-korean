@@ -1112,7 +1112,7 @@ export const ModelPickerContent = memo(function ModelPickerContent(props: {
                     void navigate({ to: "/settings/providers" });
                   }}
                 >
-                  Provider settings
+                  {t("Provider settings")}
                 </InlineButton>
               </p>
             ))}

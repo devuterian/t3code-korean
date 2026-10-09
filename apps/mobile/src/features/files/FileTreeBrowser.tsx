@@ -15,7 +15,7 @@ import {
   type FileTreeNode,
   type VisibleFileTreeNode,
 } from "./fileTree";
-import { useTranslate } from "../../i18n/translate";
+import { translate, useTranslate } from "../../i18n/translate";
 
 const fileTreeCache = new WeakMap<ReadonlyArray<ProjectEntry>, ReadonlyArray<FileTreeNode>>();
 const OPTIMISTIC_SELECTION_TIMEOUT_MS = 1_000;
@@ -97,7 +97,10 @@ const FileTreeRow = memo(function FileTreeRow(props: {
         {node.name}
       </Text>
       {node.kind === "directory" && props.expanded && props.loading ? (
-        <ActivityIndicator size="small" accessibilityLabel={`Loading ${node.name}`} />
+        <ActivityIndicator
+          size="small"
+          accessibilityLabel={translate("Loading {name}", { name: node.name })}
+        />
       ) : null}
     </Pressable>
   );

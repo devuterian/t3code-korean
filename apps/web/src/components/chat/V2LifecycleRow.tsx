@@ -46,7 +46,7 @@ import { cn } from "~/lib/utils";
 import { TimelineSystemDivider } from "./TimelineSystemDivider";
 import { Button, InlineButton } from "../ui/button";
 import { T3Wordmark } from "../T3Wordmark";
-import { useTranslate } from "~/i18n/translate";
+import { translate, useTranslate } from "~/i18n/translate";
 
 const LIFECYCLE_TYPES = new Set<OrchestrationV2TurnItem["type"]>([
   "run_interrupt_request",
@@ -388,7 +388,7 @@ export function SubagentNotificationLink(props: {
         (provider) => provider.instanceId === agent.providerInstanceId,
       )}
       providers={props.providerStatuses}
-      title={formatSubagentDisplayTitle(agent.title ?? "Subagent")}
+      title={formatSubagentDisplayTitle(agent.title ?? translate("Subagent"))}
       result={agent.result}
       progress={agent.progress}
       startedAt={agent.startedAt}

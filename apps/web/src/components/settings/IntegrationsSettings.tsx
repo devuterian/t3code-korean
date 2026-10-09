@@ -1477,14 +1477,19 @@ function BrowserProfilesSetting({ disabled }: { readonly disabled: boolean }) {
         <AlertDialogPopup>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              Clear “{profilePendingClear?.name}”’s cookies and cache?
+              {t("Clear “{name}”’s cookies and cache?").replace(
+                "{name}",
+                () => profilePendingClear?.name ?? "",
+              )}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              You are signed out of its sites. Server browser tabs open in this profile close now.
+              {t(
+                "You are signed out of its sites. Server browser tabs open in this profile close now.",
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogClose render={<Button variant="outline" />}>Cancel</AlertDialogClose>
+            <AlertDialogClose render={<Button variant="outline" />}>{t("Cancel")}</AlertDialogClose>
             <Button
               variant="destructive"
               onClick={() => {
@@ -1493,7 +1498,7 @@ function BrowserProfilesSetting({ disabled }: { readonly disabled: boolean }) {
                 setProfilePendingClear(null);
               }}
             >
-              Clear data
+              {t("Clear data")}
             </Button>
           </AlertDialogFooter>
         </AlertDialogPopup>

@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ControlPill } from "../../components/ControlPill";
 import { ScreenHeader } from "../../components/ScreenHeader";
+import { useTranslate } from "../../i18n/translate";
 import { NativeHeaderToolbar } from "../../native/StackHeader";
 import { useThreadServerBrowserTabs } from "../../state/preview";
 import { useAppearancePreferences } from "../settings/appearance/AppearancePreferencesProvider";
@@ -75,6 +76,7 @@ function BrowserPreviewScreen({
   readonly initialTabId: string | null;
   readonly onClose: () => void;
 }) {
+  const t = useTranslate();
   const insets = useSafeAreaInsets();
   const { themeVariables } = useAppearancePreferences();
   const focused = useIsFocused();
@@ -102,10 +104,13 @@ function BrowserPreviewScreen({
   useEffect(() => {
     if (focused && loaded && tabs.length === 0) onClose();
   }, [focused, loaded, tabs.length, onClose]);
-  const onPictureInPicture = useCallback((state: PreviewPictureInPictureState, detail?: string) => {
-    setPictureInPicture({ supported: state.supported, active: state.active });
-    if (detail) Alert.alert("Picture in picture is unavailable", detail);
-  }, []);
+  const onPictureInPicture = useCallback(
+    (state: PreviewPictureInPictureState, detail?: string) => {
+      setPictureInPicture({ supported: state.supported, active: state.active });
+      if (detail) Alert.alert(t("Picture in picture is unavailable"), detail);
+    },
+    [t],
+  );
   const selectTab = (next: string) => {
     setPictureInPicture(NO_PICTURE_IN_PICTURE);
     setSelectedTabId(next);
@@ -116,7 +121,7 @@ function BrowserPreviewScreen({
   return (
     <View className="flex-1 bg-sheet" style={{ paddingBottom: insets.bottom }}>
       <ScreenHeader
-        title={tab ? browserTabTitle(tab) : "Browser"}
+        title={tab ? browserTabTitle(tab) : t("Browser")}
         sidebar={false}
         onBack={onClose}
         options={{ headerBackVisible: false }}
@@ -126,8 +131,8 @@ function BrowserPreviewScreen({
             ? [
                 {
                   accessibilityLabel: pictureInPicture.active
-                    ? "Exit picture in picture"
-                    : "Picture in picture",
+                    ? t("Exit picture in picture")
+                    : t("Picture in picture"),
                   icon: {
                     ios: pictureInPicture.active ? "pip.exit" : "pip.enter",
                     android: "visibility",
@@ -142,7 +147,7 @@ function BrowserPreviewScreen({
           tabs.length > 1
             ? [
                 {
-                  title: "Tabs",
+                  title: t("Tabs"),
                   icon: "square.on.square",
                   items: tabs.map((entry) => ({
                     id: entry.tabId,
@@ -160,7 +165,7 @@ function BrowserPreviewScreen({
         <NativeHeaderToolbar placement="left">
           <NativeHeaderToolbar.Button
             icon="xmark"
-            accessibilityLabel="Close browser"
+            accessibilityLabel={t("Close browser")}
             onPress={onClose}
             separateBackground
           />
@@ -219,6 +224,7 @@ function BrowserAddressBar({
   readonly streaming: boolean;
   readonly onCommand: PreviewStreamRef["command"];
 }) {
+  const t = useTranslate();
   const url = browserTabUrl(tab);
   // Null while not editing, so agent navigation keeps the field current.
   const [draft, setDraft] = useState<string | null>(null);
@@ -228,31 +234,31 @@ function BrowserAddressBar({
     try {
       onCommand({ type: "navigate", url: normalizePreviewUrl(value) });
     } catch {
-      Alert.alert("Could not open this address", "Enter an http or https URL.");
+      Alert.alert(t("Could not open this address"), t("Enter an http or https URL."));
     }
   };
   return (
     <View className="flex-row items-center gap-1 px-2 pb-2">
       <ControlPill
         icon="chevron.left"
-        accessibilityLabel="Back"
+        accessibilityLabel={t("Back")}
         disabled={!ready || !tab.canGoBack}
         onPress={() => onCommand({ type: "history", delta: -1 })}
       />
       <ControlPill
         icon="chevron.right"
-        accessibilityLabel="Forward"
+        accessibilityLabel={t("Forward")}
         disabled={!ready || !tab.canGoForward}
         onPress={() => onCommand({ type: "history", delta: 1 })}
       />
       <TextInput
-        accessibilityLabel="Address"
+        accessibilityLabel={t("Address")}
         editable={ready}
         value={draft ?? url}
         onChangeText={setDraft}
         onBlur={() => setDraft(null)}
         onSubmitEditing={submit}
-        placeholder="Enter a URL"
+        placeholder={t("Enter a URL")}
         placeholderTextColorClassName="accent-placeholder"
         autoCapitalize="none"
         autoCorrect={false}
@@ -263,7 +269,7 @@ function BrowserAddressBar({
       />
       <ControlPill
         icon="arrow.clockwise"
-        accessibilityLabel="Reload page"
+        accessibilityLabel={t("Reload page")}
         disabled={!ready}
         onPress={() => onCommand({ type: "reload" })}
       />

@@ -48,7 +48,7 @@ export function DeviceHostsSettings(props: { environmentId: EnvironmentId | null
             throw new Error(t("Environment disconnected"));
           }
           if (!readEnvironmentScope(environment.environmentId, AuthSettingsWriteScope)) {
-            throw new Error("This connection cannot change device settings.");
+            throw new Error(t("This connection cannot change device settings."));
           }
           return update({
             environmentId: environment.environmentId,

@@ -174,7 +174,7 @@ function splitModelKey(value: string): ModelSelection | null {
 }
 
 export function scheduleLabel(schedule: ScheduledTaskSchedule): string {
-  if (schedule.type === "webhook") return "On webhook";
+  if (schedule.type === "webhook") return translate("On webhook");
   if (schedule.type === "interval") {
     const minutes = schedule.everyMs / 60_000;
     return Number.isInteger(minutes)
@@ -540,6 +540,7 @@ function WebhookDeliveriesDialog({
   readonly task: ScheduledTask;
   readonly onClose: () => void;
 }) {
+  const t = useTranslate();
   const deliveriesQuery = useEnvironmentQuery(
     serverEnvironment.scheduledTaskWebhookDeliveries({ environmentId, input: { id: task.id } }),
   );
@@ -567,55 +568,57 @@ function WebhookDeliveriesDialog({
     >
       <DialogPopup className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Deliveries · {task.title}</DialogTitle>
-          <DialogDescription>Recent requests to this task's webhook URL.</DialogDescription>
+          <DialogTitle>
+            {t("Deliveries")} · {task.title}
+          </DialogTitle>
+          <DialogDescription>{t("Recent requests to this task's webhook URL.")}</DialogDescription>
         </DialogHeader>
         <DialogPanel>
           {error ? <p className="text-sm text-destructive">{error}</p> : null}
           {selectedId !== null && selected === null && selectedQuery.error === null ? (
             <p className="text-sm text-muted-foreground" role="status">
-              Loading delivery…
+              {t("Loading delivery…")}
             </p>
           ) : selected ? (
             <div className="space-y-4">
               <div className="flex flex-wrap items-center gap-2 text-sm">
                 <Badge variant={deliveryOutcomeVariant(selected.outcome)}>
-                  {DELIVERY_OUTCOME_LABELS[selected.outcome]}
+                  {t(DELIVERY_OUTCOME_LABELS[selected.outcome])}
                 </Badge>
                 <span>
                   {selected.method} · {relativeLabel(selected.receivedAt)}
                 </span>
                 {selected.signatureVerified ? (
-                  <span className="text-muted-foreground">Signature verified</span>
+                  <span className="text-muted-foreground">{t("Signature verified")}</span>
                 ) : null}
               </div>
               {selected.error ? <p className="text-sm text-destructive">{selected.error}</p> : null}
-              <DeliveryBlock title="Prompt sent to the agent">
-                {selected.renderedPrompt ?? "No run was started for this request."}
+              <DeliveryBlock title={t("Prompt sent to the agent")}>
+                {selected.renderedPrompt ?? t("No run was started for this request.")}
               </DeliveryBlock>
               {selected.missingFields.length > 0 ? (
                 <p className="text-sm text-muted-foreground">
-                  Empty placeholders: {selected.missingFields.join(", ")}
+                  {t("Empty placeholders:")} {selected.missingFields.join(", ")}
                 </p>
               ) : null}
-              <DeliveryBlock title="Headers">
+              <DeliveryBlock title={t("Headers")}>
                 {Object.entries(selected.headers)
                   .map(([name, value]) => `${name}: ${value}`)
                   .join("\n")}
               </DeliveryBlock>
               {selected.query ? (
-                <DeliveryBlock title="Query">{selected.query}</DeliveryBlock>
+                <DeliveryBlock title={t("Query")}>{selected.query}</DeliveryBlock>
               ) : null}
-              <DeliveryBlock title={selected.bodyTruncated ? "Body (truncated)" : "Body"}>
-                {selected.body || "(empty)"}
+              <DeliveryBlock title={selected.bodyTruncated ? t("Body (truncated)") : t("Body")}>
+                {selected.body || t("(empty)")}
               </DeliveryBlock>
             </div>
           ) : selectedId !== null ? null : deliveries === null ? (
             <p className="text-sm text-muted-foreground" role="status">
-              Loading deliveries…
+              {t("Loading deliveries…")}
             </p>
           ) : deliveries.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No requests yet.</p>
+            <p className="text-sm text-muted-foreground">{t("No requests yet.")}</p>
           ) : (
             <ul className="divide-y divide-border">
               {deliveries.map((delivery) => (
@@ -626,7 +629,7 @@ function WebhookDeliveriesDialog({
                     onClick={() => setSelectedId(delivery.id)}
                   >
                     <Badge variant={deliveryOutcomeVariant(delivery.outcome)}>
-                      {DELIVERY_OUTCOME_LABELS[delivery.outcome]}
+                      {t(DELIVERY_OUTCOME_LABELS[delivery.outcome])}
                     </Badge>
                     <span>{delivery.method}</span>
                     <span className="text-muted-foreground">
@@ -634,8 +637,10 @@ function WebhookDeliveriesDialog({
                     </span>
                     {delivery.missingFields.length > 0 ? (
                       <span className="text-muted-foreground">
-                        {delivery.missingFields.length} empty placeholder
-                        {delivery.missingFields.length === 1 ? "" : "s"}
+                        {(delivery.missingFields.length === 1
+                          ? t("{count} empty placeholder")
+                          : t("{count} empty placeholders")
+                        ).replace("{count}", String(delivery.missingFields.length))}
                       </span>
                     ) : null}
                   </button>
@@ -647,7 +652,7 @@ function WebhookDeliveriesDialog({
         <DialogFooter>
           {selectedId !== null ? (
             <Button variant="outline" size="sm" onClick={() => setSelectedId(null)}>
-              Back
+              {t("Back")}
             </Button>
           ) : (
             <Button
@@ -656,10 +661,10 @@ function WebhookDeliveriesDialog({
               disabled={deliveriesQuery.isPending}
               onClick={deliveriesQuery.refresh}
             >
-              Refresh
+              {t("Refresh")}
             </Button>
           )}
-          <DialogClose render={<Button size="sm" />}>Done</DialogClose>
+          <DialogClose render={<Button size="sm" />}>{t("Done")}</DialogClose>
         </DialogFooter>
       </DialogPopup>
     </Dialog>
@@ -684,6 +689,7 @@ function WebhookEndpointField({
   readonly environmentId: EnvironmentId;
   readonly task: ScheduledTask | null;
 }) {
+  const t = useTranslate();
   const canRotate = useAtomValue(
     serverEnvironment.rotateScheduledTaskWebhookToken.permissionAtom(environmentId),
   );
@@ -695,17 +701,17 @@ function WebhookEndpointField({
   const [rotating, setRotating] = useState(false);
   const endpoint = task?.webhook;
   if (!task || !endpoint) {
-    return <p className="text-sm text-muted-foreground">The URL appears after you save.</p>;
+    return <p className="text-sm text-muted-foreground">{t("The URL appears after you save.")}</p>;
   }
   const { address: url, copyable, note } = webhookAddress(endpoint, httpBaseUrl);
   const rotateUrl = async () => {
     const confirmed =
-      (await requestConfirmDialog("Rotate this webhook URL?\nThe current URL stops working.", {
+      (await requestConfirmDialog(t("Rotate this webhook URL?\nThe current URL stops working."), {
         variant: "destructive",
       })) ??
       // No themed dialog host is mounted; fall back to the native prompt
       // rather than rotating unasked.
-      window.confirm("Rotate this webhook URL? The current URL stops working.");
+      window.confirm(t("Rotate this webhook URL? The current URL stops working."));
     if (!confirmed) return;
     setRotating(true);
     const result = await rotate({ environmentId, input: { id: task.id } });
@@ -714,7 +720,7 @@ function WebhookEndpointField({
       toastManager.add(
         stackedThreadToast({
           type: "error",
-          title: "Could not rotate webhook URL",
+          title: t("Could not rotate webhook URL"),
           description: String(squashAtomCommandFailure(result)),
         }),
       );
@@ -725,7 +731,7 @@ function WebhookEndpointField({
       <div className="flex items-center gap-2">
         <Input
           readOnly
-          aria-label="Webhook URL"
+          aria-label={t("Webhook URL")}
           value={url}
           onFocus={(event) => event.currentTarget.select()}
         />
@@ -738,7 +744,7 @@ function WebhookEndpointField({
           onClick={() => copyToClipboard(url, undefined)}
         >
           <CopyIcon />
-          {isCopied ? "Copied" : "Copy"}
+          {isCopied ? t("Copied") : t("Copy")}
         </Button>
         <Button
           size="sm"
@@ -747,10 +753,10 @@ function WebhookEndpointField({
           disabled={rotating || !canRotate}
           onClick={() => void rotateUrl()}
         >
-          Rotate
+          {t("Rotate")}
         </Button>
       </div>
-      {note !== null ? <p className="text-xs text-muted-foreground">{note}</p> : null}
+      {note !== null ? <p className="text-xs text-muted-foreground">{t(note)}</p> : null}
       {endpoint.url !== null ? <WebhookDeliveryMode environmentId={environmentId} /> : null}
     </div>
   );
@@ -762,15 +768,16 @@ function WebhookEndpointField({
  * for this machine's own environment, so other environments show nothing.
  */
 function WebhookDeliveryMode({ environmentId }: { readonly environmentId: EnvironmentId }) {
+  const t = useTranslate();
   const cloudLink = usePrimaryCloudLinkState();
   if (cloudLink.target?.environmentId !== environmentId || cloudLink.data === null) return null;
   return (
     <p className="text-xs text-muted-foreground">
       {cloudLink.data.holdWebhooksWhileOffline
-        ? "Held for up to 24 hours while this environment is offline. "
-        : "Forwarded live. Requests fail while this environment is offline. "}
+        ? t("Held for up to 24 hours while this environment is offline.")
+        : t("Forwarded live. Requests fail while this environment is offline.")}{" "}
       <Link to="/settings/connections" className="underline underline-offset-2">
-        Change in Connections
+        {t("Change in Connections")}
       </Link>
     </p>
   );
@@ -887,8 +894,11 @@ function ScheduledTaskEditorDialog({
     const schedule = scheduleFromDraft(draft);
     if (schedule === null) {
       reportFailure(
-        "Invalid age limit",
-        `Enter whole minutes from 1 to ${MAX_WEBHOOK_DELIVERY_AGE_MINUTES}, or leave it blank.`,
+        t("Invalid age limit"),
+        t("Enter whole minutes from 1 to {max}, or leave it blank.").replace(
+          "{max}",
+          String(MAX_WEBHOOK_DELIVERY_AGE_MINUTES),
+        ),
       );
       return;
     }
@@ -899,7 +909,7 @@ function ScheduledTaskEditorDialog({
         (!schedule.signature.secret &&
           !(liveTask?.schedule.type === "webhook" && liveTask.webhook?.hasSecret)))
     ) {
-      reportFailure("Signing secret is required", "Enter the signature header and secret.");
+      reportFailure(t("Signing secret is required"), t("Enter the signature header and secret."));
       return;
     }
     if (
@@ -1190,13 +1200,13 @@ function ScheduledTaskEditorDialog({
                 <div className="space-y-4">
                   <WebhookEndpointField environmentId={environmentId} task={liveTask} />
                   <p className="text-xs text-muted-foreground">
-                    {
-                      "Each request runs the prompt. Use {{body.path}}, {{headers.name}}, {{query.name}}, {{body}} or {{request}} in the prompt; only what it names reaches the agent."
-                    }
+                    {t(
+                      "Each request runs the prompt. Use {{body.path}}, {{headers.name}}, {{query.name}}, {{body}} or {{request}} in the prompt; only what it names reaches the agent.",
+                    )}
                   </p>
                   <Field
-                    label="Skip requests older than"
-                    hint="minutes, optional"
+                    label={t("Skip requests older than")}
+                    hint={t("minutes, optional")}
                     htmlFor="scheduled-task-max-age"
                   >
                     <Input
@@ -1205,7 +1215,7 @@ function ScheduledTaskEditorDialog({
                       nativeInput
                       min={1}
                       max={MAX_WEBHOOK_DELIVERY_AGE_MINUTES}
-                      placeholder="Run every request"
+                      placeholder={t("Run every request")}
                       value={draft.maxDeliveryAgeMinutes}
                       onChange={(event) =>
                         setDraft((current) => ({
@@ -1217,9 +1227,9 @@ function ScheduledTaskEditorDialog({
                   </Field>
                   <div className="flex items-center justify-between gap-4">
                     <div className="min-w-0 space-y-1">
-                      <Label htmlFor="scheduled-task-signature">Require signature</Label>
+                      <Label htmlFor="scheduled-task-signature">{t("Require signature")}</Label>
                       <p className="text-sm text-muted-foreground">
-                        Reject requests without a valid HMAC-SHA256 signature of the body.
+                        {t("Reject requests without a valid HMAC-SHA256 signature of the body.")}
                       </p>
                     </div>
                     <Switch
@@ -1232,7 +1242,7 @@ function ScheduledTaskEditorDialog({
                   </div>
                   {draft.signatureEnabled ? (
                     <div className="grid gap-3 sm:grid-cols-2">
-                      <Field label="Header" htmlFor="scheduled-task-signature-header">
+                      <Field label={t("Header")} htmlFor="scheduled-task-signature-header">
                         <Input
                           id="scheduled-task-signature-header"
                           value={draft.signatureHeader}
@@ -1244,11 +1254,11 @@ function ScheduledTaskEditorDialog({
                           }
                         />
                       </Field>
-                      <Field label="Prefix" htmlFor="scheduled-task-signature-prefix">
+                      <Field label={t("Prefix")} htmlFor="scheduled-task-signature-prefix">
                         <Input
                           id="scheduled-task-signature-prefix"
                           value={draft.signaturePrefix}
-                          placeholder="None"
+                          placeholder={t("None")}
                           onChange={(event) =>
                             setDraft((current) => ({
                               ...current,
@@ -1257,7 +1267,7 @@ function ScheduledTaskEditorDialog({
                           }
                         />
                       </Field>
-                      <Field label="Encoding" htmlFor="scheduled-task-signature-encoding">
+                      <Field label={t("Encoding")} htmlFor="scheduled-task-signature-encoding">
                         <Select
                           value={draft.signatureEncoding}
                           onValueChange={(value) =>
@@ -1276,7 +1286,7 @@ function ScheduledTaskEditorDialog({
                           </SelectPopup>
                         </Select>
                       </Field>
-                      <Field label="Secret" htmlFor="scheduled-task-signature-secret">
+                      <Field label={t("Secret")} htmlFor="scheduled-task-signature-secret">
                         <Input
                           id="scheduled-task-signature-secret"
                           type="password"
@@ -1284,8 +1294,8 @@ function ScheduledTaskEditorDialog({
                           value={draft.signatureSecret}
                           placeholder={
                             liveTask?.schedule.type === "webhook" && liveTask.webhook?.hasSecret
-                              ? "Unchanged"
-                              : "Shared secret"
+                              ? t("Unchanged")
+                              : t("Shared secret")
                           }
                           onChange={(event) =>
                             setDraft((current) => ({

@@ -16,6 +16,7 @@ import { Pressable, View, type ColorValue } from "react-native";
 
 import { SymbolView, type AppSymbolName } from "../../components/AppSymbol";
 import { AppText as Text, AppTextInput as TextInput } from "../../components/AppText";
+import { useTranslate } from "../../i18n/translate";
 import { serverEnvironment } from "../../state/server";
 import { useAtomCommand } from "../../state/use-atom-command";
 import { RequestActionButton } from "./RequestActionButton";
@@ -33,6 +34,7 @@ export function SecretRequestCard(props: {
   readonly projectedItem: OrchestrationV2ProjectedTurnItem;
   readonly iconColor: ColorValue;
 }) {
+  const t = useTranslate();
   const { item, visibility } = props.projectedItem;
   if (item.type !== "secret_request") return null;
   const display = secretRequestDisplay(item, visibility);
@@ -55,7 +57,7 @@ export function SecretRequestCard(props: {
     <View className="mb-3 min-h-9 flex-row items-center gap-2 px-1">
       <SymbolView name={icon} size={13} tintColor={props.iconColor} type="monochrome" />
       <Text className="flex-1 font-sans text-sm text-foreground-muted" numberOfLines={2}>
-        {item.label} · {display.label}
+        {item.label} · {t(display.label)}
       </Text>
     </View>
   );
@@ -66,6 +68,7 @@ function PendingSecretRequestForm(props: {
   readonly item: SecretRequestItem;
   readonly iconColor: ColorValue;
 }) {
+  const t = useTranslate();
   const { item } = props;
   const answer = useAtomCommand(serverEnvironment.answerSecretRequest, {
     label: "answer secret request",
@@ -113,7 +116,7 @@ function PendingSecretRequestForm(props: {
       </View>
       <TextInput
         accessibilityLabel={item.label}
-        placeholder={item.placeholder ?? SECRET_REQUEST_DEFAULT_PLACEHOLDER}
+        placeholder={item.placeholder ?? t(SECRET_REQUEST_DEFAULT_PLACEHOLDER)}
         value={secret}
         onChangeText={setSecret}
         editable={!submitting}
@@ -133,11 +136,11 @@ function PendingSecretRequestForm(props: {
           accessibilityLiveRegion="polite"
           className="font-sans text-sm text-danger-foreground"
         >
-          {error}
+          {t(error)}
         </Text>
       ) : null}
       <RequestActionButton
-        label="Save securely"
+        label={t("Save securely")}
         disabled={submitting || secret.trim().length === 0}
         onPress={() => void send({ type: "save", secret })}
       />
@@ -150,7 +153,7 @@ function PendingSecretRequestForm(props: {
             type="monochrome"
           />
           <Text className="flex-1 font-sans text-xs text-foreground-muted">
-            {SECRET_REQUEST_PRIVACY_NOTE}
+            {t(SECRET_REQUEST_PRIVACY_NOTE)}
           </Text>
         </View>
         {/* Quiet like the web card's: the field and Save are the action. */}
@@ -162,7 +165,7 @@ function PendingSecretRequestForm(props: {
           className="px-1 py-1 active:opacity-60 disabled:opacity-50"
           onPress={() => void send({ type: "decline" })}
         >
-          <Text className="font-sans text-xs text-foreground-muted">Decline</Text>
+          <Text className="font-sans text-xs text-foreground-muted">{t("Decline")}</Text>
         </Pressable>
       </View>
     </View>

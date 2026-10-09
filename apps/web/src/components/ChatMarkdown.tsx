@@ -987,7 +987,11 @@ function MarkdownCodeBlock({
       // Find does not count the header, so it must not highlight it either.
       headerProps={THREAD_FIND_IGNORE_PROPS}
       actions={
-        <span className="flex items-center gap-0.5" role="toolbar" aria-label="Code block actions">
+        <span
+          className="flex items-center gap-0.5"
+          role="toolbar"
+          aria-label={t("Code block actions")}
+        >
           {leadingActions}
           {canWrap ? (
             <Tooltip>
@@ -1054,12 +1058,13 @@ function MarkdownMermaidCodeBlock({
   onExpand: (imageUrl: string) => void;
   children: ReactNode;
 }) {
+  const t = useTranslate();
   const [showCode, setShowCode] = useState(false);
   const searching = use(MarkdownFindContext);
   const revealSource = useCallback(() => setShowCode(true), []);
   const sourceRevealRef = useFindRevealRef(revealSource);
   const showDiagram = !showCode && !isStreaming && code.trim().length > 0;
-  const toggleLabel = showCode ? "Show diagram" : "Show code";
+  const toggleLabel = showCode ? t("Show diagram") : t("Show code");
   return (
     <MarkdownCodeBlock
       code={code}
@@ -1095,7 +1100,7 @@ function MarkdownMermaidCodeBlock({
           <Suspense
             fallback={
               <div className="flex min-h-36 items-center justify-center text-xs text-muted-foreground">
-                Rendering diagram
+                {t("Rendering diagram")}
               </div>
             }
           >
@@ -2546,7 +2551,9 @@ function useChatMarkdownState({
       if (!readEnvironmentScope(environmentId, AuthOrchestrationOperateScope)) {
         return Promise.resolve(
           AsyncResult.failure<void, Error>(
-            Cause.fail(new Error("This connection cannot reveal files on this environment.")),
+            Cause.fail(
+              new Error(translate("This connection cannot reveal files on this environment.")),
+            ),
           ),
         );
       }
@@ -2659,7 +2666,7 @@ function useChatMarkdownState({
           AsyncResult.failure<void, BrowserPreviewUnavailableError>(
             Cause.fail(
               new BrowserPreviewUnavailableError({
-                message: "Preview access is unavailable for this client.",
+                message: translate("Preview access is unavailable for this client."),
               }),
             ),
           ),
@@ -3519,7 +3526,9 @@ const CHAT_MARKDOWN_COMPONENTS = {
           fenceTitle={fenceTitle}
           theme={resolvedTheme}
           isStreaming={isStreaming}
-          onExpand={(src) => expandMedia({ images: [{ src, name: "Mermaid diagram" }], index: 0 })}
+          onExpand={(src) =>
+            expandMedia({ images: [{ src, name: translate("Mermaid diagram") }], index: 0 })
+          }
         >
           {highlightedCode}
         </MarkdownMermaidCodeBlock>

@@ -1,5 +1,6 @@
 import { useAtomValue } from "@effect/atom-react";
 import type { PullRequestAction } from "@t3tools/contracts";
+import { translate, useTranslate } from "~/i18n/translate";
 import { pullRequestEnvironment } from "~/state/pullRequests";
 import { useUiStateStore } from "~/uiStateStore";
 import { Button } from "../ui/button";
@@ -39,6 +40,7 @@ export function PullRequestSpeedActions<Entry extends PullRequestSpeedActionEntr
   sweeping?: boolean;
   onCloseSweepStart?: (entry: Entry, event: PointerEvent) => void;
 }) {
+  const t = useTranslate();
   const canWrite = useAtomValue(
     pullRequestEnvironment.runAction.permissionAtom(entry.environmentId),
   );
@@ -61,7 +63,7 @@ export function PullRequestSpeedActions<Entry extends PullRequestSpeedActionEntr
         (method) => detail.mergeCapabilities[method],
       );
       if (allowed.length === 0)
-        throw new Error("No merge method is available for this repository.");
+        throw new Error(translate("No merge method is available for this repository."));
       return resolvePullRequestMergeMethod(
         allowed,
         null,
@@ -82,11 +84,14 @@ export function PullRequestSpeedActions<Entry extends PullRequestSpeedActionEntr
       className="shrink-0 items-center gap-1 pr-3"
       style={{ display: visible || busy ? "flex" : "none" }}
       role="group"
-      aria-label={`Quick actions for pull request #${entry.number}`}
+      aria-label={t("Quick actions for pull request #{number}").replace(
+        "{number}",
+        String(entry.number),
+      )}
       data-pull-request-action-pending={actionPending || closing}
     >
       {actions.map((action) => {
-        const label = ACTIONS[action].label;
+        const label = t(ACTIONS[action].label);
         const Icon = ACTIONS[action].Icon;
         return (
           <Tooltip key={action}>
@@ -111,10 +116,10 @@ export function PullRequestSpeedActions<Entry extends PullRequestSpeedActionEntr
             </TooltipTrigger>
             <TooltipPopup>
               {action === "merge" && entry.stack
-                ? "Open this pull request to merge its stack"
+                ? t("Open this pull request to merge its stack")
                 : action === "close" && onCloseSweepStart
-                  ? "Close immediately, or drag across rows to close several"
-                  : `${label} immediately`}
+                  ? t("Close immediately, or drag across rows to close several")
+                  : t(`${ACTIONS[action].label} immediately`)}
             </TooltipPopup>
           </Tooltip>
         );

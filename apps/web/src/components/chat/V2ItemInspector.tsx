@@ -25,7 +25,7 @@ import { Button } from "../ui/button";
 import ChatMarkdown, { ChatMarkdownAssetImage } from "../ChatMarkdown";
 import { RenderErrorBoundary } from "../RenderErrorBoundary";
 import { resolveExternalWebLinkHref } from "./externalLinkContextMenu";
-import { useTranslate } from "~/i18n/translate";
+import { translate, useTranslate } from "~/i18n/translate";
 import type { ExpandedImagePreview } from "./ExpandedImagePreview";
 import { ShellCommandBlock } from "./ShellCommandBlock";
 
@@ -130,7 +130,7 @@ function useFetchedTurnItem(
         item !== wireItem
           ? null
           : detail.data?.item === null
-            ? "Output is no longer available."
+            ? translate("Output is no longer available.")
             : detail.error,
       empty: fetches && item !== wireItem,
     },

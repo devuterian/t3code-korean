@@ -366,7 +366,7 @@ export function PendingUserInputCard(props: PendingUserInputCardProps) {
       ) : null}
       {!props.canOperateThread ? (
         <Text className="font-sans text-xs text-foreground-tertiary">
-          This connection cannot submit answers.
+          {t("This connection cannot submit answers.")}
         </Text>
       ) : null}
     </Animated.View>

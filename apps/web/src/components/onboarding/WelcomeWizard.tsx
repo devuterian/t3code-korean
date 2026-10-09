@@ -427,21 +427,25 @@ function ConnectionStep({
       </div>
       {skippedLabels.length > 0 ? (
         <p className="mt-4 text-xs text-muted-foreground">
-          Not connected, so setup skips {skippedLabels.join(", ")}. You can set{" "}
-          {skippedLabels.length === 1 ? "it" : "them"} up later from Settings.
+          {t(
+            skippedLabels.length === 1
+              ? "Not connected, so setup skips {labels}. You can set it up later from Settings."
+              : "Not connected, so setup skips {labels}. You can set them up later from Settings.",
+          ).replace("{labels}", () => skippedLabels.join(", "))}
         </p>
       ) : null}
       <div className="mt-6 flex flex-col-reverse gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
         <p className="min-w-0 text-xs leading-relaxed text-muted-foreground">
-          T3 Code collects anonymous usage data to help us improve it. To read more about how your
-          data is used and how to opt out, see our{" "}
+          {t(
+            "T3 Code collects anonymous usage data to help us improve it. To read more about how your data is used and how to opt out, see our",
+          )}{" "}
           <a
             className="underline underline-offset-2 hover:text-foreground"
             href={PRIVACY_POLICY_URL}
             target="_blank"
             rel="noreferrer noopener"
           >
-            privacy policy
+            {t("privacy policy")}
           </a>
           .
         </p>
@@ -1558,7 +1562,7 @@ function ImportStep({
         </div>
       </ScrollArea>
       {visibleImportError ? (
-        <p className="mt-3 text-sm text-destructive">{visibleImportError}</p>
+        <p className="mt-3 text-sm text-destructive">{t(visibleImportError)}</p>
       ) : null}
       <div className="mt-6 flex flex-wrap items-center justify-end gap-3">
         <Button variant="ghost-muted" disabled={isImporting} onClick={finishAfterImport}>

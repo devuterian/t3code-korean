@@ -32,6 +32,7 @@ import { cn } from "~/lib/utils";
 import { useTurnItemDetail } from "~/state/queries";
 import { mcpAppEnvironment } from "~/state/mcpApps";
 import { useAtomCommand } from "~/state/use-atom-command";
+import { translate, useTranslate } from "~/i18n/translate";
 
 const commandFailure = (result: {
   readonly cause: Parameters<typeof squashAtomCommandFailure>[0]["cause"];
@@ -87,6 +88,7 @@ export function McpAppFrame(props: {
   readonly onFullscreenChange?: (fullscreen: boolean) => void;
 }) {
   const { app } = props;
+  const t = useTranslate();
   const theme = useHtmlRenderTheme();
   const frameRef = useRef<HTMLIFrameElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
@@ -330,7 +332,12 @@ export function McpAppFrame(props: {
         if (!info.value.callable) throw new McpAppHostRefusal("This app cannot call that tool.");
         if (!info.value.readOnly) {
           const approved = await ask(
-            `Allow ${app.server} to run ${info.value.title ?? name}?\n${JSON.stringify(args, null, 2)}`,
+            `${translate("Allow {server} to run {tool}?")
+              .replace("{server}", () => app.server)
+              .replace(
+                "{tool}",
+                () => info.value.title ?? name,
+              )}\n${JSON.stringify(args, null, 2)}`,
           );
           if (approved !== true) throw new McpAppHostRefusal("Declined by the user.");
         }
@@ -360,7 +367,9 @@ export function McpAppFrame(props: {
       sendMessage: async (text) => {
         const send = latest.current.props.onSendMessage;
         if (send === undefined) throw new McpAppHostRefusal("Messages are not available here.");
-        const approved = await ask(`Send this message from ${app.server}?\n${text}`);
+        const approved = await ask(
+          `${translate("Send this message from {server}?").replace("{server}", () => app.server)}\n${text}`,
+        );
         if (approved !== true) throw new McpAppHostRefusal("Declined by the user.");
         await send(text);
       },
@@ -394,7 +403,11 @@ export function McpAppFrame(props: {
       },
       downloadFile: async (files) => {
         const names = files.map((file) => file.name).join(", ");
-        const approved = await ask(`Save ${names} from ${app.server}?`);
+        const approved = await ask(
+          translate("Save {files} from {server}?")
+            .replace("{files}", () => names)
+            .replace("{server}", () => app.server),
+        );
         if (approved !== true) throw new McpAppHostRefusal("Declined by the user.");
         for (const file of files) {
           // A linked file is read from the app's own server, like its other reads.
@@ -470,7 +483,7 @@ export function McpAppFrame(props: {
   if (closed) {
     return (
       <div className="flex items-center justify-between gap-2 rounded-lg border border-border px-3 py-2 text-muted-foreground text-xs">
-        <span>The {app.server} app was closed</span>
+        <span>{t("The {server} app was closed").replace("{server}", () => app.server)}</span>
         <Button
           size="xs"
           variant="ghost"
@@ -483,7 +496,7 @@ export function McpAppFrame(props: {
             setClosed(false);
           }}
         >
-          Show app
+          {t("Show app")}
         </Button>
       </div>
     );
@@ -514,7 +527,7 @@ export function McpAppFrame(props: {
           <div className="flex h-10 shrink-0 items-center justify-between border-border border-b px-3 text-sm">
             <span className="truncate">{app.server}</span>
             <Button
-              aria-label="Exit full screen"
+              aria-label={t("Exit full screen")}
               size="icon-sm"
               variant="ghost"
               onClick={() => setDisplayMode("inline")}
@@ -525,7 +538,10 @@ export function McpAppFrame(props: {
         ) : null}
         {navigatedAway ? (
           <p className="flex size-full items-center justify-center text-muted-foreground text-xs">
-            The {app.server} app left its page and was stopped
+            {t("The {server} app left its page and was stopped").replace(
+              "{server}",
+              () => app.server,
+            )}
           </p>
         ) : src !== null ? (
           <iframe
@@ -541,7 +557,7 @@ export function McpAppFrame(props: {
           />
         ) : asset._tag === "Failure" || mintFailed ? (
           <p className="flex size-full items-center justify-center text-muted-foreground text-xs">
-            Unable to load the {app.server} app
+            {t("Unable to load the {server} app").replace("{server}", () => app.server)}
           </p>
         ) : null}
       </div>

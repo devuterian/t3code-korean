@@ -79,7 +79,7 @@ export function useMediaActions(source: MediaActionSource) {
     (fileSession.error === null && fileSession.data !== null && allowsHostMedia(fileSession.data));
   const assertCanReadMedia = useCallback(() => {
     if (!canReadHostMedia(hostEnvironmentId)) {
-      throw new Error("This connection cannot read host files.");
+      throw new Error(translate("This connection cannot read host files."));
     }
   }, [hostEnvironmentId]);
   const createAssetUrl = useAtomQueryRunner(assetEnvironment.createUrl, {

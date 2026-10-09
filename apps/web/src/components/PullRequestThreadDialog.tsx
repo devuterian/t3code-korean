@@ -16,7 +16,7 @@ import {
   usePullRequestResolution,
 } from "~/lib/sourceControlActions";
 import { cn } from "~/lib/utils";
-import { useTranslate } from "~/i18n/translate";
+import { translate, useTranslate } from "~/i18n/translate";
 import { parsePullRequestReference } from "~/pullRequestReference";
 import { getSourceControlPresentation } from "~/sourceControlPresentation";
 import { useEnvironmentQuery } from "~/state/query";
@@ -173,7 +173,9 @@ export function PullRequestThreadDialog({
           setPrepareErrorMessage(
             error instanceof Error
               ? error.message
-              : `Failed to prepare ${terminology.singular} thread.`,
+              : translate("Failed to prepare {term} thread.").replace("{term}", () =>
+                  translate(terminology.singular),
+                ),
           );
         }
         return;

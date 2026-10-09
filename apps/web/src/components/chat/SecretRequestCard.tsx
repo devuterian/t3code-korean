@@ -14,6 +14,7 @@ import type { EnvironmentId, OrchestrationV2ProjectedTurnItem } from "@t3tools/c
 import { CheckIcon, LockIcon, MinusIcon, ShieldCheckIcon } from "lucide-react";
 import { useId, useRef, useState, type FormEvent } from "react";
 
+import { useTranslate } from "../../i18n/translate";
 import { serverEnvironment } from "../../state/server";
 import { useAtomCommand } from "../../state/use-atom-command";
 import { Button } from "../ui/button";
@@ -30,6 +31,7 @@ export function SecretRequestCard(props: {
   readonly item: SecretRequestItem;
   readonly visibility: OrchestrationV2ProjectedTurnItem["visibility"];
 }) {
+  const t = useTranslate();
   const { item } = props;
   const display = secretRequestDisplay(item, props.visibility);
   if (display.kind === "answered" || display.kind === "pending-elsewhere") {
@@ -45,7 +47,7 @@ export function SecretRequestCard(props: {
         icon={<Icon className="size-3.5 text-icon-muted" aria-hidden />}
         label={
           <>
-            {item.label} · {display.label}
+            {item.label} · {t(display.label)}
           </>
         }
       />
@@ -58,6 +60,7 @@ function PendingSecretRequestForm(props: {
   readonly environmentId: EnvironmentId;
   readonly item: SecretRequestItem;
 }) {
+  const t = useTranslate();
   const { item } = props;
   const inputId = useId();
   const errorId = useId();
@@ -139,7 +142,7 @@ function PendingSecretRequestForm(props: {
             data-1p-ignore
             data-lpignore="true"
             data-bwignore
-            placeholder={item.placeholder ?? SECRET_REQUEST_DEFAULT_PLACEHOLDER}
+            placeholder={item.placeholder ?? t(SECRET_REQUEST_DEFAULT_PLACEHOLDER)}
             value={secret}
             disabled={submitting}
             aria-invalid={error !== null || undefined}
@@ -148,12 +151,12 @@ function PendingSecretRequestForm(props: {
           />
         </div>
         <Button type="submit" disabled={submitting || secret.trim().length === 0}>
-          Save securely
+          {t("Save securely")}
         </Button>
       </div>
       {error !== null ? (
         <p id={errorId} role="alert" className="text-xs text-destructive">
-          {error}
+          {t(error)}
         </p>
       ) : null}
       <div className="flex min-w-0 items-center justify-between gap-2">
@@ -162,7 +165,7 @@ function PendingSecretRequestForm(props: {
           className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground"
         >
           <ShieldCheckIcon className="size-3.5 shrink-0" aria-hidden />
-          {SECRET_REQUEST_PRIVACY_NOTE}
+          {t(SECRET_REQUEST_PRIVACY_NOTE)}
         </p>
         <Button
           type="button"
@@ -171,7 +174,7 @@ function PendingSecretRequestForm(props: {
           disabled={submitting}
           onClick={() => void send({ type: "decline" })}
         >
-          Decline
+          {t("Decline")}
         </Button>
       </div>
     </form>

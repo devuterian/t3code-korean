@@ -150,6 +150,7 @@ function ProviderCommandArguments({
   value,
   onChange,
 }: Pick<ProviderSettingsFormProps, "value" | "onChange">) {
+  const t = useTranslate();
   const args = useMemo(() => {
     const configured =
       value !== null && typeof value === "object"
@@ -201,7 +202,7 @@ function ProviderCommandArguments({
           onClick={() => updateArguments([...rowsRef.current, makeCommandArgumentDraftRow("")])}
         >
           <PlusIcon />
-          Add argument
+          {t("Add argument")}
         </Button>
       }
     >
@@ -220,7 +221,7 @@ function ProviderCommandArguments({
                     ),
                   )
                 }
-                aria-label={`Argument ${index + 1}`}
+                aria-label={t("Argument {index}").replace("{index}", () => String(index + 1))}
                 spellCheck={false}
               />
               <Button
@@ -230,7 +231,9 @@ function ProviderCommandArguments({
                 onClick={() =>
                   updateArguments(rowsRef.current.filter((current) => current.id !== argument.id))
                 }
-                aria-label={`Remove argument ${index + 1}`}
+                aria-label={t("Remove argument {index}").replace("{index}", () =>
+                  String(index + 1),
+                )}
               >
                 <XIcon />
               </Button>

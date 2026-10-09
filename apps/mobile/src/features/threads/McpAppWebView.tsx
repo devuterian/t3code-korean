@@ -26,6 +26,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WebView, type WebViewMessageEvent } from "react-native-webview";
 
 import { AppText as Text } from "../../components/AppText";
+import { translate, useTranslate } from "../../i18n/translate";
 import { shareGeneratedAttachment } from "../../lib/attachmentDownload";
 import { mobileHtmlRenderTheme } from "../../lib/htmlRenderTheme";
 import { tryOpenExternalUrl } from "../../lib/openExternalUrl";
@@ -90,7 +91,7 @@ const confirm = (title: string, message: string, action: string) =>
       title,
       message,
       [
-        { text: "Cancel", style: "cancel", onPress: () => resolve(false) },
+        { text: translate("Cancel"), style: "cancel", onPress: () => resolve(false) },
         { text: action, onPress: () => resolve(true) },
       ],
       // Android dismisses an open alert when the next one shows; a dismissed
@@ -126,6 +127,7 @@ export function ThreadMcpApp(props: {
   /** Full screen only: the screen's height, which the app is told it fills. */
   readonly height?: number;
 }) {
+  const t = useTranslate();
   // One reference per app: a new object with the same content (a refetch, a
   // rerender) must not rebuild the host of a document that is already live.
   const [app, setApp] = useState(props.app);
@@ -332,9 +334,12 @@ export function ThreadMcpApp(props: {
         if (
           !info.value.readOnly &&
           !(await confirm(
-            `Allow ${app.server} to run ${info.value.title ?? name}?`,
+            translate("Allow {server} to run {tool}?", {
+              server: app.server,
+              tool: info.value.title ?? name,
+            }),
             JSON.stringify(args, null, 2),
-            "Allow",
+            translate("Allow"),
           ))
         ) {
           throw new McpAppHostRefusal("Declined by the user.");
@@ -358,7 +363,13 @@ export function ThreadMcpApp(props: {
       openLink: async (url) => {
         // A WebView cannot tell whether the reader just tapped the app, so it
         // asks, rather than letting an app leave T3 on a timer.
-        if (!(await confirm(`Open a link from ${app.server}?`, url, "Open"))) {
+        if (
+          !(await confirm(
+            translate("Open a link from {server}?", { server: app.server }),
+            url,
+            translate("Open"),
+          ))
+        ) {
           throw new McpAppHostRefusal("Declined by the user.");
         }
         if (!(await tryOpenExternalUrl(url, "mcp-app"))) {
@@ -366,7 +377,13 @@ export function ThreadMcpApp(props: {
         }
       },
       sendMessage: async (text) => {
-        if (!(await confirm(`Send this message from ${app.server}?`, text, "Send"))) {
+        if (
+          !(await confirm(
+            translate("Send this message from {server}?", { server: app.server }),
+            text,
+            translate("Send"),
+          ))
+        ) {
           throw new McpAppHostRefusal("Declined by the user.");
         }
         // Through the outbox like a typed message, so it survives a dropped
@@ -434,7 +451,13 @@ export function ThreadMcpApp(props: {
       },
       downloadFile: async (files) => {
         const names = files.map((file) => file.name).join(", ");
-        if (!(await confirm(`Save a file from ${app.server}?`, names, "Save"))) {
+        if (
+          !(await confirm(
+            translate("Save a file from {server}?", { server: app.server }),
+            names,
+            translate("Save"),
+          ))
+        ) {
           throw new McpAppHostRefusal("Declined by the user.");
         }
         for (const file of files) {
@@ -526,7 +549,9 @@ export function ThreadMcpApp(props: {
         style={{ height: MCP_APP_ROW_HEIGHT, marginBottom: ROW_BOTTOM_MARGIN }}
         className="items-center justify-center gap-2 rounded-lg border border-border"
       >
-        <Text className="text-sm text-foreground-muted">The {app.server} app was closed</Text>
+        <Text className="text-sm text-foreground-muted">
+          {t("The {server} app was closed", { server: app.server })}
+        </Text>
         <Pressable
           accessibilityRole="button"
           onPress={() => {
@@ -534,7 +559,7 @@ export function ThreadMcpApp(props: {
             setClosed(false);
           }}
         >
-          <Text className="text-sm text-foreground">Show app</Text>
+          <Text className="text-sm text-foreground">{t("Show app")}</Text>
         </Pressable>
       </View>
     );
@@ -598,7 +623,9 @@ export function ThreadMcpApp(props: {
         />
       ) : asset._tag === "Failure" || crashed ? (
         <View className="flex-1 items-center justify-center">
-          <Text className="text-sm text-foreground-muted">Unable to load the {app.server} app</Text>
+          <Text className="text-sm text-foreground-muted">
+            {t("Unable to load the {server} app", { server: app.server })}
+          </Text>
         </View>
       ) : null}
       {uri !== null && !loaded && !crashed && !navigatedAway ? (

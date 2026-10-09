@@ -313,8 +313,10 @@ export const ComposerPrimaryActions = memo(function ComposerPrimaryActions({
         )
       : isRunning && !isEditingQueuedMessage
         ? t(
-            `Click to ${followUpBehavior}, Ctrl/⌘-click${alternateShortcutLabel ? ` or ${alternateShortcutLabel}` : ""} to ${alternateAction}`,
-          )
+            alternateShortcutLabel
+              ? `Click to ${followUpBehavior}, Ctrl/⌘-click or {shortcut} to ${alternateAction}`
+              : `Click to ${followUpBehavior}, Ctrl/⌘-click to ${alternateAction}`,
+          ).replace("{shortcut}", () => alternateShortcutLabel ?? "")
         : submitLabel);
 
   const sendButton = (

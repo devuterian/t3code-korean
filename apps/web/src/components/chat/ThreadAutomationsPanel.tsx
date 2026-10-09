@@ -215,7 +215,7 @@ export function ThreadAutomationsPanel(props: {
                       size="icon-xs"
                       variant="ghost"
                       part="icon"
-                      aria-label={t(`Run ${task.title} now`)}
+                      aria-label={t("Run {title} now").replace("{title}", task.title)}
                       disabled={
                         !canOperate || busyTaskId !== null || task.lastRunStatus === "running"
                       }

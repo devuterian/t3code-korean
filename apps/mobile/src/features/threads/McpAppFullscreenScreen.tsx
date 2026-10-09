@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppText as Text } from "../../components/AppText";
 import { SymbolView } from "../../components/AppSymbol";
+import { useTranslate } from "../../i18n/translate";
 import { orchestrationEnvironment } from "../../state/orchestration";
 import { scopeThreadRef } from "@t3tools/client-runtime/environment";
 import { useThreadShell, useThreadShells } from "../../state/entities";
@@ -72,6 +73,7 @@ function descendsFrom(
  * only open an app that call really produced.
  */
 export function McpAppFullscreenScreen({ route }: McpAppFullscreenScreenProps) {
+  const t = useTranslate();
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   // A plain goBack pops whatever is on top, so it only runs while this modal
@@ -123,11 +125,11 @@ export function McpAppFullscreenScreen({ route }: McpAppFullscreenScreenProps) {
     <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
       <View className="h-11 flex-row items-center justify-between px-3">
         <Text className="text-base font-semibold text-foreground" numberOfLines={1}>
-          {app?.server ?? "App"}
+          {app?.server ?? t("App")}
         </Text>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Exit full screen"
+          accessibilityLabel={t("Exit full screen")}
           hitSlop={8}
           onPress={onClose}
         >
@@ -146,7 +148,9 @@ export function McpAppFullscreenScreen({ route }: McpAppFullscreenScreenProps) {
       >
         {app === undefined ? (
           detail.data === undefined ? null : (
-            <Text className="m-6 text-sm text-foreground-muted">This app cannot be shown.</Text>
+            <Text className="m-6 text-sm text-foreground-muted">
+              {t("This app cannot be shown.")}
+            </Text>
           )
         ) : size.width > 0 ? (
           <ThreadMcpApp

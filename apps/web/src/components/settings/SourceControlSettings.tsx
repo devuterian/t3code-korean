@@ -266,7 +266,12 @@ function itemSummary({
 
     // Signed in, but every login is turned off here: the fix is the switch below, not the CLI.
     if (auth.status === "unauthenticated" && auth.accounts?.some((entry) => entry.authenticated)) {
-      return <span>{optionLabel(auth.detail) ?? `Every ${item.label} host is turned off.`}</span>;
+      return (
+        <span>
+          {optionLabel(auth.detail) ??
+            t("Every {label} host is turned off.").replace("{label}", () => item.label)}
+        </span>
+      );
     }
 
     if (auth.status === "unauthenticated") {

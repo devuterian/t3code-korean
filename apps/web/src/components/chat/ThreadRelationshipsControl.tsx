@@ -331,7 +331,7 @@ export function ThreadRelationshipsPanel(props: {
     });
     setStoppingThreadId(null);
     if (result._tag === "Failure") {
-      toastManager.add({ type: "error", title: "Could not stop subagent" });
+      toastManager.add({ type: "error", title: t("Could not stop subagent") });
     }
   };
 
@@ -558,7 +558,10 @@ export function ThreadRelationshipsPanel(props: {
                               variant="ghost"
                               part="icon"
                               tone="destructive"
-                              aria-label={`Stop subagent ${threadTitle}`}
+                              aria-label={t("Stop subagent {title}").replace(
+                                "{title}",
+                                () => threadTitle,
+                              )}
                               disabled={stoppingThreadId !== null}
                               onClick={() => void stopSubagent(threadId)}
                             />
@@ -570,7 +573,7 @@ export function ThreadRelationshipsPanel(props: {
                             <SquareIcon aria-hidden className="size-3 fill-current" />
                           )}
                         </TooltipTrigger>
-                        <TooltipPopup side="left">Stop subagent</TooltipPopup>
+                        <TooltipPopup side="left">{t("Stop subagent")}</TooltipPopup>
                       </Tooltip>
                     </div>
                   ) : null}

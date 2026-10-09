@@ -245,14 +245,14 @@ export function ProjectScriptEditorDialog({
     event.preventDefault();
     if (!request || pendingSubmissionRef.current !== null) return;
     if (!readEnvironmentScope(environmentId, editScope)) {
-      setValidationError("This connection cannot change project actions.");
+      setValidationError(t("This connection cannot change project actions."));
       return;
     }
     const changesKeybinding =
       (keybinding.trim() || null) !== (request.initial.keybinding?.trim() || null);
     const canChangeKeybinding = readEnvironmentScope(environmentId, AuthSettingsWriteScope);
     if (changesKeybinding && !canChangeKeybinding) {
-      setValidationError("This connection cannot change keyboard shortcuts.");
+      setValidationError(t("This connection cannot change keyboard shortcuts."));
       return;
     }
     const trimmedName = name.trim();
@@ -462,7 +462,7 @@ export function ProjectScriptEditorDialog({
                   />
                 </label>
                 <label className="flex items-center justify-between gap-3 rounded-md border border-border/70 px-3 py-2 text-sm dark:border-transparent dark:bg-white/[0.035]">
-                  <span>Run in the thread's worktree when the thread settles</span>
+                  <span>{t("Run in the thread's worktree when the thread settles")}</span>
                   <Switch
                     checked={runOnSettle}
                     onCheckedChange={(checked) => setRunOnSettle(Boolean(checked))}
@@ -522,7 +522,7 @@ export function ProjectScriptEditorDialog({
               onClick={() => {
                 if (!request?.scriptId) return;
                 if (!readEnvironmentScope(environmentId, editScope)) {
-                  setValidationError("This connection cannot change project actions.");
+                  setValidationError(t("This connection cannot change project actions."));
                   return;
                 }
                 setDeleteConfirmOpen(false);

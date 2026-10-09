@@ -357,8 +357,8 @@ export function AttachmentFilePreview(props: {
         <FileSurfaceNotice>
           {props.sizeBytes > 0
             ? t(
-                `Preview limited to the first 1 MB of a ${props.sizeBytes.toLocaleString()} byte file. Save the file to read it in full.`,
-              )
+                "Preview limited to the first 1 MB of a {size} byte file. Save the file to read it in full.",
+              ).replace("{size}", () => props.sizeBytes.toLocaleString())
             : t("Preview limited to the first 1 MB. Save the file to read it in full.")}
         </FileSurfaceNotice>
       ) : null}

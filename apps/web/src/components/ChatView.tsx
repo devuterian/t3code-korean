@@ -4519,7 +4519,7 @@ export default function ChatView(props: ChatViewProps) {
       }
       // Keep send disabled until the destination Scratch project is ready.
       setIsEnvironmentChanging(true);
-      void openScratchProject(target.environmentId, "Could not switch machine")
+      void openScratchProject(target.environmentId, translate("Could not switch machine"))
         .then((project) => {
           if (project) retarget(project);
         })
@@ -5164,7 +5164,7 @@ export default function ChatView(props: ChatViewProps) {
           Cause.fail(
             new EnvironmentAuthorizationError({
               requiredScope: AuthSettingsWriteScope,
-              message: "This connection cannot change keyboard shortcuts.",
+              message: translate("This connection cannot change keyboard shortcuts."),
             }),
           ),
         );
@@ -5210,8 +5210,12 @@ export default function ChatView(props: ChatViewProps) {
             new EnvironmentAuthorizationError({
               requiredScope: AuthSettingsWriteScope,
               message: isDeletingScript
-                ? "The script was deleted, but its keyboard shortcut could not be removed because permission changed."
-                : "The script was saved, but this connection can no longer change keyboard shortcuts.",
+                ? translate(
+                    "The script was deleted, but its keyboard shortcut could not be removed because permission changed.",
+                  )
+                : translate(
+                    "The script was saved, but this connection can no longer change keyboard shortcuts.",
+                  ),
             }),
           ),
         );
@@ -7535,8 +7539,8 @@ export default function ChatView(props: ChatViewProps) {
       // Usage stays in the title so a long objective cannot clip it.
       title:
         presentation.usage === null
-          ? presentation.title
-          : `${presentation.title} · ${presentation.usage}`,
+          ? translate(presentation.title)
+          : `${translate(presentation.title)} · ${presentation.usage}`,
       description: presentation.objective,
       actions: isWorking ? undefined : (
         <>
@@ -7544,17 +7548,21 @@ export default function ChatView(props: ChatViewProps) {
             <Button
               size="xs"
               variant="ghost"
-              onClick={() => void sendStandaloneCommand("/goal resume", "Failed to resume goal.")}
+              onClick={() =>
+                void sendStandaloneCommand("/goal resume", translate("Failed to resume goal."))
+              }
             >
-              Resume
+              {translate("Resume")}
             </Button>
           ) : null}
           <Button
             size="xs"
             variant="ghost"
-            onClick={() => void sendStandaloneCommand("/goal clear", "Failed to clear goal.")}
+            onClick={() =>
+              void sendStandaloneCommand("/goal clear", translate("Failed to clear goal."))
+            }
           >
-            Clear
+            {translate("Clear")}
           </Button>
         </>
       ),
@@ -9486,7 +9494,7 @@ export default function ChatView(props: ChatViewProps) {
       setThreadError(
         threadIdForSend,
         attachmentCapabilitiesBeforeDispatch.fileBlockReason ??
-          "This connection cannot change threads.",
+          translate("This connection cannot change threads."),
       );
       setDockedDraftHeroThreadKey((currentThreadKey) =>
         currentThreadKey === activeThreadKey ? null : currentThreadKey,

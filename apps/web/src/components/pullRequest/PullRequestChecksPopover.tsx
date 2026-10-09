@@ -196,7 +196,9 @@ export function PullRequestChecksPopover({
                 {runningCount}/{checks.length}
               </span>
             ) : failedCount > 0 ? (
-              <span className="tabular-nums">{failedCount} failed</span>
+              <span className="tabular-nums">
+                {t("{count} failed").replace("{count}", String(failedCount))}
+              </span>
             ) : null}
           </>
         ) : null}

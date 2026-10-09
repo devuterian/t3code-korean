@@ -404,16 +404,18 @@ export function SettingsRow({
     unavailable && control
       ? inertControl(
           !canWriteSettings
-            ? `This connection lacks permission to change settings on ${
-                context
-                  ? context.connectedEnvironments
-                      .filter((target) => !writableIds.has(target.environmentId))
-                      .map((target) => target.label)
-                      .join(", ") || "the selected environment"
-                  : (primaryEnvironment?.label ?? "the primary environment")
-              }.`
+            ? t("This connection lacks permission to change settings on {environments}.").replace(
+                "{environments}",
+                () =>
+                  context
+                    ? context.connectedEnvironments
+                        .filter((target) => !writableIds.has(target.environmentId))
+                        .map((target) => target.label)
+                        .join(", ") || t("the selected environment")
+                    : (primaryEnvironment?.label ?? t("the primary environment")),
+              )
             : context
-              ? "Reconnect the selected environment to change this setting."
+              ? t("Reconnect the selected environment to change this setting.")
               : PRIMARY_SETTINGS_UNAVAILABLE_MESSAGE,
         )
       : environmentWide && control

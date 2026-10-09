@@ -3,6 +3,7 @@ import { getProviderOptionCurrentValue } from "@t3tools/shared/model";
 import { ZapIcon } from "lucide-react";
 import { UltrafastIcon } from "../Icons";
 import { cn } from "~/lib/utils";
+import { useTranslate } from "~/i18n/translate";
 import { ComposerControlIcon, type ComposerControlSize } from "./ComposerControl";
 
 export function getTraitsSpeedDisplay(
@@ -48,6 +49,7 @@ export function TraitsSpeedIcon({
   speedIcon: "fast" | "ultrafast";
   size?: ComposerControlSize;
 }) {
+  const t = useTranslate();
   return (
     <>
       <ComposerControlIcon
@@ -63,7 +65,7 @@ export function TraitsSpeedIcon({
         )}
       />
       <span className="sr-only">
-        {speedIcon === "ultrafast" ? "Ultrafast mode on" : "Fast mode on"}
+        {speedIcon === "ultrafast" ? t("Ultrafast mode on") : t("Fast mode on")}
       </span>
     </>
   );

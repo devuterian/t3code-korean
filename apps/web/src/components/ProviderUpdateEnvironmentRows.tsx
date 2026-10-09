@@ -155,7 +155,7 @@ function EnvironmentUpdateRow({
         <span className={cn("truncate text-xs", rowToneClass(status.kind))}>{status.text}</span>
         {!canManageProviders ? (
           <span className="text-xs text-muted-foreground">
-            This connection cannot manage provider accounts.
+            {t("This connection cannot manage provider accounts.")}
           </span>
         ) : null}
       </div>

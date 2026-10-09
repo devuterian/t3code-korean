@@ -2092,7 +2092,10 @@ export default function GitActionsControl({
                                   type="button"
                                   className="flex min-w-0 flex-1 items-center justify-between gap-3 text-left"
                                   disabled={!canOperateThread}
-                                  aria-label={`Open ${file.path} in editor`}
+                                  aria-label={t("Open {path} in editor").replace(
+                                    "{path}",
+                                    () => file.path,
+                                  )}
                                   onClick={() => openChangedFileInEditor(file.path)}
                                 >
                                   <StartTruncatedPath

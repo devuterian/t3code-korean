@@ -77,7 +77,7 @@ export function PendingApprovalCard(props: PendingApprovalCardProps) {
       </View>
       {!props.canOperateThread ? (
         <Text className="font-sans text-xs text-adaptive-neutral-500-400">
-          This connection cannot respond to approvals.
+          {t("This connection cannot respond to approvals.")}
         </Text>
       ) : null}
     </View>

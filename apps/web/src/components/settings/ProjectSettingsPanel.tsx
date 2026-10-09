@@ -227,7 +227,10 @@ function ProjectDetail({
       const result = AsyncResult.failure<void, Error>(
         Cause.fail(
           new Error(
-            `This connection cannot change projects in ${denied.environmentLabel ?? "this environment"}.`,
+            translate("This connection cannot change projects in {environment}.").replace(
+              "{environment}",
+              denied.environmentLabel ?? translate("this environment"),
+            ),
           ),
         ),
       );
@@ -334,7 +337,7 @@ function ProjectDetail({
 
   const removeMembers = useCallback(
     async (members: ReadonlyArray<SidebarProjectGroupMember>) => {
-      if (checkProjectAccess(members, "Failed to remove project")) return;
+      if (checkProjectAccess(members, translate("Failed to remove project"))) return;
       const api = readLocalApi();
       if (!api) return;
 
@@ -388,11 +391,11 @@ function ProjectDetail({
         ),
       );
       if (confirmed._tag === "Failure" || !confirmed.value) return;
-      if (checkProjectAccess(members, "Failed to remove project")) return;
+      if (checkProjectAccess(members, translate("Failed to remove project"))) return;
 
       const draftStore = useComposerDraftStore.getState();
       for (const member of members) {
-        if (checkProjectAccess([member], "Failed to remove project")) return;
+        if (checkProjectAccess([member], translate("Failed to remove project"))) return;
         const memberThreads = projectThreads.filter(
           (thread) =>
             thread.environmentId === member.environmentId && thread.projectId === member.id,
@@ -477,8 +480,8 @@ function ProjectDetail({
           {!canEditGroup ? (
             <p className="px-3 py-2 text-sm text-muted-foreground sm:px-4">
               {group.memberProjects.length > 1
-                ? "Shared settings require permission to change every checkout in this group."
-                : "This connection cannot change this project."}
+                ? t("Shared settings require permission to change every checkout in this group.")
+                : t("This connection cannot change this project.")}
             </p>
           ) : null}
           <SettingsRow

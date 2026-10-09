@@ -12,6 +12,7 @@ import { PREVIEW_VIEWPORT_PRESETS } from "@t3tools/shared/previewViewport";
 import { Alert } from "react-native";
 
 import { ControlPill, ControlPillMenu } from "../../components/ControlPill";
+import { useTranslate } from "../../i18n/translate";
 import { previewEnvironment } from "../../state/preview";
 import { useAtomCommand } from "../../state/use-atom-command";
 
@@ -33,7 +34,7 @@ const VIEWPORTS = [
       width: preset.width,
       height: preset.height,
     };
-    return [{ id: `preset:${preset.id}`, title: `${category} (${preset.label})`, setting }];
+    return [{ id: `preset:${preset.id}`, title: category, detail: preset.label, setting }];
   }),
 ];
 
@@ -51,6 +52,7 @@ export function BrowserTabMenu({
   readonly tab: PreviewSessionSnapshot;
   readonly disabled: boolean;
 }) {
+  const t = useTranslate();
   const adjust = useAtomCommand(previewEnvironment.adjust, "browser tab change");
   const resize = useAtomCommand(previewEnvironment.resize, "browser viewport change");
   const target = { threadId: tab.threadId as PreviewAdjustInput["threadId"], tabId: tab.tabId };
@@ -69,51 +71,51 @@ export function BrowserTabMenu({
         : "custom";
 
   const actions: MenuAction[] = [
-    { id: "hard-reload", title: "Hard reload", image: "arrow.clockwise.circle" },
+    { id: "hard-reload", title: t("Hard reload"), image: "arrow.clockwise.circle" },
     {
       id: "appearance",
-      title: "Appearance",
+      title: t("Appearance"),
       image: "circle.lefthalf.filled",
       subactions: APPEARANCES.map((option) => ({
         id: `appearance:${option.id}`,
-        title: option.title,
+        title: t(option.title),
         state: option.id === colorScheme ? "on" : "off",
       })),
     },
     {
       id: "zoom",
-      title: `Zoom (${Math.round(zoomFactor * 100)}%)`,
+      title: t("Zoom ({percent}%)", { percent: Math.round(zoomFactor * 100) }),
       image: "plus.magnifyingglass",
       subactions: [
-        { id: "zoom:in", title: "Zoom in", image: "plus.magnifyingglass" },
-        { id: "zoom:out", title: "Zoom out", image: "minus.magnifyingglass" },
-        { id: "zoom:reset", title: "Actual size", image: "1.magnifyingglass" },
+        { id: "zoom:in", title: t("Zoom in"), image: "plus.magnifyingglass" },
+        { id: "zoom:out", title: t("Zoom out"), image: "minus.magnifyingglass" },
+        { id: "zoom:reset", title: t("Actual size"), image: "1.magnifyingglass" },
       ],
     },
     {
       id: "viewport",
-      title: "Viewport",
+      title: t("Viewport"),
       image: "rectangle.and.arrow.up.right.and.arrow.down.left",
       subactions: VIEWPORTS.map((option) => ({
         id: `viewport:${option.id}`,
-        title: option.title,
+        title: "detail" in option ? `${t(option.title)} (${option.detail})` : t(option.title),
         state: option.id === viewportId ? "on" : "off",
       })),
     },
     {
       id: "site-data",
-      title: "Site data",
+      title: t("Site data"),
       image: "trash",
       subactions: [
-        { id: "clear:cookies", title: "Clear cookies", attributes: { destructive: true } },
-        { id: "clear:cache", title: "Clear cache", attributes: { destructive: true } },
+        { id: "clear:cookies", title: t("Clear cookies"), attributes: { destructive: true } },
+        { id: "clear:cache", title: t("Clear cache"), attributes: { destructive: true } },
       ],
     },
   ];
 
   const run = async (change: Omit<PreviewAdjustInput, "threadId" | "tabId">) => {
     const result = await adjust({ environmentId, input: { ...target, ...change } });
-    if (result._tag === "Failure") Alert.alert("Could not change this browser tab");
+    if (result._tag === "Failure") Alert.alert(t("Could not change this browser tab"));
   };
 
   const onAction = (id: string) => {
@@ -133,20 +135,24 @@ export function BrowserTabMenu({
       if (!option) return;
       void resize({ environmentId, input: { ...target, viewport: option.setting } }).then(
         (result) => {
-          if (result._tag === "Failure") Alert.alert("Could not change the viewport");
+          if (result._tag === "Failure") Alert.alert(t("Could not change the viewport"));
         },
       );
     }
   };
 
   const pill = (
-    <ControlPill icon="ellipsis" accessibilityLabel="Browser tab options" disabled={disabled} />
+    <ControlPill
+      icon="ellipsis"
+      accessibilityLabel={t("Browser tab options")}
+      disabled={disabled}
+    />
   );
   if (disabled) return pill;
   return (
     <ControlPillMenu
       accessible
-      accessibilityLabel="Browser tab options"
+      accessibilityLabel={t("Browser tab options")}
       accessibilityRole="button"
       actions={actions}
       onPressAction={({ nativeEvent }) => onAction(nativeEvent.event)}

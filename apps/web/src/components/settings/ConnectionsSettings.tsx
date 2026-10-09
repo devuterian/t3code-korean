@@ -1561,15 +1561,17 @@ function SavedBackendListRow({
     onCopy: ({ url }) => {
       toastManager.add({
         type: "success",
-        title: "MCP URL copied",
-        description: `Add it to an agent, e.g. claude mcp add --transport http t3 ${url}`,
+        title: translate("MCP URL copied"),
+        description: translate(
+          "Add it to an agent, e.g. claude mcp add --transport http t3 {url}",
+        ).replace("{url}", () => url),
       });
     },
     onError: (error) => {
       toastManager.add(
         stackedThreadToast({
           type: "error",
-          title: "Could not copy MCP URL",
+          title: translate("Could not copy MCP URL"),
           description: error.message,
         }),
       );
@@ -1683,7 +1685,9 @@ function SavedBackendListRow({
             onClick={() => setRoutesOpen((open) => !open)}
             className="inline-flex shrink-0 items-center gap-0.5 rounded-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-1 focus-visible:ring-ring"
           >
-            {routeCount === 1 ? "Routes" : `${routeCount} routes`}
+            {routeCount === 1
+              ? t("Routes")
+              : t("{count} routes").replace("{count}", String(routeCount))}
             <ChevronRightIcon
               aria-hidden
               className={cn(
@@ -1804,10 +1808,12 @@ function SavedBackendListRow({
           />
           <MenuItem onClick={() => setRoutesOpen((open) => !open)}>
             <RouteIcon />
-            {routesOpen ? "Hide routes" : "Routes"}
+            {routesOpen ? t("Hide routes") : t("Routes")}
           </MenuItem>
           {mcpUrl ? (
-            <MenuItem onClick={() => copyMcpUrl(mcpUrl, { url: mcpUrl })}>Copy MCP URL</MenuItem>
+            <MenuItem onClick={() => copyMcpUrl(mcpUrl, { url: mcpUrl })}>
+              {t("Copy MCP URL")}
+            </MenuItem>
           ) : null}
           {errorTraceId ? (
             <MenuItem onClick={() => copyTraceId(errorTraceId)}>{t("Copy trace ID")}</MenuItem>
@@ -1934,10 +1940,14 @@ function ConfiguredCloudLinkRow({ canManageRelay }: { readonly canManageRelay: b
     if (ok) {
       toastManager.add({
         type: "success",
-        title: enabled ? "Webhooks held while offline" : "Webhooks no longer held",
+        title: enabled ? t("Webhooks held while offline") : t("Webhooks no longer held"),
         description: enabled
-          ? "T3 Connect keeps webhook requests for up to 24 hours while this environment is offline."
-          : "Requests to an offline environment now fail. Anything already held is still delivered.",
+          ? t(
+              "T3 Connect keeps webhook requests for up to 24 hours while this environment is offline.",
+            )
+          : t(
+              "Requests to an offline environment now fail. Anything already held is still delivered.",
+            ),
       });
     }
     setIsUpdatingPreference(false);
@@ -3034,15 +3044,19 @@ export function ConnectionsSettings() {
     if (result._tag === "Failure") {
       if (!isAtomCommandInterrupted(result)) {
         const error = squashAtomCommandFailure(result);
-        setSavedBackendError(error instanceof Error ? error.message : "Could not add the route.");
+        setSavedBackendError(
+          error instanceof Error ? error.message : t("Could not add the route."),
+        );
       }
       return;
     }
     setAddBackendDialogOpen(false);
     toastManager.add({
       type: "success",
-      title: "Route added",
-      description: `${routeTarget.label} falls back to T3 Connect when its other routes are unreachable.`,
+      title: t("Route added"),
+      description: t(
+        "{label} falls back to T3 Connect when its other routes are unreachable.",
+      ).replace("{label}", () => routeTarget.label),
     });
   };
   const renderRemoteModeBody = () => (
@@ -3050,7 +3064,7 @@ export function ConnectionsSettings() {
       {relayRouteOffer !== null ? (
         <div className="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2">
           <p className="text-xs text-muted-foreground">
-            This machine is on your T3 Connect account. Use it as a fallback route.
+            {t("This machine is on your T3 Connect account. Use it as a fallback route.")}
           </p>
           <Button
             size="xs"
@@ -3058,7 +3072,7 @@ export function ConnectionsSettings() {
             disabled={isAddingSavedBackend}
             onClick={() => void addRelayRoute()}
           >
-            Add T3 Connect
+            {t("Add T3 Connect")}
           </Button>
         </div>
       ) : null}
@@ -3846,7 +3860,9 @@ export function ConnectionsSettings() {
                   renderAuthorizedClients("current")
                 ) : (
                   <p className="px-4 py-3 text-xs text-muted-foreground">
-                    This connection can create access links but cannot view authorized clients.
+                    {t(
+                      "This connection can create access links but cannot view authorized clients.",
+                    )}
                   </p>
                 )}
               </ScrollArea>

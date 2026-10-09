@@ -29,6 +29,7 @@ import { useState } from "react";
 
 import { requestConfirmDialog } from "~/confirmDialog";
 import { environmentCatalog } from "~/connection/catalog";
+import { useTranslate } from "~/i18n/translate";
 import { cn } from "~/lib/utils";
 import type { EnvironmentPresentation } from "~/state/environments";
 import { usePreparedConnection } from "~/state/session";
@@ -48,6 +49,7 @@ export function EnvironmentRoutesList({
   readonly environment: EnvironmentPresentation;
   readonly onAddRoute: () => void;
 }) {
+  const t = useTranslate();
   const saved = connectionRoutes(environment.entry);
   const savedIds = saved.map((route) => connectionRouteId(route.target));
   // A dropped order shows until the catalog matches it, so the row does not
@@ -79,7 +81,7 @@ export function EnvironmentRoutesList({
   const confirmRemove = async (route: ConnectionRoute) => {
     const address = connectionRouteAddress(route);
     const confirmed = await requestConfirmDialog(
-      `Remove ${connectionRouteLabel(route)} route?${address === null ? "" : `\n${address}`}`,
+      `${t("Remove {label} route?").replace("{label}", () => connectionRouteLabel(route))}${address === null ? "" : `\n${address}`}`,
       { variant: "destructive" },
     );
     if (confirmed !== true) return;
@@ -111,7 +113,12 @@ export function EnvironmentRoutesList({
         onDragEnd={handleDragEnd}
       >
         <SortableContext items={order} strategy={verticalListSortingStrategy}>
-          <ol aria-label={`Routes to ${environment.label}, preferred first`}>
+          <ol
+            aria-label={t("Routes to {environment}, preferred first").replace(
+              "{environment}",
+              () => environment.label,
+            )}
+          >
             {routes.map((route, index) => (
               <SortableRouteRow
                 key={connectionRouteId(route.target)}
@@ -131,7 +138,7 @@ export function EnvironmentRoutesList({
       <div className="-ml-1.5 pt-1">
         <Button size="xs" variant="ghost-muted" onClick={onAddRoute}>
           <PlusIcon className="size-3" />
-          Add route
+          {t("Add route")}
         </Button>
       </div>
     </div>
@@ -151,6 +158,7 @@ function SortableRouteRow({
   readonly removable: boolean;
   readonly onRemove: () => void;
 }) {
+  const t = useTranslate();
   const id = connectionRouteId(route.target);
   const label = connectionRouteLabel(route);
   const address = connectionRouteAddress(route);
@@ -178,14 +186,14 @@ function SortableRouteRow({
           {label}
           {inUse ? (
             <span className="rounded-sm bg-success/12 px-1 text-2xs font-normal text-success-foreground">
-              In use
+              {t("In use")}
             </span>
           ) : null}
         </p>
         {address !== null ? (
           <p className="truncate text-2xs text-muted-foreground">
             {address}
-            {isLearned(route) ? " · found automatically" : ""}
+            {isLearned(route) ? ` · ${t("found automatically")}` : ""}
           </p>
         ) : null}
       </div>
@@ -194,7 +202,9 @@ function SortableRouteRow({
         ref={setActivatorNodeRef}
         {...attributes}
         {...listeners}
-        aria-label={`Reorder ${label}, position ${position}`}
+        aria-label={t("Reorder {label}, position {position}")
+          .replace("{label}", () => label)
+          .replace("{position}", String(position))}
         className="flex size-6 shrink-0 cursor-grab touch-none items-center justify-center rounded text-muted-foreground/70 outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring active:cursor-grabbing"
       >
         <GripVerticalIcon className="size-3.5" />
@@ -207,14 +217,14 @@ function SortableRouteRow({
                 type="button"
                 variant="ghost-muted"
                 size="icon-xs"
-                aria-label={`Remove ${label} route`}
+                aria-label={t("Remove {label} route").replace("{label}", () => label)}
                 onClick={onRemove}
               />
             }
           >
             <XIcon className="size-3" />
           </TooltipTrigger>
-          <TooltipPopup side="top">Remove route</TooltipPopup>
+          <TooltipPopup side="top">{t("Remove route")}</TooltipPopup>
         </Tooltip>
       ) : null}
     </li>

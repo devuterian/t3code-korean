@@ -185,7 +185,7 @@ export function AcpRegistrySearchStep({
             type="button"
             variant="outline"
           >
-            Local ACP command
+            {t("Local ACP command")}
           </Button>
         ) : null}
       </form>

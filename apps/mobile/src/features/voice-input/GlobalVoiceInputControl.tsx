@@ -23,6 +23,7 @@ import { FullWindowOverlay } from "react-native-screens";
 import { AppText as Text } from "../../components/AppText";
 import { SymbolView } from "../../components/AppSymbol";
 import { useAndroidControlSizing } from "../../components/useAndroidControlSizing";
+import { useTranslate } from "../../i18n/translate";
 import { cn } from "../../lib/cn";
 import { CompactVoiceWaveform, DictationElapsedTime } from "./ComposerDictationControl";
 import { useGlobalVoiceInput } from "./VoiceInputProvider";
@@ -71,6 +72,7 @@ export function GlobalVoiceInputControl(props: { readonly children: ReactNode })
 }
 
 function EdgeDictationPill(props: { readonly collapseRef: RefObject<(() => void) | null> }) {
+  const t = useTranslate();
   const voice = useGlobalVoiceInput();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
@@ -113,7 +115,7 @@ function EdgeDictationPill(props: { readonly collapseRef: RefObject<(() => void)
   const phase = voice.state.phase;
   const isError = phase === "error";
   const openSettings = isError && voice.state.errorAction === "settings";
-  const label = voice.label ?? "Draft";
+  const label = voice.label ?? t("Draft");
 
   return (
     <View pointerEvents="box-none" className="absolute inset-0">
@@ -131,8 +133,11 @@ function EdgeDictationPill(props: { readonly collapseRef: RefObject<(() => void)
             style={[{ width: COLLAPSED_WIDTH }, collapsedStyle]}
           >
             <Pressable
-              accessibilityLabel={`${presentation.statusLabel}, dictating into ${label}`}
-              accessibilityHint="Shows dictation controls"
+              accessibilityLabel={t("{status}, dictating into {label}", {
+                status: presentation.statusLabel ?? "",
+                label,
+              })}
+              accessibilityHint={t("Shows dictation controls")}
               accessibilityRole="button"
               className="flex-1 flex-row items-center justify-center gap-1.5 active:opacity-70"
               hitSlop={{ top: 6, bottom: 6, left: 6 }}
@@ -167,7 +172,7 @@ function EdgeDictationPill(props: { readonly collapseRef: RefObject<(() => void)
             style={[{ width: expandedWidth }, expandedStyle]}
           >
             <Pressable
-              accessibilityLabel={isError ? "Dismiss voice input error" : "Cancel dictation"}
+              accessibilityLabel={isError ? t("Dismiss voice input error") : t("Cancel dictation")}
               accessibilityRole="button"
               className="size-[30px] items-center justify-center active:opacity-70"
               onPress={voice.cancel}
@@ -181,7 +186,7 @@ function EdgeDictationPill(props: { readonly collapseRef: RefObject<(() => void)
             </Pressable>
             <Pressable
               accessibilityLabel={isError ? (presentation.statusLabel ?? label) : label}
-              accessibilityHint="Hides dictation controls"
+              accessibilityHint={t("Hides dictation controls")}
               accessibilityRole="button"
               className="min-w-0 flex-1 justify-center self-stretch active:opacity-70"
               onPress={() => setExpanded(false)}
@@ -204,7 +209,7 @@ function EdgeDictationPill(props: { readonly collapseRef: RefObject<(() => void)
                   seconds={voice.elapsedSeconds}
                 />
                 <Pressable
-                  accessibilityLabel="Finish dictation"
+                  accessibilityLabel={t("Finish dictation")}
                   accessibilityRole="button"
                   className="size-[30px] items-center justify-center active:opacity-70"
                   onPress={voice.stop}
@@ -223,7 +228,9 @@ function EdgeDictationPill(props: { readonly collapseRef: RefObject<(() => void)
             ) : isError ? (
               voice.isAvailable ? (
                 <Pressable
-                  accessibilityLabel={openSettings ? "Open microphone settings" : "Retry dictation"}
+                  accessibilityLabel={
+                    openSettings ? t("Open microphone settings") : t("Retry dictation")
+                  }
                   accessibilityRole="button"
                   className="size-[30px] items-center justify-center active:opacity-70"
                   onPress={() => {

@@ -320,8 +320,8 @@ function checkThreadOperations(
   if (canOperateThreads(threads)) return true;
   toastManager.add({
     type: "error",
-    title: "Thread action unavailable",
-    description: "This connection cannot change one or more selected threads.",
+    title: translate("Thread action unavailable"),
+    description: translate("This connection cannot change one or more selected threads."),
   });
   return false;
 }

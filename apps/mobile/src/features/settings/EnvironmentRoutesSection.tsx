@@ -22,6 +22,7 @@ import { type AppSymbolName, SymbolView } from "../../components/AppSymbol";
 import { AppText as Text } from "../../components/AppText";
 import { StatusPill } from "../../components/StatusPill";
 import { environmentCatalog } from "../../connection/catalog";
+import { useTranslate } from "../../i18n/translate";
 import { cn } from "../../lib/cn";
 import { environmentSession } from "../../state/session";
 import { useAtomCommand } from "../../state/use-atom-command";
@@ -56,6 +57,7 @@ export function EnvironmentRoutesSection({
   readonly connected: boolean;
   readonly onAddRoute: () => void;
 }) {
+  const t = useTranslate();
   const entry = useAtomValue(environmentCatalog.catalogValueAtom).entries.get(environmentId);
   const prepared = useAtomValue(environmentSession.preparedConnectionValueAtom(environmentId));
   const sessionResult = useAtomValue(environmentSession.sessionStateAtom(environmentId));
@@ -118,12 +120,12 @@ export function EnvironmentRoutesSection({
   };
   const confirmRemove = (route: ConnectionRoute) =>
     Alert.alert(
-      `Remove ${connectionRouteLabel(route)}?`,
+      t("Remove {name}?", { name: t(connectionRouteLabel(route)) }),
       connectionRouteAddress(route) ?? undefined,
       [
-        { text: "Cancel", style: "cancel" },
+        { text: t("Cancel"), style: "cancel" },
         {
-          text: "Remove",
+          text: t("Remove"),
           style: "destructive",
           onPress: () =>
             void removeRoute({ environmentId, routeId: connectionRouteId(route.target) }),
@@ -136,7 +138,7 @@ export function EnvironmentRoutesSection({
 
   return (
     <SettingsSection
-      title="Routes"
+      title={t("Routes")}
       trailing={
         routes.length > 1 ? (
           <Pressable
@@ -145,7 +147,7 @@ export function EnvironmentRoutesSection({
             className="px-2 py-1 active:opacity-70"
           >
             <Text className="text-sm font-t3-medium text-foreground android:text-primary-text">
-              {editing ? "Done" : "Edit"}
+              {editing ? t("Done") : t("Edit")}
             </Text>
           </Pressable>
         ) : undefined
@@ -153,7 +155,7 @@ export function EnvironmentRoutesSection({
     >
       <SettingsActionRow
         icon="checkmark.circle"
-        label="Your permissions"
+        label={t("Your permissions")}
         onPress={() => setPermissionsOpen((open) => !open)}
       />
       {permissionsOpen ? (
@@ -164,19 +166,21 @@ export function EnvironmentRoutesSection({
           session?.authenticated ? (
             <>
               <Text className="text-sm text-foreground-muted">
-                Applies to the route marked In use. Other routes may have different permissions and
-                have not been checked.
+                {t(
+                  "Applies to the route marked In use. Other routes may have different permissions and have not been checked.",
+                )}
               </Text>
               {AUTH_SCOPE_OPTIONS.map(({ scope, title }) => (
                 <Text key={scope} className="text-sm text-foreground">
-                  {title}: {sessionGrantsScope(session, scope) ? "Allowed" : "Not granted"}
+                  {t(title)}: {sessionGrantsScope(session, scope) ? t("Allowed") : t("Not granted")}
                 </Text>
               ))}
             </>
           ) : (
             <Text className="text-sm text-foreground-muted">
-              Permissions not checked. Connect to this environment to view this session’s
-              permissions.
+              {t(
+                "Permissions not checked. Connect to this environment to view this session’s permissions.",
+              )}
             </Text>
           )}
         </View>
@@ -224,7 +228,7 @@ export function EnvironmentRoutesSection({
           />
         );
       })}
-      <SettingsActionRow icon="plus" label="Add route" onPress={onAddRoute} />
+      <SettingsActionRow icon="plus" label={t("Add route")} onPress={onAddRoute} />
     </SettingsSection>
   );
 }
@@ -244,8 +248,9 @@ function RouteRow(props: {
   readonly onStep: (direction: "up" | "down") => void;
   readonly onRemove: (() => void) | undefined;
 }) {
+  const t = useTranslate();
   const { route, lifted, offset } = props;
-  const label = connectionRouteLabel(route);
+  const label = t(connectionRouteLabel(route));
   const address = connectionRouteAddress(route);
   const style = useAnimatedStyle(() => ({
     transform: [
@@ -266,7 +271,7 @@ function RouteRow(props: {
       {props.editing && props.onRemove ? (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`Remove ${label} route`}
+          accessibilityLabel={t("Remove {name} route", { name: label })}
           hitSlop={8}
           onPress={props.onRemove}
           className="active:opacity-70"
@@ -286,9 +291,9 @@ function RouteRow(props: {
         accessibilityLabel={[
           label,
           address,
-          isLearned(route) ? "Found automatically" : null,
-          props.inUse ? "In use" : null,
-          `Route ${props.position} of ${props.count}`,
+          isLearned(route) ? t("Found automatically") : null,
+          props.inUse ? t("In use") : null,
+          t("Route {position} of {count}", { position: props.position, count: props.count }),
         ]
           .filter((part) => part !== null)
           .join(", ")}
@@ -312,12 +317,12 @@ function RouteRow(props: {
               {label}
             </Text>
             {props.inUse ? (
-              <StatusPill {...connectionTone("connected")} label="In use" size="compact" />
+              <StatusPill {...connectionTone("connected")} label={t("In use")} size="compact" />
             ) : null}
           </View>
           {address !== null ? (
             <Text numberOfLines={1} className="text-sm text-foreground-muted">
-              {isLearned(route) ? `${address} · found automatically` : address}
+              {isLearned(route) ? t("{address} · found automatically", { address }) : address}
             </Text>
           ) : null}
         </View>
@@ -347,6 +352,7 @@ function DragHandle(props: {
   readonly onEnd: (translation: number, cancelled: boolean) => void;
   readonly onStep: (direction: "up" | "down") => void;
 }) {
+  const t = useTranslate();
   const latest = useRef(props);
   useEffect(() => {
     latest.current = props;
@@ -375,10 +381,10 @@ function DragHandle(props: {
         collapsable={false}
         accessible
         accessibilityRole="adjustable"
-        accessibilityLabel={`Reorder ${props.title}`}
+        accessibilityLabel={t("Reorder {name}", { name: props.title })}
         accessibilityActions={[
-          ...(props.canMoveUp ? [{ name: "decrement", label: "Move up" }] : []),
-          ...(props.canMoveDown ? [{ name: "increment", label: "Move down" }] : []),
+          ...(props.canMoveUp ? [{ name: "decrement", label: t("Move up") }] : []),
+          ...(props.canMoveDown ? [{ name: "increment", label: t("Move down") }] : []),
         ]}
         onAccessibilityAction={({ nativeEvent }) => {
           if (nativeEvent.actionName === "decrement" && props.canMoveUp) props.onStep("up");

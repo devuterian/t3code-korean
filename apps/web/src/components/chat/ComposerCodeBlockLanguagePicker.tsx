@@ -20,6 +20,7 @@ import {
   ComboboxTrigger,
 } from "../ui/combobox";
 import { PierreEntryIcon } from "./PierreEntryIcon";
+import { useTranslate } from "~/i18n/translate";
 
 /**
  * The language's file icon: plain text gets the text-file icon, and a
@@ -45,6 +46,7 @@ export function ComposerCodeBlockLanguagePicker(props: {
   disabled: boolean;
   onChange: (language: string) => void;
 }) {
+  const t = useTranslate();
   const [query, setQuery] = useState("");
   const current = codeLanguageEntry(props.language)?.id ?? props.language;
   const items = useMemo<CodeBlockLanguage[]>(
@@ -89,7 +91,10 @@ export function ComposerCodeBlockLanguagePicker(props: {
               variant="ghost-muted"
               size="xs"
               disabled={props.disabled}
-              aria-label={`Code language: ${codeLanguageLabel(props.language)}`}
+              aria-label={t("Code language: {language}").replace(
+                "{language}",
+                codeLanguageLabel(props.language),
+              )}
             />
           }
         >
@@ -99,12 +104,12 @@ export function ComposerCodeBlockLanguagePicker(props: {
         </ComboboxTrigger>
         <ComboboxPopup align="start" className="w-56">
           <ComboboxSearchInput
-            aria-label="Search languages"
-            placeholder="Search languages"
+            aria-label={t("Search languages")}
+            placeholder={t("Search languages")}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
           />
-          <ComboboxEmpty>No matching languages.</ComboboxEmpty>
+          <ComboboxEmpty>{t("No matching languages.")}</ComboboxEmpty>
           <ComboboxList>
             {(entry: CodeBlockLanguage) => (
               <ComboboxItem key={entry.id || "plain"} value={entry}>

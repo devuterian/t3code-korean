@@ -145,7 +145,10 @@ function DiffFileCollapseToggle({
             size="icon-micro"
             variant="ghost"
             className="-ms-0.5"
-            aria-label={t(collapsed ? `Expand ${filePath}` : `Collapse ${filePath}`)}
+            aria-label={t(collapsed ? "Expand {path}" : "Collapse {path}").replace(
+              "{path}",
+              () => filePath,
+            )}
             aria-expanded={!collapsed}
             disabled={unavailable}
             onClick={(event) => {
@@ -1083,10 +1086,10 @@ export default function DiffPanel({
         </div>
       ) : selectedRunId === null && !canReadFiles ? (
         fileAccess.isPending ? (
-          <DiffPanelLoadingState label="Checking file access..." />
+          <DiffPanelLoadingState label={t("Checking file access...")} />
         ) : (
           <div className="flex flex-1 items-center justify-center px-5 text-center text-xs text-muted-foreground/70">
-            {fileAccess.error ?? "This connection cannot read local diffs."}
+            {fileAccess.error ?? t("This connection cannot read local diffs.")}
           </div>
         )
       ) : (

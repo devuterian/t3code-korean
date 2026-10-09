@@ -92,7 +92,7 @@ export function PullRequestStackMenu({
     setConfirmation(null);
     const toastId = toastManager.add({
       type: "loading",
-      title: action === "merge" ? "Merging stack..." : "Rebasing stack...",
+      title: action === "merge" ? t("Merging stack...") : t("Rebasing stack..."),
     });
     const result = await runAction({
       environmentId,

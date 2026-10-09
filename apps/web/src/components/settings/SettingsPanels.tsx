@@ -3606,7 +3606,7 @@ export function GeneralSettingsPanel() {
               size="sm"
               variant="outline"
             >
-              View policy
+              {t("View policy")}
             </Button>
           }
         />

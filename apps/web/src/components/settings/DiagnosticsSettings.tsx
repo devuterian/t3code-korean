@@ -945,10 +945,12 @@ export function DiagnosticsSettingsPanel() {
       <SettingsPageContainer>
         <p className="text-sm text-muted-foreground">
           {environmentId === null
-            ? "Connect an environment to see diagnostics."
+            ? t("Connect an environment to see diagnostics.")
             : diagnosticsAccess.isPending
-              ? "Checking diagnostics access…"
-              : diagnosticsAccess.error}
+              ? t("Checking diagnostics access…")
+              : diagnosticsAccess.error
+                ? t(diagnosticsAccess.error)
+                : null}
         </p>
       </SettingsPageContainer>
     );

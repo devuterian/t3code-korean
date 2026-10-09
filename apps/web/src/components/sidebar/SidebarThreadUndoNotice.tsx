@@ -19,7 +19,7 @@ export function SidebarThreadUndoNotice() {
   return (
     <Alert role="status" variant="sidebar">
       <AlertDescription>
-        {t(`${notice.action} ${notice.count} ${noun}`)},{" "}
+        {t(`${notice.action} {count} ${noun}`).replace("{count}", () => String(notice.count))},{" "}
         <InlineButton onClick={undoLatestThreadAction}>
           {shortcut ? t(`${shortcut} to undo`) : t("Undo")}
         </InlineButton>

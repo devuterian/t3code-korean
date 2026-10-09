@@ -422,8 +422,8 @@ export function BranchToolbarBranchSelector({
       toastManager.add(
         stackedThreadToast({
           type: "error",
-          title: "Action unavailable",
-          description: "This connection cannot change the thread's branch.",
+          title: translate("Action unavailable"),
+          description: translate("This connection cannot change the thread's branch."),
         }),
       );
       return;

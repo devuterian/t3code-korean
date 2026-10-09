@@ -5,6 +5,7 @@ import * as SecureStore from "expo-secure-store";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert } from "react-native";
 
+import { translate } from "../i18n/translate";
 import { useEnvironments } from "../state/environments";
 import { environmentSession } from "../state/session";
 
@@ -74,9 +75,11 @@ export function PermissionUpdateNotice() {
       });
     };
     Alert.alert(
-      `Permissions have changed for ${environment.label}`,
-      "This connection still uses the old permissions, so some actions may no longer be available. Pair again using a new link with the permissions you need.",
-      [{ text: "Got it", onPress: dismiss }],
+      translate("Permissions have changed for {name}", { name: environment.label }),
+      translate(
+        "This connection still uses the old permissions, so some actions may no longer be available. Pair again using a new link with the permissions you need.",
+      ),
+      [{ text: translate("Got it"), onPress: dismiss }],
       { cancelable: false },
     );
   }, [affected, dismissed]);

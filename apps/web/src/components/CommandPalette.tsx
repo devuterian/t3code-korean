@@ -1201,7 +1201,7 @@ function OpenCommandPaletteDialog(props: {
   const isBrowsePending = hasBrowseTarget && (browseAccess.isPending || browseQuery.isPending);
   const browseAccessError =
     hasBrowseTarget && !browseAccess.isPending && !browseAccess.canReadFiles
-      ? (browseAccess.error ?? "This connection cannot browse host folders.")
+      ? (browseAccess.error ?? t("This connection cannot browse host folders."))
       : null;
   const browseEntries = browseResult?.entries ?? EMPTY_BROWSE_ENTRIES;
   const { visibleEntries: visibleBrowseEntries, exactEntry: exactBrowseEntry } = useMemo(
@@ -2481,8 +2481,8 @@ function OpenCommandPaletteDialog(props: {
         toastManager.add(
           stackedThreadToast({
             type: "error",
-            title: "Cannot add project",
-            description: "This connection cannot add projects.",
+            title: translate("Cannot add project"),
+            description: translate("This connection cannot add projects."),
           }),
         );
         return;
@@ -2685,8 +2685,10 @@ function OpenCommandPaletteDialog(props: {
       toastManager.add(
         stackedThreadToast({
           type: "error",
-          title: "Clone unavailable",
-          description: "This connection needs permission to write source control and add projects.",
+          title: translate("Clone unavailable"),
+          description: translate(
+            "This connection needs permission to write source control and add projects.",
+          ),
         }),
       );
       return;
@@ -3461,10 +3463,10 @@ function OpenCommandPaletteDialog(props: {
         </TooltipTrigger>
         <TooltipPopup side="top">
           {isCloneDestinationStep && !canCloneProject
-            ? "This connection needs permission to write source control and add projects."
+            ? t("This connection needs permission to write source control and add projects.")
             : canCreateProject
               ? `${submitActionLabel} (${addShortcutLabel})`
-              : "This connection cannot add projects."}
+              : t("This connection cannot add projects.")}
         </TooltipPopup>
       </Tooltip>
     ) : null;
@@ -3590,7 +3592,7 @@ function OpenCommandPaletteDialog(props: {
         </div>
       ) : isBrowsePending && browseResult === null ? (
         <div role="status" className="px-4 py-3 text-sm text-muted-foreground">
-          Loading folders...
+          {t("Loading folders...")}
         </div>
       ) : null}
       <CommandPaletteVirtualizedResults
