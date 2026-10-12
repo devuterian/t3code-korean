@@ -1449,6 +1449,46 @@ it.effect("keeps ingesting a late background command item completion after root 
   }),
 );
 
+it.effect("reserves a held assistant draft's position before later items are written", () =>
+  Effect.gen(function* () {
+    const observed = yield* runBackgroundItemScenario("steer-cut-draft", (ids) => {
+      const draftId = TurnItemId.make(`${ids.itemId}:draft`);
+      const draft = (text: string, streaming: boolean): ProviderAdapterV2Event =>
+        ({
+          type: "turn_item.updated",
+          driver,
+          turnItem: {
+            id: draftId,
+            threadId: ids.threadId,
+            runId: ids.runId,
+            providerTurnId: ids.rootProviderTurnId,
+            ordinal: 1,
+            type: "assistant_message",
+            messageId: MessageId.make(`${draftId}:message`),
+            status: streaming ? "running" : "completed",
+            text,
+            streaming,
+          },
+        }) as ProviderAdapterV2Event;
+      // A steer cuts the draft off mid-sentence, so its text never reaches a
+      // paragraph boundary until the turn settles it.
+      return [
+        draft("Checking the template", true),
+        draft("Checking the template and the sheet", true),
+        backgroundTurnItemEvent(ids, "command_execution", "completed", 2),
+        draft("Checking the template and the sheet", false),
+        rootTerminalEvent(ids, "completed"),
+      ];
+    });
+    assert.deepEqual(observed, [
+      "reserve:turn-item:steer-cut-draft:draft",
+      "turn_item:completed",
+      "turn_item:completed",
+      "root-finalized",
+    ]);
+  }),
+);
+
 it.effect("ingests the trailing subagent item completion after the subagent row completes", () =>
   Effect.gen(function* () {
     const observed = yield* runBackgroundItemScenario("subagent-trailing-item", (ids) => [
@@ -4036,6 +4076,8 @@ function runBackgroundItemScenario(
                 return [];
               }),
             writeIfRunCurrent: () => Effect.succeed({ committed: true, storedEvents: [] }),
+            reserveTurnItemPosition: (turnItem) =>
+              Ref.update(observed, (current) => [...current, `reserve:${turnItem.id}`]),
           }),
           IdAllocator.layer,
           Layer.mock(ProviderEventIngestor.ProviderEventIngestorV2)({

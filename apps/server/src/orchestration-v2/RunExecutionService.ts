@@ -1185,6 +1185,8 @@ export const layer: Layer.Layer<
             return true;
           });
           const filterAssistantEvent = makeAssistantStreamingFilter(responseStreamingMode);
+          // Turn items whose position is already fixed, by a write or a reservation.
+          const positionedTurnItemIds = new Set<string>();
           const providerEventFiber = yield* eventSubscription.events.pipe(
             Stream.filterEffect((event) =>
               Ref.modify(eventRouting, (state) => routeProviderEvent(event, routeIdentity, state)),
@@ -1196,6 +1198,26 @@ export const layer: Layer.Layer<
                   event,
                   DateTime.toEpochMillis(yield* DateTime.now),
                 );
+                if (
+                  event.type === "turn_item.updated" &&
+                  !positionedTurnItemIds.has(event.turnItem.id)
+                ) {
+                  positionedTurnItemIds.add(event.turnItem.id);
+                  // Held text still takes its place in the timeline when it first appears.
+                  if (!deliveredEvent) {
+                    yield* eventSink.reserveTurnItemPosition(event.turnItem).pipe(
+                      Effect.catchCause((cause) =>
+                        Effect.logWarning(
+                          "orchestration V2 turn item position reservation failed",
+                          {
+                            runId: input.run.id,
+                            cause,
+                          },
+                        ),
+                      ),
+                    );
+                  }
+                }
                 if (deliveredEvent) {
                   // Root provider_thread.updated always uses an ownership gate:
                   // pre-terminal writeIfRunCurrent (attempt still running), or

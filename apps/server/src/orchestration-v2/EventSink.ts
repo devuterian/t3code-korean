@@ -1,6 +1,7 @@
 import {
   CommandId,
   type OrchestrationV2Run,
+  type OrchestrationV2TurnItem,
   OrchestrationV2DomainEvent,
   OrchestrationV2StoredEvent,
   ProviderThreadId,
@@ -182,6 +183,14 @@ export interface EventSinkV2Shape {
   readonly readByCommandId: (input: {
     readonly commandId: CommandId;
   }) => Stream.Stream<OrchestrationV2StoredEvent, EventSinkV2Error>;
+  /**
+   * Fix a turn item's timeline position before its first write. Streaming text
+   * is held until its first paragraph ends, so an item a steer cuts off before
+   * then would otherwise take its position from when the turn settles it.
+   */
+  readonly reserveTurnItemPosition: (
+    turnItem: Pick<OrchestrationV2TurnItem, "id" | "threadId" | "runId">,
+  ) => Effect.Effect<void, EventSinkV2Error>;
 }
 
 export class EventSinkV2 extends Context.Service<EventSinkV2, EventSinkV2Shape>()(
@@ -872,6 +881,19 @@ const layerBase: Layer.Layer<
               }),
           ),
         ),
+      reserveTurnItemPosition: (turnItem) =>
+        sql
+          .withTransaction(
+            turnItemPositions.allocate({
+              threadId: turnItem.threadId,
+              turnItemId: turnItem.id,
+              runId: turnItem.runId,
+            }),
+          )
+          .pipe(
+            Effect.asVoid,
+            Effect.mapError((cause) => new EventSinkWriteError({ eventCount: 0, cause })),
+          ),
     } satisfies EventSinkV2Shape);
   }),
 );
