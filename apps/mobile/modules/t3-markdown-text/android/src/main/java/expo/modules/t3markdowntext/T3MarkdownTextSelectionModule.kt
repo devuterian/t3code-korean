@@ -23,6 +23,7 @@ import android.util.LruCache
 import com.facebook.react.bridge.ReactContext
 import com.facebook.react.common.assets.ReactFontManager
 import com.facebook.react.uimanager.UIManagerHelper
+import com.facebook.react.views.text.ReactTextView
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 import kotlin.math.max
@@ -294,6 +295,10 @@ class T3MarkdownTextSelectionModule : Module() {
           return@runOnUiQueueThread
         }
         textView.setSpannableFactory(MarkdownSpannableFactory)
+        // The first mount already copied the text with the default factory, so
+        // re-set RN's original buffer or inline chips stay shifted until the
+        // next text update.
+        (textView as? ReactTextView)?.spanned?.let { textView.text = it }
         textView.customSelectionActionModeCallback =
           SanitizingSelectionActionModeCallback(textView, currentCallback, contextClipboardConfig)
       }

@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useMemo } from "react";
+import { createContext, useCallback, useContext, useMemo, useRef } from "react";
 import { decodeComposerContextFragment } from "@t3tools/shared/composerContextClipboard";
 import {
   findNodeHandle,
@@ -296,15 +296,21 @@ export function NativeMarkdownSelectableText(props: {
   const contextClipboardConfig = ranges.length
     ? JSON.stringify({ fragment: contextClipboardFragment, ranges })
     : "";
+  const androidTextRef = useRef<TextInstance | null>(null);
+  const installAndroidText = useCallback(() => {
+    const textView = androidTextRef.current;
+    if (Platform.OS !== "android" || !containsInlineIcon || !textView) return;
+    const reactTag = findNodeHandle(textView);
+    if (typeof reactTag === "number") {
+      installMarkdownCopySanitizer(reactTag, contextClipboardConfig);
+    }
+  }, [containsInlineIcon, contextClipboardConfig]);
   const attachAndroidText = useCallback(
     (textView: TextInstance | null) => {
-      if (Platform.OS !== "android" || !containsInlineIcon || !textView) return;
-      const reactTag = findNodeHandle(textView);
-      if (typeof reactTag === "number") {
-        installMarkdownCopySanitizer(reactTag, contextClipboardConfig);
-      }
+      androidTextRef.current = textView;
+      installAndroidText();
     },
-    [containsInlineIcon, contextClipboardConfig],
+    [installAndroidText],
   );
   // T3MarkdownText only rebuilds its attributed string during native layout. A
   // color-only child update can otherwise leave the previous appearance cached.
@@ -332,6 +338,9 @@ export function NativeMarkdownSelectableText(props: {
     <MarkdownTextPrimitive
       key={appearanceKey}
       nativeTextRef={attachAndroidText}
+      // The ref can fire before the native view exists; layout guarantees it,
+      // so chips are realigned on the first frame instead of the next update.
+      onLayout={Platform.OS === "android" ? installAndroidText : undefined}
       contextClipboardConfig={contextClipboardConfig}
       accessibilityLabel={
         Platform.OS === "android" && containsInlineIcon
