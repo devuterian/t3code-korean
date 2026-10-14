@@ -33,7 +33,11 @@ import * as ElectronWindow from "../electron/ElectronWindow.ts";
 import * as IpcChannels from "../ipc/channels.ts";
 import * as DesktopAppSettings from "../settings/DesktopAppSettings.ts";
 import { normalizeDesktopUpdateReleaseNotes } from "./releaseNotes.ts";
-import { resolveDefaultDesktopUpdateChannel } from "./updateChannels.ts";
+import {
+  isKoreanForkDesktopVersion,
+  KOREAN_FORK_UPDATE_CHANNEL,
+  resolveDefaultDesktopUpdateChannel,
+} from "./updateChannels.ts";
 import {
   createInitialDesktopUpdateState,
   reduceDesktopUpdateStateOnCheckFailure,
@@ -284,6 +288,8 @@ export const make = Effect.gen(function* () {
   const fileSystem = yield* FileSystem.FileSystem;
   const desktopSettings = yield* DesktopAppSettings.DesktopAppSettings;
 
+  const isKoreanForkBuild = isKoreanForkDesktopVersion(environment.appVersion);
+
   const appUpdateYmlConfigRef = yield* Ref.make<Option.Option<AppUpdateYmlConfig>>(Option.none());
   const activeUpdateActionRef = yield* Ref.make<Option.Option<UpdateAction>>(Option.none());
   const finishedUpdateActions = yield* PubSub.unbounded<UpdateAction>();
@@ -391,6 +397,18 @@ export const make = Effect.gen(function* () {
     channel: DesktopUpdateChannel,
   ) {
     yield* Effect.annotateCurrentSpan({ channel });
+    if (isKoreanForkBuild) {
+      // electron-updater's GitHub provider picks the newest release whose tag
+      // shares this prerelease id, whether GitHub marks it Latest or Pre-release.
+      yield* electronUpdater.setChannel(KOREAN_FORK_UPDATE_CHANNEL);
+      yield* electronUpdater.setAllowPrerelease(true);
+      yield* electronUpdater.setAllowDowngrade(false);
+      yield* electronUpdater.setFullChangelog(false);
+      yield* logUpdaterInfo("using Korean fork update channel", {
+        channel: KOREAN_FORK_UPDATE_CHANNEL,
+      });
+      return;
+    }
     const allowsPrerelease = channel === "nightly";
     yield* electronUpdater.setChannel(channel);
     yield* electronUpdater.setAllowPrerelease(allowsPrerelease);
@@ -515,6 +533,31 @@ export const make = Effect.gen(function* () {
       Effect.ensuring(finishUpdateAction("download")),
     );
   }).pipe(Effect.withSpan("desktop.updates.downloadAvailableUpdate"));
+
+  // Korean fork builds download in the background. electron-updater's own
+  // autoDownload re-runs Squirrel's download on every check once a version is
+  // cached and drops download failures, so the download goes through the same
+  // path as the Download button instead. It waits for the check or channel
+  // change that reported the update to finish first.
+  const autoDownloadAvailableUpdate = Effect.scoped(
+    Effect.gen(function* () {
+      const actionCompletions = yield* PubSub.subscribe(finishedUpdateActions);
+      while (true) {
+        const activeAction = yield* activeUpdateAction;
+        if (Option.isNone(activeAction)) break;
+        if (activeAction.value !== "check" && activeAction.value !== "channel") return;
+        const finishedAction = yield* PubSub.take(actionCompletions).pipe(
+          Effect.timeoutOption(PREPARED_INSTALL_CHECK_WAIT),
+        );
+        if (Option.isNone(finishedAction)) return;
+      }
+      const state = yield* Ref.get(updateStateRef);
+      if (state.status !== "available" || state.availableVersion === state.downloadedVersion) {
+        return;
+      }
+      yield* downloadAvailableUpdate;
+    }),
+  ).pipe(Effect.withSpan("desktop.updates.autoDownloadAvailableUpdate"));
 
   // Tells the primary backend that the coming stop is an update restart, so it
   // keeps its managed tunnel for the backend the updated app starts. Best
@@ -717,8 +760,16 @@ export const make = Effect.gen(function* () {
       }),
       Effect.forkScoped,
     );
+    // Once a Korean fork update is downloaded it installs on quit; polling again
+    // would only make Squirrel re-verify the same archive. Manual checks still run.
+    const pollForUpdates = Effect.gen(function* () {
+      if (isKoreanForkBuild && (yield* Ref.get(updateStateRef)).downloadedVersion !== null) {
+        return false;
+      }
+      return yield* checkForUpdates("poll");
+    });
     yield* Effect.sleep(AUTO_UPDATE_POLL_INTERVAL).pipe(
-      Effect.andThen(checkForUpdates("poll")),
+      Effect.andThen(pollForUpdates),
       Effect.forever,
       Effect.catchCause((cause) => {
         if (Cause.hasInterruptsOnly(cause)) {
@@ -741,7 +792,10 @@ export const make = Effect.gen(function* () {
       Effect.flatMap(
         Effect.fn("desktop.updates.applyUpdateAvailable")(function* (info) {
           const state = yield* Ref.get(updateStateRef);
-          if (resolveDefaultDesktopUpdateChannel(info.version) !== state.channel) {
+          if (
+            !isKoreanForkBuild &&
+            resolveDefaultDesktopUpdateChannel(info.version) !== state.channel
+          ) {
             yield* logUpdaterInfo("ignoring update that does not match selected channel", {
               version: info.version,
               channel: state.channel,
@@ -773,6 +827,9 @@ export const make = Effect.gen(function* () {
             releaseNoteGroups: releaseNotes.length,
             omittedReleaseCount,
           });
+          if (isKoreanForkBuild && info.version !== state.downloadedVersion) {
+            yield* autoDownloadAvailableUpdate;
+          }
         }),
       ),
       Effect.catchCause((cause) => {
@@ -930,8 +987,11 @@ export const make = Effect.gen(function* () {
       }
       yield* Ref.set(updaterConfiguredRef, true);
 
+      // The Korean fork downloads in the background (autoDownloadAvailableUpdate)
+      // and lets Squirrel install on quit; the restart button still installs
+      // immediately.
       yield* electronUpdater.setAutoDownload(false);
-      yield* electronUpdater.setAutoInstallOnAppQuit(false);
+      yield* electronUpdater.setAutoInstallOnAppQuit(isKoreanForkBuild);
       yield* applyAutoUpdaterChannel(settings.updateChannel);
       yield* electronUpdater.setDisableDifferentialDownload(
         isArm64HostRunningIntelBuild(environment.runtimeInfo),
@@ -1003,7 +1063,7 @@ export const make = Effect.gen(function* () {
 
         yield* applyAutoUpdaterChannel(nextChannel);
         const allowDowngrade = yield* electronUpdater.allowDowngrade;
-        yield* electronUpdater.setAllowDowngrade(true);
+        yield* electronUpdater.setAllowDowngrade(!isKoreanForkBuild);
         yield* checkForUpdates("channel-change", "held").pipe(
           Effect.ensuring(electronUpdater.setAllowDowngrade(allowDowngrade).pipe(Effect.ignore)),
         );

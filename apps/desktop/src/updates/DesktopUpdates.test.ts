@@ -20,6 +20,11 @@ import * as DesktopState from "../app/DesktopState.ts";
 import * as DesktopUpdates from "./DesktopUpdates.ts";
 import { flushCallbacks, makeHarness } from "./updatesTestHarness.ts";
 
+// Updater events run on their own fibers; give them a few turns to finish.
+const settleUpdates = Effect.forEach(Array.from({ length: 10 }), () => flushCallbacks, {
+  discard: true,
+});
+
 describe("DesktopUpdates", () => {
   it("preserves complete causes for update poller and event failures", () => {
     const cause = Cause.combine(
@@ -125,6 +130,120 @@ describe("DesktopUpdates", () => {
         const observed = yield* Fiber.join(nextState);
         assert.equal(Option.getOrThrow(observed).status, "available");
         assert.equal(Option.getOrThrow(observed).availableVersion, "1.2.4");
+      }),
+    ).pipe(Effect.provide(Layer.merge(TestClock.layer(), harness.layer)));
+  });
+
+  it.effect("Korean fork builds follow every ko release and install on quit", () => {
+    const harness = makeHarness({ appVersion: "0.0.46-ko.6" });
+
+    return Effect.scoped(
+      Effect.gen(function* () {
+        const updates = yield* DesktopUpdates.DesktopUpdates;
+        yield* updates.configure;
+
+        assert.deepEqual(harness.updaterSettings, {
+          autoDownload: false,
+          autoInstallOnAppQuit: true,
+          channel: "ko",
+          allowPrerelease: true,
+        });
+        assert.isFalse(harness.allowDowngrade());
+
+        yield* updates.setChannel("nightly");
+        assert.equal(harness.updaterSettings.channel, "ko");
+        assert.isFalse(harness.allowDowngrade());
+      }),
+    ).pipe(Effect.provide(Layer.merge(TestClock.layer(), harness.layer)));
+  });
+
+  it.effect("Korean fork builds download a new version once and stop polling after", () => {
+    const harness = makeHarness({ appVersion: "0.0.46-ko.6" });
+
+    return Effect.scoped(
+      Effect.gen(function* () {
+        const updates = yield* DesktopUpdates.DesktopUpdates;
+        yield* updates.configure;
+
+        harness.emit("update-available", { version: "0.0.46-ko.7" });
+        yield* settleUpdates;
+        assert.equal(harness.downloadCount(), 1);
+        harness.emit("update-downloaded", { version: "0.0.46-ko.7" });
+        yield* settleUpdates;
+
+        yield* TestClock.adjust(Duration.minutes(13));
+        assert.equal(harness.checkCount(), 1, "only the startup check runs once downloaded");
+
+        const result = yield* updates.check("manual");
+        assert.isTrue(result.checked);
+        harness.emit("update-available", { version: "0.0.46-ko.7" });
+        yield* settleUpdates;
+
+        const state = yield* updates.getState;
+        assert.equal(state.status, "downloaded");
+        assert.equal(state.downloadedVersion, "0.0.46-ko.7");
+        assert.equal(harness.downloadCount(), 1);
+      }),
+    ).pipe(Effect.provide(Layer.merge(TestClock.layer(), harness.layer)));
+  });
+
+  it.effect("Korean fork builds start the download after the reporting check ends", () => {
+    let emitDuringCheck = () => {};
+    const harness = makeHarness({
+      appVersion: "0.0.46-ko.6",
+      checkForUpdates: Effect.sync(() => emitDuringCheck()),
+    });
+    emitDuringCheck = () => harness.emit("update-available", { version: "0.0.46-ko.7" });
+
+    return Effect.scoped(
+      Effect.gen(function* () {
+        const updates = yield* DesktopUpdates.DesktopUpdates;
+        yield* updates.configure;
+
+        yield* updates.check("manual");
+        yield* settleUpdates;
+
+        assert.equal(harness.downloadCount(), 1);
+        assert.equal((yield* updates.getState).status, "downloading");
+      }),
+    ).pipe(Effect.provide(Layer.merge(TestClock.layer(), harness.layer)));
+  });
+
+  it.effect("Korean fork background download failures stay retryable", () => {
+    let failDownload = true;
+    const harness = makeHarness({
+      appVersion: "0.0.46-ko.6",
+      downloadUpdate: Effect.suspend(() =>
+        failDownload
+          ? Effect.fail(
+              new ElectronUpdater.ElectronUpdaterDownloadUpdateError({
+                channel: "ko",
+                cause: new Error("network down"),
+              }),
+            )
+          : Effect.void,
+      ),
+    });
+
+    return Effect.scoped(
+      Effect.gen(function* () {
+        const updates = yield* DesktopUpdates.DesktopUpdates;
+        yield* updates.configure;
+
+        harness.emit("update-available", { version: "0.0.46-ko.7" });
+        yield* settleUpdates;
+
+        const failed = yield* updates.getState;
+        assert.equal(failed.status, "available");
+        assert.equal(failed.errorContext, "download");
+        assert.isTrue(failed.canRetry);
+        assert.isFalse(yield* updates.isActionActive);
+
+        failDownload = false;
+        const retry = yield* updates.download;
+        assert.isTrue(retry.accepted);
+        assert.isTrue(retry.completed);
+        assert.equal(harness.downloadCount(), 2);
       }),
     ).pipe(Effect.provide(Layer.merge(TestClock.layer(), harness.layer)));
   });

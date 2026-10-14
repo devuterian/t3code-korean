@@ -29,6 +29,9 @@ import {
   LINUX_BROWSER_SECRET_EXTRA_RESOURCES,
   LINUX_FILE_EXCLUSIONS,
   MAC_FILE_EXCLUSIONS,
+  MAC_PERMISSION_FLOW_EXTRA_RESOURCES,
+  KoreanMacSignIdentityInvalidError,
+  resolveKoreanMacSignIdentity,
   InvalidMacPasskeyRpDomainError,
   InvalidMacPasskeyPublishableKeyError,
   InvalidMockUpdateServerPortError,
@@ -286,6 +289,22 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
     assert.equal(resolveDesktopWebAssetBrand("0.0.17"), "production");
     assert.equal(resolveDesktopWebAssetBrand("0.0.17-nightly.20260413.42"), "nightly");
   });
+
+  it.effect("rejects a malformed Korean mac signing identity instead of ad-hoc signing", () =>
+    Effect.gen(function* () {
+      const resolve = (env: Record<string, string>) =>
+        resolveKoreanMacSignIdentity().pipe(
+          Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env }))),
+        );
+      const hash = "ab".repeat(20);
+
+      assert.isUndefined(yield* resolve({}));
+      assert.isUndefined(yield* resolve({ T3CODE_MAC_SIGN_IDENTITY: "  " }));
+      assert.equal(yield* resolve({ T3CODE_MAC_SIGN_IDENTITY: ` ${hash} ` }), hash.toUpperCase());
+      const error = yield* resolve({ T3CODE_MAC_SIGN_IDENTITY: hash.slice(1) }).pipe(Effect.flip);
+      assert.instanceOf(error, KoreanMacSignIdentityInvalidError);
+    }),
+  );
 
   it.effect("resolves GitHub desktop publish config from Effect config", () =>
     Effect.gen(function* () {
@@ -551,6 +570,7 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
     for (const resource of [
       ...WSL_RUNTIME_EXTRA_RESOURCES,
       ...LINUX_BROWSER_SECRET_EXTRA_RESOURCES,
+      ...MAC_PERMISSION_FLOW_EXTRA_RESOURCES,
     ]) {
       assert.include(
         DESKTOP_FILE_EXCLUSIONS,
@@ -570,6 +590,8 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
       "!apps/desktop/resources/browser-secret/**/*",
       "!apps/desktop/prod-resources/browser-secret",
       "!apps/desktop/prod-resources/browser-secret/**/*",
+      "!apps/desktop/prod-resources/permission-flow",
+      "!apps/desktop/prod-resources/permission-flow/**/*",
       "!apps/desktop/prod-resources/windows-server",
       "!apps/desktop/prod-resources/windows-server/**/*",
       "!apps/desktop/prod-resources/wsl-runtime.tar.gz",
@@ -638,7 +660,10 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
       assert.deepStrictEqual(win.asarUnpack, [WINDOWS_NATIVE_ASAR_UNPACK_GLOB]);
       assert.deepStrictEqual(winWithoutWslRuntime.asar, win.asar);
       assert.deepStrictEqual(winWithoutWslRuntime.asarUnpack, win.asarUnpack);
-      assert.deepStrictEqual(mac.extraResources, DESKTOP_EXTRA_RESOURCES);
+      assert.deepStrictEqual(mac.extraResources, [
+        ...DESKTOP_EXTRA_RESOURCES,
+        { from: "apps/desktop/prod-resources/permission-flow", to: "permission-flow" },
+      ]);
       assert.deepStrictEqual(linux.extraResources, [
         ...DESKTOP_EXTRA_RESOURCES,
         ...LINUX_CAPTURE_EXTRA_RESOURCES,

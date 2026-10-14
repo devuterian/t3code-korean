@@ -353,6 +353,16 @@ export const SETTINGS_SEARCH_ITEMS = [
     searchTerms: ["notification sound alert completion input approval desktop"],
   },
   {
+    id: "mac-permissions",
+    title: "macOS permissions",
+    to: "/settings/general",
+    searchTerms: [
+      "privacy screen recording accessibility full disk access microphone camera notifications onboarding",
+    ],
+    desktopOnly: true,
+    macOnly: true,
+  },
+  {
     id: "in-app-notifications",
     title: "In-app notifications",
     to: "/settings/general",

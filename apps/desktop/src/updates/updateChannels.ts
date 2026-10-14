@@ -16,3 +16,14 @@ export function isNightlyDesktopVersion(version: string): boolean {
 export function resolveDefaultDesktopUpdateChannel(appVersion: string): DesktopUpdateChannel {
   return NIGHTLY_VERSION_PATTERN.test(appVersion) ? "nightly" : "latest";
 }
+
+// Korean fork releases (`0.0.46-ko.6`) are published on devuterian/t3code-korean
+// as a mix of stable and prerelease GitHub releases. The updater follows the
+// `ko` prerelease identifier across both, downloads in the background, and
+// installs on quit, so these builds ignore the upstream latest/nightly split.
+const KOREAN_FORK_VERSION_PATTERN = /^[^-+]+-ko\.\d+$/;
+export const KOREAN_FORK_UPDATE_CHANNEL = "ko";
+
+export function isKoreanForkDesktopVersion(version: string): boolean {
+  return KOREAN_FORK_VERSION_PATTERN.test(version);
+}

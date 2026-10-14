@@ -2,6 +2,10 @@ import { SettingsGroup } from "./SettingsGroup";
 import { useScopedSettingsWriteAllowed } from "./useScopedSettings";
 import { Spinner } from "~/components/ui/spinner";
 import { NotificationSettings } from "./NotificationSettings";
+import {
+  canShowMacPermissionsOnboarding,
+  openMacPermissionsOnboarding,
+} from "../permissions/MacPermissionsOnboarding";
 import { PRIVACY_POLICY_URL } from "../../legalLinks";
 import {
   ArchiveIcon,
@@ -313,6 +317,9 @@ function AboutVersionSection() {
 
   const hasDesktopBridge = typeof window !== "undefined" && Boolean(window.desktopBridge);
   const selectedUpdateChannel = updateState?.channel ?? "latest";
+  // Korean fork desktop builds (`0.0.46-ko.6`) always follow the fork's `ko`
+  // releases, so the Stable/Nightly track does nothing there.
+  const isKoreanForkDesktop = /-ko\.\d+$/.test(updateState?.currentVersion ?? "");
   const selectedHostedAppChannel = hasDesktopBridge ? null : HOSTED_APP_CHANNEL;
   // Show the beta app links as soon as someone picks Nightly, before the update installs.
   const showNightlyMobileBeta =
@@ -479,7 +486,7 @@ function AboutVersionSection() {
           </Tooltip>
         }
       />
-      {hasDesktopBridge ? (
+      {hasDesktopBridge && !isKoreanForkDesktop ? (
         <SettingsRow
           title="Update track"
           description="Use stable releases or nightly builds. Switch back anytime."
@@ -2599,6 +2606,17 @@ export function GeneralSettingsPanel() {
 
       <SettingsSection id="behavior" title="Behavior">
         <NotificationSettings />
+        {canShowMacPermissionsOnboarding() ? (
+          <SettingsRow
+            {...searchableSetting("mac-permissions")}
+            description="Review the permissions T3 Code asks for on first launch."
+            control={
+              <Button size="xs" variant="outline" onClick={openMacPermissionsOnboarding}>
+                {t("Review permissions")}
+              </Button>
+            }
+          />
+        ) : null}
         <SettingsRow
           {...searchableSetting("in-app-notifications")}
           description="Show a toast when another thread finishes, fails, or needs input or approval while this app has focus."

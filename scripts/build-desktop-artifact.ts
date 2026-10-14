@@ -60,6 +60,9 @@ const DESKTOP_APP_ID = "com.t3tools.t3code";
 // differently signed app leaves notifications silently undelivered. Windows
 // keeps the official id so its installer GUID and toast AUMID stay stable.
 const KOREAN_MAC_APP_ID = "com.marierie.t3code-korean";
+// Mac artifact names match what devuterian/t3code-korean releases publish, so
+// latest-mac.yml references the uploaded files without renaming.
+const KOREAN_MAC_ARTIFACT_NAME = "T3-Code-Korean-${version}-mac-${arch}.${ext}";
 const APPLE_TEAM_ID_PATTERN = /^[A-Z0-9]{10}$/u;
 
 const BuildPlatform = Schema.Literals(["mac", "linux", "win"]);
@@ -457,6 +460,15 @@ export class LinuxBrowserSecretHostError extends Schema.TaggedError<LinuxBrowser
 ) {
   override get message(): string {
     return `Linux desktop builds must run on a Linux host: the browser secret helper links against libsecret and cannot be built on '${this.hostPlatform}'.`;
+  }
+}
+
+export class KoreanMacSignIdentityInvalidError extends Schema.TaggedError<KoreanMacSignIdentityInvalidError>()(
+  "KoreanMacSignIdentityInvalidError",
+  {},
+) {
+  override get message(): string {
+    return "T3CODE_MAC_SIGN_IDENTITY must be the signing certificate's 40-character SHA-1 hash.";
   }
 }
 
@@ -965,6 +977,9 @@ export const DESKTOP_FILE_EXCLUSIONS = [
   "!apps/desktop/resources/browser-secret/**/*",
   "!apps/desktop/prod-resources/browser-secret",
   "!apps/desktop/prod-resources/browser-secret/**/*",
+  // Fork-only: the mac permission helper ships once, in resources/permission-flow.
+  "!apps/desktop/prod-resources/permission-flow",
+  "!apps/desktop/prod-resources/permission-flow/**/*",
   // Windows stages the server sidecar below prod-resources so electron-builder
   // can copy it using project-relative extraResources matchers. Keep those
   // staging inputs out of app.asar; they are emitted once at resources/.
@@ -1105,6 +1120,10 @@ export const LINUX_CAPTURE_EXTRA_RESOURCES = [
 ] as const;
 export const LINUX_BROWSER_SECRET_EXTRA_RESOURCES = [
   { from: "apps/desktop/prod-resources/browser-secret", to: "browser-secret" },
+] as const;
+// Fork-only: PermissionFlow drag helper, signed with the app by osx-sign.
+export const MAC_PERMISSION_FLOW_EXTRA_RESOURCES = [
+  { from: "apps/desktop/prod-resources/permission-flow", to: "permission-flow" },
 ] as const;
 
 export interface MacPasskeySigningConfiguration {
@@ -1318,6 +1337,10 @@ ${associatedDomains}
     <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
     <true/>
     <key>com.apple.security.cs.disable-library-validation</key>
+    <true/>
+    <key>com.apple.security.device.audio-input</key>
+    <true/>
+    <key>com.apple.security.device.camera</key>
     <true/>
   </dict>
 </plist>
@@ -2340,6 +2363,32 @@ export const stageBrowserSecret = Effect.fn("stageBrowserSecret")(function* (inp
   );
 });
 
+/** Fork-only: builds the Swift PermissionFlow helper into resources/permission-flow. */
+export const stagePermissionFlow = Effect.fn("stagePermissionFlow")(function* (input: {
+  readonly repoRoot: string;
+  readonly stageResourcesDir: string;
+  readonly platform: typeof BuildPlatform.Type;
+  readonly arch: typeof BuildArch.Type;
+  readonly verbose: boolean;
+}) {
+  if (input.platform !== "mac") return;
+  const path = yield* Path.Path;
+  yield* runCommand(
+    ChildProcess.make(
+      "node",
+      [
+        path.join(input.repoRoot, "apps/desktop/scripts/build-permission-flow.mjs"),
+        "--arch",
+        input.arch,
+        "--output",
+        path.join(input.stageResourcesDir, "permission-flow"),
+      ],
+      { cwd: input.repoRoot },
+    ),
+    { label: "build macOS PermissionFlow helper", verbose: input.verbose },
+  );
+});
+
 function generateMacIconSet(
   sourcePng: string,
   targetIcns: string,
@@ -2596,6 +2645,21 @@ export const resolveGitHubPublishConfig = Effect.fn("resolveGitHubPublishConfig"
   };
 });
 
+// The Korean fork signs mac builds with a self-signed certificate (SHA-1 of the
+// identity in T3CODE_MAC_SIGN_IDENTITY, keychain in T3CODE_MAC_SIGN_KEYCHAIN).
+// A stable certificate keeps the designated requirement, and with it macOS
+// privacy permissions and Squirrel.Mac update validation, identical across
+// releases. See scripts/korean-release-mac.sh.
+export const resolveKoreanMacSignIdentity = Effect.fn("resolveKoreanMacSignIdentity")(function* () {
+  const identity = yield* Config.String("T3CODE_MAC_SIGN_IDENTITY").pipe(Config.option);
+  const value = Option.getOrUndefined(identity)?.trim().toUpperCase();
+  if (!value) return undefined;
+  // A typo must not silently fall back to ad-hoc signing: installed apps would
+  // reject that update and macOS would ask for every permission again.
+  if (!/^[0-9A-F]{40}$/u.test(value)) return yield* new KoreanMacSignIdentityInvalidError();
+  return value;
+});
+
 export function resolveDesktopUpdateChannel(version: string): "latest" | "nightly" {
   return /-nightly\.\d{8}\.\d+$/.test(version) ? "nightly" : "latest";
 }
@@ -2676,7 +2740,8 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
   const buildConfig: Record<string, unknown> = {
     appId: platform === "mac" ? KOREAN_MAC_APP_ID : DESKTOP_APP_ID,
     productName: resolveDesktopProductName(version),
-    artifactName: "T3-Code-${version}-${arch}.${ext}",
+    artifactName:
+      platform === "mac" ? KOREAN_MAC_ARTIFACT_NAME : "T3-Code-${version}-${arch}.${ext}",
     electronLanguages: [...DESKTOP_ELECTRON_LANGUAGES],
     files: [
       ...DESKTOP_FILE_EXCLUSIONS,
@@ -2699,6 +2764,7 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
       ...DESKTOP_EXTRA_RESOURCES,
       ...(platform === "linux" ? LINUX_CAPTURE_EXTRA_RESOURCES : []),
       ...(platform === "linux" ? LINUX_BROWSER_SECRET_EXTRA_RESOURCES : []),
+      ...(platform === "mac" ? MAC_PERMISSION_FLOW_EXTRA_RESOURCES : []),
       ...(platform === "win" ? WINDOWS_SERVER_EXTRA_RESOURCES : []),
       ...(platform === "win" && wslRuntimeBundled ? WSL_RUNTIME_EXTRA_RESOURCES : []),
     ],
@@ -2721,6 +2787,7 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
   if (platform === "mac") {
     const path = yield* Path.Path;
     const repoRoot = yield* RepoRoot;
+    const koreanSignIdentity = signed ? undefined : yield* resolveKoreanMacSignIdentity();
     buildConfig.mac = {
       target: target === "dmg" ? [target, "zip"] : [target],
       icon: "icon.icns",
@@ -2728,6 +2795,10 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
       extendInfo: {
         NSScreenCaptureUsageDescription:
           "T3 Code captures the active window when you use the window capture shortcut.",
+        NSMicrophoneUsageDescription:
+          "T3 Code uses the microphone for voice input and for agents that record audio.",
+        NSCameraUsageDescription:
+          "T3 Code uses the camera for device and preview tools that you or your agents start.",
       },
       protocols: [
         {
@@ -2737,7 +2808,21 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
       ],
       // Unsigned builds are ad-hoc signed so the bundle id, not the stock
       // "Electron" binary id, is the code identity macOS sees.
-      ...(signed ? { sign: path.join(repoRoot, "scripts/sign-macos.ts") } : { identity: "-" }),
+      ...(signed
+        ? { sign: path.join(repoRoot, "scripts/sign-macos.ts") }
+        : koreanSignIdentity
+          ? {
+              // electron-builder skips signing for identities macOS does not
+              // trust, so it is handed the ad-hoc identity and the custom sign
+              // hook swaps in the self-signed one. No hardened runtime: nothing
+              // is notarized, and it would need extra entitlements for
+              // microphone and camera access.
+              identity: "-",
+              sign: path.join(repoRoot, "scripts/sign-macos-korean.ts"),
+              hardenedRuntime: false,
+              timestamp: "none",
+            }
+          : { identity: "-" }),
       ...(macPasskeySigning
         ? {
             entitlements: macPasskeySigning.entitlementsPath,
@@ -3639,6 +3724,13 @@ const buildDesktopArtifact = Effect.fn("buildDesktopArtifact")(function* (
       });
   }
   yield* stageBrowserSecret({
+    repoRoot,
+    stageResourcesDir,
+    platform: options.platform,
+    arch: options.arch,
+    verbose: options.verbose,
+  });
+  yield* stagePermissionFlow({
     repoRoot,
     stageResourcesDir,
     platform: options.platform,
