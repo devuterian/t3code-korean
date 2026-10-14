@@ -16,6 +16,7 @@ import { KO_V2_MOBILE_SORT } from "./ko/v2_sort";
 import { KO_MERGE_1009 } from "./ko/merge1009";
 import { KO_MERGE_1009_B } from "./ko/merge1009b";
 import { KO_COMPOSER_USAGE } from "./ko/composerUsage";
+import { KO_ANDROID_KOREAN } from "./ko/androidKorean";
 
 export const KO_DICTIONARY: Readonly<Record<string, string>> = {
   ...KO_COMMON,
@@ -31,4 +32,5 @@ export const KO_DICTIONARY: Readonly<Record<string, string>> = {
   ...KO_MERGE_1009,
   ...KO_MERGE_1009_B,
   ...KO_COMPOSER_USAGE,
+  ...KO_ANDROID_KOREAN,
 };

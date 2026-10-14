@@ -1,0 +1,15 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <!-- The Korean fork updates itself from GitHub releases (src/features/android-updater). -->
+  <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+  <application>
+    <provider
+      android:name="expo.modules.t3appinstaller.T3AppInstallerFileProvider"
+      android:authorities="${applicationId}.T3AppInstallerFileProvider"
+      android:exported="false"
+      android:grantUriPermissions="true">
+      <meta-data
+        android:name="android.support.FILE_PROVIDER_PATHS"
+        android:resource="@xml/t3_app_installer_paths" />
+    </provider>
+  </application>
+</manifest>

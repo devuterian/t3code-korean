@@ -29,6 +29,8 @@ import { useUiRuntimeMemoryWarningGc } from "./lib/useUiRuntimeMemoryWarningGc";
 import { SubscriptionUsageCoordinator } from "./widgets/SubscriptionUsageCoordinator";
 import { VoiceInputProvider } from "./features/voice-input/VoiceInputProvider";
 import { GlobalVoiceInputControl } from "./features/voice-input/GlobalVoiceInputControl";
+import { AndroidUpdateBanner } from "./features/android-updater/AndroidUpdateBanner";
+import { AndroidPermissionsOnboarding } from "./features/android-permissions/AndroidPermissionsOnboarding";
 
 import "../global.css";
 
@@ -110,6 +112,9 @@ function AppContent() {
               {/* Anchored-menu overlays render here — in-window, so the
                 keyboard stays up while a dropdown is open. */}
               <OverlayPortalHost />
+              {/* Korean fork, Android only: GitHub self-updater and first-run permissions. */}
+              <AndroidUpdateBanner />
+              <AndroidPermissionsOnboarding />
             </VoiceInputProvider>
           </SafeAreaProvider>
         </KeyboardProvider>

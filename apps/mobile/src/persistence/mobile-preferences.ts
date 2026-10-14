@@ -64,6 +64,33 @@ export interface Preferences {
   readonly threadListWorkingShelfExpanded?: boolean;
   /** UI language choice. Absent or "system" follows the device locale. */
   readonly interfaceLanguage?: MobileInterfaceLanguagePreference;
+  /** Korean fork Android updater: last GitHub check, its ETag, and the user's skip. */
+  readonly androidUpdate?: AndroidUpdatePreferences;
+  /** Korean fork Android permissions screen: when it was last dismissed and what was granted. */
+  readonly androidPermissionsOnboarding?: AndroidPermissionsOnboardingPreferences;
+}
+
+/** The newest installable Korean fork release, small enough to persist between checks. */
+export interface KoreanAndroidRelease {
+  readonly version: string;
+  readonly apkUrl: string;
+  readonly apkName: string;
+  readonly apkSize: number;
+  /** Lowercase hex SHA-256 from the GitHub asset digest, when GitHub provides one. */
+  readonly apkSha256?: string;
+  readonly htmlUrl: string | null;
+}
+
+export interface AndroidUpdatePreferences {
+  readonly lastCheckedAt?: number;
+  readonly etag?: string;
+  readonly latest?: KoreanAndroidRelease;
+  readonly skippedVersion?: string;
+}
+
+export interface AndroidPermissionsOnboardingPreferences {
+  readonly seenVersion: string;
+  readonly granted: ReadonlyArray<string>;
 }
 
 export class MobilePreferencesLoadError extends Schema.TaggedError<MobilePreferencesLoadError>()(
@@ -129,6 +156,8 @@ function sanitizePreferences(parsed: Preferences): Preferences {
     threadListSnoozedShelfExpanded?: boolean;
     threadListWorkingShelfExpanded?: boolean;
     interfaceLanguage?: MobileInterfaceLanguagePreference;
+    androidUpdate?: AndroidUpdatePreferences;
+    androidPermissionsOnboarding?: AndroidPermissionsOnboardingPreferences;
   } = {};
 
   if (typeof parsed.liveActivitiesEnabled === "boolean") {
@@ -235,7 +264,49 @@ function sanitizePreferences(parsed: Preferences): Preferences {
   ) {
     preferences.interfaceLanguage = parsed.interfaceLanguage;
   }
+  const androidUpdate = sanitizeAndroidUpdate(parsed.androidUpdate);
+  if (androidUpdate) preferences.androidUpdate = androidUpdate;
+  const onboarding = parsed.androidPermissionsOnboarding;
+  if (
+    typeof onboarding === "object" &&
+    onboarding !== null &&
+    typeof onboarding.seenVersion === "string" &&
+    Array.isArray(onboarding.granted)
+  ) {
+    preferences.androidPermissionsOnboarding = {
+      seenVersion: onboarding.seenVersion,
+      granted: onboarding.granted.filter((id): id is string => typeof id === "string"),
+    };
+  }
   return preferences;
+}
+
+function sanitizeAndroidUpdate(value: unknown): AndroidUpdatePreferences | undefined {
+  if (typeof value !== "object" || value === null) return undefined;
+  const raw = value as Record<string, unknown>;
+  const latest = raw.latest as Record<string, unknown> | undefined;
+  return {
+    ...(typeof raw.lastCheckedAt === "number" ? { lastCheckedAt: raw.lastCheckedAt } : {}),
+    ...(typeof raw.etag === "string" ? { etag: raw.etag } : {}),
+    ...(typeof raw.skippedVersion === "string" ? { skippedVersion: raw.skippedVersion } : {}),
+    ...(typeof latest === "object" &&
+    latest !== null &&
+    typeof latest.version === "string" &&
+    typeof latest.apkUrl === "string" &&
+    typeof latest.apkName === "string" &&
+    typeof latest.apkSize === "number"
+      ? {
+          latest: {
+            version: latest.version,
+            apkUrl: latest.apkUrl,
+            apkName: latest.apkName,
+            apkSize: latest.apkSize,
+            ...(typeof latest.apkSha256 === "string" ? { apkSha256: latest.apkSha256 } : {}),
+            htmlUrl: typeof latest.htmlUrl === "string" ? latest.htmlUrl : null,
+          },
+        }
+      : {}),
+  };
 }
 
 export const make = Effect.fn("MobilePreferencesStore.make")(function* () {

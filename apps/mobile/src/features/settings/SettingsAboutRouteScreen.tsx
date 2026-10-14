@@ -12,6 +12,7 @@ import {
   registerHiddenUpdateTap,
   runAppUpdateCheck,
 } from "../updates/app-updates";
+import { AndroidUpdateSettingsRow } from "../android-updater/AndroidUpdateSettingsRow";
 import { SettingsRow } from "./components/SettingsRow";
 import { SettingsSection } from "./components/SettingsSection";
 import { SettingsScreen } from "./components/SettingsScreen";
@@ -147,6 +148,7 @@ function AppSettingsSection() {
       ) : (
         versionRow
       )}
+      <AndroidUpdateSettingsRow />
     </SettingsSection>
   );
 }

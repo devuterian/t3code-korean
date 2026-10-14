@@ -19,6 +19,10 @@ import {
 import { useSettingsEnvironmentFilter } from "./settings-environment-filter";
 import { InterfaceLanguageSection } from "./components/InterfaceLanguageSection";
 import { useTranslate } from "../../i18n/translate";
+import {
+  isAndroidPermissionsOnboardingAvailable,
+  openAndroidPermissionsOnboarding,
+} from "../android-permissions/AndroidPermissionsOnboarding";
 
 export function SettingsRouteScreen() {
   const t = useTranslate();
@@ -224,6 +228,13 @@ function SettingsIndexSections() {
 
       <SettingsSection title={t("App")}>
         <SettingsRow icon="chart.bar.xaxis" label={t("Usage")} target="SettingsUsage" />
+        {isAndroidPermissionsOnboardingAvailable ? (
+          <SettingsRow
+            icon="exclamationmark.shield"
+            label={t("Review permissions")}
+            onPress={openAndroidPermissionsOnboarding}
+          />
+        ) : null}
         <SettingsRow icon="info.circle" label={t("About T3 Code")} target="SettingsAbout" />
       </SettingsSection>
     </>
