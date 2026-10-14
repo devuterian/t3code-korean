@@ -64,11 +64,16 @@ import {
   PaletteIcon,
   RotateCcwIcon,
   SettingsIcon,
+  ShieldCheckIcon,
   SquarePenIcon,
   SunIcon,
   TextSearchIcon,
 } from "lucide-react";
 import { requestThreadFindOpen } from "./chat/threadFindActionBus";
+import {
+  canShowMacPermissionsOnboarding,
+  openMacPermissionsOnboarding,
+} from "./permissions/MacPermissionsOnboarding";
 import {
   useCallback,
   useDeferredValue,
@@ -2281,6 +2286,19 @@ function OpenCommandPaletteDialog(props: {
       await navigate({ to: "/usage" });
     },
   });
+
+  if (canShowMacPermissionsOnboarding()) {
+    actionItems.push({
+      kind: "action",
+      value: "action:mac-permissions",
+      searchTerms: ["permissions", "privacy", "screen recording", "accessibility", "full disk"],
+      title: t("Review macOS permissions"),
+      icon: <ShieldCheckIcon className={ITEM_ICON_CLASS} />,
+      run: async () => {
+        openMacPermissionsOnboarding();
+      },
+    });
+  }
 
   actionItems.push({
     kind: "action",

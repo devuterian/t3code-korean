@@ -11,7 +11,12 @@ import type {
 import { AuthAccessTokenResult, AuthSessionState, AuthWebSocketTicketResult } from "./auth.ts";
 import { AdvertisedEndpoint } from "./remoteAccess.ts";
 import { ExecutionEnvironmentDescriptor } from "./environment.ts";
-import { type ClientSettings, type QuitConfirmationMode, SnapShotShortcut } from "./settings.ts";
+import {
+  type ClientSettings,
+  type MacPermissionId,
+  type QuitConfirmationMode,
+  SnapShotShortcut,
+} from "./settings.ts";
 import type { EditorId } from "./editor.ts";
 import type { PreviewForwardedShortcut } from "./keybindings.ts";
 
@@ -1115,6 +1120,27 @@ export const DesktopPreviewRecordingSaveInputSchema = Schema.Struct({
 export const SystemSettingsPaneSchema = Schema.Literals(["full-disk-access"]);
 export type SystemSettingsPane = typeof SystemSettingsPaneSchema.Type;
 
+/**
+ * Fork-only: one macOS privacy permission's state. `unknown` means macOS does
+ * not let the app read it (notifications).
+ */
+export const MacPermissionStatusSchema = Schema.Literals([
+  "granted",
+  "denied",
+  "not-determined",
+  "unknown",
+]);
+export type MacPermissionStatus = typeof MacPermissionStatusSchema.Type;
+export const MacPermissionStatusesSchema = Schema.Struct({
+  notifications: MacPermissionStatusSchema,
+  "screen-recording": MacPermissionStatusSchema,
+  accessibility: MacPermissionStatusSchema,
+  "full-disk-access": MacPermissionStatusSchema,
+  microphone: MacPermissionStatusSchema,
+  camera: MacPermissionStatusSchema,
+});
+export type MacPermissionStatuses = typeof MacPermissionStatusesSchema.Type;
+
 export interface DesktopBridge {
   getAppBranding: () => DesktopAppBranding | null;
   /** Absolute path of a dropped or picked file; absent on desktop builds predating it. */
@@ -1216,6 +1242,10 @@ export interface DesktopBridge {
    */
   openSystemSettings?: (pane: SystemSettingsPane) => Promise<boolean>;
   checkSystemPermission?: (pane: SystemSettingsPane) => Promise<boolean>;
+  /** Fork-only, macOS: permission statuses for the permissions onboarding; null elsewhere. */
+  getMacPermissions?: () => Promise<MacPermissionStatuses | null>;
+  /** Fork-only, macOS: prompt for one permission, or open its System Settings pane. */
+  requestMacPermission?: (permission: MacPermissionId) => Promise<void>;
   /**
    * Probe this desktop machine for installed remote-capable editor CLIs
    * (used for remote open-in-editor deep links). Optional: older desktop

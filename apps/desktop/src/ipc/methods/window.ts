@@ -5,6 +5,8 @@ import {
   DesktopThemeSchema,
   EDITORS,
   EditorId,
+  MacPermissionId,
+  MacPermissionStatusesSchema,
   PickedThemeFileSchema,
   PickFolderOptionsSchema,
   PRIMARY_LOCAL_ENVIRONMENT_ID,
@@ -336,6 +338,26 @@ export const openSystemSettings = DesktopIpc.makeIpcMethod({
       yield* permissions.showHelper(pane, owner, isGranted);
     }
     return opened;
+  }),
+});
+
+export const getMacPermissions = DesktopIpc.makeIpcMethod({
+  channel: IpcChannels.GET_MAC_PERMISSIONS_CHANNEL,
+  payload: Schema.Undefined,
+  result: Schema.NullOr(MacPermissionStatusesSchema),
+  handler: Effect.fn("desktop.ipc.window.getMacPermissions")(function* () {
+    const permissions = yield* MacPermissions.MacPermissions;
+    return yield* permissions.readStatuses;
+  }),
+});
+
+export const requestMacPermission = DesktopIpc.makeIpcMethod({
+  channel: IpcChannels.REQUEST_MAC_PERMISSION_CHANNEL,
+  payload: MacPermissionId,
+  result: Schema.Undefined,
+  handler: Effect.fn("desktop.ipc.window.requestMacPermission")(function* (permission) {
+    const permissions = yield* MacPermissions.MacPermissions;
+    yield* permissions.request(permission, Electron.BrowserWindow.getFocusedWindow());
   }),
 });
 

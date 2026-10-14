@@ -205,6 +205,9 @@ contextBridge.exposeInMainWorld("desktopBridge", {
     ipcRenderer.invoke(IpcChannels.CHECK_SYSTEM_PERMISSION_CHANNEL, pane),
   openSystemSettings: (pane: string) =>
     ipcRenderer.invoke(IpcChannels.OPEN_SYSTEM_SETTINGS_CHANNEL, pane),
+  getMacPermissions: () => ipcRenderer.invoke(IpcChannels.GET_MAC_PERMISSIONS_CHANNEL, undefined),
+  requestMacPermission: (permission) =>
+    ipcRenderer.invoke(IpcChannels.REQUEST_MAC_PERMISSION_CHANNEL, permission),
   probeRemoteEditors: () => ipcRenderer.invoke(IpcChannels.PROBE_REMOTE_EDITORS_CHANNEL, undefined),
   pasteAsText: () => ipcRenderer.invoke(IpcChannels.PASTE_AS_TEXT_CHANNEL, undefined),
   onMenuAction: (listener) => {

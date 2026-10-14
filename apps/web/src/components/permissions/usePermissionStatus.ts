@@ -1,8 +1,8 @@
 import { useEffect, useEffectEvent, useState } from "react";
 
-export function usePermissionStatus<Id extends string>(
-  check: () => Promise<Record<Id, boolean>>,
-  initialStatus: Record<Id, boolean>,
+export function usePermissionStatus<Id extends string, Value = boolean>(
+  check: () => Promise<Record<Id, Value>>,
+  initialStatus: Record<Id, Value>,
   enabled = true,
 ) {
   const [status, setStatus] = useState(initialStatus);
@@ -40,6 +40,7 @@ export function usePermissionStatus<Id extends string>(
   return {
     status,
     error,
-    isReady: (required: readonly Id[]) => error === null && required.every((id) => status[id]),
+    isReady: (required: readonly Id[]) =>
+      error === null && required.every((id) => status[id] === true),
   };
 }

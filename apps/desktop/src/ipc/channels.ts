@@ -114,6 +114,8 @@ export const PREVIEW_OPEN_LINK_CHANNEL = "desktop:preview-open-link";
 export const MAC_PERMISSION_HELPER_CHANNEL = "desktop:mac-permission-helper";
 
 export const CHECK_SYSTEM_PERMISSION_CHANNEL = "desktop:check-system-permission";
+export const GET_MAC_PERMISSIONS_CHANNEL = "desktop:get-mac-permissions";
+export const REQUEST_MAC_PERMISSION_CHANNEL = "desktop:request-mac-permission";
 
 export const PREVIEW_RECORDING_INPUT_CHANNEL = "desktop:preview-recording-input";
 

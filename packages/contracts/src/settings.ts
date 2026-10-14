@@ -54,6 +54,29 @@ const DEFAULT_TIMESTAMP_FORMAT: TimestampFormat = "locale";
 export const ComposerUsageLimitsDisplay = Schema.Literals(["off", "remaining", "used"]);
 export type ComposerUsageLimitsDisplay = typeof ComposerUsageLimitsDisplay.Type;
 
+/** Fork-only: macOS privacy permissions the desktop permissions onboarding asks for. */
+export const MacPermissionId = Schema.Literals([
+  "notifications",
+  "screen-recording",
+  "accessibility",
+  "full-disk-access",
+  "microphone",
+  "camera",
+]);
+export type MacPermissionId = typeof MacPermissionId.Type;
+
+/**
+ * Fork-only: the macOS permissions onboarding record. `null` shows the
+ * onboarding once. `granted` is the last set seen granted, so a later loss
+ * (e.g. after a signing change) can reopen it, but only once per app version.
+ */
+export const MacPermissionsOnboarding = Schema.Struct({
+  completedAt: Schema.String,
+  granted: Schema.Array(MacPermissionId),
+  lostPromptVersion: Schema.NullOr(Schema.String),
+});
+export type MacPermissionsOnboarding = typeof MacPermissionsOnboarding.Type;
+
 export const InterfaceLanguage = Schema.Literals(["en", "zh-CN", "ko"]);
 export type InterfaceLanguage = typeof InterfaceLanguage.Type;
 export const DEFAULT_INTERFACE_LANGUAGE: InterfaceLanguage = "en";
@@ -485,6 +508,9 @@ export const ClientSettingsSchema = Schema.Struct({
   // Selected provider's session/weekly limits as text beside the send button.
   composerUsageLimitsDisplay: ComposerUsageLimitsDisplay.pipe(
     Schema.withDecodingDefault(Effect.succeed("remaining")),
+  ),
+  macPermissionsOnboarding: Schema.NullOr(MacPermissionsOnboarding).pipe(
+    Schema.withDecodingDefault(Effect.succeed(null)),
   ),
   // Desktop resting composer: scrolling an existing thread's conversation
   // settles the composer into its single-line layout. Losing focus never does.
@@ -1728,6 +1754,7 @@ export const ClientSettingsPatch = Schema.Struct({
   planModeEnabled: Schema.optionalKey(Schema.Boolean),
   contextWindowMeterEnabled: Schema.optionalKey(Schema.Boolean),
   composerUsageLimitsDisplay: Schema.optionalKey(ComposerUsageLimitsDisplay),
+  macPermissionsOnboarding: Schema.optionalKey(Schema.NullOr(MacPermissionsOnboarding)),
   composerCollapseOnScroll: Schema.optionalKey(Schema.Boolean),
   composerRichTextEnabled: Schema.optionalKey(Schema.Boolean),
   sendShortcut: Schema.optionalKey(Schema.Literals(["enter", "mod-enter-multiline", "mod-enter"])),

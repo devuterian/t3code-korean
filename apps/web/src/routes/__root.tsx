@@ -24,6 +24,7 @@ import { CustomSnoozeDialogHost } from "../components/CustomSnoozeDialog";
 import { ConfirmDialogHost } from "../components/ConfirmDialogHost";
 import { KeybindingsConfigWarning } from "../components/KeybindingsConfigWarning";
 import { FirstRunGate } from "../components/onboarding/FirstRunGate";
+import { MacPermissionsOnboardingHost } from "../components/permissions/MacPermissionsOnboarding";
 import { ConnectOnboardingDialog } from "../components/cloud/ConnectOnboardingDialog";
 import { RelayClientInstallDialog } from "../components/cloud/RelayClientInstallDialog";
 import { SshPasswordPromptDialog } from "../components/desktop/SshPasswordPromptDialog";
@@ -257,6 +258,7 @@ function RootRouteView() {
           {/* Above the router: a theme draft is judged by walking the app, so the
               editor has to survive navigation away from settings. */}
           <ThemeEditorHost />
+          {isElectron ? <MacPermissionsOnboardingHost /> : null}
         </FirstRunGate>
       </AnchoredToastProvider>
     </ToastProvider>

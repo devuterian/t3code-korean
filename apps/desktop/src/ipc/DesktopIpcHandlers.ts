@@ -46,6 +46,8 @@ import {
   openExternal,
   openSystemSettings,
   checkSystemPermission,
+  getMacPermissions,
+  requestMacPermission,
   pasteAsText,
   probeRemoteEditors,
   pickFolder,
@@ -147,6 +149,8 @@ export const installDesktopIpcHandlers = Effect.fn("desktop.ipc.installHandlers"
   yield* ipc.handle(cancelProviderAuthCallback);
   yield* ipc.handle(openSystemSettings);
   yield* ipc.handle(checkSystemPermission);
+  yield* ipc.handle(getMacPermissions);
+  yield* ipc.handle(requestMacPermission);
   yield* ipc.handle(pasteAsText);
   yield* ipc.handle(probeRemoteEditors);
   yield* ipc.handle(getUpdateState);
