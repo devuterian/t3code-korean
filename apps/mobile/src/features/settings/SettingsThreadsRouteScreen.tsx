@@ -1,4 +1,4 @@
-import { AuthSettingsWriteScope } from "@t3tools/contracts";
+import { AuthSettingsWriteScope, type ComposerUsageLimitsDisplay } from "@t3tools/contracts";
 import { readEnvironmentScope, useEnvironmentsWithScope } from "../../state/session";
 import { AutoSettleDaysField } from "./components/AutoSettleDaysField";
 import { ScreenScrollView as ScrollView } from "../../components/ScreenScrollView";
@@ -14,6 +14,7 @@ import { AppText as Text } from "../../components/AppText";
 import { mobilePreferencesAtom, updateMobilePreferencesAtom } from "../../state/preferences";
 import { serverEnvironment } from "../../state/server";
 import { useAtomCommand } from "../../state/use-atom-command";
+import { SettingsChoiceRow } from "./components/SettingsChoiceRow";
 import { SettingsSection } from "./components/SettingsSection";
 import { SettingsProjectOverridesSection } from "./components/SettingsProjectOverridesSection";
 import { SettingsSwitchRow } from "./components/SettingsSwitchRow";
@@ -49,6 +50,7 @@ export function SettingsThreadsRouteScreen() {
           contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 18) + 18 }}
         >
           <AutoSettleSettingsRows />
+          <ComposerUsageLimitsSection />
           <BetaSettingsSection />
           <LegacySettingsSection />
         </ScrollView>
@@ -261,6 +263,61 @@ function AutoSettleSettingsRows() {
           </View>
         </SettingsSection>
       ) : null}
+    </View>
+  );
+}
+
+const COMPOSER_USAGE_LIMITS_OPTIONS: ReadonlyArray<{
+  readonly value: ComposerUsageLimitsDisplay;
+  readonly label: string;
+  readonly description: string;
+}> = [
+  {
+    value: "remaining",
+    label: "Show quota left",
+    description: "How much of each limit you still have, like Usage.",
+  },
+  {
+    value: "used",
+    label: "Show quota used",
+    description: "How much of each limit you have already spent.",
+  },
+  { value: "off", label: "Off", description: "Keep the composer free of limits." },
+];
+
+/**
+ * Device-local counterpart of web's "Usage limits in composer": session and
+ * weekly limits for the selected provider beside the send button.
+ */
+function ComposerUsageLimitsSection() {
+  const t = useTranslate();
+  const savePreferences = useAtomSet(updateMobilePreferencesAtom);
+  const preferences = useAtomValue(mobilePreferencesAtom);
+  const ready = AsyncResult.isSuccess(preferences) && !preferences.waiting;
+  const selected = AsyncResult.isSuccess(preferences)
+    ? (preferences.value.composerUsageLimitsDisplay ?? "remaining")
+    : null;
+
+  return (
+    <View className="gap-3">
+      <SettingsSection title={t("Usage limits in composer")}>
+        {COMPOSER_USAGE_LIMITS_OPTIONS.map((option, index) => (
+          <SettingsChoiceRow
+            key={option.value}
+            label={t(option.label)}
+            description={t(option.description)}
+            selected={selected === option.value}
+            separated={index > 0}
+            disabled={!ready}
+            onPress={() => savePreferences({ composerUsageLimitsDisplay: option.value })}
+          />
+        ))}
+      </SettingsSection>
+      <Text className="px-2 text-sm text-foreground-muted">
+        {t(
+          "Session and weekly limits for the selected provider appear next to the send button. Tap them for details.",
+        )}
+      </Text>
     </View>
   );
 }

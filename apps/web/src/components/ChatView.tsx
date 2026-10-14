@@ -3582,6 +3582,14 @@ export default function ChatView(props: ChatViewProps) {
     usageLimitSources,
     usageLimitsKey,
   ]);
+  // The composer's usage text opens the same panel, and closes it when it is already up.
+  const toggleUsageLimits = useCallback(() => {
+    if (usageLimitsBanner !== null) {
+      setUsageLimitsPanel(null);
+      return;
+    }
+    openUsageLimits();
+  }, [openUsageLimits, usageLimitsBanner]);
   // Responses can resolve after navigating away; only the originating thread's panel clears.
   const clearUsageLimitsFor = useCallback(
     (threadKey: string) =>
@@ -11757,6 +11765,9 @@ export default function ChatView(props: ChatViewProps) {
                                 !composerHasNonPromptContent
                                   ? openUsageLimits
                                   : undefined
+                              }
+                              onToggleUsageLimits={
+                                usageLimitsKey !== null ? toggleUsageLimits : undefined
                               }
                               environmentUnavailable={activeEnvironmentUnavailableState}
                               activePendingApproval={activePendingApproval}

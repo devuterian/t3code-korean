@@ -727,3 +727,100 @@ export function collectProviderUsageLimits(
   }
   return { createdAt: DateTime.formatIso(DateTime.makeUnsafe(now)), accounts, notices };
 }
+
+/** Quota left at or below this reads as a warning beside the send button. */
+export const COMPOSER_USAGE_WARN_REMAINING_PERCENT = 20;
+/** Quota left at or below this reads as danger. */
+export const COMPOSER_USAGE_DANGER_REMAINING_PERCENT = 5;
+
+export type ComposerUsageTone = "normal" | "warn" | "danger";
+
+export interface ComposerUsagePart {
+  readonly kind: "session" | "weekly";
+  /**
+   * Percent in the requested mode (left or spent). Null once the window's
+   * reset has passed: the stored figure is stale until the next reading, so
+   * the composer shows a dash rather than a made-up 100%.
+   */
+  readonly percent: number | null;
+  /** Quota left, for colour and accessible labels; null when stale. */
+  readonly remaining: number | null;
+  readonly tone: ComposerUsageTone;
+}
+
+export interface ComposerUsageSummary {
+  readonly parts: readonly ComposerUsagePart[];
+  /** Earliest future reset among the shown windows, when the summary next changes on its own. */
+  readonly nextChangeAt: number | null;
+}
+
+function isWindowReset(window: ServerProviderUsageWindow, now: number): boolean {
+  const at = resetMillis(window);
+  return at !== null && at <= now;
+}
+
+function composerUsagePart(
+  kind: ComposerUsagePart["kind"],
+  windows: readonly ServerProviderUsageWindow[],
+  mode: "remaining" | "used",
+  now: number,
+): ComposerUsagePart | null {
+  if (windows.length === 0) return null;
+  // Several weekly windows (Claude's all-models and Opus allowances) collapse
+  // to the tightest one that is still current.
+  let tightest: ServerProviderUsageWindow | null = null;
+  for (const window of windows) {
+    if (isWindowReset(window, now)) continue;
+    if (tightest === null || remainingPercent(window) < remainingPercent(tightest)) {
+      tightest = window;
+    }
+  }
+  if (tightest === null) return { kind, percent: null, remaining: null, tone: "normal" };
+  const remaining = remainingPercent(tightest);
+  return {
+    kind,
+    percent: mode === "remaining" ? remaining : 100 - remaining,
+    remaining,
+    tone:
+      remaining <= COMPOSER_USAGE_DANGER_REMAINING_PERCENT
+        ? "danger"
+        : remaining <= COMPOSER_USAGE_WARN_REMAINING_PERCENT
+          ? "warn"
+          : "normal",
+  };
+}
+
+/**
+ * The session and weekly figures the composer shows beside its send button
+ * for the selected provider instance. Null when the setting is off or the
+ * instance has nothing to show: unknown, unavailable, or no session/weekly
+ * window at all.
+ */
+export function composerUsageSummary(
+  providers: readonly ServerProvider[],
+  instanceId: ProviderInstanceId | null | undefined,
+  mode: "off" | "remaining" | "used",
+  now: number,
+): ComposerUsageSummary | null {
+  if (mode === "off" || !instanceId) return null;
+  const provider = providersWithLimits(providers).find(
+    (candidate) => candidate.instanceId === instanceId,
+  );
+  const limits = provider?.usageLimits;
+  if (!limits || limitsNotice(limits) !== null) return null;
+  const session = limits.windows.filter((window) => window.kind === "session");
+  const weekly = limits.windows.filter((window) => window.kind === "weekly");
+  const parts = [
+    composerUsagePart("session", session, mode, now),
+    composerUsagePart("weekly", weekly, mode, now),
+  ].filter((part): part is ComposerUsagePart => part !== null);
+  if (parts.length === 0) return null;
+  let nextChangeAt: number | null = null;
+  for (const window of [...session, ...weekly]) {
+    const at = resetMillis(window);
+    if (at !== null && at > now && (nextChangeAt === null || at < nextChangeAt)) {
+      nextChangeAt = at;
+    }
+  }
+  return { parts, nextChangeAt };
+}

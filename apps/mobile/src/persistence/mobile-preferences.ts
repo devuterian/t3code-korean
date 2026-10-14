@@ -5,7 +5,11 @@ import * as Option from "effect/Option";
 import * as Ref from "effect/Ref";
 import * as Schema from "effect/Schema";
 import * as Semaphore from "effect/Semaphore";
-import type { ProviderInstanceId, SidebarProjectGroupingMode } from "@t3tools/contracts";
+import type {
+  ComposerUsageLimitsDisplay,
+  ProviderInstanceId,
+  SidebarProjectGroupingMode,
+} from "@t3tools/contracts";
 import type { ComposerEnterBehavior } from "../lib/composerEnterBehavior";
 import type { FollowUpBehavior } from "../lib/followUpBehavior";
 import {
@@ -40,6 +44,8 @@ export interface Preferences {
    * message sent during a running turn queues behind it or steers it.
    */
   readonly followUpBehavior?: FollowUpBehavior;
+  /** Device-local mirror of web's `composerUsageLimitsDisplay`: limits text beside send. */
+  readonly composerUsageLimitsDisplay?: ComposerUsageLimitsDisplay;
   /** @deprecated Kept temporarily so older OTA bundles retain the selected mode. */
   readonly projectGroupingEnabled?: boolean;
   readonly projectGroupingMode?: SidebarProjectGroupingMode;
@@ -113,6 +119,7 @@ function sanitizePreferences(parsed: Preferences): Preferences {
     collapsedProjectGroups?: readonly string[];
     composerEnterBehavior?: ComposerEnterBehavior;
     followUpBehavior?: FollowUpBehavior;
+    composerUsageLimitsDisplay?: ComposerUsageLimitsDisplay;
     projectGroupingEnabled?: boolean;
     projectGroupingMode?: SidebarProjectGroupingMode;
     planModeEnabled?: boolean;
@@ -178,6 +185,13 @@ function sanitizePreferences(parsed: Preferences): Preferences {
   }
   if (parsed.followUpBehavior === "queue" || parsed.followUpBehavior === "steer") {
     preferences.followUpBehavior = parsed.followUpBehavior;
+  }
+  if (
+    parsed.composerUsageLimitsDisplay === "off" ||
+    parsed.composerUsageLimitsDisplay === "remaining" ||
+    parsed.composerUsageLimitsDisplay === "used"
+  ) {
+    preferences.composerUsageLimitsDisplay = parsed.composerUsageLimitsDisplay;
   }
   if (typeof parsed.projectGroupingEnabled === "boolean") {
     preferences.projectGroupingEnabled = parsed.projectGroupingEnabled;

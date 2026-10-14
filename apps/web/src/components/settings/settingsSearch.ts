@@ -444,6 +444,12 @@ export const SETTINGS_SEARCH_ITEMS = [
     searchTerms: ["composer meter usage tokens circle compact"],
   },
   {
+    id: "composer-usage-limits",
+    title: "Usage limits in composer",
+    to: "/settings/general",
+    searchTerms: ["rate limits quota session weekly percent remaining used send button composer"],
+  },
+  {
     id: "follow-up-behavior",
     title: "Follow-up behavior",
     to: "/settings/general",

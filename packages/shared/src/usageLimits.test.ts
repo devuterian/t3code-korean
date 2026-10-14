@@ -3,6 +3,7 @@ import {
   ProviderDriverKind,
   ProviderInstanceId,
   type ServerProvider,
+  type ServerProviderUsageWindow,
   UsageLimitSourceId,
 } from "@t3tools/contracts";
 import { describe, expect, it } from "vite-plus/test";
@@ -11,6 +12,7 @@ import {
   type LimitAccount,
   isUsageLimitsCommand,
   collectProviderUsageLimits,
+  composerUsageSummary,
   sameUsageLimitCommandCoverage,
   withUsageLimitsCommands,
   collectLimitAccounts,
@@ -1203,5 +1205,96 @@ describe("ChatGPT sharing presentation", () => {
         auth: { status: "unauthenticated", subscriptionSharing: true },
       }),
     ).toBe(false);
+  });
+});
+
+describe("composerUsageSummary", () => {
+  const checkedAt = "2026-09-03T11:00:00.000Z";
+  const codexId = ProviderInstanceId.make("codex");
+  const weekly = {
+    id: "seven_day",
+    kind: "weekly",
+    label: "Weekly",
+    usedPercent: 29,
+    windowDurationMins: 10_080,
+    resetsAt: "2026-09-08T00:00:00.000Z",
+  } as const;
+  const withWindows = (windows: ReadonlyArray<ServerProviderUsageWindow>) => [
+    provider({ usageLimits: { checkedAt, windows: [...windows] } }),
+  ];
+
+  it("shows session then weekly, as quota left or spent", () => {
+    const providers = withWindows([weekly, window]);
+    expect(composerUsageSummary(providers, codexId, "remaining", now)).toEqual({
+      parts: [
+        { kind: "session", percent: 60, remaining: 60, tone: "normal" },
+        { kind: "weekly", percent: 71, remaining: 71, tone: "normal" },
+      ],
+      nextChangeAt: Date.parse(window.resetsAt),
+    });
+    expect(
+      composerUsageSummary(providers, codexId, "used", now)?.parts.map((part) => part.percent),
+    ).toEqual([40, 29]);
+  });
+
+  it("uses the tightest current weekly window", () => {
+    const opus = { ...weekly, id: "seven_day_opus", usedPercent: 85 };
+    const staleOpus = { ...opus, usedPercent: 99, resetsAt: "2026-09-03T11:00:00.000Z" };
+    expect(
+      composerUsageSummary(withWindows([weekly, opus]), codexId, "remaining", now)?.parts,
+    ).toEqual([{ kind: "weekly", percent: 15, remaining: 15, tone: "warn" }]);
+    expect(
+      composerUsageSummary(withWindows([weekly, staleOpus]), codexId, "remaining", now)?.parts,
+    ).toEqual([{ kind: "weekly", percent: 71, remaining: 71, tone: "normal" }]);
+  });
+
+  it("marks a window past its reset as stale instead of full", () => {
+    const stale = { ...window, usedPercent: 97, resetsAt: "2026-09-03T11:59:00.000Z" };
+    const summary = composerUsageSummary(withWindows([stale, weekly]), codexId, "remaining", now);
+    expect(summary?.parts[0]).toEqual({
+      kind: "session",
+      percent: null,
+      remaining: null,
+      tone: "normal",
+    });
+    expect(summary?.nextChangeAt).toBe(Date.parse(weekly.resetsAt));
+  });
+
+  it("warns at a fifth left and turns to danger at a twentieth", () => {
+    const tones = [79, 80, 94, 95].map(
+      (usedPercent) =>
+        composerUsageSummary(withWindows([{ ...window, usedPercent }]), codexId, "used", now)
+          ?.parts[0]?.tone,
+    );
+    expect(tones).toEqual(["normal", "warn", "warn", "danger"]);
+  });
+
+  it("hides when off, unknown, unavailable, or without session and weekly windows", () => {
+    const providers = withWindows([window]);
+    expect(composerUsageSummary(providers, codexId, "off", now)).toBeNull();
+    expect(composerUsageSummary(providers, null, "remaining", now)).toBeNull();
+    expect(
+      composerUsageSummary(providers, ProviderInstanceId.make("claude"), "remaining", now),
+    ).toBeNull();
+    expect(
+      composerUsageSummary(
+        [
+          provider({
+            usageLimits: { checkedAt, windows: [window], unavailable: { reason: "unsupported" } },
+          }),
+        ],
+        codexId,
+        "remaining",
+        now,
+      ),
+    ).toBeNull();
+    expect(
+      composerUsageSummary(
+        withWindows([{ ...window, kind: "monthly" }]),
+        codexId,
+        "remaining",
+        now,
+      ),
+    ).toBeNull();
   });
 });

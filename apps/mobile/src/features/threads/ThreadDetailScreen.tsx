@@ -1486,6 +1486,9 @@ export const ThreadDetailScreen = memo(function ThreadDetailScreen(props: Thread
                         onStopThread={props.onStopThread}
                         onSendMessage={handleSendMessage}
                         onShowUsageLimits={showUsageLimits}
+                        usageLimitsShown={
+                          usageLimitsReport !== null && activeUserInputRequestId === null
+                        }
                         canSwitchProvider={props.canSwitchThreadProvider}
                         onUpdateModelSelection={props.onUpdateThreadModelSelection}
                         onUpdateRuntimeMode={props.onUpdateThreadRuntimeMode}

@@ -50,6 +50,10 @@ export const TimestampFormat = Schema.Literals(["locale", "12-hour", "24-hour"])
 export type TimestampFormat = typeof TimestampFormat.Type;
 const DEFAULT_TIMESTAMP_FORMAT: TimestampFormat = "locale";
 
+/** How the composer shows the selected provider's usage limits: hidden, quota left, or quota spent. */
+export const ComposerUsageLimitsDisplay = Schema.Literals(["off", "remaining", "used"]);
+export type ComposerUsageLimitsDisplay = typeof ComposerUsageLimitsDisplay.Type;
+
 export const InterfaceLanguage = Schema.Literals(["en", "zh-CN", "ko"]);
 export type InterfaceLanguage = typeof InterfaceLanguage.Type;
 export const DEFAULT_INTERFACE_LANGUAGE: InterfaceLanguage = "en";
@@ -478,6 +482,10 @@ export const ClientSettingsSchema = Schema.Struct({
   // Context window meter in the composer. Off by default; users who want to
   // track context usage enable it from Settings → General.
   contextWindowMeterEnabled: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(false))),
+  // Selected provider's session/weekly limits as text beside the send button.
+  composerUsageLimitsDisplay: ComposerUsageLimitsDisplay.pipe(
+    Schema.withDecodingDefault(Effect.succeed("remaining")),
+  ),
   // Desktop resting composer: scrolling an existing thread's conversation
   // settles the composer into its single-line layout. Losing focus never does.
   composerCollapseOnScroll: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(true))),
@@ -1719,6 +1727,7 @@ export const ClientSettingsPatch = Schema.Struct({
   ),
   planModeEnabled: Schema.optionalKey(Schema.Boolean),
   contextWindowMeterEnabled: Schema.optionalKey(Schema.Boolean),
+  composerUsageLimitsDisplay: Schema.optionalKey(ComposerUsageLimitsDisplay),
   composerCollapseOnScroll: Schema.optionalKey(Schema.Boolean),
   composerRichTextEnabled: Schema.optionalKey(Schema.Boolean),
   sendShortcut: Schema.optionalKey(Schema.Literals(["enter", "mod-enter-multiline", "mod-enter"])),

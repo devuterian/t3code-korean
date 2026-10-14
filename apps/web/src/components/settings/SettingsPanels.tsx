@@ -220,6 +220,12 @@ const CHAT_WIDTH_LABELS: Record<ChatWidth, string> = {
   full: "Full",
 };
 
+const COMPOSER_USAGE_LIMITS_DISPLAY_OPTIONS = [
+  { value: "remaining", label: "Show quota left" },
+  { value: "used", label: "Show quota used" },
+  { value: "off", label: "Off" },
+] as const;
+
 const DIFF_LAYOUT_LABELS: Record<DiffLayout, string> = {
   stacked: "Stacked",
   split: "Split",
@@ -653,6 +659,10 @@ export function useSettingsRestore(onRestored?: () => void) {
       ...(settings.contextWindowMeterEnabled !== DEFAULT_UNIFIED_SETTINGS.contextWindowMeterEnabled
         ? ["Context window indicator"]
         : []),
+      ...(settings.composerUsageLimitsDisplay !==
+      DEFAULT_UNIFIED_SETTINGS.composerUsageLimitsDisplay
+        ? ["Usage limits in composer"]
+        : []),
       ...(settings.responseStreamingMode !== DEFAULT_UNIFIED_SETTINGS.responseStreamingMode
         ? ["Response streaming"]
         : []),
@@ -723,6 +733,7 @@ export function useSettingsRestore(onRestored?: () => void) {
       settings.proactivePanelsEnabled,
       settings.environmentIdentificationMode,
       settings.contextWindowMeterEnabled,
+      settings.composerUsageLimitsDisplay,
       settings.fontFamilyCode,
       settings.fontFamilyComposer,
       settings.fontFamilySans,
@@ -842,6 +853,7 @@ export function useSettingsRestore(onRestored?: () => void) {
       sendShortcut: DEFAULT_UNIFIED_SETTINGS.sendShortcut,
       followUpBehavior: DEFAULT_UNIFIED_SETTINGS.followUpBehavior,
       contextWindowMeterEnabled: DEFAULT_UNIFIED_SETTINGS.contextWindowMeterEnabled,
+      composerUsageLimitsDisplay: DEFAULT_UNIFIED_SETTINGS.composerUsageLimitsDisplay,
       environmentIdentificationMode: DEFAULT_UNIFIED_SETTINGS.environmentIdentificationMode,
       glassOpacity: DEFAULT_UNIFIED_SETTINGS.glassOpacity,
       panelAnimationDurationMs: DEFAULT_UNIFIED_SETTINGS.panelAnimationDurationMs,
@@ -3075,6 +3087,61 @@ export function GeneralSettingsPanel() {
               }
               aria-label={t("Context window indicator")}
             />
+          }
+        />
+
+        <SettingsRow
+          {...searchableSetting("composer-usage-limits")}
+          description="Show the selected provider's session and weekly limits next to the send button. Click them for details."
+          resetAction={
+            settings.composerUsageLimitsDisplay !==
+            DEFAULT_UNIFIED_SETTINGS.composerUsageLimitsDisplay ? (
+              <SettingResetButton
+                label="usage limits in composer"
+                onClick={() =>
+                  updateSettings({
+                    composerUsageLimitsDisplay: DEFAULT_UNIFIED_SETTINGS.composerUsageLimitsDisplay,
+                  })
+                }
+              />
+            ) : null
+          }
+          control={
+            <Select
+              value={settings.composerUsageLimitsDisplay}
+              onValueChange={(value) => {
+                const option = COMPOSER_USAGE_LIMITS_DISPLAY_OPTIONS.find(
+                  (option) => option.value === value,
+                );
+                if (option) updateSettings({ composerUsageLimitsDisplay: option.value });
+              }}
+            >
+              <SelectTrigger
+                size="sm"
+                className="w-auto min-w-0 max-w-full"
+                aria-label={t("Usage limits in composer")}
+              >
+                <SelectValue>
+                  {t(
+                    COMPOSER_USAGE_LIMITS_DISPLAY_OPTIONS.find(
+                      (option) => option.value === settings.composerUsageLimitsDisplay,
+                    )?.label ?? "",
+                  )}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectPopup align="end" alignItemWithTrigger={false}>
+                {COMPOSER_USAGE_LIMITS_DISPLAY_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    <span className="flex items-center justify-between gap-4">
+                      {t(option.label)}
+                      {settings.composerUsageLimitsDisplay === option.value && (
+                        <CheckIcon aria-hidden="true" />
+                      )}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectPopup>
+            </Select>
           }
         />
 

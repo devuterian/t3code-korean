@@ -62,6 +62,9 @@ import {
   countComposerDraftAttachmentsAfterSelection,
 } from "../../state/use-composer-drafts";
 import { appAtomRegistry } from "../../state/atom-registry";
+import { mobilePreferencesAtom } from "../../state/preferences";
+import { AsyncResult } from "effect/reactivity";
+import { ComposerUsageLimitsText } from "./ComposerUsageLimitsText";
 import type { ComposerDocumentAttachment } from "../../lib/composerContext";
 import { useProject, useThreadShells } from "../../state/entities";
 import { scopeProjectRef } from "@t3tools/client-runtime/environment";
@@ -194,6 +197,8 @@ export interface ThreadComposerProps {
   readonly onSendMessage: (followUp?: ActiveTurnComposerAction) => Promise<MessageId | null>;
   /** `/usage-limits` resolves locally; the host decides where the report shows. Null clears it. */
   readonly onShowUsageLimits: (report: UsageLimitsReport | null) => void;
+  /** Whether the host currently shows the `/usage-limits` panel, so the usage text can close it. */
+  readonly usageLimitsShown?: boolean;
   /**
    * Whether the model picker may offer providers other than this thread's.
    * False keeps the catalog on the instance the thread's session runs on.
@@ -252,6 +257,8 @@ const COMPOSER_ATTACHMENT_ENTERING =
     : FadeIn.delay(COMPOSER_TRANSITION_DURATION_MS).duration(160).reduceMotion(ReduceMotion.System);
 
 const AnimatedGlassSurface = Animated.createAnimatedComponent(GlassSurface);
+
+const EMPTY_PROVIDERS: T3ServerConfig["providers"] = [];
 
 const FOLLOW_UP_ACTION_LABEL = {
   queue: "Queue",
@@ -490,6 +497,18 @@ export const ThreadComposer = memo(function ThreadComposer(props: ThreadComposer
     }
     return report !== null;
   }, [currentModelSelection.instanceId, onShowUsageLimits, props.serverConfig, t]);
+  const preferencesResult = useAtomValue(mobilePreferencesAtom);
+  const usageLimitsDisplay = AsyncResult.isSuccess(preferencesResult)
+    ? (preferencesResult.value.composerUsageLimitsDisplay ?? "remaining")
+    : "off";
+  const usageLimitsShown = props.usageLimitsShown === true;
+  const toggleUsageLimits = useCallback(() => {
+    if (usageLimitsShown) {
+      onShowUsageLimits(null);
+      return;
+    }
+    openUsageLimits();
+  }, [onShowUsageLimits, openUsageLimits, usageLimitsShown]);
 
   const composerMenu = useComposerCommandMenu({
     draftMessage: props.draftMessage,
@@ -1149,6 +1168,14 @@ export const ThreadComposer = memo(function ThreadComposer(props: ThreadComposer
                   </View>
                 )}
                 <View className="shrink-0 flex-row items-center">
+                  {isVoiceInputPresented ? null : (
+                    <ComposerUsageLimitsText
+                      providers={props.serverConfig?.providers ?? EMPTY_PROVIDERS}
+                      instanceId={currentModelSelection.instanceId}
+                      mode={usageLimitsDisplay}
+                      onPress={toggleUsageLimits}
+                    />
+                  )}
                   <ComposerDictationPrimaryAction
                     state={voiceInput.state}
                     presentation={voicePresentation}
