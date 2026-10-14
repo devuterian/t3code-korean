@@ -446,6 +446,8 @@ export const KO_V2_CHAT: Readonly<Record<string, string>> = {
   "Partial diff preview": "일부 diff 미리보기",
   "Partial output retained": "일부 출력 유지됨",
   "Pasted text is too large for this message": "붙여넣은 텍스트가 이 메시지에 비해 너무 깁니다",
+  '"{name}" is too large to upload, so its path was added instead':
+    '"{name}"은(는) 너무 커서 업로드하지 않고 경로로 넣었습니다',
   "Pasted text is too large to attach": "붙여넣은 텍스트가 너무 커서 첨부할 수 없습니다",
   paused: "일시 중지됨",
   pending: "대기 중",
@@ -1152,6 +1154,13 @@ export const KO_V2_CHAT_PATTERNS: ReadonlyArray<Pattern> = [
       const parts = s.split(/, and |, | and /);
       const out = parts.map(clause);
       return out.every((part) => part !== null) ? out.join(", ") : s;
+    },
+  ],
+  [
+    /^('.+' exceeds the .+ attachment limit\.)$/,
+    (s) => {
+      const [, name, size] = /^'(.+)' exceeds the (.+) attachment limit\.$/.exec(s) ?? [];
+      return `'${name}'은(는) 첨부 한도(${size})를 넘어서 첨부할 수 없습니다.`;
     },
   ],
   [/^No pull request matches (.+)\.$/, (q) => `${q}와(과) 일치하는 풀 리퀘스트가 없습니다.`],

@@ -38,6 +38,7 @@ import type {
   ServerProvider,
   ThreadId,
   SnapShotSource,
+  ComposerUsageLimitsDisplay,
 } from "@t3tools/contracts";
 import {
   AuthOrchestrationOperateScope,
@@ -56,7 +57,11 @@ import {
   wouldTextPasteExceedLimit,
 } from "@t3tools/client-runtime/text-paste";
 import { serializeComposerFileLink } from "@t3tools/shared/composerTrigger";
-import { folderDropTarget, resolveDroppedFolderPath } from "./folderDrop";
+import {
+  droppedFileExceedsAttachmentLimit,
+  folderDropTarget,
+  resolveDroppedFolderPath,
+} from "./folderDrop";
 import { createModelSelection, normalizeModelSlug } from "@t3tools/shared/model";
 import { USAGE_LIMITS_COMMAND } from "@t3tools/shared/usageLimits";
 import {
@@ -297,6 +302,7 @@ import {
   renderProviderTraitsPicker,
 } from "./composerProviderState";
 import { ContextWindowMeter, ContextWindowMeterPlaceholder } from "./ContextWindowMeter";
+import { ComposerUsageLimitsText } from "./ComposerUsageLimitsText";
 import {
   providerSupportsManualCompaction,
   resolveContextWindowModelDisplayName,
@@ -1366,6 +1372,11 @@ const ComposerFooterPrimaryActions = memo(function ComposerFooterPrimaryActions(
   canOperateThread: boolean;
   activeContextWindow: ContextWindowSnapshot | null;
   reserveContextWindowMeter: boolean;
+  usageLimitsProviders: readonly ServerProvider[];
+  usageLimitsInstanceId: ProviderInstanceId | null;
+  usageLimitsDisplay: ComposerUsageLimitsDisplay;
+  usageLimitsCompact: boolean;
+  onOpenUsageLimits: (() => void) | undefined;
   activeThreadModelDisplayName: string | null;
   isPreparingWorktree: boolean;
   pendingAction: {
@@ -1414,6 +1425,13 @@ const ComposerFooterPrimaryActions = memo(function ComposerFooterPrimaryActions(
       ) : props.reserveContextWindowMeter ? (
         <ContextWindowMeterPlaceholder />
       ) : null}
+      <ComposerUsageLimitsText
+        providers={props.usageLimitsProviders}
+        instanceId={props.usageLimitsInstanceId}
+        mode={props.usageLimitsDisplay}
+        compact={props.usageLimitsCompact}
+        onOpen={props.onOpenUsageLimits}
+      />
       <ComposerPrimaryActions
         compact={props.compact}
         canOperateThread={props.canOperateThread}
@@ -1574,6 +1592,8 @@ export interface ChatComposerProps {
   onToggleKeepFullHistory: () => void;
   /** Picking /usage-limits from the menu is the action itself; the draft keeps nothing of it. */
   onUsageLimitsCommand?: (() => void) | undefined;
+  /** Opens (or closes) the `/usage-limits` panel from the composer's usage text. */
+  onToggleUsageLimits?: (() => void) | undefined;
   environmentUnavailable: {
     readonly label: string;
     readonly connection: EnvironmentConnectionPresentation;
@@ -5918,7 +5938,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
           continue;
         }
         if (file.size > fileStagingLimit) {
-          error = fileAttachmentTooLargeMessage(file.name, fileStagingLimit);
+          error = translate(fileAttachmentTooLargeMessage(file.name, fileStagingLimit));
           continue;
         }
         const attachmentFile =
@@ -6499,8 +6519,49 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
         }
       },
       addDroppedFiles: (files: File[]) => {
-        void addComposerAttachments(files).then((inserted) => {
-          if (!inserted) focusComposer();
+        // On the local environment, a file too large to upload goes in as its
+        // path chip, like a dropped folder, so the agent can read it in place.
+        const canReferenceLocalPath =
+          folderDropTarget({
+            localEnvironmentDisabled: isLocalEnvironmentDisabled(),
+            environmentId,
+            primaryEnvironmentId,
+          }) === "local";
+        const toAttach: File[] = [];
+        let insertedPath = false;
+        for (const file of files) {
+          const path =
+            canReferenceLocalPath &&
+            droppedFileExceedsAttachmentLimit({
+              kind: classifyComposerAttachmentFile(file),
+              sizeBytes: file.size,
+              fileStagingLimit,
+            })
+              ? resolveDroppedFolderPath(file, window.desktopBridge?.getPathForFile)
+              : null;
+          if (path === null) {
+            toAttach.push(file);
+            continue;
+          }
+          insertComposerTextAtEnd(`${serializeComposerFileLink(path)} `, {
+            ensureLeadingBoundary: true,
+          });
+          insertedPath = true;
+          toastManager.add({
+            type: "info",
+            title: fillNameSlot(
+              translate('"{name}" is too large to upload, so its path was added instead'),
+              file.name,
+            ),
+          });
+        }
+        if (toAttach.length === 0) {
+          setThreadError(activeThreadId, null);
+          focusComposer();
+          return;
+        }
+        void addComposerAttachments(toAttach).then((inserted) => {
+          if (!inserted || insertedPath) focusComposer();
         });
       },
       addDroppedFolders: (folders: File[]) => {
@@ -6725,6 +6786,9 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
       focusComposer,
       environmentId,
       primaryEnvironmentId,
+      fileStagingLimit,
+      setThreadError,
+      activeThreadId,
       isConnecting,
       isComposerApprovalState,
       isChoiceOnlyPendingQuestion,
@@ -7775,6 +7839,11 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
                       settings.contextWindowMeterEnabled ? activeContextWindow : null
                     }
                     reserveContextWindowMeter={reserveContextWindowMeter}
+                    usageLimitsProviders={providerStatuses}
+                    usageLimitsInstanceId={selectedInstanceId}
+                    usageLimitsDisplay={settings.composerUsageLimitsDisplay}
+                    usageLimitsCompact={isComposerResting || isComposerFooterCompact}
+                    onOpenUsageLimits={props.onToggleUsageLimits}
                     activeThreadModelDisplayName={activeThreadModelDisplayName}
                     pendingAction={pendingPrimaryAction}
                     isRunning={phase === "running"}

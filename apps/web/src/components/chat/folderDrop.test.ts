@@ -1,6 +1,10 @@
 import { describe, expect, it } from "@effect/vitest";
 import { EnvironmentId } from "@t3tools/contracts";
-import { folderDropTarget, resolveDroppedFolderPath } from "./folderDrop";
+import {
+  droppedFileExceedsAttachmentLimit,
+  folderDropTarget,
+  resolveDroppedFolderPath,
+} from "./folderDrop";
 
 const environmentId = EnvironmentId.make("environment-1");
 
@@ -62,5 +66,53 @@ describe("resolveDroppedFolderPath", () => {
   it("returns null when the bridge returns an empty path", () => {
     const folder = new File([], "contracts");
     expect(resolveDroppedFolderPath(folder, () => "")).toBeNull();
+  });
+});
+
+describe("droppedFileExceedsAttachmentLimit", () => {
+  const limit = 50 * 1024 * 1024;
+
+  it("references files over the staging limit by path", () => {
+    expect(
+      droppedFileExceedsAttachmentLimit({
+        kind: "file",
+        sizeBytes: limit + 1,
+        fileStagingLimit: limit,
+      }),
+    ).toBe(true);
+    expect(
+      droppedFileExceedsAttachmentLimit({
+        kind: "file",
+        sizeBytes: limit,
+        fileStagingLimit: limit,
+      }),
+    ).toBe(false);
+  });
+
+  it("keeps the existing rejection when the server takes no files", () => {
+    expect(
+      droppedFileExceedsAttachmentLimit({
+        kind: "file",
+        sizeBytes: limit + 1,
+        fileStagingLimit: null,
+      }),
+    ).toBe(false);
+  });
+
+  it("references images too large to compress by path", () => {
+    expect(
+      droppedFileExceedsAttachmentLimit({
+        kind: "image",
+        sizeBytes: limit + 1,
+        fileStagingLimit: null,
+      }),
+    ).toBe(true);
+    expect(
+      droppedFileExceedsAttachmentLimit({
+        kind: "image",
+        sizeBytes: 20 * 1024 * 1024,
+        fileStagingLimit: limit,
+      }),
+    ).toBe(false);
   });
 });

@@ -12,7 +12,7 @@ import type { ComposerFileAttachment, ComposerImageAttachment } from "../../comp
 import { isHeicImageFile } from "../../lib/imageCompression";
 import { isVideoAttachment } from "../../types";
 
-type ComposerAttachmentFileKind = "image" | "file" | "unsupported-image";
+export type ComposerAttachmentFileKind = "image" | "file" | "unsupported-image";
 
 interface FileAttachmentCapabilityState {
   readonly attachmentUploadsCapabilityKnown: boolean;
