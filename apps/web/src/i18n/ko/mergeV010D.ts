@@ -1,0 +1,80 @@
+/** Korean strings for upstream text that arrived with the v0.1.0 merge (web, group D). */
+export const KO_MERGE_V010_D: Readonly<Record<string, string>> = {
+  "Branch deleted": "브랜치 삭제됨",
+  "Confirm auto-merge?": "자동 머지를 켜시겠습니까?",
+  "Confirm merge?": "머지하시겠습니까?",
+  "Writing guide...": "가이드 작성 중...",
+  "Write guide": "가이드 작성",
+  "Rewrite guide": "가이드 다시 작성",
+  "Confirm close?": "닫으시겠습니까?",
+  "Confirm revert?": "되돌리시겠습니까?",
+  "Deleting branch...": "브랜치 삭제 중...",
+  "Delete branch": "브랜치 삭제",
+  "Reconnect to delete this branch": "이 브랜치를 삭제하려면 다시 연결해야 합니다",
+  "Confirm approve?": "승인하시겠습니까?",
+  "Could not delete this branch": "브랜치를 삭제할 수 없음",
+  "The host refused it. Check that you have write access to the source repository and that the branch has not moved since this page loaded.":
+    "호스트가 거부했습니다. 소스 저장소에 쓰기 권한이 있는지, 이 페이지를 연 뒤 브랜치가 바뀌지 않았는지 확인해야 합니다.",
+  Guide: "가이드",
+  "Delete branch {branch}?": "{branch} 브랜치를 삭제하시겠습니까?",
+  "This deletes {branch} from {repository}. Local branches and worktrees are not changed.":
+    "{repository}에서 {branch} 브랜치를 삭제합니다. 로컬 브랜치와 워크트리는 바뀌지 않습니다.",
+  "Summarize your review or add line comments": "리뷰를 요약하거나 줄 코멘트 추가",
+  "{host} merged the stack or added it to its merge queue.":
+    "{host}에서 스택을 머지했거나 머지 대기열에 추가했습니다.",
+  "Merge #{number} and its unmerged layers below into {base} using {method}. {host} checks their rules before merging or queueing them and rebases the remaining stack after merging.":
+    "#{number}과(와) 그 아래의 머지되지 않은 레이어를 {method} 방식으로 {base}에 머지합니다. {host}에서 머지하거나 대기열에 넣기 전에 규칙을 확인하고, 머지 후 남은 스택을 리베이스합니다.",
+  "Filter comments": "코멘트 필터",
+  Filter: "필터",
+  "Bot comments": "봇 코멘트",
+  "Resolved or dismissed": "해결됨 또는 기각됨",
+  "The only comment is hidden by the filter.": "필터 때문에 하나뿐인 코멘트가 숨겨졌습니다.",
+  "All {count} comments are hidden by the filter.":
+    "필터 때문에 코멘트 {count}개가 모두 숨겨졌습니다.",
+  "{count} hidden": "{count}개 숨김",
+  "In-memory process samples retained by the server. The server samples only while diagnostics is open, and this resets when the server restarts.":
+    "서버가 메모리에 보관하는 프로세스 샘플입니다. 서버는 진단 화면이 열려 있을 때만 샘플을 수집하며, 서버를 다시 시작하면 초기화됩니다.",
+  "Preview: Focus URL": "미리보기: URL에 포커스",
+  "Connect an environment to change keybindings.": "단축키를 변경하려면 환경을 연결해야 합니다.",
+  "Model preferences and custom models are saved on the selected environment and shared across connected devices.":
+    "모델 환경설정과 사용자 지정 모델은 선택한 환경에 저장되며 연결된 기기 간에 공유됩니다.",
+  "Overridden for this project. Show where this value comes from":
+    "이 프로젝트에서 재정의됨. 이 값의 출처 보기",
+  "Reset to the device setting": "기기 설정으로 재설정",
+  "Refresh provider availability, versions, and auth state. Model catalog updates follow Provider update checks.":
+    "프로바이더 사용 가능 여부, 버전, 인증 상태를 새로 고칩니다. 모델 카탈로그는 프로바이더 업데이트 확인 시 함께 갱신됩니다.",
+  "Rotated logs": "교체된 로그",
+  "Browser artifacts": "브라우저 아티팩트",
+  "{count} file": "파일 {count}개",
+  "{count} files": "파일 {count}개",
+  "{count} more results.": "결과 {count}개 더 있음.",
+  "Nothing needed cleanup.": "정리할 항목이 없습니다.",
+  "Last run {time}. {size} recovered.": "마지막 실행 {time}. {size} 확보.",
+  "{count} item couldn't be removed.": "항목 {count}개를 삭제하지 못했습니다.",
+  "{count} items couldn't be removed.": "항목 {count}개를 삭제하지 못했습니다.",
+  "Could not load the last run.": "마지막 실행 기록을 불러올 수 없습니다.",
+  "Loading last run…": "마지막 실행 기록 불러오는 중…",
+  "Cleanup hasn't run yet.": "아직 정리를 실행한 적이 없습니다.",
+  "Cleanup failed on {environment}": "{environment}에서 정리 실패",
+  "Could not run cleanup on {environment}": "{environment}에서 정리를 실행할 수 없음",
+  "Turn on a cleanup rule to use this.": "이 기능을 사용하려면 정리 규칙을 켜야 합니다.",
+  "Deleting…": "삭제 중…",
+  "Delete now": "지금 삭제",
+  "{removed} removed, {kept} kept": "{removed}개 삭제, {kept}개 유지",
+  "Offline machines will not get this setting": "오프라인 머신에는 이 설정이 적용되지 않습니다",
+  "Keep worktrees with local changes": "로컬 변경사항이 있는 워크트리 유지",
+  "Any local files": "모든 로컬 파일",
+  "Uncommitted changes": "커밋되지 않은 변경사항",
+  "Edited tracked files": "수정된 추적 파일",
+  Cleanup: "정리",
+  "Last run": "마지막 실행",
+  "Delete settled worktrees": "정리된 워크트리 삭제",
+  "Remove worktrees this many days after their thread settles. Set 0 days to remove them at the next cleanup. Branches and thread history are kept.":
+    "스레드가 정리된 뒤 지정한 일수가 지나면 워크트리를 삭제합니다. 0일로 설정하면 다음 정리 때 삭제합니다. 브랜치와 스레드 기록은 유지됩니다.",
+  "Includes ignored files, except node_modules.": "node_modules를 제외한 무시된 파일도 포함합니다.",
+  "Deletes untracked and ignored files, including .env.":
+    "추적되지 않은 파일과 무시된 파일(.env 포함)을 삭제합니다.",
+  "Keeps edits and untracked files. Deletes ignored files, including .env.":
+    "수정 내용과 추적되지 않은 파일은 유지합니다. 무시된 파일(.env 포함)은 삭제합니다.",
+  "Could not update everything": "전체 업데이트를 할 수 없음",
+};

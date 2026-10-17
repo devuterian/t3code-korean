@@ -26,6 +26,10 @@ function connectionStatusLabel(environment: ConnectedEnvironmentSummary): string
   if (!environment.isEnabled && environment.connectionState !== "unsupported") {
     return translate("Off");
   }
+  // Mobile has no tooltip, so an unsupported environment shows its compatibility detail.
+  if (environment.connectionState === "unsupported" && environment.connectionError !== null) {
+    return translate(environment.connectionError);
+  }
   return localizedConnectionStatusText({
     phase: environment.connectionState,
     error: environment.connectionError,

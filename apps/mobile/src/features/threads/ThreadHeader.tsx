@@ -1,4 +1,3 @@
-import { StackActions, useNavigation } from "@react-navigation/native";
 import { useMemo } from "react";
 import { ScreenHeader } from "../../components/ScreenHeader";
 import { ScreenHeaderButton } from "../../components/ScreenHeaderButton";
@@ -7,6 +6,7 @@ import { useTranslate } from "../../i18n/translate";
 import { useAdaptiveWorkspaceLayout } from "../layout/AdaptiveWorkspaceLayout";
 import type { ThreadInspectorMode } from "./thread-inspector-content-stack";
 import { useThreadHeaderOptions } from "./useThreadHeaderOptions";
+import { useWorkspaceListNavigation } from "../workspace/useAndroidWorkspaceNavigation";
 
 export function ThreadHeader(
   props: Parameters<typeof useThreadHeaderOptions>[0] & {
@@ -20,7 +20,7 @@ export function ThreadHeader(
   },
 ) {
   const t = useTranslate();
-  const navigation = useNavigation();
+  const returnToList = useWorkspaceListNavigation("threads");
   const { layout, panes, toggleAuxiliaryPane } = useAdaptiveWorkspaceLayout();
   const { onOpenTerminal, onMergeBack } = props.gitControls;
   const native = useThreadHeaderOptions(props);
@@ -99,16 +99,7 @@ export function ThreadHeader(
             />
           ) : null
         }
-        onBack={
-          layout.usesSplitView
-            ? undefined
-            : () => {
-                // A deep link or cold start has no previous route; Home is the way out.
-                // Read the history at press time: it changes without re-rendering this screen.
-                if (navigation.canGoBack()) navigation.goBack();
-                else navigation.dispatch(StackActions.replace("Home"));
-              }
-        }
+        onBack={layout.usesSplitView ? undefined : returnToList}
         actions={androidHeaderActions}
         hideBottomBorder
       />

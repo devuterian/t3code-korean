@@ -34,7 +34,7 @@ export function BrowserPreviewButton(props: {
           {props.count === 1 ? t("One tab open") : t("{count} tabs open", { count: props.count })}
         </AppText>
       ) : props.count > 1 ? (
-        <View className="absolute right-0.5 top-0.5 min-w-4 items-center rounded-full bg-primary px-1">
+        <View className="absolute right-1.5 top-1.5 min-w-4 items-center rounded-full bg-primary px-1">
           <AppText className="text-2xs font-t3-bold text-primary-foreground">{props.count}</AppText>
         </View>
       ) : null}

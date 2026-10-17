@@ -11,6 +11,10 @@ import { KO_MERGE_1009_C } from "./ko/merge1009C";
 import { KO_MERGE_1009_D } from "./ko/merge1009D";
 import { KO_COMPOSER_USAGE } from "./ko/composerUsage";
 import { KO_MAC_PERMISSIONS } from "./ko/macPermissions";
+import { KO_MERGE_V010_C } from "./ko/mergeV010C";
+import { KO_MERGE_V010_D } from "./ko/mergeV010D";
+import { KO_MERGE_V010_G } from "./ko/mergeV010G";
+import { KO_MERGE_V010_H } from "./ko/mergeV010H";
 
 /**
  * Korean dictionary. Keys are the exact English source strings rendered by
@@ -1400,5 +1404,9 @@ export const KO_DICTIONARY: Readonly<Record<string, string>> = {
   ...KO_MERGE_1009_D,
   ...KO_COMPOSER_USAGE,
   ...KO_MAC_PERMISSIONS,
+  ...KO_MERGE_V010_C,
+  ...KO_MERGE_V010_D,
+  ...KO_MERGE_V010_G,
+  ...KO_MERGE_V010_H,
   ...KO_V2_RESOLVED,
 };

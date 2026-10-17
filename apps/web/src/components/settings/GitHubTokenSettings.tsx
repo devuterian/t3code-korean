@@ -4,10 +4,12 @@ import { useState } from "react";
 
 import { useEnvironmentSettings } from "../../hooks/useSettings";
 import { useTranslate } from "../../i18n/translate";
+import { readGitHubSettings } from "@t3tools/client-runtime/source-control-clients";
 import { serverEnvironment } from "../../state/server";
 import { useAtomCommand } from "../../state/use-atom-command";
 import { Button, InlineButton } from "../ui/button";
 import { Input } from "../ui/input";
+import { SecretInput } from "./SecretInput";
 import { Label } from "../ui/label";
 
 const DEFAULT_HOST = "github.com";
@@ -30,7 +32,7 @@ export function GitHubTokenSettings({
   readonly onSaved: () => void;
 }) {
   const t = useTranslate();
-  const tokens = useEnvironmentSettings(environmentId, (settings) => settings.github.tokens);
+  const { tokens } = useEnvironmentSettings(environmentId, readGitHubSettings);
   const updateSettings = useAtomCommand(serverEnvironment.updateSettings, {
     label: "save GitHub token",
   });
@@ -48,7 +50,10 @@ export function GitHubTokenSettings({
     try {
       const result = await updateSettings({
         environmentId,
-        input: { patch: { github: { tokens: { [target]: token } } } },
+        // The map travels whole: every other saved token as its redaction marker, which keeps it.
+        input: {
+          patch: { sourceControlHosts: { github: { tokens: { ...tokens, [target]: token } } } },
+        },
       });
       if (result._tag === "Success") {
         setDraft("");
@@ -103,14 +108,10 @@ export function GitHubTokenSettings({
           </div>
           <div className="grid gap-1.5">
             <Label htmlFor={`github-token-${environmentId}`}>{t("Token")}</Label>
-            <Input
+            <SecretInput
               id={`github-token-${environmentId}`}
-              type="password"
-              autoComplete="off"
               size="sm"
-              placeholder={
-                isSaved ? t("Stored secret, enter a new value to replace") : t("Not set")
-              }
+              configured={isSaved}
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
             />

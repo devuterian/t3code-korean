@@ -8,7 +8,7 @@ import { useTranslate } from "../i18n/translate";
 
 const appVariant = Constants.expoConfig?.extra?.appVariant;
 const DEFAULT_STAGE_LABEL =
-  appVariant === "development" ? "Dev" : appVariant === "preview" ? "Preview" : "Alpha";
+  appVariant === "development" ? "Dev" : appVariant === "preview" ? "Preview" : "Beta";
 
 export function BrandMark(props: { readonly compact?: boolean; readonly stageLabel?: string }) {
   const t = useTranslate();

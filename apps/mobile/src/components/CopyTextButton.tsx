@@ -11,6 +11,8 @@ export const CopyTextButton = memo(function CopyTextButton(props: {
   readonly accessibilityLabel: string;
   readonly text: string;
   readonly onCopy?: () => Promise<void>;
+  /** Lets a long-press menu wrap the button (`ControlPillMenu` injects it on Android). */
+  readonly onLongPress?: () => void;
   readonly tintColor?: ColorValue;
   readonly copiedTintColor?: ColorValue;
   readonly backgroundColor?: ColorValue;
@@ -37,6 +39,7 @@ export const CopyTextButton = memo(function CopyTextButton(props: {
       accessibilityLabel={copied ? t("Copied") : props.accessibilityLabel}
       disabled={props.text.length === 0}
       hitSlop={8}
+      onLongPress={props.onLongPress}
       onPress={async () => {
         try {
           if (props.onCopy) await props.onCopy();

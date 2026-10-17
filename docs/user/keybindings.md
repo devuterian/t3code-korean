@@ -131,7 +131,8 @@ the desktop app. `isMac`, `isWindows`, and `isLinux` reflect the operating
 system. Unknown keys evaluate to `false`.
 
 `mod+1` through `mod+9` jump to the first nine threads, and to models while the
-model picker is open. Those defaults use `isDesktop` so they do not steal the
+model picker is open. The thread jumps do not run while the model picker is open.
+Those defaults use `isDesktop` so they do not steal the
 browser's tab-switch shortcuts. Remove that condition in Settings if you want
 the same jumps in a browser.
 

@@ -29,6 +29,7 @@ import { PullRequestStackLayerContent } from "./PullRequestStackLayerContent";
 import { PullRequestGlyph } from "./pullRequestIcons";
 
 export function PullRequestStackMenu({
+  hostLabel,
   stack,
   reference,
   environmentId,
@@ -40,6 +41,8 @@ export function PullRequestStackMenu({
   notice,
   onRetry,
 }: {
+  /** The host's name, which reports what it did with the stack. */
+  hostLabel: string;
   notice?: string | null;
   onRetry?: (() => void) | undefined;
   stack: PullRequestStack;
@@ -120,7 +123,10 @@ export function PullRequestStackMenu({
         title: action === "merge" ? t("Stack merge request completed") : t("Stack rebased"),
         description:
           action === "merge"
-            ? t("GitHub merged the stack or added it to its merge queue.")
+            ? t("{host} merged the stack or added it to its merge queue.").replace(
+                "{host}",
+                () => hostLabel,
+              )
             : undefined,
       });
     }
@@ -239,8 +245,12 @@ export function PullRequestStackMenu({
             <DialogDescription>
               {confirmation === "merge"
                 ? t(
-                    `Merge #${reference.number} and its unmerged layers below into ${stack.base} using ${mergeMethod}. GitHub checks their rules before merging or queueing them and rebases the remaining stack after merging.`,
+                    "Merge #{number} and its unmerged layers below into {base} using {method}. {host} checks their rules before merging or queueing them and rebases the remaining stack after merging.",
                   )
+                    .replace("{number}", () => String(reference.number))
+                    .replace("{base}", () => stack.base)
+                    .replace("{method}", () => mergeMethod)
+                    .replace("{host}", () => hostLabel)
                 : t(
                     `Rebase the remote branches from bottom to top onto ${stack.base}. This rewrites branch history and may restart checks. If a layer fails, earlier updates remain.`,
                   )}

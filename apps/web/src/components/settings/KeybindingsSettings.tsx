@@ -17,7 +17,6 @@ import {
   type ReactNode,
   type RefObject,
   useCallback,
-  useEffect,
   useMemo,
   useReducer,
   useRef,
@@ -233,7 +232,7 @@ function WarningTooltipIcon({
             tabIndex={focusable ? 0 : undefined}
             aria-label={label}
             className={cn(
-              "inline-flex size-5 shrink-0 items-center justify-center rounded-sm text-warning outline-none transition-colors hover:bg-warning/10 focus-visible:ring-3 focus-visible:ring-warning/25",
+              "inline-flex size-5 shrink-0 items-center justify-center rounded-sm text-warning outline-none transition-colors hover:bg-warning/10 focus-visible:ring-3 focus-visible:ring-inset focus-visible:ring-warning/25",
               className,
             )}
           />
@@ -832,7 +831,7 @@ function KeybindingKeyControl({
           onClick={() => setDraft({ isRecording: true })}
           aria-label={`${t("Edit shortcut for")} ${t(commandLabel(row.command))}: ${formatShortcutLabel(row.binding.shortcut)}`}
           className={cn(
-            "inline-flex h-8 cursor-pointer items-center rounded-md border border-transparent px-1.5 sm:h-7 outline-none transition-colors hover:border-border/70 hover:bg-accent focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/24",
+            "inline-flex h-8 cursor-pointer items-center rounded-md border border-transparent px-1.5 sm:h-7 outline-none transition-colors hover:border-border/70 hover:bg-accent focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-inset focus-visible:ring-ring/24",
             pillClassName,
           )}
         >
@@ -1368,28 +1367,6 @@ export function KeybindingsSettingsPanel() {
   const commandOptions = useMemo(() => buildKeybindingCommandOptions(keybindings), [keybindings]);
   const whenVariables = useMemo(() => buildWhenVariableOptions(), []);
 
-  useEffect(() => {
-    const handleKeyDown = (event: globalThis.KeyboardEvent) => {
-      const isMod = event.metaKey || event.ctrlKey;
-      if (!isMod || event.altKey || event.key.toLowerCase() !== "f") return;
-
-      const target = event.target;
-      if (
-        target !== searchInputRef.current &&
-        target instanceof HTMLElement &&
-        (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)
-      ) {
-        return;
-      }
-
-      event.preventDefault();
-      searchInputRef.current?.focus();
-      searchInputRef.current?.select();
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
-
   const openKeybindingsFile = useCallback(() => {
     if (
       !keybindingsConfigPath ||
@@ -1557,10 +1534,12 @@ export function KeybindingsSettingsPanel() {
 
       {!canWriteSettings ? (
         <p className="text-xs text-muted-foreground">
-          {t("This connection can view keybindings but cannot change them.")}
+          {connectedEnvironments.length === 0
+            ? t("Connect an environment to change keybindings.")
+            : t("This connection can view keybindings but cannot change them.")}
         </p>
       ) : null}
-      <div inert={!canWriteSettings}>
+      <div inert={!canWriteSettings} className="flex flex-col gap-8">
         {isAddingBinding ? (
           <SettingsGroup>
             <NewKeybindingSettingsRow

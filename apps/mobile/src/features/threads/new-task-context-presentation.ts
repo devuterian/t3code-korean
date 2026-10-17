@@ -1,4 +1,5 @@
 import { sanitizeNewRefName } from "@t3tools/shared/git";
+import { parseChangeRequestUrl } from "@t3tools/shared/changeRequestUrl";
 
 import { translate } from "../../i18n/translate";
 
@@ -65,7 +66,12 @@ export function resolveNewTaskBranchLabel(input: {
   readonly branchName: string | null;
   readonly startFromOrigin: boolean;
   readonly workspaceMode: WorkspaceMode;
+  readonly pullRequestReference?: string;
 }): string {
+  if (input.workspaceMode === "worktree" && input.pullRequestReference) {
+    const pr = parseChangeRequestUrl(input.pullRequestReference);
+    if (pr) return `From PR #${pr.number}`;
+  }
   if (!input.branchName) {
     return translate("Choose branch");
   }

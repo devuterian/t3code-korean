@@ -168,7 +168,10 @@ function SettingsIndexSections() {
       <SettingsSection title={t("Interface")}>
         <SettingsRow icon="paintbrush" label={t("Appearance")} target="SettingsAppearance" />
         {Platform.OS === "ios" ? (
-          <SettingsRow icon="keyboard" label={t("Keyboard")} target="SettingsKeyboard" />
+          <>
+            <SettingsRow icon="keyboard" label={t("Keyboard")} target="SettingsKeyboard" />
+            <SettingsRow icon="mic" label={t("Microphone")} target="SettingsMicrophone" />
+          </>
         ) : null}
       </SettingsSection>
 

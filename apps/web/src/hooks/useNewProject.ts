@@ -1,5 +1,8 @@
 import { scopeProjectRef } from "@t3tools/client-runtime/environment";
-import { getNewProjectGitHubRepository } from "@t3tools/client-runtime/operations/projects";
+import {
+  getNewProjectRepository,
+  type NewProjectPublishTarget,
+} from "@t3tools/client-runtime/operations/projects";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
@@ -8,6 +11,7 @@ import type { EnvironmentId } from "@t3tools/contracts";
 import { useCallback } from "react";
 
 import { stackedThreadToast, toastManager } from "~/components/ui/toast";
+import { translate } from "~/i18n/translate";
 import { waitForProject } from "~/state/entities";
 import { projectEnvironment } from "~/state/projects";
 import { sourceControlEnvironment } from "~/state/sourceControl";
@@ -23,8 +27,8 @@ function errorMessage(error: unknown): string {
 /**
  * Starts a project from just a name. The server makes a folder under its
  * `newProjectsRoot` with a README, an icon, and a first commit; this then
- * opens a new thread draft in it. With `github`, it also publishes the
- * repository as private, without holding up the draft.
+ * opens a new thread draft in it. With `publishTo`, it also publishes the
+ * repository as private on that host, without holding up the draft.
  *
  * Resolves to whether the project was created.
  */
@@ -35,18 +39,19 @@ export function useNewProject() {
   });
   const handleNewThread = useNewThreadHandler();
 
-  const publishToGitHub = useCallback(
+  const publishNewRepository = useCallback(
     async (input: {
       readonly environmentId: EnvironmentId;
       readonly workspaceRoot: string;
-      readonly account: string | null;
+      readonly target: NewProjectPublishTarget;
     }) => {
+      const { label } = input.target.definition;
       const result = await publishRepository({
         environmentId: input.environmentId,
         input: {
           cwd: input.workspaceRoot,
-          provider: "github",
-          repository: getNewProjectGitHubRepository(input, input.workspaceRoot),
+          provider: input.target.definition.kind,
+          repository: getNewProjectRepository(input.target, input.workspaceRoot),
           visibility: "private",
         },
       });
@@ -55,8 +60,11 @@ export function useNewProject() {
           toastManager.add(
             stackedThreadToast({
               type: "error",
-              title: "Could not create the GitHub repository",
-              description: `${errorMessage(squashAtomCommandFailure(result))} Use Publish Repository in the Git menu to try again.`,
+              title: translate("Could not create the {host} repository").replace(
+                "{host}",
+                () => label,
+              ),
+              description: `${errorMessage(squashAtomCommandFailure(result))} ${translate("Use Publish Repository in the Git menu to try again.")}`,
             }),
           );
         }
@@ -65,7 +73,7 @@ export function useNewProject() {
       toastManager.add(
         stackedThreadToast({
           type: "success",
-          title: "Published to GitHub",
+          title: translate("Published to {host}").replace("{host}", () => label),
           description: result.value.repository.nameWithOwner,
         }),
       );
@@ -77,7 +85,7 @@ export function useNewProject() {
     async (input: {
       readonly environmentId: EnvironmentId;
       readonly name: string;
-      readonly github: { readonly account: string | null } | null;
+      readonly publishTo: NewProjectPublishTarget | null;
     }): Promise<boolean> => {
       const result = await createNew({
         environmentId: input.environmentId,
@@ -109,11 +117,11 @@ export function useNewProject() {
               },
         ),
       );
-      if (input.github) {
-        void publishToGitHub({
+      if (input.publishTo) {
+        void publishNewRepository({
           environmentId: input.environmentId,
           workspaceRoot,
-          account: input.github.account,
+          target: input.publishTo,
         });
       }
 
@@ -142,6 +150,6 @@ export function useNewProject() {
       });
       return true;
     },
-    [createNew, handleNewThread, publishToGitHub],
+    [createNew, handleNewThread, publishNewRepository],
   );
 }

@@ -71,6 +71,7 @@ import {
   WorkspaceBreadcrumb,
   WorkspaceBreadcrumbItem,
   WorkspaceBreadcrumbSeparator,
+  WorkspaceBreadcrumbText,
 } from "../WorkspaceBreadcrumb";
 import { WorkspacePageContainer } from "../WorkspacePageContainer";
 import { WorkspacePageHeader } from "../WorkspacePageHeader";
@@ -598,33 +599,28 @@ export function UsagePage() {
                           ? formatUsd(merged.costUsd)
                           : formatTokens(merged.totalTokens)}
                       </span>
-                      <span className="text-xs text-muted-foreground">
-                        <span className={figureClass(loading.partial)}>
-                          {t(`${formatCount(merged.sessions)} sessions`)}
+                      <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                        <span>
+                          <span className={figureClass(loading.partial)}>
+                            {t(`${formatCount(merged.sessions)} sessions`)}
+                          </span>
+                          {metric === "cost" && ` · ${t("API estimate")}`}
                         </span>
-                        {metric === "cost" && (
-                          <>
-                            {` · ${t("API estimate")}`}
-                            {merged.costQuality.unpricedShare > 0 && (
-                              <>
-                                {" "}
-                                <Popover>
-                                  <PopoverTrigger
-                                    openOnHover
-                                    render={<InlineButton tone="muted" />}
-                                    aria-label={t("Unpriced usage details")}
-                                  >
-                                    <InfoIcon className="size-3" aria-hidden />
-                                  </PopoverTrigger>
-                                  <PopoverPopup side="top" tooltipStyle>
-                                    {t(
-                                      `API estimate excludes ${formatPercent(merged.costQuality.unpricedShare)} unpriced records.`,
-                                    )}
-                                  </PopoverPopup>
-                                </Popover>
-                              </>
-                            )}
-                          </>
+                        {metric === "cost" && merged.costQuality.unpricedShare > 0 && (
+                          <Popover>
+                            <PopoverTrigger
+                              openOnHover
+                              render={<InlineButton tone="muted" />}
+                              aria-label={t("Unpriced usage details")}
+                            >
+                              <InfoIcon className="size-3" aria-hidden />
+                            </PopoverTrigger>
+                            <PopoverPopup side="top" tooltipStyle>
+                              {t(
+                                `API estimate excludes ${formatPercent(merged.costQuality.unpricedShare)} unpriced records.`,
+                              )}
+                            </PopoverPopup>
+                          </Popover>
                         )}
                       </span>
                     </div>
@@ -1296,7 +1292,7 @@ function UsageEnvironmentFilter({
   return (
     <Menu>
       <MenuTrigger render={<InlineButton />} className="group/usage-environment min-w-0 max-w-full">
-        <span className="min-w-0 truncate">{label}</span>
+        <WorkspaceBreadcrumbText>{label}</WorkspaceBreadcrumbText>
         <span className="flex size-3.5 shrink-0 items-center justify-center text-muted-foreground">
           {showUsageStatus && hasIssue ? (
             <CircleAlertIcon

@@ -321,7 +321,9 @@ export function useThreadListActions(): {
         if (!canSnooze(thread, { now: new Date().toISOString() })) {
           Alert.alert(
             translate("Could not snooze thread"),
-            thread.hasPendingApprovals || thread.hasPendingUserInput
+            thread.hasPendingApprovals ||
+              thread.hasPendingUserInput ||
+              thread.pendingSubagentRequest != null
               ? translate(
                   "This thread is waiting on you. Respond to the pending request before snoozing it.",
                 )

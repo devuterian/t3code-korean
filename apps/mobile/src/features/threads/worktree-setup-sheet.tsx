@@ -1,16 +1,6 @@
-import { useState, type ReactElement } from "react";
-import { Modal, View } from "react-native";
-import { Screen, ScreenStack, ScreenStackHeaderConfig } from "react-native-screens";
-import { withUniwind } from "uniwind";
-import { ContextSheetSize } from "../../components/ContextSheetSize";
+import type { ReactElement } from "react";
+import { AppSheet } from "../../components/AppSheet";
 import { useTranslate } from "../../i18n/translate";
-
-const NativeScreen = withUniwind(Screen);
-const NativeHeader = withUniwind(ScreenStackHeaderConfig, {
-  backgroundColor: { fromClassName: "backgroundColorClassName", styleProperty: "backgroundColor" },
-  color: { fromClassName: "tintColorClassName", styleProperty: "accentColor" },
-  titleColor: { fromClassName: "titleColorClassName", styleProperty: "accentColor" },
-});
 
 export interface WorktreeSetupSheetProps {
   children: ReactElement;
@@ -18,51 +8,11 @@ export interface WorktreeSetupSheetProps {
   onClose: () => void;
 }
 
-export function WorktreeSetupSheet({ children, height, onClose }: WorktreeSetupSheetProps) {
-  const [headerHeight, setHeaderHeight] = useState(44);
+export function WorktreeSetupSheet({ children, onClose }: WorktreeSetupSheetProps) {
   const t = useTranslate();
   return (
-    <Modal
-      animationType="slide"
-      presentationStyle="pageSheet"
-      allowSwipeDismissal
-      onRequestClose={onClose}
-    >
-      <View collapsable={false} className="flex-1 bg-sheet-solid">
-        <ContextSheetSize height={height + headerHeight} />
-        {/* The nested stack supplies UIKit's navigation bar inside the sheet. */}
-        <ScreenStack style={{ flex: 1 }}>
-          <NativeScreen
-            activityState={2}
-            enabled
-            isNativeStack
-            screenId="worktree-setup-details"
-            onHeaderHeightChange={(event) => setHeaderHeight(event.nativeEvent.headerHeight)}
-            className="flex-1 bg-sheet-solid"
-          >
-            {children}
-            <NativeHeader
-              title={t("Worktree setup")}
-              titleColorClassName="accent-foreground"
-              tintColorClassName="accent-foreground"
-              backgroundColorClassName="bg-sheet-solid"
-              hideBackButton
-              hideShadow
-              translucent={false}
-              headerRightBarButtonItems={[
-                {
-                  type: "button",
-                  title: t("Done"),
-                  variant: "done",
-                  accessibilityLabel: t("Close setup details"),
-                  identifier: "worktree-setup-done",
-                  onPress: onClose,
-                },
-              ]}
-            />
-          </NativeScreen>
-        </ScreenStack>
-      </View>
-    </Modal>
+    <AppSheet title={t("Worktree setup")} onClose={onClose}>
+      {children}
+    </AppSheet>
   );
 }

@@ -12,9 +12,7 @@ export function AndroidWorkspaceSidebarButton() {
 
   return (
     <AndroidHeaderIconButton
-      accessibilityLabel={
-        panes.primarySidebarVisible ? t("Maximize content") : t("Show thread sidebar")
-      }
+      accessibilityLabel={panes.primarySidebarVisible ? t("Maximize content") : t("Show sidebar")}
       icon={panes.primarySidebarVisible ? "arrow.up.left.and.arrow.down.right" : "sidebar.left"}
       onPress={togglePrimarySidebar}
     />

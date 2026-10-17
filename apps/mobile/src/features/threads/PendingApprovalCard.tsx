@@ -49,7 +49,7 @@ export function PendingApprovalCard(props: PendingApprovalCardProps) {
         </Text>
       ) : null}
       {!canRespond ? (
-        <Text className="font-sans text-sm leading-5 text-adaptive-neutral-600-400">
+        <Text className="font-sans text-sm leading-5 text-foreground-muted">
           {t(
             "The provider process for this request is no longer available. Interrupt or restart the run to continue.",
           )}
@@ -76,7 +76,7 @@ export function PendingApprovalCard(props: PendingApprovalCardProps) {
         ))}
       </View>
       {!props.canOperateThread ? (
-        <Text className="font-sans text-xs text-adaptive-neutral-500-400">
+        <Text className="font-sans text-xs text-foreground-muted">
           {t("This connection cannot respond to approvals.")}
         </Text>
       ) : null}

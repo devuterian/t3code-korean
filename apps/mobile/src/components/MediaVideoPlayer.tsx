@@ -2,13 +2,15 @@ import { useIsFocused } from "@react-navigation/native";
 import { useEvent } from "expo";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
-import { ActivityIndicator, AppState, Pressable, View } from "react-native";
+import { AppState, Pressable, View } from "react-native";
 
+import { AppActivityIndicator } from "./AppActivityIndicator";
 import { AppText } from "./AppText";
 import { SymbolView } from "./AppSymbol";
 import { VideoThumbnailImage } from "./VideoThumbnailImage";
 import { useMediaActions } from "../state/mediaActions";
 import { type MediaActionsSource } from "../lib/mediaActionsSource";
+import { useFullscreenVideoOpen, useMediaAudioSessionHold } from "../lib/videoAudioSession";
 import { MediaActionsMenu } from "./MediaActionsMenu";
 import { useTranslate } from "../i18n/translate";
 
@@ -21,6 +23,8 @@ function LoadedMediaVideo(props: {
 }) {
   const t = useTranslate();
   const focused = useIsFocused();
+  const fullscreenVideoOpen = useFullscreenVideoOpen();
+  const paused = props.paused || fullscreenVideoOpen;
   const active = useRef(focused && AppState.currentState === "active");
   const fullscreen = useRef(false);
   const [attempt, setAttempt] = useState(0);
@@ -31,6 +35,8 @@ function LoadedMediaVideo(props: {
     player.bufferOptions = { preferredForwardBufferDuration: 5 };
   });
   const { status } = useEvent(player, "statusChange", { status: player.status });
+  const { isPlaying } = useEvent(player, "playingChange", { isPlaying: player.playing });
+  useMediaAudioSessionHold(isPlaying);
   const loadSource = useEffectEvent(async (signal: AbortSignal) => {
     const uri = props.resolvePlaybackUri ? await props.resolvePlaybackUri() : props.uri;
     if (signal.aborted) return;
@@ -41,16 +47,16 @@ function LoadedMediaVideo(props: {
   });
 
   useEffect(() => {
-    active.current = focused && !props.paused && AppState.currentState === "active";
-    if (!focused || props.paused || (!active.current && !fullscreen.current)) player.pause();
+    active.current = focused && !paused && AppState.currentState === "active";
+    if (!focused || paused || (!active.current && !fullscreen.current)) player.pause();
     // Native background handling distinguishes Android's fullscreen activity
     // from leaving the app; React Native reports both as background.
     const subscription = AppState.addEventListener("change", (state) => {
-      active.current = focused && !props.paused && state === "active";
+      active.current = focused && !paused && state === "active";
       if (state === "inactive" || (state === "background" && !fullscreen.current)) player.pause();
     });
     return () => subscription.remove();
-  }, [focused, player, props.paused]);
+  }, [focused, player, paused]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -98,7 +104,7 @@ function LoadedMediaVideo(props: {
         </View>
       ) : loadState === "pending" || status === "loading" ? (
         <View pointerEvents="none" className="absolute inset-0 items-center justify-center">
-          <ActivityIndicator color="#ffffff" accessibilityLabel={t("Loading video")} />
+          <AppActivityIndicator color="#ffffff" accessibilityLabel={t("Loading video")} />
         </View>
       ) : null}
     </View>
@@ -163,7 +169,7 @@ function MediaVideoPlayerContent(props: MediaVideoPlayerProps) {
             {props.unavailable ? (
               <AppText className="text-sm text-white/80">{t("Video unavailable")}</AppText>
             ) : props.uri === null ? (
-              <ActivityIndicator color="#ffffff" accessibilityLabel={t("Loading video")} />
+              <AppActivityIndicator color="#ffffff" accessibilityLabel={t("Loading video")} />
             ) : (
               <View className="size-12 items-center justify-center rounded-full bg-black/60">
                 <SymbolView name="play" size={28} tintColor="#ffffff" type="monochrome" />

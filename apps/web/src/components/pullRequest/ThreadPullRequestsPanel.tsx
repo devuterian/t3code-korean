@@ -1,5 +1,8 @@
 import type { ProjectId, ScopedThreadRef, ThreadPullRequestLink } from "@t3tools/contracts";
-import { detectSourceControlProviderFromRemoteUrl } from "@t3tools/shared/sourceControl";
+import {
+  sourceControlClients,
+  UNKNOWN_SOURCE_CONTROL_CLIENT,
+} from "@t3tools/client-runtime/source-control-clients";
 import {
   resolveThreadPullRequestChains,
   visibleThreadPullRequests,
@@ -44,7 +47,9 @@ import {
   pullRequestChecksStatePresentation,
 } from "./pullRequestPresentation";
 import { PullRequestGlyph } from "./pullRequestIcons";
+import { pullRequestQuickActions } from "./pullRequestList.logic";
 import { PullRequestSpeedActions } from "./PullRequestSpeedActions";
+import { translate } from "~/i18n/translate";
 
 const SOURCE_LABELS: Record<ThreadPullRequestLink["source"], string> = {
   manual: "Linked by you",
@@ -104,11 +109,12 @@ function LinkRow({
   const snapshot = link.snapshot;
   const open = snapshot === null || snapshot.state === "open";
   const watching = link.watch !== undefined;
+  // A link carries no host summary, so the host's own definition says what it can do.
+  const linkHostActions = (
+    sourceControlClients.findByChangeRequestUrl(link.url) ?? UNKNOWN_SOURCE_CONTROL_CLIENT
+  ).changeRequestActions;
   const actionEntry =
-    projectId !== null &&
-    snapshot !== null &&
-    snapshot.state !== "merged" &&
-    detectSourceControlProviderFromRemoteUrl(link.url)?.kind === "github"
+    projectId !== null && snapshot !== null && snapshot.state !== "merged"
       ? {
           environmentId: threadRef.environmentId,
           projectId,
@@ -120,6 +126,9 @@ function LinkRow({
           ...(link.stack === null ? {} : { stack: link.stack }),
         }
       : null;
+  // Speed mode swaps the menu for quick actions only where a row has some to offer.
+  const hasQuickActions =
+    actionEntry !== null && pullRequestQuickActions(actionEntry, linkHostActions).length > 0;
   return (
     <div
       className={cn(PULL_REQUEST_ROW_CLASS, "relative hover:bg-accent/60")}
@@ -210,8 +219,17 @@ function LinkRow({
                   </TooltipTrigger>
                   <TooltipPopup>
                     {stack.kind === "native"
-                      ? `GitHub stack of ${stack.size}: merging a layer lands the ones below it.`
-                      : `${stack.size} pull requests chained by base branch.`}
+                      ? translate(
+                          "{host} stack of {count}: merging a layer lands the ones below it.",
+                        )
+                          .replace("{host}", () =>
+                            sourceControlClients.hostLabelForChangeRequestUrl(link.url),
+                          )
+                          .replace("{count}", () => String(stack.size))
+                      : translate("{count} pull requests chained by base branch.").replace(
+                          "{count}",
+                          () => String(stack.size),
+                        )}
                   </TooltipPopup>
                 </Tooltip>
               ) : null}
@@ -245,7 +263,11 @@ function LinkRow({
         />
       </a>
       {actionEntry !== null ? (
-        <PullRequestSpeedActions entry={actionEntry} visible={speedMode} />
+        <PullRequestSpeedActions
+          entry={actionEntry}
+          hostActions={linkHostActions}
+          visible={speedMode}
+        />
       ) : null}
       {/* Out of the row's flow, so no row reserves a column for a button only the hovered one
           shows. It sits over the right end of the second line on the row's own hover color,
@@ -260,7 +282,7 @@ function LinkRow({
           "has-[[data-popup-open]]:pointer-events-auto has-[[data-popup-open]]:opacity-100",
           "has-[:focus-visible]:pointer-events-auto has-[:focus-visible]:opacity-100",
           "group-has-[[data-pull-request-action-pending=true]]/pr-row:hidden",
-          speedMode && actionEntry !== null && "hidden",
+          speedMode && hasQuickActions && "hidden",
         )}
       >
         <span aria-hidden className="absolute inset-0 bg-accent/60" />

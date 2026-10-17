@@ -174,7 +174,7 @@ function BrowserPreviewScreen({
       {tab ? (
         <>
           <BrowserAddressBar
-            key={tab.tabId}
+            key={`address:${tab.tabId}`}
             environmentId={environmentId}
             tab={tab}
             streaming={streaming}
@@ -183,7 +183,7 @@ function BrowserPreviewScreen({
           />
           {live ? (
             <PreviewStreamWebView
-              key={tab.tabId}
+              key={`stream:${tab.tabId}`}
               environmentId={environmentId}
               threadId={threadId}
               tabId={tab.tabId}

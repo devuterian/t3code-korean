@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from "../ui/dialog";
 import { Input } from "../ui/input";
+import { SecretInput } from "./SecretInput";
 import { Label } from "../ui/label";
 
 /**
@@ -121,10 +122,8 @@ export function AddUsageLimitSourceDialog({
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="usage-source-key">{t("Management key")}</Label>
-              <Input
+              <SecretInput
                 id="usage-source-key"
-                type="password"
-                autoComplete="off"
                 value={managementKey}
                 onChange={(event) => setManagementKey(event.target.value)}
               />

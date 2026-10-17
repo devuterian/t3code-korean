@@ -9,7 +9,7 @@ import {
   type ImageRegion,
 } from "@t3tools/client-runtime/image-region-citation";
 import type { EnvironmentId, ThreadId } from "@t3tools/contracts";
-import { normalizeNativeMarkdownUrl } from "@t3tools/mobile-markdown-text/links";
+import { normalizeNativeMarkdownUrl } from "../../lib/markdownLinks";
 import * as Haptics from "expo-haptics";
 import { useCallback, useEffect, useEffectEvent, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, Image, Modal, Pressable, StyleSheet, View } from "react-native";

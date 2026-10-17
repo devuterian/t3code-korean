@@ -79,6 +79,16 @@ export function getArm64IntelBuildWarningDescription(state: DesktopUpdateState):
 }
 
 export function getDesktopUpdateButtonTooltip(state: DesktopUpdateState): string {
+  if (
+    state.notAppliedVersion !== undefined &&
+    (state.status === "available" || state.status === "downloaded") &&
+    getDesktopUpdateDownloadedVersion(state) === state.notAppliedVersion
+  ) {
+    return translate("Update {version} did not apply. Click to retry.").replace(
+      "{version}",
+      () => state.notAppliedVersion ?? "",
+    );
+  }
   if (state.status === "available") {
     return translate(`Update ${state.availableVersion ?? "available"} ready to download`);
   }

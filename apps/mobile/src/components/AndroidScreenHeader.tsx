@@ -6,6 +6,7 @@ import { AppText as Text } from "./AppText";
 import { cn } from "../lib/cn";
 import { MaterialIconButton } from "./MaterialIconButton";
 import { AndroidAnchoredMenu } from "./AndroidAnchoredMenu";
+import { splitAndroidHeaderActions } from "./headerMenu.android";
 import { useScaledTextRole } from "../features/settings/appearance/useScaledTextRole";
 import { useMaterialToolbarLayout } from "./useMaterialToolbarLayout";
 import { useTranslate } from "../i18n/translate";
@@ -17,6 +18,8 @@ export interface AndroidHeaderAction {
   readonly disabled?: boolean;
   readonly loading?: boolean;
   readonly selected?: boolean;
+  readonly destructive?: boolean;
+  readonly overflowOnly?: boolean;
 }
 
 export function AndroidHeaderIconButton(props: {
@@ -31,6 +34,7 @@ export function AndroidHeaderIconButton(props: {
 
 export function AndroidScreenHeader(props: {
   readonly title: string;
+  readonly titleContent?: ReactNode;
   readonly subtitle?: string | null;
   readonly actions?: ReadonlyArray<AndroidHeaderAction>;
   readonly leading?: ReactNode;
@@ -46,10 +50,10 @@ export function AndroidScreenHeader(props: {
     props.embedded,
   );
   const [headerWidth, setHeaderWidth] = useState(0);
-  const actions = props.actions ?? [];
-  const directCount = actions.length > 2 ? (headerWidth >= 600 ? 3 : 1) : actions.length;
-  const visibleActions = actions.slice(0, directCount);
-  const overflowActions = actions.slice(directCount);
+  const { visibleActions, overflowActions } = splitAndroidHeaderActions(
+    props.actions ?? [],
+    headerWidth >= 600,
+  );
 
   return (
     <View
@@ -73,9 +77,11 @@ export function AndroidScreenHeader(props: {
         {props.leading}
 
         <View className={cn("min-w-0 flex-1", !props.onBack && "pl-1")}>
-          <Text numberOfLines={1} style={titleTypography} className="text-header-foreground">
-            {props.title}
-          </Text>
+          {props.titleContent ?? (
+            <Text numberOfLines={1} style={titleTypography} className="text-header-foreground">
+              {props.title}
+            </Text>
+          )}
           {props.subtitle ? (
             <Text
               numberOfLines={1}
@@ -114,6 +120,7 @@ export function AndroidScreenHeader(props: {
               title: action.accessibilityLabel,
               attributes: {
                 disabled: Boolean(action.disabled),
+                destructive: action.destructive,
                 state: action.selected ? "on" : undefined,
               },
             }))}
