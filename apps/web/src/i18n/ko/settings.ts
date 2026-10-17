@@ -1416,6 +1416,7 @@ export const KO_V2_SETTINGS: Readonly<Record<string, string>> = {
   "Sidebar (legacy)": "사이드바 (레거시)",
   Sidecar: "사이드카",
   "Sign in": "로그인",
+  "Sign in to T3 Connect": "T3 Connect에 로그인",
   "Sign in on": "로그인할 환경:",
   "Sign in to T3 Connect to manage this environment.":
     "이 환경을 관리하려면 T3 Connect에 로그인하세요.",
