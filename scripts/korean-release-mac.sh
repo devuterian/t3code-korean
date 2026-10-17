@@ -14,6 +14,16 @@ set -euo pipefail
 UPDATE_REPOSITORY="devuterian/t3code-korean"
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
+# T3 Connect only works when the public Clerk/relay identifiers are baked in.
+# They come from the gitignored root .env (copy .env.example); a fresh worktree
+# has none, which silently ships a build where Connect sign-in is broken.
+for key in T3CODE_CLERK_PUBLISHABLE_KEY T3CODE_CLERK_JWT_TEMPLATE T3CODE_RELAY_URL; do
+  if [[ -z "${!key:-}" ]] && ! grep -qE "^${key}=.+" "$REPO_ROOT/.env" "$REPO_ROOT/.env.local" 2>/dev/null; then
+    echo "error: $key is not set; copy .env.example to $REPO_ROOT/.env first." >&2
+    exit 1
+  fi
+done
+
 VERSION="${1:-}"
 if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+-ko\.[0-9]+$ ]]; then
   echo "usage: $0 <version like 0.0.46-ko.6> [output-dir]" >&2
