@@ -62,9 +62,10 @@ const DESKTOP_APP_ID = "com.t3tools.t3code";
 // differently signed app leaves notifications silently undelivered. Windows
 // keeps the official id so its installer GUID and toast AUMID stay stable.
 const KOREAN_MAC_APP_ID = "com.marierie.t3code-korean";
-// Mac artifact names match what devuterian/t3code-korean releases publish, so
-// latest-mac.yml references the uploaded files without renaming.
+// Artifact names match what devuterian/t3code-korean releases publish, so
+// latest-mac.yml and latest.yml reference the uploaded files without renaming.
 const KOREAN_MAC_ARTIFACT_NAME = "T3-Code-Korean-${version}-mac-${arch}.${ext}";
+const KOREAN_WIN_ARTIFACT_NAME = "T3-Code-Korean-${version}-win-${arch}.${ext}";
 const APPLE_TEAM_ID_PATTERN = /^[A-Z0-9]{10}$/u;
 
 const BuildPlatform = Schema.Literals(["mac", "linux", "win"]);
@@ -2841,7 +2842,11 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
     appId: platform === "mac" ? KOREAN_MAC_APP_ID : DESKTOP_APP_ID,
     productName: resolveDesktopProductName(version),
     artifactName:
-      platform === "mac" ? KOREAN_MAC_ARTIFACT_NAME : "T3-Code-${version}-${arch}.${ext}",
+      platform === "mac"
+        ? KOREAN_MAC_ARTIFACT_NAME
+        : platform === "win"
+          ? KOREAN_WIN_ARTIFACT_NAME
+          : "T3-Code-${version}-${arch}.${ext}",
     electronLanguages: [...DESKTOP_ELECTRON_LANGUAGES],
     files: [
       ...DESKTOP_FILE_EXCLUSIONS,
