@@ -5548,15 +5548,6 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
         );
         continue;
       }
-      if (attachmentKind === "unsupported-image") {
-        error = fillNameSlot(
-          translate(
-            "'{name}' is not a supported image type. Attach GIF, HEIC, HEIF, JPEG, PNG, or WebP images.",
-          ),
-          file.name,
-        );
-        continue;
-      }
       if (attachmentKind === "image") {
         acceptedImages.push(normalizeComposerImageFileMimeType(file));
       } else {

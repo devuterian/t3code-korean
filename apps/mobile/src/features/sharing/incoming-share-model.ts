@@ -298,7 +298,8 @@ export async function buildIncomingShareDraft(input: {
       payload.mimeType ??
       (payload.shareType === "image" ? "image/png" : "application/octet-stream")
     ).toLowerCase();
-    if (payload.shareType !== "image") {
+    // Images providers can't read as images (SVG, TIFF, ...) go in as ordinary files.
+    if (payload.shareType !== "image" || !isProviderSendTurnSupportedImageMimeType(mimeType)) {
       const sharedFileName =
         typeof payload.originalName === "string" && payload.originalName.trim().length > 0
           ? payload.originalName
@@ -384,17 +385,8 @@ export async function buildIncomingShareDraft(input: {
       }
       continue;
     }
-    if (!uri || !mimeType.startsWith("image/")) {
+    if (!uri) {
       warnings.push(translate("One shared item was not a supported image."));
-      await releaseOwnedFiles(input.fileReader, [uri, payload.value]);
-      continue;
-    }
-    if (!isProviderSendTurnSupportedImageMimeType(mimeType)) {
-      warnings.push(
-        translate("'{name}' is not a supported image type.", {
-          name: resolved?.originalName ?? fallbackName(uri, index, mimeType),
-        }),
-      );
       await releaseOwnedFiles(input.fileReader, [uri, payload.value]);
       continue;
     }

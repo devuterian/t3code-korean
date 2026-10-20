@@ -12,7 +12,7 @@ import type { ComposerFileAttachment, ComposerImageAttachment } from "../../comp
 import { isHeicImageFile } from "../../lib/imageCompression";
 import { isVideoAttachment } from "../../types";
 
-export type ComposerAttachmentFileKind = "image" | "file" | "unsupported-image";
+export type ComposerAttachmentFileKind = "image" | "file";
 
 interface FileAttachmentCapabilityState {
   readonly attachmentUploadsCapabilityKnown: boolean;
@@ -68,10 +68,9 @@ export function classifyComposerAttachmentFile(
   if (inferImageMimeTypeForUnknownFile(file)) {
     return "image";
   }
-  if (!file.type.toLowerCase().startsWith("image/")) {
-    return "file";
-  }
-  return isProviderSendTurnSupportedImageMimeType(file.type) ? "image" : "unsupported-image";
+  // Image types providers can't read as images (SVG, TIFF, ...) go in as ordinary
+  // files, so the agent gets their saved path and reads them with its own tools.
+  return isProviderSendTurnSupportedImageMimeType(file.type) ? "image" : "file";
 }
 
 export function isPreviewableComposerVideo(
@@ -147,8 +146,8 @@ export function shouldHandleComposerAttachmentPaste(input: {
 }): boolean {
   if (
     input.files.some((file) => {
-      const classification = classifyComposerAttachmentFile(file);
-      return classification === "image" || classification === "unsupported-image";
+      // Image pastes often carry a caption as plain text; still take the file.
+      return file.type.toLowerCase().startsWith("image/");
     })
   ) {
     return true;
