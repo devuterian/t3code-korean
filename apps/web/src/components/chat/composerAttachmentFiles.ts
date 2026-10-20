@@ -146,8 +146,12 @@ export function shouldHandleComposerAttachmentPaste(input: {
 }): boolean {
   if (
     input.files.some((file) => {
-      // Image pastes often carry a caption as plain text; still take the file.
-      return file.type.toLowerCase().startsWith("image/");
+      // Image pastes often carry a caption as plain text; still take the file,
+      // including image types that attach as ordinary files.
+      return (
+        classifyComposerAttachmentFile(file) === "image" ||
+        file.type.toLowerCase().startsWith("image/")
+      );
     })
   ) {
     return true;

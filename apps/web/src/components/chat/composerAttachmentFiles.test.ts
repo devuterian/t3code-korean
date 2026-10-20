@@ -84,6 +84,17 @@ describe("composer attachment files", () => {
     }
   });
 
+  it("claims extension-only image pastes that also carry text", () => {
+    for (const name of ["photo.png", "photo.heic"]) {
+      expect(
+        shouldHandleComposerAttachmentPaste({
+          files: [new File(["image"], name, { type: "" })],
+          plainText: "Image caption",
+        }),
+      ).toBe(true);
+    }
+  });
+
   it("claims generic file-only pastes so the composer can report validation errors", () => {
     const file = new File(["report"], "report.pdf", { type: "application/pdf" });
 
