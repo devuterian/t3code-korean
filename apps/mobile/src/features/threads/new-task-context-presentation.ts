@@ -80,8 +80,10 @@ export function resolveNewTaskBranchLabel(input: {
     return input.branchName;
   }
 
-  const baseRef = input.startFromOrigin ? `origin/${input.branchName}` : input.branchName;
-  return translate("From {ref}", { ref: baseRef });
+  // Only the server can determine a local branch's configured remote.
+  return input.startFromOrigin
+    ? translate("From {ref} (remote)", { ref: input.branchName })
+    : translate("From {ref}", { ref: input.branchName });
 }
 
 export function shouldCheckoutNewTaskBranch(input: {

@@ -1,10 +1,10 @@
+import * as Dialog from "../components/ui/Dialog";
 import { useAtomValue } from "@effect/atom-react";
 import { useNavigation } from "@react-navigation/native";
 import type { EnvironmentId } from "@t3tools/contracts";
 import * as Cause from "effect/Cause";
 import { AsyncResult, Atom } from "effect/reactivity";
 import { useCallback } from "react";
-import { Alert } from "react-native";
 
 import { useConnectionController } from "../features/connection/useConnectionController";
 import { environmentPresentations } from "./presentation";
@@ -127,7 +127,7 @@ export function useRemoteConnections() {
           "reason" in error &&
           error.reason === "unsupported"
         ) {
-          Alert.alert(translate("Client not supported"), message);
+          Dialog.alert(translate("Client not supported"), message);
         } else {
           setPendingConnectionError(message);
         }
@@ -171,10 +171,8 @@ export function useRemoteConnections() {
           void controller.removeEnvironment(environmentId);
         },
       } as const;
-      // Removing a T3 Connect environment here leaves its account registration
-      // and host space, so point to where it can be deregistered.
       if (environment.isRelayManaged) {
-        Alert.alert(
+        Dialog.alert(
           translate("Remove from this device?"),
           translate(
             "Forget {name} and its cached threads on this device.\n\nIt stays on your T3 Connect account and keeps its host space. Deregister it under T3 Account → T3 Connect to free it.",
@@ -191,7 +189,7 @@ export function useRemoteConnections() {
         );
         return;
       }
-      Alert.alert(
+      Dialog.alert(
         translate("Remove from this device?"),
         translate(
           "Forget {name} and its cached threads on this device. Switch it off instead to keep it saved.",

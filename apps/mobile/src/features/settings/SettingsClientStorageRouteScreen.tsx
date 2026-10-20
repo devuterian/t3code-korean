@@ -1,15 +1,16 @@
-import { AppActivityIndicator } from "../../components/AppActivityIndicator";
-import { ScreenScrollView as ScrollView } from "../../components/ScreenScrollView";
+import * as Dialog from "../../components/ui/Dialog";
+import { AppActivityIndicator } from "../../components/ui/AppActivityIndicator";
+import { ScreenScrollView as ScrollView } from "../../components/ui/ScreenScrollView";
 import { useAtomSet, useAtomValue } from "@effect/atom-react";
 import { type EnvironmentMachineKind, resolveEnvironmentMachineKind } from "@t3tools/contracts";
 import { AsyncResult } from "effect/reactivity";
 import { useMemo } from "react";
-import { Alert, Pressable, View } from "react-native";
+import { View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { AppText as Text } from "../../components/AppText";
-import { SymbolView } from "../../components/AppSymbol";
-import { EnvironmentMachineSymbol } from "../../components/EnvironmentMachineSymbol";
+import { AppText as Text } from "../../components/ui/AppText";
+import { SymbolView } from "../../components/ui/AppSymbol";
+import { ENVIRONMENT_MACHINE_SYMBOLS } from "../../components/EnvironmentMachineSymbol";
 import {
   clearClientCacheAtom,
   clientCacheSummaryAtom,
@@ -46,38 +47,28 @@ export function SettingsClientStorageRouteScreen() {
     const label =
       savedConnectionsById[environment.environmentId]?.environmentLabel ??
       environment.environmentId;
-    Alert.alert(
-      t("Clear cache for {name}?", { name: label }),
-      t(
+    Dialog.confirm({
+      title: t("Clear cache for {name}?", { name: label }),
+      message: t(
         "This removes offline threads, server metadata, and cached branches for this environment. The saved connection and credentials stay intact.",
       ),
-      [
-        { text: t("Cancel"), style: "cancel" },
-        {
-          text: t("Clear Cache"),
-          style: "destructive",
-          onPress: () =>
-            clearCache({ type: "environment", environmentId: environment.environmentId }),
-        },
-      ],
-    );
+      confirmText: t("Clear Cache"),
+      destructive: true,
+      onConfirm: () =>
+        clearCache({ type: "environment", environmentId: environment.environmentId }),
+    });
   };
 
   const confirmClearAll = () => {
-    Alert.alert(
-      t("Clear all client caches?"),
-      t(
+    Dialog.confirm({
+      title: t("Clear all client caches?"),
+      message: t(
         "This removes offline data for every environment. Connections, credentials, account data, and app preferences stay intact.",
       ),
-      [
-        { text: t("Cancel"), style: "cancel" },
-        {
-          text: t("Clear All Caches"),
-          style: "destructive",
-          onPress: () => clearCache({ type: "all" }),
-        },
-      ],
-    );
+      confirmText: t("Clear All Caches"),
+      destructive: true,
+      onConfirm: () => clearCache({ type: "all" }),
+    });
   };
 
   return (
@@ -188,28 +179,17 @@ function CacheEnvironmentRow(props: {
 }) {
   const t = useTranslate();
   return (
-    <View
-      className={
-        props.first
-          ? "flex-row items-center gap-3 p-4"
-          : "border-t border-border flex-row items-center gap-3 p-4"
-      }
-    >
-      <EnvironmentMachineSymbol kind={props.machine} size={22} tintColorClassName="accent-icon" />
-      <Text className="min-w-0 flex-1 text-base text-foreground" numberOfLines={1}>
-        {props.environmentLabel}
-      </Text>
-      <Pressable
-        accessibilityLabel={t("Clear cache for {name}", { name: props.environmentLabel })}
-        accessibilityRole="button"
+    <View className={props.first ? undefined : "border-t border-border"}>
+      <SettingsActionRow
+        icon={ENVIRONMENT_MACHINE_SYMBOLS[props.machine]}
+        label={props.environmentLabel}
+        description={t("Clear {size} of cached data", {
+          size: formatBytes(props.environment.payloadBytes),
+        })}
+        tone="danger"
         disabled={props.disabled}
         onPress={props.onClear}
-        className="rounded-full px-3 py-2 disabled:opacity-40"
-      >
-        <Text className="font-t3-medium tabular-nums text-danger-foreground" numberOfLines={1}>
-          {t("Clear {size}", { size: formatBytes(props.environment.payloadBytes) })}
-        </Text>
-      </Pressable>
+      />
     </View>
   );
 }

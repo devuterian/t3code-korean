@@ -4,7 +4,6 @@ import { InlineButton } from "../ui/button";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import { useTranslate } from "../../i18n/translate";
 
-/** Process ownership and confirmation stay with the diagnostics view. */
 export function ProcessSignalActions({
   disabled,
   onSignal,

@@ -7,6 +7,7 @@ import { GaugeIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { translate, useTranslate } from "~/i18n/translate";
 import { Button } from "../ui/button";
+import { toastManager } from "../ui/toast";
 import type { ComposerBannerStackItem } from "./ComposerBannerStack";
 
 type RecoveryProps = {
@@ -37,7 +38,6 @@ export function usageLimitRecoveryBannerItem(props: RecoveryProps): ComposerBann
 function RecoveryActions({ runId, resetAt, recovery, snoozedUntil, onChange }: RecoveryProps) {
   const t = useTranslate();
   const [pending, setPending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [nowMs, setNowMs] = useState(() => Date.now());
   useEffect(() => {
     const delay = Date.parse(resetAt ?? "") - Math.max(nowMs, Date.now());
@@ -58,12 +58,15 @@ function RecoveryActions({ runId, resetAt, recovery, snoozedUntil, onChange }: R
   async function toggle(action: "resume" | "snooze") {
     if (resetAt === null) return;
     if (action === "snooze" && !snoozed && Date.parse(resetAt) <= Date.now()) {
-      setError(t("The reset time has passed. Retry the thread manually."));
+      toastManager.add({
+        type: "error",
+        title: t("Could not snooze thread"),
+        description: t("The reset time has passed. Retry the thread manually."),
+      });
       setNowMs(Date.now());
       return;
     }
     setPending(true);
-    setError(null);
     try {
       await onChange({
         runId,
@@ -71,12 +74,19 @@ function RecoveryActions({ runId, resetAt, recovery, snoozedUntil, onChange }: R
         ...(action === "resume" ? { autoResume: !scheduled } : { snooze: !snoozed }),
       });
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : t("Could not change limit recovery."));
+      toastManager.add({
+        type: "error",
+        title:
+          action === "resume" ? t("Could not change auto-resume") : t("Could not snooze thread"),
+        description: cause instanceof Error ? cause.message : t("An error occurred."),
+      });
     }
     setPending(false);
   }
+  // Failures go to a toast: the actions column is auto-sized, so inline error
+  // text would widen it and crush the title.
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <>
       <Button size="xs" variant="ghost" disabled={pending} onClick={() => void toggle("resume")}>
         {pending ? t("Saving...") : scheduled ? t("Cancel auto-resume") : t("Resume at reset")}
       </Button>
@@ -90,11 +100,6 @@ function RecoveryActions({ runId, resetAt, recovery, snoozedUntil, onChange }: R
           {pending ? t("Saving...") : t("Snooze until reset")}
         </Button>
       ) : null}
-      {error ? (
-        <p role="alert" className="basis-full text-xs text-destructive">
-          {error}
-        </p>
-      ) : null}
-    </div>
+    </>
   );
 }

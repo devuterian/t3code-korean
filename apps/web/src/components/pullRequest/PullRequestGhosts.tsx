@@ -1,12 +1,3 @@
-/**
- * Loading states specific to the pull request surface — the first list, a search under way,
- * and a detail panel opening — use bars in the geometry of the content they stand for, pulsing
- * on one composited layer. Diff loading uses the shared diff-panel skeleton instead.
- *
- * The bars share the app-wide `Skeleton` tone (`muted-foreground` at low alpha, which reads on
- * both themes) and the single `animate-skeleton` pulse, applied once on the container so any
- * number of bars costs one opacity animation.
- */
 import type { PullRequestListEntry, PullRequestSummary } from "@t3tools/contracts";
 import {
   ArrowLeftIcon,
@@ -23,7 +14,7 @@ import type { ReactNode } from "react";
 import { readLocalApi } from "~/localApi";
 import { useTranslate } from "~/i18n/translate";
 import { cn } from "~/lib/utils";
-import { formatRelativeTimeLabel } from "~/timestampFormat";
+import { RelativeTime } from "~/components/RelativeTime";
 
 import { Button, InlineButton } from "../ui/button";
 import { MiddleTruncate } from "../ui/middle-truncate";
@@ -46,7 +37,6 @@ function GhostBar({ className }: { className?: string | undefined }) {
   return <span aria-hidden className={cn("block h-3 rounded bg-muted-foreground/15", className)} />;
 }
 
-/** Widths cycle rather than randomize, so the ghost renders the same on every pass. */
 const TITLE_WIDTHS = ["w-3/5", "w-2/5", "w-1/2", "w-2/3", "w-2/5", "w-3/5", "w-1/2"];
 const META_WIDTHS = ["w-2/5", "w-1/3", "w-2/5", "w-1/4", "w-1/3", "w-2/5", "w-1/3"];
 const DEFAULT_DETAIL_TABS = [
@@ -55,15 +45,7 @@ const DEFAULT_DETAIL_TABS = [
   { value: "code", label: "Code" },
 ] as const;
 
-/** Rows in the list's own grid — glyph, title over meta, time over diffstat. */
-export function PullRequestListGhost({
-  rows = 7,
-  caption,
-}: {
-  rows?: number;
-  /** Said where the group headers speak, for the states with something to say — a search. */
-  caption?: string;
-}) {
+export function PullRequestListGhost({ rows = 7, caption }: { rows?: number; caption?: string }) {
   const t = useTranslate();
   return (
     <div
@@ -94,11 +76,6 @@ export function PullRequestListGhost({
   );
 }
 
-/**
- * The detail panel's current expanded shape. Keeping the chrome, summary facts, and description
- * boundaries in the ghost prevents the loaded pull request from replacing one layout with
- * another a moment later.
- */
 export function PullRequestDetailGhost({
   seed: entry,
   summary,
@@ -116,7 +93,6 @@ export function PullRequestDetailGhost({
   actions?: ReactNode;
   checkoutCommand?: string | null;
   tabs?: ReadonlyArray<{ value: string; label: string }>;
-  /** The panel's current tab, so the highlight does not jump when the detail arrives. */
   activeTab?: string;
   number?: number;
   onBack?: (() => void) | undefined;
@@ -235,7 +211,9 @@ export function PullRequestDetailGhost({
               }
               updated={
                 seed ? (
-                  <span>{t(`updated ${formatRelativeTimeLabel(seed.updatedAt)}`)}</span>
+                  <span>
+                    {t("updated")} <RelativeTime timestamp={seed.updatedAt} />
+                  </span>
                 ) : (
                   <GhostBar className="h-3 w-16" />
                 )
@@ -394,7 +372,6 @@ export function PullRequestDetailGhost({
   );
 }
 
-/** People-shaped: an avatar and a name, in the reviewer picker's own row height. */
 export function PullRequestPeopleGhost({ rows = 4 }: { rows?: number }) {
   const t = useTranslate();
   return (
@@ -413,7 +390,6 @@ export function PullRequestPeopleGhost({ rows = 4 }: { rows?: number }) {
   );
 }
 
-/** The timeline's own shape: dots on the rail, a line and a date to each. */
 export function PullRequestTimelineGhost({ rows = 6 }: { rows?: number }) {
   const t = useTranslate();
   return (
@@ -435,7 +411,6 @@ export function PullRequestTimelineGhost({ rows = 6 }: { rows?: number }) {
   );
 }
 
-/** A compact placeholder for the conversation while the core detail is already readable. */
 export function PullRequestConversationGhost({ rows = 3 }: { rows?: number }) {
   const t = useTranslate();
   return (

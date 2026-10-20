@@ -1,6 +1,6 @@
 import { View } from "react-native";
 
-import { SegmentedControl } from "../../../components/SegmentedControl";
+import { SegmentedControl } from "../../../components/ui/SegmentedControl";
 import { useInterfaceLanguagePreference } from "../../../i18n/InterfaceLanguageSync";
 import {
   MOBILE_INTERFACE_LANGUAGE_LABELS,

@@ -44,7 +44,6 @@ import {
 import { toastManager } from "./ui/toast";
 import { translate } from "~/i18n/translate";
 
-/** Layout commands a focused desktop browser page hands back to the app. */
 const PREVIEW_FORWARDED_LAYOUT_COMMANDS = [
   "sidebar.toggle",
   "rightPanel.toggle",

@@ -1,7 +1,6 @@
 import type { PullRequestReviewGuideResult } from "@t3tools/contracts";
 import { translate } from "../../../i18n/translate";
 
-/** Old failures must not follow a PR onto a different head. */
 export function reviewGuideState(data: PullRequestReviewGuideResult | null) {
   const guide = data?.guide ?? null;
   return {
@@ -15,7 +14,6 @@ export function reviewGuideState(data: PullRequestReviewGuideResult | null) {
   };
 }
 
-/** A pending refresh must not hide cached content, or a new run reveal an old failure. */
 export function guideNoticeState(state: {
   readonly data: PullRequestReviewGuideResult | null;
   readonly isPending: boolean;

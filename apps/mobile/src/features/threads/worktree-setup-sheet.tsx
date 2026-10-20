@@ -1,5 +1,5 @@
 import type { ReactElement } from "react";
-import { AppSheet } from "../../components/AppSheet";
+import { Sheet } from "../../components/ui/Sheet";
 import { useTranslate } from "../../i18n/translate";
 
 export interface WorktreeSetupSheetProps {
@@ -11,8 +11,8 @@ export interface WorktreeSetupSheetProps {
 export function WorktreeSetupSheet({ children, onClose }: WorktreeSetupSheetProps) {
   const t = useTranslate();
   return (
-    <AppSheet title={t("Worktree setup")} onClose={onClose}>
+    <Sheet title={t("Worktree setup")} onClose={onClose}>
       {children}
-    </AppSheet>
+    </Sheet>
   );
 }

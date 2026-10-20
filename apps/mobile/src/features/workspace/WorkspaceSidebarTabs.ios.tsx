@@ -1,40 +1,25 @@
-import { Host, Picker, Text } from "@expo/ui/swift-ui";
-import { pickerStyle, tag } from "@expo/ui/swift-ui/modifiers";
-import { StackActions, useNavigation } from "@react-navigation/native";
-import { Keyboard, View } from "react-native";
+import { View } from "react-native";
+import { SegmentedControl } from "../../components/ui/SegmentedControl";
 import { useTranslate } from "../../i18n/translate";
-import { useAppearancePreferences } from "../settings/appearance/AppearancePreferencesProvider";
 import { useWorkspaceTabs } from "./WorkspaceTabsContext";
 import type { WorkspaceTab } from "./workspace-tabs-state";
+import { useSelectWorkspaceTab } from "./useSelectWorkspaceTab";
 
-/** Wide iPad navigation belongs to the sidebar, leaving the detail's header unobstructed. */
 export function WorkspaceSidebarTabs() {
   const t = useTranslate();
   const workspace = useWorkspaceTabs()!;
-  const navigation = useNavigation();
-  const { themeAppearance } = useAppearancePreferences();
+  const selectTab = useSelectWorkspaceTab();
   return (
     <View className="px-4 pb-3 pt-2">
-      <Host
-        matchContents={{ vertical: true }}
-        colorScheme={themeAppearance}
-        style={{ width: "100%" }}
-      >
-        <Picker
-          label={t("Workspace")}
-          selection={workspace.state.selectedTab}
-          onSelectionChange={(tab: WorkspaceTab) => {
-            if (tab === workspace.state.selectedTab) return;
-            Keyboard.dismiss();
-            if (navigation.getState()?.index) navigation.dispatch(StackActions.popToTop());
-            workspace.dispatch({ type: "select", tab });
-          }}
-          modifiers={[pickerStyle("segmented")]}
-        >
-          <Text modifiers={[tag("threads")]}>{t("Threads")}</Text>
-          <Text modifiers={[tag("pullRequests")]}>{t("Pull requests")}</Text>
-        </Picker>
-      </Host>
+      <SegmentedControl
+        role="tab"
+        options={[
+          { value: "threads", label: t("Threads") },
+          { value: "pullRequests", label: t("Pull requests") },
+        ]}
+        selected={workspace.state.selectedTab}
+        onSelect={(tab: WorkspaceTab) => selectTab(tab)}
+      />
     </View>
   );
 }

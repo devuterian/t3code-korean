@@ -16,7 +16,6 @@ export function resolveProtocolRelativeMediaUrl(src: string): string {
   return `${protocol}${src}`;
 }
 
-/** Reads media only for an explicit save/copy action; remote hosts must allow browser CORS. */
 async function readMediaBlob(src: string): Promise<Blob> {
   let response: Response;
   try {
@@ -35,7 +34,6 @@ async function readMediaBlob(src: string): Promise<Blob> {
   return blob;
 }
 
-/** Downloads the original bytes with their original filename, without changing playback URLs. */
 export async function downloadMedia(src: string, name: string): Promise<void> {
   const url = URL.createObjectURL(await readMediaBlob(src));
   try {

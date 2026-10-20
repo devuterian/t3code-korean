@@ -1,6 +1,7 @@
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 
-import { AppText as Text } from "../../../components/AppText";
+import { Button } from "../../../components/ui/Button";
+import { AppText as Text } from "../../../components/ui/AppText";
 import { SettingsSection } from "./SettingsSection";
 import { useTranslate } from "../../../i18n/translate";
 
@@ -20,15 +21,13 @@ export function SettingsProjectOverridesSection(props: {
           {props.projectLabel}
         </Text>
         {!props.pending && props.supportsOverrides && props.hasOverrides ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t("Use environment defaults")}
+          <Button
+            label={t("Use defaults")}
+            accessibilityHint={t("Use environment defaults for this project")}
+            tone="text"
             disabled={props.disabled}
             onPress={props.onClear}
-            className="px-2 py-2 active:opacity-70"
-          >
-            <Text className="text-sm font-t3-medium text-primary-text">{t("Use defaults")}</Text>
-          </Pressable>
+          />
         ) : null}
       </View>
       {!props.supportsOverrides ? (

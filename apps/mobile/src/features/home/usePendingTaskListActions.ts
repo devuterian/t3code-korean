@@ -1,6 +1,6 @@
+import * as Dialog from "../../components/ui/Dialog";
 import { useNavigation } from "@react-navigation/native";
 import { useCallback } from "react";
-import { Alert } from "react-native";
 
 import { translate } from "../../i18n/translate";
 import { removeThreadOutboxMessage } from "../../state/thread-outbox-removal";
@@ -32,7 +32,7 @@ export function usePendingTaskListActions(): {
 
   const confirmDeletePendingTask = useCallback((pendingTask: PendingNewTask) => {
     if (pendingTask.kind === "draft") {
-      Alert.alert(
+      Dialog.alert(
         translate("Discard draft?"),
         translate("“{title}” will be removed.", { title: pendingTask.title }),
         [
@@ -41,8 +41,6 @@ export function usePendingTaskListActions(): {
             text: translate("Discard"),
             style: "destructive",
             onPress: () => {
-              // Same reset a submit performs: the next task in this project
-              // re-resolves project defaults instead of inheriting the pick.
               clearComposerDraftContent(pendingTask.draftKey, {
                 clearModelSelection: true,
                 clearWorkspaceSelection: true,
@@ -53,7 +51,7 @@ export function usePendingTaskListActions(): {
       );
       return;
     }
-    Alert.alert(
+    Dialog.alert(
       translate("Delete pending task?"),
       translate("“{title}” has not been sent yet and will be removed from the outbox.", {
         title: pendingTask.title,
@@ -70,7 +68,7 @@ export function usePendingTaskListActions(): {
             void removeThreadOutboxMessage(pendingTask.message)
               .then(() => releaseEditingQueuedMessage(pendingTask.message.messageId))
               .catch((error) => {
-                Alert.alert(
+                Dialog.alert(
                   translate("Could not delete pending task"),
                   error instanceof Error
                     ? error.message

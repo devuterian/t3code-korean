@@ -6,7 +6,6 @@ import { shareLocalAttachment, type AttachmentPreviewFile } from "./attachmentDo
 import { retainComposerAttachmentFileForPreview } from "./composerAttachmentPreviewRetention";
 import { translate } from "../i18n/translate";
 
-/** Retains the draft original for preview and gives each outgoing share its own lease. */
 export async function loadLocalAttachmentPreview(
   attachment: FileBackedComposerAttachment,
   signal: AbortSignal,

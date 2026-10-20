@@ -8,7 +8,7 @@ import {
   persistClientSettingsUpdate,
   useClientSettings,
   useClientSettingsHydrated,
-  useUpdateClientSettings,
+  updateClientSettings,
 } from "../../hooks/useSettings";
 import { useTranslate } from "../../i18n/translate";
 import { MacAccessibilityIcon, MacScreenRecordingIcon } from "../Icons";
@@ -150,7 +150,6 @@ function MacPermissionsOnboardingDialog({
 }) {
   const t = useTranslate();
   const notificationMode = useClientSettings((settings) => settings.notificationMode);
-  const updateClientSettings = useUpdateClientSettings();
   const permission = usePermissionStatus(async () => {
     const statuses = await window.desktopBridge?.getMacPermissions?.();
     if (!statuses) throw new Error("Permission status unavailable");

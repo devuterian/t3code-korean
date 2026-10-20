@@ -5,7 +5,6 @@ import { translate, useTranslate } from "../../i18n/translate";
 import { ensureLocalApi } from "../../localApi";
 import { terminalThemeFromApp } from "../ThreadTerminalDrawer";
 
-/** Loaded only for an interactive login. PTY input is serialized by the parent. */
 export default function ProviderAuthTerminal({
   output,
   outputOffset,

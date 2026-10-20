@@ -1,5 +1,5 @@
+import * as Dialog from "../../components/ui/Dialog";
 import { buildNewThreadLink, type LinkedPrompt } from "@t3tools/shared/promptLinks";
-import { Alert } from "react-native";
 
 import { translate } from "../../i18n/translate";
 import { tryCopyTextWithHaptic } from "../../lib/copyTextWithHaptic";
@@ -10,16 +10,10 @@ import {
 } from "../../state/use-composer-drafts";
 import { linkedThreadDraftAction } from "./prompt-link-model";
 
-/** Shows the one notice a prompt link owes the user, built with `promptLinkNotice`. */
 export function showPromptLinkNotice(notice: string): void {
-  Alert.alert(translate("Prompt from a link"), notice);
+  Dialog.alert(translate("Prompt from a link"), notice);
 }
 
-/**
- * Puts a linked prompt into an existing thread's composer draft. An empty composer is filled;
- * typed text is replaced only when the user says so. The notice rides in the same alert, so a
- * link never stacks two dialogs.
- */
 export async function applyLinkedPromptToThreadDraft(
   draftKey: string,
   prompt: LinkedPrompt,
@@ -28,7 +22,7 @@ export async function applyLinkedPromptToThreadDraft(
   try {
     await waitForComposerDraftsLoaded();
   } catch {
-    Alert.alert(
+    Dialog.alert(
       translate("Could not open link"),
       translate("Drafts could not be loaded, so the prompt was not added."),
     );
@@ -40,15 +34,14 @@ export async function applyLinkedPromptToThreadDraft(
     showPromptLinkNotice(notice);
     return;
   }
-  Alert.alert(translate("Linked prompt ready. Replace draft?"), notice, [
+  Dialog.alert(translate("Linked prompt ready. Replace draft?"), notice, [
     { text: translate("Keep mine"), style: "cancel" },
     { text: translate("Replace"), onPress: () => setComposerDraftText(draftKey, prompt.text) },
   ]);
 }
 
-/** Copies a shareable link that opens a new task with this prompt. Used by sent user messages. */
 export async function copyPromptLink(prompt: string): Promise<void> {
   if (!(await tryCopyTextWithHaptic(buildNewThreadLink({ prompt }), { target: "prompt link" }))) {
-    Alert.alert(translate("Could not copy"), translate("Try again."));
+    Dialog.alert(translate("Could not copy"), translate("Try again."));
   }
 }

@@ -14,16 +14,16 @@ import {
 } from "@react-navigation/native";
 import {
   NativeStackView,
+  type NativeStackHeaderItemMenu,
   type NativeStackNavigationEventMap,
   type NativeStackNavigationOptions,
   type NativeStackNavigatorProps,
   type NativeStackTypeBag,
 } from "@react-navigation/native-stack";
 import { use, useCallback, useEffect, useMemo, useRef, useState, type ComponentProps } from "react";
-import { Platform, View } from "react-native";
+import { View } from "react-native";
 import { Split, type SplitHostCommands } from "react-native-screens";
 import { EnvironmentId, ThreadId } from "@t3tools/contracts";
-import { useTranslate } from "../../i18n/translate";
 import { scopedThreadKey } from "../../lib/scopedEntities";
 import { WorkspaceTabsProvider } from "../workspace/WorkspaceTabsContext";
 import { WorkspaceNativeTabs } from "../workspace/WorkspaceNativeTabs.ios";
@@ -43,7 +43,6 @@ import {
 } from "../../native/NativeWorkspaceColumns";
 import { V5StackHeader } from "../../native/V5StackHeader.ios";
 import type { AppNativeStackNavigationOptions } from "../../native/StackHeader";
-import { dispatchHardwareKeyboardCommand } from "../keyboard/hardwareKeyboardCommands";
 import {
   nativeWorkspacePopAction,
   projectWorkspaceStack,
@@ -64,6 +63,7 @@ function ColumnScreen(props: {
   readonly primary?: boolean;
   readonly selectedThreadKey?: string | null;
   readonly selectedPullRequestKey?: string | null;
+  readonly sidebarFilter?: NativeStackHeaderItemMenu;
   readonly onDismiss: (routeKey: string) => void;
   readonly navigation: ViewProps["navigation"];
 }) {
@@ -104,6 +104,7 @@ function ColumnScreen(props: {
             options={descriptor.options}
             canGoBack={!props.primary}
             primary={props.primary}
+            sidebarFilter={props.sidebarFilter}
           />
           <ColumnContent
             primary={props.primary}
@@ -124,7 +125,6 @@ function ColumnScreen(props: {
 function WorkspaceColumns(
   props: ViewProps & { readonly primary: Route; readonly detail: Route[] },
 ) {
-  const t = useTranslate();
   const { layout, panes, togglePrimarySidebar, toggleAuxiliaryPane } = useAdaptiveWorkspaceLayout();
   const inspector = use(NativeWorkspaceInspectorContext);
   const hostRef = useRef<SplitHostCommands>(null);
@@ -171,10 +171,6 @@ function WorkspaceColumns(
   );
 
   useEffect(() => {
-    // In compact size classes UIKit exposes one column. Selecting a thread
-    // changes the visible column without rebuilding either navigation stack.
-    // The initial column is a native prop, so it is applied before the host
-    // attaches. Commands only handle later navigation changes.
     if (layout.usesSplitView || shownCompactColumn.current === compactColumn) return;
     shownCompactColumn.current = compactColumn;
     hostRef.current?.show(compactColumn);
@@ -182,6 +178,7 @@ function WorkspaceColumns(
 
   const primary = props.descriptors[props.primary.key];
   if (!primary) return null;
+  const sidebarFilter = (primary.options as AppNativeStackNavigationOptions).nativeSidebarFilter;
   return (
     <Split.Host
       ref={hostRef}
@@ -189,7 +186,9 @@ function WorkspaceColumns(
       preferredSplitBehavior="tile"
       topColumnForCollapsing={compactColumn}
       preferredDisplayMode={
-        panes.primarySidebarVisible || !activeDetailKey ? "oneBesideSecondary" : "secondaryOnly"
+        panes.primarySidebarVisible || (!layout.usesSplitView && !activeDetailKey)
+          ? "oneBesideSecondary"
+          : "secondaryOnly"
       }
       displayModeButtonVisibility="never"
       presentsWithGesture
@@ -226,24 +225,6 @@ function WorkspaceColumns(
               options={{
                 headerShown: true,
                 title: "",
-                unstable_headerRightItems: () =>
-                  Platform.OS === "ios" &&
-                  !Platform.isPad &&
-                  layout.usesSplitView &&
-                  !panes.primarySidebarVisible
-                    ? [
-                        {
-                          type: "button",
-                          axisBehavior: "verticalPreferred",
-                          accessibilityLabel: t("Search threads"),
-                          label: t("Search threads"),
-                          icon: { type: "sfSymbol", name: "magnifyingglass" },
-                          onPress: () => {
-                            dispatchHardwareKeyboardCommand("focusSearch");
-                          },
-                        },
-                      ]
-                    : [],
                 unstable_headerLeftItems: () => [
                   {
                     type: "button",
@@ -254,6 +235,7 @@ function WorkspaceColumns(
                 ],
               }}
               canGoBack={false}
+              sidebarFilter={sidebarFilter}
             />
             <ColumnContent>
               <WorkspaceEmptyDetail
@@ -271,13 +253,13 @@ function WorkspaceColumns(
                 descriptor={descriptor}
                 onDismiss={handleNativeDismiss}
                 navigation={props.navigation}
+                sidebarFilter={sidebarFilter}
               />
             ) : null;
           })}
         </Split.Stack>
       </Split.Column>
       <Split.Inspector>
-        {/* Inspector content supplies its own navigation header. */}
         <Split.HeaderConfig hidden />
         <ColumnContent>
           <View className="flex-1 bg-screen">{inspector.render?.()}</View>

@@ -1,3 +1,4 @@
+import { SheetHeader } from "../../components/ui/SheetHeader";
 import {
   DatePicker,
   Host,
@@ -32,7 +33,7 @@ import { NavigationContainer, NavigationIndependentTree } from "@react-navigatio
 import { createV5StackNavigator as createNativeStackNavigator } from "../../native/createV5StackNavigator";
 import { ScrollView, useWindowDimensions, View } from "react-native";
 import { useMobileNavigationTheme } from "../../lib/useMobileNavigationTheme";
-import { NativeHeaderToolbar } from "../../native/StackHeader";
+
 import { NATIVE_LIQUID_GLASS_SUPPORTED } from "../../native/native-glass";
 import { useTranslate } from "../../i18n/translate";
 import { useAppearancePreferences } from "../settings/appearance/AppearancePreferencesProvider";
@@ -218,7 +219,6 @@ export function CustomSnoozeSheet(props: {
   );
 }
 
-/** The popover owns a native navigation bar, just like the app's sheet screens. */
 function SnoozePopoverNavigation(props: {
   readonly width: number;
   readonly height: number;
@@ -254,16 +254,12 @@ function SnoozePopoverNavigation(props: {
                 <SnoozeStack.Screen name="CustomSnooze">
                   {() => (
                     <>
-                      <NativeHeaderToolbar placement="left">
-                        <NativeHeaderToolbar.Button
-                          accessibilityLabel={t("Cancel custom snooze")}
-                          icon="xmark"
-                          onPress={props.onClose}
-                        />
-                      </NativeHeaderToolbar>
-                      <NativeHeaderToolbar placement="right">
-                        <NativeHeaderToolbar.Button label={t("Snooze")} onPress={props.onSubmit} />
-                      </NativeHeaderToolbar>
+                      <SheetHeader
+                        title={t("Custom snooze")}
+                        onCancel={props.onClose}
+                        accessibilityLabel={t("Cancel custom snooze")}
+                        confirm={{ label: t("Snooze"), onPress: props.onSubmit }}
+                      />
                       <ScrollView
                         contentInsetAdjustmentBehavior="automatic"
                         showsVerticalScrollIndicator={false}

@@ -1,15 +1,14 @@
 import { StatusBar, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { AppActivityIndicator } from "./AppActivityIndicator";
+import { AppActivityIndicator } from "./ui/AppActivityIndicator";
 import { useAppearancePreferences } from "../features/settings/appearance/AppearancePreferencesProvider";
 
-import { AppText as Text } from "./AppText";
+import { AppText as Text } from "./ui/AppText";
 import { BrandMark } from "./BrandMark";
 import { useTranslate } from "../i18n/translate";
 
 export function LoadingScreen(props: {
   readonly message: string;
-  /** Let the enclosing pane supply the background and top inset. */
   readonly embedded?: boolean;
   readonly messagePlacement?: "above-spinner" | "below-spinner";
 }) {

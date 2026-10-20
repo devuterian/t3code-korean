@@ -18,9 +18,9 @@ import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { AppText as Text, AppTextInput as TextInput } from "../../components/AppText";
-import { SymbolView } from "../../components/AppSymbol";
-import { ControlPill } from "../../components/ControlPill";
+import { AppText as Text, AppTextInput as TextInput } from "../../components/ui/AppText";
+import { SymbolView } from "../../components/ui/AppSymbol";
+import { ControlPill } from "../../components/ui/ControlPill";
 import { translate, useTranslate } from "../../i18n/translate";
 import { downloadAttachmentForPreview } from "../../lib/attachmentDownload";
 import { cropImageRegionAttachment, imagePointAttachment } from "../../lib/imageRegionCrop";

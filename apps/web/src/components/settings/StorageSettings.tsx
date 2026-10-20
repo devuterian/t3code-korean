@@ -4,14 +4,14 @@ import type {
   WorktreeCleanupRules,
 } from "@t3tools/contracts";
 import { resolveWorktreeCleanup } from "@t3tools/shared/projectSettings";
-import { useMemo, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useAtomValue } from "@effect/atom-react";
-import { Atom } from "effect/reactivity";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
 } from "@t3tools/client-runtime/state/runtime";
 import { formatBytes } from "../../lib/formatBytes";
+import { environmentAtomList, environmentIdsKey } from "../../state/environmentAtomList";
 import { serverEnvironment } from "../../state/server";
 import { useAtomCommand } from "../../state/use-atom-command";
 import { formatRelativeTimeLabel } from "../../timestampFormat";
@@ -35,6 +35,7 @@ import {
   SettingsSection,
   useRelativeTimeTick,
 } from "./settingsLayout";
+import { DatabaseStorageNotice } from "./DatabaseStorageNotice";
 import { SettingsScopeNotice } from "./SettingsScopeNotice";
 import { FoldedSettingsSection } from "./FoldedSettingsSection";
 import { SettingsGroup } from "./SettingsGroup";
@@ -47,7 +48,8 @@ import {
   useScopedSettingsMixed,
   useUpdateScopedSettings,
 } from "./useScopedSettings";
-import { useTranslate } from "../../i18n/translate";
+import { translate, useTranslate } from "../../i18n/translate";
+import { settingsScopeEnvironmentLabel } from "./settingsScopeAxis";
 
 function WorktreesDirectoryRow() {
   const { connectedEnvironments, targets } = useSettingsScope();
@@ -174,12 +176,26 @@ const KEEP_WHEN_LABELS = {
   "tracked-changes": "Edited tracked files",
 } as const;
 
+/** One line for the last-run fold; identical results across machines collapse into one. */
+function lastRunSummary(
+  entries: readonly { readonly label: string; readonly counts: string }[],
+  machineCount: number,
+) {
+  const first = entries[0];
+  if (!first) return "";
+  if (machineCount <= 1) return first.counts;
+  if (entries.length === machineCount && entries.every((entry) => entry.counts === first.counts)) {
+    return translate("{counts} on every machine").replace("{counts}", () => first.counts);
+  }
+  return entries.map((entry) => `${entry.label}: ${entry.counts}`).join(" · ");
+}
+
 function CleanupResults({
   report,
   environmentLabel,
 }: {
   report: StorageCleanupReport;
-  environmentLabel: string | undefined;
+  environmentLabel: string;
 }) {
   const t = useTranslate();
   return (
@@ -187,24 +203,48 @@ function CleanupResults({
       {report.entries.map((entry, index) => {
         const name =
           entry.kind === "worktree"
-            ? (entry.path?.split(/[\\/]/).findLast(Boolean) ?? t("Worktrees"))
+            ? ((entry.threadId === null
+                ? entry.path
+                : entry.path?.split(/[\\/]/).findLast(Boolean)) ?? t("Worktrees"))
             : entry.kind === "logs"
               ? t("Rotated logs")
               : t("Browser artifacts");
         return (
           <SettingsRow
             key={`${entry.path ?? entry.kind}:${entry.threadId ?? index}`}
-            title={environmentLabel ? `${environmentLabel}: ${name}` : name}
+            title={<span className="wrap-anywhere select-text">{name}</span>}
             description={
-              <span
-                className={`wrap-anywhere ${entry.outcome === "failed" ? "text-destructive" : ""}`}
-              >
-                {entry.threadTitle && entry.threadTitle !== name ? `${entry.threadTitle}. ` : ""}
-                {entry.reason}
+              <span className="block space-y-2 wrap-anywhere select-text">
+                <span className={`block ${entry.outcome === "failed" ? "text-destructive" : ""}`}>
+                  {entry.reason}
+                </span>
+                <span className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 border-l border-border/60 pl-3">
+                  <span>Machine</span>
+                  <span className="text-foreground/80">{environmentLabel}</span>
+                  {entry.projectPath && (
+                    <>
+                      <span>Project</span>
+                      <code className="text-foreground/80">{entry.projectPath}</code>
+                    </>
+                  )}
+                  {entry.path && (
+                    <>
+                      <span>Folder</span>
+                      <code className="text-foreground/80">{entry.path}</code>
+                    </>
+                  )}
+                  {entry.threadTitle && (
+                    <>
+                      <span>Thread</span>
+                      <span>{entry.threadTitle}</span>
+                    </>
+                  )}
+                </span>
               </span>
             }
             control={
-              entry.outcome === "removed" && (
+              (entry.outcome === "removed" ||
+                (entry.outcome === "kept" && entry.bytes !== null)) && (
                 <span className="text-xs text-muted-foreground">
                   {[
                     entry.kind !== "worktree" && entry.files !== null
@@ -225,7 +265,7 @@ function CleanupResults({
       })}
       {report.omittedCount > 0 && (
         <p className="px-3 py-2.5 text-xs text-muted-foreground sm:px-4">
-          {environmentLabel ? `${environmentLabel}: ` : ""}
+          {environmentLabel}:{" "}
           {t("{count} more results.").replace("{count}", () =>
             report.omittedCount.toLocaleString(),
           )}
@@ -233,13 +273,21 @@ function CleanupResults({
       )}
       {report.entries.length === 0 && report.omittedCount === 0 && (
         <p className="px-3 py-2.5 text-xs text-muted-foreground sm:px-4">
-          {environmentLabel ? `${environmentLabel}: ` : ""}
-          {t("Nothing needed cleanup.")}
+          {environmentLabel}: {t("Nothing needed cleanup.")}
         </p>
       )}
     </>
   );
 }
+
+const storageCleanupReportsAtom = environmentAtomList(
+  "web-storage-cleanup-reports",
+  (environmentId) => serverEnvironment.storageCleanupReport({ environmentId, input: {} }),
+);
+const storageCleanupPermissionsAtom = environmentAtomList(
+  "web-storage-cleanup-permissions",
+  serverEnvironment.runStorageCleanup.permissionAtom,
+);
 
 function CleanupSection() {
   const t = useTranslate();
@@ -250,35 +298,19 @@ function CleanupSection() {
   const supported = connectedEnvironments.filter(
     (environment) => environment.serverConfig?.environment.capabilities.storageCleanupRun === true,
   );
-  const state = useAtomValue(
-    useMemo(
-      () =>
-        Atom.make((get) =>
-          connectedEnvironments.flatMap((environment) => {
-            if (environment.serverConfig?.environment.capabilities.storageCleanupRun !== true)
-              return [];
-            const query = get(
-              serverEnvironment.storageCleanupReport({
-                environmentId: environment.environmentId,
-                input: {},
-              }),
-            );
-            return [
-              {
-                environmentId: environment.environmentId,
-                allowed: get(
-                  serverEnvironment.runStorageCleanup.permissionAtom(environment.environmentId),
-                ),
-                report: query._tag === "Success" ? query.value : null,
-                loading: query.waiting,
-                failed: query._tag === "Failure",
-              },
-            ];
-          }),
-        ),
-      [connectedEnvironments],
-    ),
-  );
+  const supportedIds = supported.map(({ environmentId }) => environmentId);
+  const reports = useAtomValue(storageCleanupReportsAtom(environmentIdsKey(supportedIds)));
+  const permissions = useAtomValue(storageCleanupPermissionsAtom(environmentIdsKey(supportedIds)));
+  const state = supportedIds.map((environmentId, index) => {
+    const query = reports[index]!;
+    return {
+      environmentId,
+      allowed: permissions[index]!,
+      report: query._tag === "Success" ? query.value : null,
+      loading: query.waiting,
+      failed: query._tag === "Failure",
+    };
+  });
   const hasRules = supported.some((environment) => {
     const settings = environment.serverConfig?.settings;
     if (!settings) return false;
@@ -305,6 +337,16 @@ function CleanupSection() {
     return {
       environment,
       report,
+      label: settingsScopeEnvironmentLabel(environment, connectedEnvironments),
+      counts: report
+        ? `${t("{removed} removed, {kept} kept")
+            .replace("{removed}", () => String(report.counts.removed))
+            .replace("{kept}", () => String(report.counts.kept))}${
+            report.counts.failed > 0
+              ? `, ${t("{count} failed").replace("{count}", () => String(report.counts.failed))}`
+              : ""
+          }`
+        : "",
       description: report
         ? `${t("Last run {time}. {size} recovered.")
             .replace("{time}", () => formatRelativeTimeLabel(report.finishedAt))
@@ -327,42 +369,36 @@ function CleanupSection() {
   const deleteNow = async () => {
     if (pending) return;
     setPending(true);
-    try {
-      await Promise.all(
-        supported
-          .filter((environment) =>
-            state.some(
-              (entry) => entry.environmentId === environment.environmentId && entry.allowed,
-            ),
-          )
-          .map(async (environment) => {
-            const result = await run({ environmentId: environment.environmentId, input: {} });
-            if (result._tag === "Success") {
-              const failures = result.value.entries.filter((entry) => entry.outcome === "failed");
-              if (failures.length > 0)
-                toastManager.add({
-                  type: "error",
-                  title: t("Cleanup failed on {environment}").replace(
-                    "{environment}",
-                    () => environment.label,
-                  ),
-                  description: failures[0]!.reason,
-                });
-            } else if (!isAtomCommandInterrupted(result)) {
+    await Promise.all(
+      supported
+        .filter((environment) =>
+          state.some((entry) => entry.environmentId === environment.environmentId && entry.allowed),
+        )
+        .map(async (environment) => {
+          const result = await run({ environmentId: environment.environmentId, input: {} });
+          if (result._tag === "Success") {
+            const failures = result.value.entries.filter((entry) => entry.outcome === "failed");
+            if (failures.length > 0)
               toastManager.add({
                 type: "error",
-                title: t("Could not run cleanup on {environment}").replace(
+                title: t("Cleanup failed on {environment}").replace(
                   "{environment}",
                   () => environment.label,
                 ),
-                description: String(squashAtomCommandFailure(result)),
+                description: failures[0]!.reason,
               });
-            }
-          }),
-      );
-    } finally {
-      setPending(false);
-    }
+          } else if (!isAtomCommandInterrupted(result)) {
+            toastManager.add({
+              type: "error",
+              title: t("Could not run cleanup on {environment}").replace(
+                "{environment}",
+                () => environment.label,
+              ),
+              description: String(squashAtomCommandFailure(result)),
+            });
+          }
+        }),
+    ).finally(() => setPending(false));
   };
   return (
     <SettingsSection id="storage-cleanup" title="Cleanup" variant="plain">
@@ -373,9 +409,9 @@ function CleanupSection() {
             <span>
               {!hasRules
                 ? t("Turn on a cleanup rule to use this.")
-                : summaries.map(({ environment, description }) => (
+                : summaries.map(({ environment, label, description }) => (
                     <span key={environment.environmentId} className="block">
-                      {supported.length > 1 ? `${environment.label}: ` : ""}
+                      {supported.length > 1 ? `${label}: ` : ""}
                       {description}
                     </span>
                   ))}
@@ -398,33 +434,18 @@ function CleanupSection() {
           id="storage-cleanup-last-run"
           title="Last run"
           headerPlacement="inside"
-          summary={summaries
-            .flatMap(({ environment, report }) =>
-              report
-                ? [
-                    `${connectedEnvironments.length > 1 ? `${environment.label}: ` : ""}${t(
-                      "{removed} removed, {kept} kept",
-                    )
-                      .replace("{removed}", () => String(report.counts.removed))
-                      .replace("{kept}", () => String(report.counts.kept))}${
-                      report.counts.failed > 0
-                        ? `, ${t("{count} failed").replace("{count}", () => String(report.counts.failed))}`
-                        : ""
-                    }`,
-                  ]
-                : [],
-            )
-            .join(" · ")}
+          summary={lastRunSummary(
+            summaries.filter(({ report }) => report !== null),
+            connectedEnvironments.length,
+          )}
         >
           {summaries.map(
-            ({ environment, report }) =>
+            ({ environment, label, report }) =>
               report && (
                 <CleanupResults
                   key={environment.environmentId}
                   report={report}
-                  environmentLabel={
-                    connectedEnvironments.length > 1 ? environment.label : undefined
-                  }
+                  environmentLabel={label}
                 />
               ),
           )}
@@ -505,6 +526,19 @@ export function StorageSettingsPanel() {
 
   return (
     <SettingsPageContainer>
+      {!isProjectScope &&
+        connectedEnvironments
+          .filter(
+            (environment) =>
+              environment.serverConfig?.environment.capabilities.databaseStorage === true,
+          )
+          .map((environment) => (
+            <DatabaseStorageNotice
+              key={environment.environmentId}
+              environmentId={environment.environmentId}
+              label={environment.label}
+            />
+          ))}
       <SettingsSection id="storage-worktrees" title="Worktrees">
         {!isProjectScope && <WorktreesDirectoryRow />}
         {isProjectScope && (

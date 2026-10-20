@@ -12,20 +12,15 @@ import {
 } from "@t3tools/client-runtime/state/runtime";
 import type { EnvironmentId, OrchestrationV2ProjectedTurnItem } from "@t3tools/contracts";
 import { useRef, useState } from "react";
-import { Pressable, View, type ColorValue } from "react-native";
+import { View, type ColorValue } from "react-native";
 
-import { SymbolView, type AppSymbolName } from "../../components/AppSymbol";
-import { AppText as Text, AppTextInput as TextInput } from "../../components/AppText";
+import { SymbolView, type AppSymbolName } from "../../components/ui/AppSymbol";
+import { AppText as Text, AppTextInput as TextInput } from "../../components/ui/AppText";
 import { useTranslate } from "../../i18n/translate";
 import { serverEnvironment } from "../../state/server";
 import { useAtomCommand } from "../../state/use-atom-command";
-import { RequestActionButton } from "./RequestActionButton";
+import { Button } from "../../components/ui/Button";
 
-/**
- * Feed card for a secret an agent asked the user for. The typed value lives
- * only in this component's state and the RPC payload: it is never logged,
- * alerted, or persisted, and the field clears once the answer is sent.
- */
 const LOCK_SYMBOL: AppSymbolName = { ios: "lock", android: "lock" };
 const PRIVATE_SYMBOL: AppSymbolName = { ios: "checkmark.shield", android: "lock" };
 
@@ -95,7 +90,6 @@ function PendingSecretRequestForm(props: {
       setSubmitting(false);
     });
     if (result._tag === "Success") {
-      // The card switches to its answered row once the item updates.
       setSecret("");
       return;
     }
@@ -104,8 +98,6 @@ function PendingSecretRequestForm(props: {
     }
   };
 
-  // Same hierarchy as web: what is asked, why, the field, then the promise
-  // about where the value goes.
   return (
     <View className="mb-3 gap-3 rounded-[20px] border border-border bg-card-alt p-4">
       <View className="gap-1">
@@ -139,8 +131,10 @@ function PendingSecretRequestForm(props: {
           {t(error)}
         </Text>
       ) : null}
-      <RequestActionButton
+      <Button
         label={t("Save securely")}
+        tone="primary"
+        fullWidth
         disabled={submitting || secret.trim().length === 0}
         onPress={() => void send({ type: "save", secret })}
       />
@@ -156,17 +150,12 @@ function PendingSecretRequestForm(props: {
             {t(SECRET_REQUEST_PRIVACY_NOTE)}
           </Text>
         </View>
-        {/* Quiet like the web card's: the field and Save are the action. */}
-        <Pressable
-          accessibilityRole="button"
-          accessibilityState={{ disabled: submitting }}
+        <Button
+          label={t("Decline")}
+          tone="text"
           disabled={submitting}
-          hitSlop={8}
-          className="px-1 py-1 active:opacity-60 disabled:opacity-50"
           onPress={() => void send({ type: "decline" })}
-        >
-          <Text className="font-sans text-xs text-foreground-muted">{t("Decline")}</Text>
-        </Pressable>
+        />
       </View>
     </View>
   );

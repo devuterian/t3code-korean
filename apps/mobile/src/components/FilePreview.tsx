@@ -1,12 +1,46 @@
+import { Button } from "./ui/Button";
+import * as Dialog from "./ui/Dialog";
 import { useEffect, useEffectEvent } from "react";
-import { Alert, Modal, Pressable, View } from "react-native";
+import { Modal, View } from "react-native";
 import ImageViewing from "react-native-image-viewing";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { openAttachmentInViewer } from "../lib/attachmentDownload";
 import type { ResolvedFilePreviewSource } from "./FilePreviewModal.types";
 import { MediaImagePreview } from "./MediaImagePreview";
-import { AppText as Text } from "./AppText";
+import { PdfPreview } from "./PdfPreview";
+import { ControlPill } from "./ui/ControlPill";
+import { AppText as Text } from "./ui/AppText";
 import { translate, useTranslate } from "../i18n/translate";
+
+function PdfDocumentPreview(props: {
+  readonly source: ResolvedFilePreviewSource;
+  readonly onRequestClose: () => void;
+}) {
+  const t = useTranslate();
+  const insets = useSafeAreaInsets();
+  return (
+    <Modal
+      animationType="slide"
+      onRequestClose={props.onRequestClose}
+      statusBarTranslucent
+      navigationBarTranslucent
+    >
+      <View
+        className="flex-1 bg-card"
+        style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}
+      >
+        <View className="flex-row items-center gap-3 border-b border-border px-4 py-2">
+          <Text className="flex-1 font-t3-semibold text-foreground" numberOfLines={1}>
+            {props.source.name ?? "PDF"}
+          </Text>
+          <ControlPill label={t("Close")} variant="pill" onPress={props.onRequestClose} />
+        </View>
+        <PdfPreview uri={props.source.uri} />
+      </View>
+    </Modal>
+  );
+}
 
 function DocumentPreview(props: {
   readonly source: ResolvedFilePreviewSource;
@@ -19,7 +53,7 @@ function DocumentPreview(props: {
   const onOpenError = useEffectEvent((error: unknown) => {
     if (props.onOpenError) props.onOpenError(error);
     else
-      Alert.alert(
+      Dialog.alert(
         translate("Could not open document"),
         translate("A compatible viewer must be installed. Check your connection and try again."),
       );
@@ -54,13 +88,9 @@ function DocumentPreview(props: {
           <Text className="text-foreground-muted" numberOfLines={2}>
             {name ?? t("Document")}
           </Text>
-          <Pressable
-            accessibilityRole="button"
-            onPress={props.onRequestClose}
-            className="self-end p-3"
-          >
-            <Text className="text-foreground">{t("Cancel")}</Text>
-          </Pressable>
+          <View className="items-end">
+            <Button label={t("Cancel")} tone="text" onPress={props.onRequestClose} />
+          </View>
         </View>
       </View>
     </Modal>
@@ -72,6 +102,7 @@ export function FilePreview(props: {
   readonly onRequestClose: () => void;
   readonly onOpenError?: (error: unknown) => void;
 }) {
+  if (props.source.kind === "pdf") return <PdfDocumentPreview {...props} />;
   if (props.source.kind !== "image") return <DocumentPreview {...props} />;
   if (props.source.actionsSource) return <MediaImagePreview {...props} />;
   return (

@@ -1,3 +1,5 @@
+import { Button } from "./ui/Button";
+import * as Dialog from "./ui/Dialog";
 import { useOpenPullRequest } from "../native/useOpenPullRequest";
 import { SourceFileSurface } from "../features/files/SourceFileSurface";
 import { filePreviewKind } from "@t3tools/shared/filePreview";
@@ -10,7 +12,7 @@ import type {
 } from "@t3tools/contracts";
 import { formatAttachmentSize } from "@t3tools/client-runtime/state/attachments";
 import { videoMimeType } from "@t3tools/shared/video";
-import { Alert, Platform, Pressable, ScrollView, View } from "react-native";
+import { Platform, Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { REVIEW_MONO_FONT_FAMILY } from "../features/review/reviewDiffRendering";
 import { ReviewCommentCard, useReviewCommentColors } from "../features/review/ReviewCommentCard";
@@ -23,8 +25,8 @@ import { contextImageGallery } from "../lib/contextImageGallery";
 import { FilePreviewModal } from "./FilePreviewModal";
 import { VideoPreviewModal } from "./VideoPreviewModal";
 import { ComposerContextAttachment } from "./ComposerContextAttachment";
-import { AppText as Text } from "./AppText";
-import { AppSheet } from "./AppSheet";
+import { AppText as Text } from "./ui/AppText";
+import { Sheet } from "./ui/Sheet";
 import { useTranslate } from "../i18n/translate";
 import { useAppearancePreferences } from "../features/settings/appearance/AppearancePreferencesProvider";
 import { getMobileTerminalTheme } from "../features/terminal/terminalTheme";
@@ -74,7 +76,6 @@ function ContextSource(props: { source: ElementContextSource | null }) {
   );
 }
 
-/** Touch equivalent of the web context popover; snapshots remain readable offline. */
 export function ComposerContextSheet(props: {
   readonly label: string;
   readonly record: ComposerContextRecord | undefined;
@@ -186,8 +187,9 @@ export function ComposerContextSheet(props: {
       : undefined;
   const terminal = record?.kind === "terminal" && !("payload" in record) ? record : null;
   return (
-    <AppSheet title={terminal?.terminalLabel ?? props.label} onClose={props.onClose}>
+    <Sheet title={terminal?.terminalLabel ?? props.label} onClose={props.onClose}>
       <ScrollView
+        nestedScrollEnabled
         className="flex-1"
         contentInsetAdjustmentBehavior={Platform.OS === "ios" ? "automatic" : "never"}
         contentContainerStyle={{
@@ -306,18 +308,17 @@ export function ComposerContextSheet(props: {
               <View className="gap-3">
                 <ContextField label="Thread" value={record.title} />
                 {props.onOpenThread ? (
-                  <Pressable
-                    accessibilityRole="button"
+                  <Button
+                    label={t("Open thread")}
+                    tone="secondary"
                     onPress={() =>
                       props.onOpenThread?.({
                         environmentId: record.environmentId,
                         threadId: record.threadId,
                       })
                     }
-                    className="rounded-xl bg-subtle p-4"
-                  >
-                    <Text className="text-foreground">{t("Open thread")}</Text>
-                  </Pressable>
+                    fullWidth
+                  />
                 ) : null}
               </View>
             ) : null}
@@ -329,13 +330,12 @@ export function ComposerContextSheet(props: {
                   value={props.skillDescription ?? t("No description is available for this skill.")}
                 />
                 {props.onOpenSkill ? (
-                  <Pressable
-                    accessibilityRole="button"
+                  <Button
+                    label={t("View instructions")}
+                    tone="secondary"
                     onPress={props.onOpenSkill}
-                    className="rounded-xl bg-subtle p-4"
-                  >
-                    <Text className="text-foreground">{t("View instructions")}</Text>
-                  </Pressable>
+                    fullWidth
+                  />
                 ) : null}
               </View>
             ) : null}
@@ -362,7 +362,7 @@ export function ComposerContextSheet(props: {
             onPress={() => {
               props.onClose();
               void openPullRequest(pullRequestUrl).catch(() =>
-                Alert.alert(t("Could not open pull request"), t("Try again when connected.")),
+                Dialog.alert(t("Could not open pull request"), t("Try again when connected.")),
               );
             }}
             className="rounded-xl bg-subtle p-4"
@@ -371,33 +371,30 @@ export function ComposerContextSheet(props: {
           </Pressable>
         ) : null}
         {props.onOpenAttachment ? (
-          <Pressable
-            accessibilityRole="button"
+          <Button
+            label={t("Open attachment")}
+            tone="secondary"
             onPress={props.onOpenAttachment}
-            className="rounded-xl bg-subtle p-4"
-          >
-            <Text className="text-foreground">{t("Open attachment")}</Text>
-          </Pressable>
+            fullWidth
+          />
         ) : null}
         {props.onOpenPullRequest && !pullRequestUrl ? (
-          <Pressable
-            accessibilityRole="button"
+          <Button
+            label={t("Open pull request")}
+            tone="secondary"
             onPress={props.onOpenPullRequest}
-            className="rounded-xl bg-subtle p-4"
-          >
-            <Text className="text-foreground">{t("Open pull request")}</Text>
-          </Pressable>
+            fullWidth
+          />
         ) : null}
         {props.onRemove ? (
-          <Pressable
-            accessibilityRole="button"
+          <Button
+            label={t("Remove from draft")}
+            tone="secondary"
             onPress={props.onRemove}
-            className="rounded-xl bg-subtle p-4"
-          >
-            <Text className="text-foreground">{t("Remove from draft")}</Text>
-          </Pressable>
+            fullWidth
+          />
         ) : null}
       </ScrollView>
-    </AppSheet>
+    </Sheet>
   );
 }

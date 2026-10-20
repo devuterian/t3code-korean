@@ -1,8 +1,8 @@
+import * as Dialog from "../../components/ui/Dialog";
 import { resolveAssetUrl } from "@t3tools/client-runtime/state/assets";
 import type { EnvironmentId, ThreadId } from "@t3tools/contracts";
 import * as Option from "effect/Option";
 import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
-import { Alert } from "react-native";
 
 import { translate } from "../../i18n/translate";
 import { downloadAndShareAttachment } from "../../lib/attachmentDownload";
@@ -11,7 +11,6 @@ import { usePreparedConnection } from "../../state/session";
 import { useAtomQueryRunner } from "../../state/use-atom-query-runner";
 import { fileChipShareSource, type FileChipTarget } from "./fileChipMenu";
 
-/** Fetches host files through the selected environment before opening the native save/share sheet. */
 export function useFileChipShare(
   environmentId: EnvironmentId,
   threadId: ThreadId,
@@ -55,7 +54,7 @@ export function useFileChipShare(
       })()
         .catch((error: unknown) => {
           if (!request.signal.aborted) {
-            Alert.alert(
+            Dialog.alert(
               translate("Could not share file"),
               error instanceof Error ? error.message : translate("Try again."),
             );

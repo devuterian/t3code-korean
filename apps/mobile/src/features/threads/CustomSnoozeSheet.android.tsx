@@ -1,4 +1,4 @@
-import { MaterialSegmentedButtons } from "../../components/MaterialSegmentedButtons.android";
+import { SegmentedControl } from "../../components/ui/SegmentedControl";
 import {
   BasicAlertDialog,
   Column,
@@ -6,6 +6,7 @@ import {
   Host,
   FilledTonalIconButton,
   Row,
+  RNHostView,
   Shape,
   Surface,
   Text,
@@ -29,7 +30,7 @@ import { requireNativeModule } from "expo";
 import { useEffect, useState } from "react";
 import { AppState, useWindowDimensions } from "react-native";
 
-import { OverlayPortal } from "../../components/OverlayPortal";
+import { OverlayPortal } from "../../components/ui/OverlayPortal";
 import { getFormattingLocale, useTranslate } from "../../i18n/translate";
 import { useAppearancePreferences } from "../settings/appearance/AppearancePreferencesProvider";
 import { useScaledTextRole } from "../settings/appearance/useScaledTextRole";
@@ -146,33 +147,40 @@ export function CustomSnoozeSheet(props: Props) {
                 modifiers={[fillMaxWidth(), padding(24, 24, 24, 16)]}
               >
                 <Text style={titleTypography}>{t("Custom snooze")}</Text>
-                <MaterialSegmentedButtons
-                  options={modes.map((option) => ({ ...option, label: t(option.label) }))}
-                  selected={mode}
-                  onSelect={(value) => {
-                    setMode(value);
-                    setError(null);
-                  }}
-                />
-                {mode === "date" ? (
-                  <MaterialSegmentedButtons
-                    options={[
-                      {
-                        value: "date",
-                        label: date.toLocaleDateString(locale, { month: "short", day: "numeric" }),
-                      },
-                      {
-                        value: "time",
-                        label: date.toLocaleTimeString(locale, {
-                          hour: "numeric",
-                          minute: "2-digit",
-                          hourCycle: is24Hour ? "h23" : "h12",
-                        }),
-                      },
-                    ]}
-                    selected={picker}
-                    onSelect={setPicker}
+                <RNHostView matchContents={{ vertical: true }} modifiers={[fillMaxWidth()]}>
+                  <SegmentedControl
+                    options={modes.map((option) => ({ ...option, label: t(option.label) }))}
+                    selected={mode}
+                    onSelect={(value) => {
+                      setMode(value);
+                      setError(null);
+                    }}
                   />
+                </RNHostView>
+                {mode === "date" ? (
+                  <RNHostView matchContents={{ vertical: true }} modifiers={[fillMaxWidth()]}>
+                    <SegmentedControl
+                      options={[
+                        {
+                          value: "date",
+                          label: date.toLocaleDateString(locale, {
+                            month: "short",
+                            day: "numeric",
+                          }),
+                        },
+                        {
+                          value: "time",
+                          label: date.toLocaleTimeString(locale, {
+                            hour: "numeric",
+                            minute: "2-digit",
+                            hourCycle: is24Hour ? "h23" : "h12",
+                          }),
+                        },
+                      ]}
+                      selected={picker}
+                      onSelect={setPicker}
+                    />
+                  </RNHostView>
                 ) : null}
               </Column>
               {mode === "date" ? (
@@ -229,11 +237,13 @@ export function CustomSnoozeSheet(props: Props) {
                       <Text style={titleTypography}>+</Text>
                     </FilledTonalIconButton>
                   </Row>
-                  <MaterialSegmentedButtons
-                    options={units.map((option) => ({ ...option, label: t(option.label) }))}
-                    selected={unit}
-                    onSelect={setUnit}
-                  />
+                  <RNHostView matchContents={{ vertical: true }} modifiers={[fillMaxWidth()]}>
+                    <SegmentedControl
+                      options={units.map((option) => ({ ...option, label: t(option.label) }))}
+                      selected={unit}
+                      onSelect={setUnit}
+                    />
+                  </RNHostView>
                 </Column>
               )}
               <Column

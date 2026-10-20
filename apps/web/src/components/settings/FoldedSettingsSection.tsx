@@ -7,11 +7,6 @@ import { Collapsible, CollapsiblePanel, CollapsibleTrigger } from "../ui/collaps
 import { useSettingsSearchTarget, useSettingsSearchTargetId } from "./settingsLayout";
 import { useTranslate } from "../../i18n/translate";
 
-/**
- * A grouped settings section that starts closed. The header carries the title,
- * a one line summary of what is set inside, and an optional control such as
- * the section's own switch. A settings search that targets the section opens it.
- */
 export function FoldedSettingsSection({
   id,
   title,
@@ -21,7 +16,7 @@ export function FoldedSettingsSection({
   children,
 }: {
   readonly id: string;
-  readonly title: string;
+  readonly title: ReactNode;
   readonly summary?: string | null;
   readonly control?: ReactNode;
   readonly headerPlacement?: "inside" | "outside";
@@ -49,7 +44,7 @@ export function FoldedSettingsSection({
             >
               <h2>
                 <CollapsibleTrigger className="flex min-h-7 items-center gap-2 rounded-md text-sm font-normal text-foreground/70 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
-                  {t(title)}
+                  {typeof title === "string" ? t(title) : title}
                   <ChevronRightIcon
                     aria-hidden
                     className={cn(
@@ -82,7 +77,9 @@ export function FoldedSettingsSection({
                 open && "rotate-90",
               )}
             />
-            <span className="shrink-0 text-sm font-medium">{t(title)}</span>
+            <span className="shrink-0 text-sm font-medium">
+              {typeof title === "string" ? t(title) : title}
+            </span>
             {summary ? (
               <span className="min-w-0 truncate text-xs text-muted-foreground">{summary}</span>
             ) : null}

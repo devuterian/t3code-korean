@@ -14,17 +14,18 @@ import { KeyboardStickyView, useKeyboardState } from "react-native-keyboard-cont
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useResolveClassNames } from "uniwind";
 
-import { SymbolView, type AppSymbolName } from "../../components/AppSymbol";
-import { GlassSurface } from "../../components/GlassSurface";
+import { SymbolView, type AppSymbolName } from "../../components/ui/AppSymbol";
+import { GlassSurface } from "../../components/ui/GlassSurface";
 import { useTranslate } from "../../i18n/translate";
 import { useHardwareKeyboardCommand } from "../keyboard/hardwareKeyboardCommands";
 import { WorkspaceDock } from "./WorkspaceDock";
 import { useWorkspaceTabs } from "./WorkspaceTabsContext";
 import { WORKSPACE_TOOLBAR, type WorkspaceTab } from "./workspace-tabs-state";
+import { PullRequestGlyph } from "../pull-requests/pullRequestGlyphs";
 
 const TABS: ReadonlyArray<{ id: WorkspaceTab; label: string; icon: AppSymbolName }> = [
   { id: "threads", label: "Threads", icon: "text.bubble" },
-  { id: "pullRequests", label: "PRs", icon: "arrow.triangle.pull" },
+  { id: "pullRequests", label: "PRs", icon: PullRequestGlyph.pullRequest },
 ];
 
 function ToolbarButton(props: {

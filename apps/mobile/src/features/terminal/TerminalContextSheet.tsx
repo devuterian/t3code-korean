@@ -1,3 +1,4 @@
+import * as Dialog from "../../components/ui/Dialog";
 import {
   ComposerContextId,
   COMPOSER_CONTEXT_TERMINAL_TEXT_MAX_CHARS,
@@ -6,17 +7,16 @@ import {
 } from "@t3tools/contracts";
 import { formatComposerContextReference } from "@t3tools/shared/composerContextReferences";
 import { useState } from "react";
-import { Alert, Platform, Pressable, ScrollView, View } from "react-native";
+import { Platform, Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { REVIEW_MONO_FONT_FAMILY } from "../review/reviewDiffRendering";
-import { AppText as Text } from "../../components/AppText";
-import { AppSheet } from "../../components/AppSheet";
-import { MaterialButton } from "../../components/MaterialButton";
+import { AppText as Text } from "../../components/ui/AppText";
+import { Sheet } from "../../components/ui/Sheet";
+import { Button } from "../../components/ui/Button";
 import { uuidv4 } from "../../lib/uuid";
 import { insertComposerDraftContext } from "../../state/use-composer-drafts";
 import { useTranslate } from "../../i18n/translate";
 
-/** Line numbers are relative to this frozen viewport, not the terminal's scrollback. */
 export function TerminalContextSheet(props: {
   text: string;
   environmentId: EnvironmentId;
@@ -52,7 +52,7 @@ export function TerminalContextSheet(props: {
         context: { version: 1, records: [record] },
       })
     ) {
-      Alert.alert(
+      Dialog.alert(
         t("Too many context items"),
         t("Remove some context from the draft and try again."),
       );
@@ -61,8 +61,9 @@ export function TerminalContextSheet(props: {
     props.onAttach();
   };
   return (
-    <AppSheet title={t("Terminal output")} onClose={props.onClose}>
+    <Sheet title={t("Terminal output")} onClose={props.onClose}>
       <ScrollView
+        nestedScrollEnabled
         className="flex-1"
         contentInsetAdjustmentBehavior={Platform.OS === "ios" ? "automatic" : "never"}
         contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 20 }}
@@ -117,7 +118,7 @@ export function TerminalContextSheet(props: {
             {t("Select fewer lines to fit the context limit.")}
           </Text>
         ) : null}
-        <MaterialButton
+        <Button
           label={t("Attach selected output")}
           tone="primary"
           fullWidth
@@ -125,6 +126,6 @@ export function TerminalContextSheet(props: {
           onPress={attach}
         />
       </View>
-    </AppSheet>
+    </Sheet>
   );
 }

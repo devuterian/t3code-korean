@@ -9,9 +9,9 @@ import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { AppState, Linking, Modal, Platform, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { AppText as Text } from "../../components/AppText";
-import { SymbolView } from "../../components/AppSymbol";
-import { MaterialButton } from "../../components/MaterialButton";
+import { AppText as Text } from "../../components/ui/AppText";
+import { SymbolView } from "../../components/ui/AppSymbol";
+import { Button } from "../../components/ui/Button";
 import { useTranslate } from "../../i18n/translate";
 import { AppInstaller } from "../../native/appInstaller";
 import { mobilePreferencesAtom, updateMobilePreferencesAtom } from "../../state/preferences";
@@ -275,7 +275,7 @@ function PermissionsScreen(props: {
                     <Text className="text-sm text-foreground-muted">{t("Allowed")}</Text>
                   </View>
                 ) : (
-                  <MaterialButton
+                  <Button
                     disabled={busy}
                     label={status === "blocked" ? t("Open settings") : t("Allow")}
                     onPress={() => void request(row.id)}
@@ -288,11 +288,11 @@ function PermissionsScreen(props: {
       </ScrollView>
       <View className="flex-row justify-end gap-2 px-5 pb-4 pt-2">
         {allGranted ? (
-          <MaterialButton label={t("Done")} tone="primary" onPress={props.onClose} />
+          <Button label={t("Done")} tone="primary" onPress={props.onClose} />
         ) : (
           <>
-            <MaterialButton label={t("Later")} tone="text" onPress={props.onClose} />
-            <MaterialButton
+            <Button label={t("Later")} tone="text" onPress={props.onClose} />
+            <Button
               label={t("Allow all")}
               loading={busy}
               tone="primary"

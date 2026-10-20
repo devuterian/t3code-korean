@@ -1,3 +1,5 @@
+import { AsyncResult } from "effect/reactivity";
+import * as Dialog from "../../components/ui/Dialog";
 import { useAtomRefresh } from "@effect/atom-react";
 import { squashAtomCommandFailure } from "@t3tools/client-runtime/state/runtime";
 import type {
@@ -6,7 +8,6 @@ import type {
   PullRequestUpdateMethod,
 } from "@t3tools/contracts";
 import { useRef, useState } from "react";
-import { Alert } from "react-native";
 import { translate } from "../../i18n/translate";
 import { composerPullRequests } from "../../state/pull-requests";
 import { useAtomCommand } from "../../state/use-atom-command";
@@ -14,7 +15,6 @@ import { canPerformPullRequestAction } from "./pullRequestActions";
 import { pullRequestTarget, type PullRequestParams } from "./usePullRequestDiff";
 import { usePullRequestPermissions } from "./usePullRequestPermissions";
 
-/** Small row actions stay in place, preserving expanded rows and scroll position. */
 export function usePullRequestAction(params: PullRequestParams, pr: PullRequestDetail | null) {
   const target = pullRequestTarget(params);
   const permissions = usePullRequestPermissions(params, pr);
@@ -29,26 +29,25 @@ export function usePullRequestAction(params: PullRequestParams, pr: PullRequestD
     if (pending.current || !available(action)) return;
     pending.current = true;
     setBusy(true);
-    try {
-      const response = await run({
-        ...target,
-        input: { ...target.input, action, ...(updateMethod ? { updateMethod } : {}) },
-      });
-      if (response._tag === "Failure") throw squashAtomCommandFailure(response);
-      refreshDetail();
-      refreshActivity();
-    } catch (cause) {
-      Alert.alert(
+    const response = await run({
+      ...target,
+      input: { ...target.input, action, ...(updateMethod ? { updateMethod } : {}) },
+    });
+    pending.current = false;
+    setBusy(false);
+    if (AsyncResult.isFailure(response)) {
+      const cause = squashAtomCommandFailure(response);
+      Dialog.alert(
         translate("Couldn't update this pull request"),
         cause instanceof Error ? cause.message : translate("Try again."),
       );
-    } finally {
-      pending.current = false;
-      setBusy(false);
+      return;
     }
+    refreshDetail();
+    refreshActivity();
   };
   const confirm = (action: PullRequestAction, title: string, message: string) =>
-    Alert.alert(title, message, [
+    Dialog.alert(title, message, [
       { text: translate("Cancel"), style: "cancel" },
       {
         text: title,

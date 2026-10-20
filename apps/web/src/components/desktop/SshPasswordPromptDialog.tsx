@@ -1,4 +1,7 @@
+import { settlePromise } from "@t3tools/client-runtime/state/runtime";
 import type { DesktopSshPasswordPromptRequest } from "@t3tools/contracts";
+import * as AsyncResult from "effect/reactivity/AsyncResult";
+import * as Cause from "effect/Cause";
 import { useEffect, useId, useRef, useState } from "react";
 
 import { Button } from "../ui/button";
@@ -23,9 +26,10 @@ function formatRemainingSeconds(seconds: number): string {
 }
 
 function getPromptErrorMessage(error: unknown): string {
-  const message = error instanceof Error ? error.message : translate("SSH password prompt failed.");
+  const message =
+    error instanceof Error ? error.message : translate("SSH verification prompt failed.");
   return message.includes("expired") || message.includes("no longer pending")
-    ? translate("This SSH password prompt expired. Try connecting again.")
+    ? translate("This SSH verification prompt expired. Try connecting again.")
     : message;
 }
 
@@ -103,7 +107,7 @@ function ActiveSshPasswordPrompt({
   const remainingLabel =
     remainingSeconds === null ? null : formatRemainingSeconds(remainingSeconds);
   const visibleResponseError = isExpired
-    ? t("This SSH password prompt expired. Try connecting again.")
+    ? t("This SSH verification prompt expired. Try connecting again.")
     : responseError;
 
   const respond = async (nextPassword: string | null) => {
@@ -113,26 +117,23 @@ function ActiveSshPasswordPrompt({
 
     const requestId = request.requestId;
     if (nextPassword !== null && isExpired) {
-      setResponseError(translate("This SSH password prompt expired. Try connecting again."));
+      setResponseError(translate("This SSH verification prompt expired. Try connecting again."));
       return;
     }
 
     isRespondingRef.current = true;
     setIsResponding(true);
     setResponseError(null);
-    try {
-      await window.desktopBridge?.resolveSshPasswordPrompt(requestId, nextPassword);
+    const result = await settlePromise(async () =>
+      window.desktopBridge?.resolveSshPasswordPrompt(requestId, nextPassword),
+    );
+    if (AsyncResult.isSuccess(result) || nextPassword === null) {
       onRemove(requestId);
-    } catch (error) {
-      if (nextPassword === null) {
-        onRemove(requestId);
-      } else {
-        setResponseError(getPromptErrorMessage(error));
-      }
-    } finally {
-      isRespondingRef.current = false;
-      setIsResponding(false);
+    } else {
+      setResponseError(getPromptErrorMessage(Cause.squash(result.cause)));
     }
+    isRespondingRef.current = false;
+    setIsResponding(false);
   };
 
   const dismissExpiredPrompt = () => {
@@ -160,11 +161,11 @@ function ActiveSshPasswordPrompt({
     >
       <DialogPopup className="max-w-md" showCloseButton={false}>
         <DialogHeader>
-          <DialogTitle>{t("SSH Password Required")}</DialogTitle>
+          <DialogTitle>{t("SSH verification required")}</DialogTitle>
           <DialogDescription>
-            {t("T3 needs your SSH password to connect to")} <code>{target}</code>
+            {t("Enter the password or verification code required by")} <code>{target}</code>
             {t(
-              ". The password is passed to the local SSH process for this connection attempt and is not saved by T3 Code.",
+              ". T3 Code passes your response to the local SSH process and keeps it in memory to reuse for this host. T3 Code does not write it to disk.",
             )}
           </DialogDescription>
         </DialogHeader>
@@ -206,7 +207,9 @@ function ActiveSshPasswordPrompt({
               <p className="text-sm text-destructive">{visibleResponseError}</p>
             ) : (
               <p className="text-sm text-muted-foreground">
-                {t("Use SSH keys to avoid repeated password prompts on new SSH sessions.")}
+                {t(
+                  "SSH keys may replace a password, but your server can still require a verification code.",
+                )}
               </p>
             )}
           </form>

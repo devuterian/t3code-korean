@@ -4,9 +4,9 @@ import { useEffect, useRef } from "react";
 import { AppState, Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { AppText as Text } from "../../components/AppText";
-import { SymbolView } from "../../components/AppSymbol";
-import { MaterialButton } from "../../components/MaterialButton";
+import { AppText as Text } from "../../components/ui/AppText";
+import { SymbolView } from "../../components/ui/AppSymbol";
+import { Button } from "../../components/ui/Button";
 import { useTranslate } from "../../i18n/translate";
 import { mobilePreferencesAtom } from "../../state/preferences";
 import {
@@ -121,13 +121,9 @@ function AndroidUpdateBannerContent() {
         ) : (
           <View className="flex-row justify-end gap-2">
             {phase.type === "available" ? (
-              <MaterialButton
-                label={t("Later")}
-                tone="text"
-                onPress={() => skipAndroidUpdate(release)}
-              />
+              <Button label={t("Later")} tone="text" onPress={() => skipAndroidUpdate(release)} />
             ) : null}
-            <MaterialButton
+            <Button
               label={
                 phase.type === "ready"
                   ? t("Install")

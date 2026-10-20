@@ -5,8 +5,9 @@ import type {
   PullRequestMergeMethod,
   SourceControlProviderKind,
 } from "@t3tools/contracts";
-import type { AppSymbolName } from "../../components/AppSymbol";
+import type { AppSymbolName } from "../../components/ui/AppSymbol";
 import { translate } from "../../i18n/translate";
+import { PullRequestGlyph } from "./pullRequestGlyphs";
 
 type ActionDetail = Pick<
   PullRequestDetail,
@@ -47,7 +48,7 @@ export const PR_ACTION_LABELS = {
 } as const satisfies Record<PullRequestAction, string>;
 
 export const PR_ACTION_ICONS = {
-  merge: "arrow.triangle.merge",
+  merge: PullRequestGlyph.merged,
   ready: "checkmark.circle",
   draft: "pencil",
   close: "xmark",
@@ -84,7 +85,6 @@ export function allowedUpdateMethods(pr: ActionDetail) {
   );
 }
 
-/** Provider support, account permissions, and the PR's state all narrow the offered actions. */
 export function canPerformPullRequestAction(pr: ActionDetail, action: PullRequestAction) {
   if (!pr.capabilities.actions.includes(action) || !pr.viewerPermissions.actions.includes(action))
     return false;
