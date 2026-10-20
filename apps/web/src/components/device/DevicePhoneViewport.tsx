@@ -9,6 +9,7 @@ import { createPhoneInteraction } from "@t3tools/client-runtime/device/phone-int
 import type { DeviceScreenSize, DeviceStreamClient } from "@t3tools/client-runtime/device/stream";
 import { bindPhoneTrackpad } from "./phoneTrackpad";
 import { observeResize } from "../../lib/observeResize";
+import { useTranslate } from "~/i18n/translate";
 
 const loadPhoneViewer = () => import("@t3tools/client-runtime/device/phone-viewer");
 
@@ -25,6 +26,7 @@ export function DevicePhoneViewport(props: {
   readonly foldAngle: number | null;
   readonly onUnavailable: () => void;
 }) {
+  const t = useTranslate();
   const hostRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const viewerRef = useRef<PhoneViewer | null>(null);
@@ -135,7 +137,9 @@ export function DevicePhoneViewport(props: {
         />
         <canvas
           ref={canvasRef}
-          aria-label="Interactive 3D device. Drag the screen to interact. Drag outside it or swipe with two fingers to turn."
+          aria-label={t(
+            "Interactive 3D device. Drag the screen to interact. Drag outside it or swipe with two fingers to turn.",
+          )}
           className="size-full touch-none"
           onPointerDown={(event) => {
             if (event.button !== 0) return;

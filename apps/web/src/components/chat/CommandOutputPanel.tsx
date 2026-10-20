@@ -3,6 +3,7 @@ import { TERMINAL_PALETTES, terminalOutputSpans } from "@t3tools/shared/terminal
 import { useLayoutEffect, useRef } from "react";
 
 import { useTheme } from "../../hooks/useTheme";
+import { useTranslate } from "../../i18n/translate";
 import { useServerConfigs } from "../../state/entities";
 import { orchestrationEnvironment } from "../../state/orchestration";
 import { useEnvironmentQuery } from "../../state/query";
@@ -33,6 +34,7 @@ export function CommandOutputPanel(props: {
       input: { threadId: props.threadId, itemId: props.itemId },
     }),
   );
+  const t = useTranslate();
   const scrollRef = useRef<HTMLDivElement>(null);
   // Follow new output until the reader scrolls up; scrolling back down resumes.
   const followRef = useRef(true);
@@ -46,16 +48,26 @@ export function CommandOutputPanel(props: {
   });
 
   if (text.length === 0) {
-    if (error) return <div className="text-destructive">Couldn&apos;t load output: {error}</div>;
-    if (data === null) return <div className="text-muted-foreground italic">Loading output…</div>;
-    return data.running ? null : <div className="text-muted-foreground italic">No output.</div>;
+    if (error) {
+      return (
+        <div className="text-destructive">
+          {t("Couldn't load output: {error}").replace("{error}", () => error)}
+        </div>
+      );
+    }
+    if (data === null) {
+      return <div className="text-muted-foreground italic">{t("Loading output…")}</div>;
+    }
+    return data.running ? null : (
+      <div className="text-muted-foreground italic">{t("No output.")}</div>
+    );
   }
   // Parsed after the layout effect, the last hook, so the compiler caches it on text and theme.
   const spans = terminalOutputSpans(text, TERMINAL_PALETTES[resolvedTheme]);
   return (
     <div>
       {data?.output.truncated ? (
-        <div className="text-muted-foreground italic">Earlier output not shown</div>
+        <div className="text-muted-foreground italic">{t("Earlier output not shown")}</div>
       ) : null}
       <div
         ref={scrollRef}

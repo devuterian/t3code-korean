@@ -11,6 +11,7 @@ import { splitAndroidHeaderActions } from "./headerMenu.android";
 import { useScaledTextRole } from "../../features/settings/appearance/useScaledTextRole";
 import { useToolbarLayout } from "./useToolbarLayout";
 import { useControlTheme } from "./useControlTheme";
+import { useTranslate } from "../../i18n/translate";
 
 export interface AndroidHeaderAction {
   readonly accessibilityLabel: string;
@@ -44,6 +45,7 @@ export function AndroidScreenHeader(props: {
   readonly embedded?: boolean;
   readonly hideBottomBorder?: boolean;
 }) {
+  const t = useTranslate();
   const { colors } = useControlTheme();
   const titleTypography = useScaledTextRole("title");
   const subtitleTypography = useScaledTextRole("label");
@@ -70,7 +72,7 @@ export function AndroidScreenHeader(props: {
             <View collapsable={false} className="flex-row items-center">
               {props.onBack ? (
                 <IconButton
-                  accessibilityLabel="Navigate up"
+                  accessibilityLabel={t("Navigate up")}
                   icon="arrow.left"
                   tintColorClassName="accent-header-foreground"
                   onPress={props.onBack}
@@ -158,7 +160,7 @@ export function AndroidScreenHeader(props: {
                 >
                   {(open) => (
                     <IconButton
-                      accessibilityLabel="More actions"
+                      accessibilityLabel={t("More actions")}
                       icon="ellipsis"
                       tintColorClassName="accent-header-foreground"
                       onPress={open}

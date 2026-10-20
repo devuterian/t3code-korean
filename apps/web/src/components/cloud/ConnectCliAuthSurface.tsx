@@ -7,6 +7,7 @@ import {
   connectCliSignInRedirectUrl,
 } from "../../cloud/connectCliAuth";
 import { isElectron } from "../../env";
+import { useTranslate } from "../../i18n/translate";
 import { AuthSurfaceShell } from "../auth/AuthSurfaceShell";
 import { resolveClerkSignInProps } from "../clerk/authRedirect";
 import { Button } from "../ui/button";
@@ -20,13 +21,16 @@ function ConnectCliAuthMessage({
   readonly title: string;
   readonly description: string;
 }) {
+  const t = useTranslate();
   return (
     <>
       {eyebrow ? (
-        <p className="text-3xs font-semibold tracking-widest text-primary uppercase">{eyebrow}</p>
+        <p className="text-3xs font-semibold tracking-widest text-primary uppercase">
+          {t(eyebrow)}
+        </p>
       ) : null}
-      <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">{title}</h1>
-      <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{description}</p>
+      <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">{t(title)}</h1>
+      <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{t(description)}</p>
     </>
   );
 }
@@ -39,6 +43,7 @@ const invalidLinkMessage = {
 } as const;
 
 export function ConnectCliAuthorizeSurface() {
+  const t = useTranslate();
   const [request] = useState(() => readConnectAuthorizeRequest(new URL(window.location.href)));
   const clerk = useClerk();
   const { isLoaded, isSignedIn } = useAuth();
@@ -99,7 +104,7 @@ export function ConnectCliAuthorizeSurface() {
       {isLoaded && !isSignedIn ? (
         <div className="mt-6">
           <Button type="button" onClick={openSignIn}>
-            Sign in
+            {t("Sign in")}
           </Button>
         </div>
       ) : null}

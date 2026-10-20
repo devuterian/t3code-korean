@@ -14,6 +14,7 @@ import { HttpClient } from "effect/http";
 
 import { usePrimaryEnvironment } from "../state/environments";
 import { runtime } from "../lib/runtime";
+import { translate } from "../i18n/translate";
 import { appAtomRegistry } from "../rpc/atomRegistry";
 import { readEnvironmentScope, useEnvironmentScope } from "../state/session";
 import { readPrimaryCloudLinkState, type CloudLinkTarget } from "./linkEnvironment";
@@ -86,7 +87,8 @@ export function usePrimaryCloudLinkState() {
   let error: string | null = null;
   if (result._tag === "Failure") {
     const cause = Cause.squash(result.cause);
-    error = cause instanceof Error ? cause.message : "Could not read T3 Connect link state.";
+    error =
+      cause instanceof Error ? cause.message : translate("Could not read T3 Connect link state.");
   }
 
   return {

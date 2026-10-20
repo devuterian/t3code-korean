@@ -949,14 +949,17 @@ function TerminalSessionViewport({
         if (!latestTerminal) return;
         if (isTerminalUrl(text)) {
           if (!localApi) {
-            writeSystemMessage(latestTerminal, "Opening links is unavailable in this browser.");
+            writeSystemMessage(
+              latestTerminal,
+              translate("Opening links is unavailable in this browser."),
+            );
             return;
           }
           const fallbackToBrowser = () => {
             void localApi.shell.openExternal(text).catch((error: unknown) => {
               writeSystemMessage(
                 latestTerminal,
-                error instanceof Error ? error.message : "Unable to open link",
+                error instanceof Error ? error.message : translate("Unable to open link"),
               );
             });
           };
@@ -987,7 +990,7 @@ function TerminalSessionViewport({
           const error = squashAtomCommandFailure(result);
           writeSystemMessage(
             latestTerminal,
-            error instanceof Error ? error.message : "Unable to open path",
+            error instanceof Error ? error.message : translate("Unable to open path"),
           );
         })();
       }
@@ -1000,7 +1003,7 @@ function TerminalSessionViewport({
           const error = squashAtomCommandFailure(result);
           writeSystemMessage(
             terminal,
-            error instanceof Error ? error.message : "Terminal write failed",
+            error instanceof Error ? error.message : translate("Terminal write failed"),
           );
         })();
       }
@@ -1075,8 +1078,10 @@ function TerminalSessionViewport({
         setupTerminal = null;
         if (cancelled) return;
         const message =
-          error instanceof Error ? error.message : "Unable to initialize libghostty-vt";
-        mount.textContent = `${message} — close and reopen the terminal to retry.`;
+          error instanceof Error ? error.message : translate("Unable to initialize libghostty-vt");
+        mount.textContent = translate(
+          "{message} — close and reopen the terminal to retry.",
+        ).replace("{message}", () => message);
       });
 
     return () => {

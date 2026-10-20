@@ -394,7 +394,7 @@ export default function DiffPanel({
   // The code view keeps one loader for its lifetime; a new identity would remount it.
   const loadDiffFiles: FileDiffContentsLoader = useStableCallback(async (fileDiff) => {
     if (!currentLoadDiffFiles) {
-      throw new Error("Diff file contents are unavailable for this selection.");
+      throw new Error(t("Diff file contents are unavailable for this selection."));
     }
     return currentLoadDiffFiles(fileDiff);
   });

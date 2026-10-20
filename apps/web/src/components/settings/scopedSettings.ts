@@ -315,7 +315,9 @@ export function planScopedSettingsPatch(
           ? "This setting is environment-wide and cannot be overridden by a project."
           : isProjectScope
             ? "Connect the selected checkouts, or update their environments, to save a project override."
-            : `Connect ${scope.kind === "environment" ? scope.label : "an environment"} to save this setting.`;
+            : translate("Connect {target} to save this setting.").replace("{target}", () =>
+                scope.kind === "environment" ? scope.label : translate("an environment"),
+              );
   return { clientPatch, hasClientWrite, serverWrites, unavailableReason };
 }
 

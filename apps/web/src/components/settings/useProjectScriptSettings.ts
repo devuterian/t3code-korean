@@ -93,7 +93,7 @@ export function useProjectScriptSettings(
           Cause.fail(
             new EnvironmentAuthorizationError({
               requiredScope: AuthSettingsWriteScope,
-              message: "This connection cannot change environment settings.",
+              message: translate("This connection cannot change environment settings."),
             }),
           ),
         ),

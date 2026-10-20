@@ -35,6 +35,7 @@ vi.mock("react", async (importOriginal) => ({
   useRef: <A,>(current: A) => ({ current }),
   useState: <A,>(initial: A) => [initial, () => {}],
 }));
+vi.mock("../../composerHandleContext", () => ({ useComposerHandleContext: () => null }));
 vi.mock("../../hooks/useCopyToClipboard", () => ({ writeTextToClipboard: state.copyText }));
 vi.mock("../../localApi", () => ({
   readLocalApi: () => ({ contextMenu: { show: state.showMenu } }),
@@ -114,7 +115,10 @@ function openMenu(source: MediaActionSource) {
     defaultPrevented: false,
     preventDefault() {},
     stopPropagation() {},
-    currentTarget: { getBoundingClientRect: () => ({ left: 0, bottom: 0 }) },
+    currentTarget: {
+      getBoundingClientRect: () => ({ left: 0, bottom: 0 }),
+      querySelector: () => null,
+    },
     clientX: 1,
     clientY: 1,
   });

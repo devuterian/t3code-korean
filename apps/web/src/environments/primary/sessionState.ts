@@ -7,6 +7,7 @@ import { AsyncResult, Atom } from "effect/reactivity";
 import { isLocalEnvironmentDisabled } from "../../localEnvironment";
 import { appAtomRegistry } from "../../rpc/atomRegistry";
 import { fetchSessionState } from "./auth";
+import { translate } from "../../i18n/translate";
 
 const primarySessionStateAtom = Atom.make(
   Effect.suspend(() =>
@@ -27,7 +28,8 @@ export function usePrimarySessionState() {
   let error: string | null = null;
   if (result._tag === "Failure") {
     const cause = Cause.squash(result.cause);
-    error = cause instanceof Error ? cause.message : "Could not read environment session.";
+    error =
+      cause instanceof Error ? cause.message : translate("Could not read environment session.");
   }
   return {
     data: Option.getOrNull(AsyncResult.value(result)),

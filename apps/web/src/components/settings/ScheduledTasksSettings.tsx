@@ -356,6 +356,7 @@ function ScheduledTaskEnvironmentList({
   readonly taskId: ScheduledTaskId | undefined;
   readonly onEdit: (environmentId: EnvironmentId, task: ScheduledTask) => void;
 }) {
+  const t = useTranslate();
   const { scope, environments } = useSettingsScope();
   const connectedIds = environments.flatMap((environment) =>
     environment.connection.phase === "connected" && environment.serverConfig !== null
@@ -462,7 +463,7 @@ function ScheduledTaskEnvironmentList({
       ) : null}
       {Object.entries(summaries).map(([label, entries]) => {
         if (entries.length === 0) return null;
-        const summary = `${label} ${entries.join(", ")}`;
+        const summary = `${t(label)} ${entries.join(", ")}`;
         return (
           <Tooltip key={label}>
             <TooltipTrigger

@@ -15,6 +15,11 @@ import { KO_MERGE_V010_C } from "./ko/mergeV010C";
 import { KO_MERGE_V010_D } from "./ko/mergeV010D";
 import { KO_MERGE_V010_G } from "./ko/mergeV010G";
 import { KO_MERGE_V010_H } from "./ko/mergeV010H";
+import { KO_MERGE_1020_A } from "./ko/merge1020A";
+import { KO_MERGE_1020_B } from "./ko/merge1020B";
+import { KO_MERGE_1020_C } from "./ko/merge1020C";
+import { KO_MERGE_1020_D } from "./ko/merge1020D";
+import { KO_MERGE_1020_E } from "./ko/merge1020E";
 
 /**
  * Korean dictionary. Keys are the exact English source strings rendered by
@@ -1408,5 +1413,10 @@ export const KO_DICTIONARY: Readonly<Record<string, string>> = {
   ...KO_MERGE_V010_D,
   ...KO_MERGE_V010_G,
   ...KO_MERGE_V010_H,
+  ...KO_MERGE_1020_A,
+  ...KO_MERGE_1020_B,
+  ...KO_MERGE_1020_C,
+  ...KO_MERGE_1020_D,
+  ...KO_MERGE_1020_E,
   ...KO_V2_RESOLVED,
 };

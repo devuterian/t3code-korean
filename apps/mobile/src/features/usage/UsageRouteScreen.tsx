@@ -329,7 +329,7 @@ export function UsageRouteScreen() {
                       className="text-center text-base text-foreground-muted"
                     >
                       {selectedEnvironments.length > 1 ? `${environment.label}: ` : null}
-                      {environment.error}
+                      {environment.error === null ? null : t(environment.error)}
                     </Text>
                   ))}
                 </View>

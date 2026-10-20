@@ -63,7 +63,11 @@ export function pullRequestConflict(pr: {
   readonly baseBranch?: string | undefined;
 }) {
   if (pr.state !== "open" || pr.isDraft || pr.mergeability !== "conflicting") return null;
-  return { label: pr.baseBranch ? `Conflicts with ${pr.baseBranch}` : "Has conflicts" };
+  return {
+    label: pr.baseBranch
+      ? translate("Conflicts with {branch}", { branch: pr.baseBranch })
+      : translate("Has conflicts"),
+  };
 }
 
 export function checkStatus(check: PullRequestCheck) {

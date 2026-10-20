@@ -3,6 +3,7 @@ import type { EnvironmentId, ProjectEntry } from "@t3tools/contracts";
 import * as Cause from "effect/Cause";
 import { useEffect, useReducer, useRef, useState } from "react";
 
+import { translate } from "../../i18n/translate";
 import { appAtomRegistry } from "../../state/atom-registry";
 import { projectEnvironment } from "../../state/projects";
 import { useDebouncedValue } from "../../state/queries";
@@ -88,7 +89,7 @@ export function useFileTreeEntries(input: {
         const error = Cause.squash(result.cause);
         directories.errors.set(
           directoryPath,
-          error instanceof Error ? error.message : "Files unavailable",
+          error instanceof Error ? error.message : translate("Files unavailable"),
         );
       }
       render();

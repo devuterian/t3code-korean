@@ -42,22 +42,30 @@ export function buildDraftActionMenuItems(options: {
   return [
     {
       id: "copy",
-      label: "Copy",
+      label: translate("Copy"),
       icon: "copy",
       disabled: !options.hasPath && !options.hasBranch,
       children: [
-        ...(options.hasPath ? [{ id: "copy-path" as const, label: "Path", icon: "folder" }] : []),
+        ...(options.hasPath
+          ? [{ id: "copy-path" as const, label: translate("Path"), icon: "folder" }]
+          : []),
         ...(options.hasBranch
-          ? [{ id: "copy-branch" as const, label: "Branch", icon: "git-branch" }]
+          ? [{ id: "copy-branch" as const, label: translate("Branch"), icon: "git-branch" }]
           : []),
       ],
     },
     ...(options.hasProject
-      ? [{ id: "project-settings" as const, label: "Project settings", icon: "settings" }]
+      ? [
+          {
+            id: "project-settings" as const,
+            label: translate("Project settings"),
+            icon: "settings",
+          },
+        ]
       : []),
     {
       id: "discard",
-      label: "Discard draft",
+      label: translate("Discard draft"),
       icon: "trash",
       destructive: true,
       separatorBefore: true,

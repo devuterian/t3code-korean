@@ -180,7 +180,7 @@ function SegmentPopover({
         ) : null}
       </div>
       <div className="flex flex-col gap-1 border-t border-border/60 pt-2.5">
-        {account.plan ? <Row label="Plan">{account.plan}</Row> : null}
+        {account.plan ? <Row label={t("Plan")}>{account.plan}</Row> : null}
         {where ? (
           <Row label={account.environments.length > 0 ? t("Signed in") : t("Via")}>{where}</Row>
         ) : null}
@@ -193,7 +193,11 @@ function SegmentPopover({
             {resetsIn ? ` · ${resetsIn.replace("resets in ", "in ")}` : ""}
           </Row>
         ) : null}
-        {timeLeft !== null ? <Row label={t("Even pace")}>{timeLeft}% left by now</Row> : null}
+        {timeLeft !== null ? (
+          <Row label={t("Even pace")}>
+            {t("{percent}% left by now").replace("{percent}", () => String(timeLeft))}
+          </Row>
+        ) : null}
         {reset && reset.restoresPercent > 0 ? (
           <Row label={t("Restores")}>{t(`+${reset.restoresPercent}% of pool`)}</Row>
         ) : null}

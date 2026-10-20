@@ -2784,7 +2784,7 @@ export default function ChatView(props: ChatViewProps) {
     } catch (error) {
       toastManager.add({
         type: "error",
-        title: translate("Could not download " + attachment.name),
+        title: translate("Could not download {name}").replace("{name}", () => attachment.name),
         description:
           error instanceof Error ? error.message : translate("The attachment is unavailable."),
       });
@@ -6446,12 +6446,17 @@ export default function ChatView(props: ChatViewProps) {
       environmentId,
     })[0];
     if (strandedThread) {
-      const owner = environmentById.get(strandedThread.environmentId)?.label ?? "its machine";
+      const owner =
+        environmentById.get(strandedThread.environmentId)?.label ?? translate("its machine");
       toastManager.add(
         stackedThreadToast({
           type: "warning",
           title: translate("Attached thread is on another machine"),
-          description: `This machine's agent can't read "${strandedThread.title}". Remove it, or switch back to ${owner} to send.`,
+          description: translate(
+            "This machine's agent can't read \"{thread}\". Remove it, or switch back to {machine} to send.",
+          )
+            .replace("{thread}", () => strandedThread.title)
+            .replace("{machine}", () => owner),
         }),
       );
       return;

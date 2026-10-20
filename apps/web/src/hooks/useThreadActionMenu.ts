@@ -46,13 +46,14 @@ import { useCopyToClipboard } from "./useCopyToClipboard";
 import { useNewThreadHandler } from "./useHandleNewThread";
 import { useClientSettings } from "./useSettings";
 import { useThreadActions } from "./useThreadActions";
+import { translate } from "../i18n/translate";
 
 function failureToast(title: string, error: unknown) {
   toastManager.add(
     stackedThreadToast({
       type: "error",
-      title,
-      description: error instanceof Error ? error.message : "An error occurred.",
+      title: translate(title),
+      description: error instanceof Error ? error.message : translate("An error occurred."),
     }),
   );
 }
@@ -93,20 +94,24 @@ export function useThreadActionMenu(input: {
   const timestampFormat = useClientSettings((s) => s.timestampFormat);
   const { copyToClipboard: copyPathToClipboard } = useCopyToClipboard<{ path: string }>({
     onCopy: ({ path }) => {
-      toastManager.add({ type: "success", title: "Path copied", description: path });
+      toastManager.add({ type: "success", title: translate("Path copied"), description: path });
     },
     onError: (error) => failureToast("Failed to copy path", error),
   });
   const { copyToClipboard: copyBranchToClipboard } = useCopyToClipboard<{ branch: string }>({
     target: "branch name",
     onCopy: ({ branch }) => {
-      toastManager.add({ type: "success", title: "Branch copied", description: branch });
+      toastManager.add({ type: "success", title: translate("Branch copied"), description: branch });
     },
     onError: (error) => failureToast("Failed to copy branch", error),
   });
   const { copyToClipboard: copyThreadIdToClipboard } = useCopyToClipboard<{ threadId: ThreadId }>({
     onCopy: ({ threadId }) => {
-      toastManager.add({ type: "success", title: "Thread ID copied", description: threadId });
+      toastManager.add({
+        type: "success",
+        title: translate("Thread ID copied"),
+        description: threadId,
+      });
     },
     onError: (error) => failureToast("Failed to copy thread ID", error),
   });
@@ -151,7 +156,7 @@ export function useThreadActionMenu(input: {
       ) {
         failureToast(
           "Thread action unavailable",
-          new Error("This connection cannot change threads."),
+          new Error(translate("This connection cannot change threads.")),
         );
         return;
       }
@@ -249,8 +254,8 @@ export function useThreadActionMenu(input: {
             toastManager.add(
               stackedThreadToast({
                 type: "error",
-                title: "Path unavailable",
-                description: "This thread does not have a workspace path to copy.",
+                title: translate("Path unavailable"),
+                description: translate("This thread does not have a workspace path to copy."),
               }),
             );
             return;
@@ -269,7 +274,9 @@ export function useThreadActionMenu(input: {
         case "archive": {
           if (confirmThreadArchive) {
             const confirmed = await settlePromise(() =>
-              api.dialogs.confirm(`Archive thread "${thread.title}"?`),
+              api.dialogs.confirm(
+                translate('Archive thread "{title}"?').replace("{title}", () => thread.title),
+              ),
             );
             if (confirmed._tag === "Failure" || !confirmed.value) return;
           }
@@ -292,8 +299,8 @@ export function useThreadActionMenu(input: {
             const confirmed = await settlePromise(() =>
               api.dialogs.confirm(
                 [
-                  `Delete thread "${thread.title}"?`,
-                  "This permanently clears conversation history for this thread.",
+                  translate('Delete thread "{title}"?').replace("{title}", () => thread.title),
+                  translate("This permanently clears conversation history for this thread."),
                 ].join("\n"),
                 { variant: "destructive" },
               ),

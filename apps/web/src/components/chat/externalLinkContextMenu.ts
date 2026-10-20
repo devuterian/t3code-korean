@@ -1,5 +1,7 @@
 import type { ContextMenuItem } from "@t3tools/contracts";
 
+import { translate } from "~/i18n/translate";
+
 export type ExternalLinkContextMenuAction =
   | "open-in-preview"
   | "open-external"
@@ -33,15 +35,18 @@ function externalLinkContextMenuItems(options: {
   readonly canOpenInPreview: boolean;
   readonly threadLinkAction?: "link-to-thread" | "unlink-from-thread" | undefined;
 }): readonly ContextMenuItem<ExternalLinkContextMenuAction>[] {
-  const items = options.canOpenInPreview
-    ? EXTERNAL_LINK_CONTEXT_MENU_ITEMS
-    : EXTERNAL_LINK_CONTEXT_MENU_ITEMS.filter((item) => item.id !== "open-in-preview");
+  const items = (
+    options.canOpenInPreview
+      ? EXTERNAL_LINK_CONTEXT_MENU_ITEMS
+      : EXTERNAL_LINK_CONTEXT_MENU_ITEMS.filter((item) => item.id !== "open-in-preview")
+  ).map((item) => ({ ...item, label: translate(item.label) }));
   if (options.threadLinkAction === undefined) return items;
   return [
     {
       id: options.threadLinkAction,
-      label:
+      label: translate(
         options.threadLinkAction === "link-to-thread" ? "Link to thread" : "Unlink from thread",
+      ),
     },
     ...items,
   ];

@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import Animated, { FadeIn, FadeOut, ReduceMotion } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Toast } from "../../components/ui/Toast";
+import { useTranslate } from "../../i18n/translate";
 import { MOBILE_MOTION } from "../../lib/designTokens";
 import { APP_BAR_HEIGHT } from "../../lib/layoutMetrics";
 import type { GitActionProgress } from "../../state/use-vcs-action-state";
@@ -15,6 +16,7 @@ export function GitActionProgressOverlay(props: {
 }) {
   const { progress, onDismiss } = props;
   const openPullRequest = props.onOpenPullRequest;
+  const t = useTranslate();
   const insets = useSafeAreaInsets();
   const prevPhaseRef = useRef(progress.phase);
 
@@ -54,7 +56,7 @@ export function GitActionProgressOverlay(props: {
       pointerEvents="box-none"
     >
       <Toast
-        message={progress.label ?? "Source control"}
+        message={progress.label ?? t("Source control")}
         description={progress.description ?? undefined}
         tone={
           progress.phase === "error"
@@ -64,7 +66,7 @@ export function GitActionProgressOverlay(props: {
               : "default"
         }
         busy={progress.phase === "running"}
-        action={progress.prUrl ? { label: "Open PR", onPress: handlePress } : undefined}
+        action={progress.prUrl ? { label: t("Open PR"), onPress: handlePress } : undefined}
         onDismiss={progress.phase === "running" ? undefined : onDismiss}
       />
     </Animated.View>

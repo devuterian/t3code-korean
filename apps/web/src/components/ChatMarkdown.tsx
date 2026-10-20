@@ -2627,9 +2627,10 @@ function useChatMarkdownState({
               isDesktopRenderer: window.desktopBridge !== undefined,
             }).mode !== "local-exec"
           ) {
-            description = translate(
-              `The file was not found on ${target.label} at ${error.checkedPath ?? error.resource.path}.`,
-            );
+            const missingPath = error.checkedPath ?? error.resource.path;
+            description = translate("The file was not found on {machine} at {path}.")
+              .replace("{machine}", () => target.label)
+              .replace("{path}", () => missingPath);
           }
         }
         toastManager.add(
@@ -2809,7 +2810,7 @@ function useChatMarkdownState({
         AsyncResult.failure<void, BrowserPreviewUnavailableError>(
           Cause.fail(
             new BrowserPreviewUnavailableError({
-              message: "Environment is not connected.",
+              message: translate("Environment is not connected."),
             }),
           ),
         ),

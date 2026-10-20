@@ -11,6 +11,7 @@ import type {
 import { scopedThreadKey } from "@t3tools/client-runtime/environment";
 import { lazy, Suspense } from "react";
 import type { ComposerImageAttachment, DraftId } from "../../composerDraftStore";
+import { useTranslate } from "../../i18n/translate";
 import type { ShortcutMatchContext } from "../../keybindings";
 import { type RightPanelSurface, useRightPanelStore } from "../../rightPanelStore";
 import {
@@ -78,6 +79,7 @@ export function RightPanelSurfaceContent(props: {
   readonly pullRequest: RightPanelPullRequestProps;
   readonly files: RightPanelFileProps;
 }) {
+  const t = useTranslate();
   const { surface, threadRef, visible } = props;
   if (surface === null) return null;
   switch (surface.kind) {
@@ -122,7 +124,7 @@ export function RightPanelSurfaceContent(props: {
         return (
           <PullRequestsUnavailableState
             title="Pull requests unavailable"
-            error="Update this environment's T3 Code server to browse pull requests."
+            error={t("Update this environment's T3 Code server to browse pull requests.")}
           />
         );
       }

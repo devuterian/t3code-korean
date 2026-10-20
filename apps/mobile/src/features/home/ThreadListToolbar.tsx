@@ -18,6 +18,7 @@ import { useHardwareKeyboardCommand } from "../keyboard/hardwareKeyboardCommands
 import { WorkspaceListToolbarRow } from "../workspace/WorkspaceListToolbarRow";
 import { useWorkspaceConnectionState } from "../../state/workspace";
 import { useToolbarLayout } from "../../components/ui/useToolbarLayout";
+import { useTranslate } from "../../i18n/translate";
 
 /** One toolbar height for the compact list and expanded sidebar, including search. */
 export function ThreadListToolbar(props: {
@@ -31,6 +32,7 @@ export function ThreadListToolbar(props: {
   readonly onLayout?: (event: LayoutChangeEvent) => void;
   readonly onRequestVisibility?: () => void;
 }) {
+  const t = useTranslate();
   const navigation = useNavigation();
   const workspace = useWorkspaceTabs();
   const isTabActive = workspace?.isTabActive;
@@ -81,9 +83,9 @@ export function ThreadListToolbar(props: {
   const searchField = (
     <SearchField
       inputRef={searchRef}
-      accessibilityLabel="Search threads"
-      clearAccessibilityLabel="Clear search"
-      placeholder="Search"
+      accessibilityLabel={t("Search threads")}
+      clearAccessibilityLabel={t("Clear search")}
+      placeholder={t("Search")}
       value={props.searchQuery}
       onChangeText={onSearchQueryChange}
     />
@@ -92,7 +94,7 @@ export function ThreadListToolbar(props: {
     <AndroidAnchoredMenu actions={props.filterActions} onPressAction={props.onFilterAction}>
       {(open) => (
         <AndroidHeaderIconButton
-          accessibilityLabel="Filter threads"
+          accessibilityLabel={t("Filter threads")}
           icon={filterIcon}
           onPress={open}
         />
@@ -111,8 +113,8 @@ export function ThreadListToolbar(props: {
         searchField={searchField}
         onCloseSearch={closeSearch}
         onOpenSearch={openSearch}
-        searchAccessibilityLabel="Search threads"
-        titleAccessibilityLabel="T3 Code, Threads"
+        searchAccessibilityLabel={t("Search threads")}
+        titleAccessibilityLabel={t("T3 Code, Threads")}
         onOpenEnvironments={props.onOpenEnvironments}
         filter={filterButton}
       />

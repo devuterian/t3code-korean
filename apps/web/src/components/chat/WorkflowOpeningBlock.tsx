@@ -14,6 +14,7 @@ import type {
 import { ChevronRightIcon, WorkflowIcon } from "lucide-react";
 import { useState } from "react";
 
+import { useTranslate } from "../../i18n/translate";
 import { cn } from "../../lib/utils";
 import { providersIgnoringCheckedAtAtom } from "../../state/server";
 import ChatMarkdown from "../ChatMarkdown";
@@ -41,6 +42,7 @@ export function WorkflowOpeningBlock(props: {
   readonly environmentId: EnvironmentId;
   readonly onOpenThread: (threadId: string) => void;
 }) {
+  const t = useTranslate();
   const { opening } = props;
   const providers = useAtomValue(providersIgnoringCheckedAtAtom(props.environmentId));
   const headline = workflowOpeningHeadline(opening);
@@ -59,14 +61,14 @@ export function WorkflowOpeningBlock(props: {
     );
   return (
     <section
-      aria-label={`Workflow started: ${headline.title}`}
+      aria-label={t("Workflow started: {title}").replace("{title}", () => headline.title)}
       className="flex min-w-0 flex-col gap-3 px-1 py-0.5"
       data-workflow-opening
     >
       <header className="flex min-w-0 items-start gap-2">
         <WorkflowIcon aria-hidden className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <p className="text-2xs font-medium text-muted-foreground">Workflow started</p>
+          <p className="text-2xs font-medium text-muted-foreground">{t("Workflow started")}</p>
           <h3 className="truncate text-sm font-medium text-foreground" data-thread-find-text="true">
             {headline.title}
           </h3>
@@ -83,7 +85,10 @@ export function WorkflowOpeningBlock(props: {
         ) : null}
       </header>
       {phases.map((phase) => (
-        <section key={phase.index} aria-label={`${phase.title} phase`}>
+        <section
+          key={phase.index}
+          aria-label={t("{title} phase").replace("{title}", () => phase.title)}
+        >
           <h4 className="flex items-baseline gap-2 px-2 pb-0.5 text-2xs font-medium text-muted-foreground">
             <span className="min-w-0 truncate" data-thread-find-text="true">
               {phase.title}
@@ -112,6 +117,7 @@ function WorkflowMemberRow(props: {
   readonly driver: ProviderDriverKind | undefined;
   readonly onOpenThread: (threadId: string) => void;
 }) {
+  const t = useTranslate();
   const { member } = props;
   const threadId = member.childThreadId;
   const failed = member.status === "failed";
@@ -136,7 +142,7 @@ function WorkflowMemberRow(props: {
             ) : (
               <button
                 type="button"
-                aria-label={`Open ${member.title}`}
+                aria-label={t("Open {title}").replace("{title}", () => member.title)}
                 aria-description={member.status}
                 onClick={() => props.onOpenThread(threadId)}
                 className={cn(
@@ -204,6 +210,7 @@ function WorkflowMemberRow(props: {
 
 /** The script as highlighted code, folded like a long message until opened or found. */
 function WorkflowScript(props: { readonly script: string }) {
+  const t = useTranslate();
   const [expanded, setExpanded] = useState(false);
   const revealRef = findRevealRef(() => setExpanded(true));
   const canFold = shouldCollapseUserMessage(props.script);
@@ -233,7 +240,7 @@ function WorkflowScript(props: { readonly script: string }) {
             data-scroll-anchor-ignore
             onClick={() => setExpanded((value) => !value)}
           >
-            {expanded ? "Show less" : "Show full script"}
+            {expanded ? t("Show less") : t("Show full script")}
           </Button>
         </div>
       ) : null}

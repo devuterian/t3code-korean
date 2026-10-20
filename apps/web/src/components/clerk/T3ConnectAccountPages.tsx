@@ -3,6 +3,7 @@ import { ServerIcon, SmartphoneIcon } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { createPortal } from "react-dom";
 
+import { translate } from "../../i18n/translate";
 import { MobileClientsUserProfilePage } from "./MobileClientsUserProfilePage";
 import { T3ConnectUserProfilePage } from "./T3ConnectUserProfilePage";
 
@@ -41,7 +42,7 @@ export function useT3ConnectAccountPage(): {
     clerk.openUserProfile({
       __experimental_startPath: "/t3-connect",
       customPages: T3_CONNECT_ACCOUNT_PAGES.map((page) => ({
-        label: page.label,
+        label: translate(page.label),
         url: page.url,
         mount: (element: HTMLDivElement) => setTarget(`content:${page.url}`, element),
         unmount: () => setTarget(`content:${page.url}`, undefined),

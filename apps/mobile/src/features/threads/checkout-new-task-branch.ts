@@ -70,7 +70,9 @@ export async function checkoutNewTaskBranch<E>(input: {
         return AsyncResult.failure(
           Cause.fail(
             new Error(
-              "The server did not report whether this project is at the repository root, so this worktree cannot be reused safely. Update the server or choose another branch.",
+              translate(
+                "The server did not report whether this project is at the repository root, so this worktree cannot be reused safely. Update the server or choose another branch.",
+              ),
             ),
           ),
         );
@@ -79,7 +81,9 @@ export async function checkoutNewTaskBranch<E>(input: {
         return AsyncResult.failure(
           Cause.fail(
             new Error(
-              "This project is a repository subdirectory. Choose another branch or add the repository root as a project to reuse this worktree.",
+              translate(
+                "This project is a repository subdirectory. Choose another branch or add the repository root as a project to reuse this worktree.",
+              ),
             ),
           ),
         );

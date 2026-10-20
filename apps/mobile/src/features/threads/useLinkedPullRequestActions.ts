@@ -17,6 +17,7 @@ import * as Clipboard from "expo-clipboard";
 import { useCallback, useMemo } from "react";
 
 import * as Dialog from "../../components/ui/Dialog";
+import { useTranslate } from "../../i18n/translate";
 import { tryOpenExternalUrl } from "../../lib/openExternalUrl";
 import type { MenuProps } from "../../components/ui/Menu.types";
 import type { EnvironmentRuntimeState } from "../../state/remote-runtime-types";
@@ -32,6 +33,7 @@ export function useLinkedPullRequestActions(input: {
   readonly runtime: EnvironmentRuntimeState | null;
 }) {
   const { thread, project, runtime } = input;
+  const t = useTranslate();
   const capabilities = runtime?.serverConfig?.environment.capabilities;
   const canOperate = useEnvironmentScope(
     thread?.environmentId ?? null,
@@ -55,9 +57,9 @@ export function useLinkedPullRequestActions(input: {
       const result = await pending;
       if (result._tag === "Success" || isAtomCommandInterrupted(result)) return;
       const cause = squashAtomCommandFailure(result);
-      Dialog.alert(failureTitle, cause instanceof Error ? cause.message : "Try again.");
+      Dialog.alert(failureTitle, cause instanceof Error ? cause.message : t("Try again."));
     },
-    [],
+    [t],
   );
 
   const setLinked = useCallback(
@@ -76,22 +78,22 @@ export function useLinkedPullRequestActions(input: {
       if (mutation === null || mutation.type === "thread.meta.update") return;
       const environmentId = thread.environmentId;
       void run(
-        linked ? "Couldn't link this pull request" : "Couldn't unlink this pull request",
+        linked ? t("Couldn't link this pull request") : t("Couldn't unlink this pull request"),
         mutation.type === "thread.pull-request.link"
           ? link({ environmentId, input: mutation.input })
           : unlink({ environmentId, input: mutation.input }),
       );
     },
-    [capabilities, link, run, thread, unlink],
+    [capabilities, link, run, t, thread, unlink],
   );
 
   const promptLink = useCallback(() => {
     Dialog.prompt({
-      title: "Link pull request",
-      message: "Paste a pull request URL, or enter 123 / #123 for this thread's repository.",
-      placeholder: "Pull request URL or #42",
+      title: t("Link pull request"),
+      message: t("Paste a pull request URL, or enter 123 / #123 for this thread's repository."),
+      placeholder: t("Pull request URL or #42"),
       initialValue: "",
-      confirmText: "Link",
+      confirmText: t("Link"),
       onConfirm: (reference) => {
         const resolved = resolveLinkPullRequestInput({
           reference,
@@ -99,30 +101,33 @@ export function useLinkedPullRequestActions(input: {
           hasProject: () => true,
         });
         if (resolved === null) {
-          Dialog.alert("Couldn't link this pull request", "Use a pull request URL, 123, or #123.");
+          Dialog.alert(
+            t("Couldn't link this pull request"),
+            t("Use a pull request URL, 123, or #123."),
+          );
           return;
         }
         if ("error" in resolved) {
-          Dialog.alert("Couldn't link this pull request", resolved.error);
+          Dialog.alert(t("Couldn't link this pull request"), resolved.error);
           return;
         }
         setLinked(resolved.link, true);
       },
     });
-  }, [project, setLinked]);
+  }, [project, setLinked, t]);
 
   const menuActions = useCallback(
     (link: ThreadPullRequestLink): MenuAction[] => {
       const open = link.snapshot === null || link.snapshot.state === "open";
       const watching = link.watch !== undefined;
       return [
-        { id: "copy", title: "Copy link", image: "link" },
-        { id: "browser", title: "Open in browser", image: "safari" },
+        { id: "copy", title: t("Copy link"), image: "link" },
+        { id: "browser", title: t("Open in browser"), image: "safari" },
         ...((watching ? canWatch : canStartWatch) && open
           ? [
               {
                 id: "watch",
-                title: watching ? "Stop watching" : "Watch for changes",
+                title: watching ? t("Stop watching") : t("Watch for changes"),
                 image: watching ? "eye.slash" : "eye",
               },
             ]
@@ -131,7 +136,7 @@ export function useLinkedPullRequestActions(input: {
           ? [
               {
                 id: "unlink",
-                title: link.source === "stack" ? "Dismiss from thread" : "Unlink from thread",
+                title: link.source === "stack" ? t("Dismiss from thread") : t("Unlink from thread"),
                 image: "xmark",
                 attributes: { destructive: true },
               },
@@ -139,7 +144,7 @@ export function useLinkedPullRequestActions(input: {
           : []),
       ];
     },
-    [canEdit, canStartWatch, canWatch],
+    [canEdit, canStartWatch, canWatch, t],
   );
 
   const onMenuAction = useCallback(
@@ -147,11 +152,12 @@ export function useLinkedPullRequestActions(input: {
       if (action === "copy") void Clipboard.setStringAsync(link.url);
       else if (action === "browser")
         void tryOpenExternalUrl(link.url, "pull-request").then((opened) => {
-          if (!opened) Dialog.alert("Unable to open PR", "The pull request could not be opened.");
+          if (!opened)
+            Dialog.alert(t("Unable to open PR"), t("The pull request could not be opened."));
         });
       else if (action === "watch" && thread !== null)
         void run(
-          "Couldn't change watching",
+          t("Couldn't change watching"),
           watch({
             environmentId: thread.environmentId,
             input: {
@@ -165,7 +171,7 @@ export function useLinkedPullRequestActions(input: {
         );
       else if (action === "unlink") setLinked(link, false);
     },
-    [run, setLinked, thread, watch],
+    [run, setLinked, t, thread, watch],
   );
 
   return useMemo(

@@ -213,8 +213,12 @@ export function usePullRequestCloseBatch(onClosed: (entry: EnvironmentPullReques
       type: failures.length > 0 ? "error" : "success",
       title:
         failures.length > 0
-          ? `Closed ${closed} of ${batch.length} pull requests`
-          : `Closed ${closed} pull request${closed === 1 ? "" : "s"}`,
+          ? translate("Closed {closed} of {total} pull requests")
+              .replace("{closed}", () => String(closed))
+              .replace("{total}", () => String(batch.length))
+          : translate(
+              closed === 1 ? "Closed {count} pull request" : "Closed {count} pull requests",
+            ).replace("{count}", () => String(closed)),
       ...(failures.length > 0 ? { description: failures.slice(0, 3).join("\n") } : {}),
     });
   };

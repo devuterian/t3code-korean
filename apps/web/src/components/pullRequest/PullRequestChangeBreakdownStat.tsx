@@ -2,6 +2,7 @@ import { formatDiffCount } from "@t3tools/client-runtime/diff-count";
 import type { EnvironmentId, PullRequestChangeBreakdown, PullRequestRef } from "@t3tools/contracts";
 import { useState } from "react";
 
+import { useTranslate } from "~/i18n/translate";
 import { pullRequestEnvironment } from "~/state/pullRequests";
 import { useEnvironmentQuery } from "~/state/query";
 
@@ -38,6 +39,7 @@ export function PullRequestChangeBreakdownStat({
   className: string;
   eager?: boolean;
 }) {
+  const t = useTranslate();
   const [requested, setRequested] = useState(eager);
   const query = useEnvironmentQuery(
     requested ? pullRequestEnvironment.changeBreakdown({ environmentId, input: reference }) : null,
@@ -64,7 +66,7 @@ export function PullRequestChangeBreakdownStat({
           <ChangeBreakdownGrid breakdown={breakdown} total={{ additions, deletions }} />
         </TooltipPopup>
       ) : query.isPending ? (
-        <TooltipPopup side="bottom">Loading breakdown</TooltipPopup>
+        <TooltipPopup side="bottom">{t("Loading breakdown")}</TooltipPopup>
       ) : null}
     </Tooltip>
   );
@@ -125,9 +127,10 @@ function ChangeBreakdownGrid({
 }
 
 function BreakdownRow({ label, additions, deletions }: DiffTotals & { label: string }) {
+  const t = useTranslate();
   return (
     <>
-      <span className="font-sans">{label}</span>
+      <span className="font-sans">{t(label)}</span>
       <span className="text-right text-diff-addition-foreground">
         +{formatDiffCount(additions)}
       </span>

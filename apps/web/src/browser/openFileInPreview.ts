@@ -17,6 +17,7 @@ import { AsyncResult } from "effect/reactivity";
 
 import { resolveAssetUrl } from "~/assets/assetUrls";
 import { isPreviewAvailableFor, previewRuntimeFor } from "~/browser/previewRuntime";
+import { translate } from "~/i18n/translate";
 import {
   applyPreviewServerSnapshot,
   readThreadPreviewState,
@@ -45,7 +46,7 @@ export class BrowserSettingsReadError extends Data.TaggedError("BrowserSettingsR
   readonly cause: unknown;
 }> {
   override get message(): string {
-    return "Saved browser settings could not be loaded.";
+    return translate("Saved browser settings could not be loaded.");
   }
 }
 
@@ -125,7 +126,7 @@ export async function openFileInPreview<AssetError, PreviewError>(input: {
     return AsyncResult.failure(
       Cause.fail(
         new BrowserPreviewUnavailableError({
-          message: "The integrated browser is unavailable in this runtime.",
+          message: translate("The integrated browser is unavailable in this runtime."),
         }),
       ),
     );

@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 
+import { useTranslate } from "~/i18n/translate";
 import { observeResize } from "~/lib/observeResize";
 
 export function DraftHeroProjectHeading({
@@ -9,6 +10,12 @@ export function DraftHeroProjectHeading({
   children: ReactNode;
   projectName: string;
 }) {
+  const t = useTranslate();
+  // The inline sentence wraps the project slot; Korean puts the project first.
+  const sentence = t("What should we build in {project}?");
+  const slotIndex = sentence.indexOf("{project}");
+  const beforeProject = (slotIndex < 0 ? sentence : sentence.slice(0, slotIndex)).trim();
+  const afterProject = slotIndex < 0 ? "" : sentence.slice(slotIndex + "{project}".length);
   const containerRef = useRef<HTMLDivElement>(null);
   const inlineRef = useRef<HTMLSpanElement>(null);
   const [fitsInline, setFitsInline] = useState(false);
@@ -38,21 +45,27 @@ export function DraftHeroProjectHeading({
           ref={inlineRef}
           className="flex w-max items-baseline gap-2 whitespace-nowrap font-normal text-3xl tracking-tight"
         >
-          <span>What should we build in</span>
+          {beforeProject ? <span>{beforeProject}</span> : null}
           <span>
-            <span className="font-medium">{projectName}</span>?
+            <span className="font-medium">{projectName}</span>
+            {afterProject}
           </span>
         </span>
       </span>
       <h1 className="flex w-full flex-col items-center justify-center gap-2 text-center font-normal text-2xl text-foreground tracking-tight sm:text-3xl lg:group-data-[inline=true]/draft-hero:flex-row">
-        <span className="max-w-full lg:group-data-[inline=true]/draft-hero:shrink-0">
-          What should we build
-          <span className="lg:group-data-[inline=true]/draft-hero:hidden">?</span>
-          <span className="hidden lg:group-data-[inline=true]/draft-hero:inline"> in</span>
+        <span className="max-w-full lg:group-data-[inline=true]/draft-hero:hidden">
+          {t("What should we build?")}
         </span>
+        {beforeProject ? (
+          <span className="hidden max-w-full shrink-0 lg:group-data-[inline=true]/draft-hero:inline">
+            {beforeProject}
+          </span>
+        ) : null}
         <span className="flex min-w-0 max-w-full items-baseline justify-center text-base tracking-normal lg:group-data-[inline=true]/draft-hero:text-3xl lg:group-data-[inline=true]/draft-hero:tracking-tight">
           <span className="min-w-0">{children}</span>
-          <span className="hidden shrink-0 lg:group-data-[inline=true]/draft-hero:inline">?</span>
+          <span className="hidden shrink-0 lg:group-data-[inline=true]/draft-hero:inline">
+            {afterProject}
+          </span>
         </span>
       </h1>
     </div>

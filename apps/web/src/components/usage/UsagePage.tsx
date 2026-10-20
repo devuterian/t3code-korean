@@ -824,8 +824,8 @@ function UsageOverview({
                   )}
                 >
                   {metric === "cost"
-                    ? `${formatPercent(share)} of cost · ${formatTokens(totals?.totalTokens ?? 0)} tokens`
-                    : `${formatPercent(share)} of tokens · ${formatUsd(totals?.costUsd ?? 0)}`}
+                    ? `${t("{percent} of cost").replace("{percent}", () => formatPercent(share))} · ${t("{count} tokens").replace("{count}", () => formatTokens(totals?.totalTokens ?? 0))}`
+                    : `${t("{percent} of tokens").replace("{percent}", () => formatPercent(share))} · ${formatUsd(totals?.costUsd ?? 0)}`}
                 </span>
               </div>
             );
@@ -834,7 +834,15 @@ function UsageOverview({
 
         <div className="flex min-w-0 flex-col gap-3">
           <h2 className="text-sm font-medium text-foreground">
-            {shownHourly ? "Hourly" : "Daily"} {metric === "tokens" ? "processed tokens" : "cost"}
+            {t(
+              shownHourly
+                ? metric === "tokens"
+                  ? "Hourly processed tokens"
+                  : "Hourly cost"
+                : metric === "tokens"
+                  ? "Daily processed tokens"
+                  : "Daily cost",
+            )}
           </h2>
           <UsageProviderChart
             providers={activeProviders}

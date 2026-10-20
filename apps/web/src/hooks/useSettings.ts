@@ -601,6 +601,16 @@ function useSharedSettingsSyncTargetIds(includePending = false): ReadonlyArray<E
   });
 }
 
+function couldNotSaveOn(label: string, error: unknown): string {
+  return translate("Could not save on {label}: {message}")
+    .replace("{label}", () => label)
+    .replace("{message}", () =>
+      error instanceof Error
+        ? error.message
+        : translate("The save failed. Try reconnecting and saving again."),
+    );
+}
+
 function useUpdateSettingsTarget(environmentId: EnvironmentId | null) {
   useEnvironmentScope(environmentId, AuthSettingsWriteScope);
   const persist = useAtomCommand(serverEnvironment.updateSettings, {
@@ -617,8 +627,8 @@ function useUpdateSettingsTarget(environmentId: EnvironmentId | null) {
       const error = squashAtomCommandFailure(result);
       toastManager.add({
         type: "error",
-        title: "Setting not saved",
-        description: `Could not save on ${label}: ${error instanceof Error ? error.message : "The save failed. Try reconnecting and saving again."}`,
+        title: translate("Setting not saved"),
+        description: couldNotSaveOn(label, error),
       });
     }
     return result;
@@ -635,17 +645,24 @@ function useUpdateSettingsTarget(environmentId: EnvironmentId | null) {
     if (Object.keys(serverPatch).length > 0 && !canWriteServerPatch) {
       toastManager.add({
         type: "warning",
-        title: "Setting not saved",
-        description: `This connection lacks permission to change settings on ${environments.find((target) => target.environmentId === environmentId)?.label ?? "the selected environment"}.`,
+        title: translate("Setting not saved"),
+        description: translate(
+          "This connection lacks permission to change settings on {environment}.",
+        ).replace(
+          "{environment}",
+          () =>
+            environments.find((target) => target.environmentId === environmentId)?.label ??
+            translate("the selected environment"),
+        ),
       });
     }
     if (Object.keys(serverPatch).length > 0 && canWriteServerPatch) {
       const { sharedPatch, localPatch } = splitSharedServerPatch(serverPatch);
       // Dropping the write silently leaves the control looking saved.
-      const warnUnsaved = (description = PRIMARY_SETTINGS_UNAVAILABLE_MESSAGE) =>
+      const warnUnsaved = (description = translate(PRIMARY_SETTINGS_UNAVAILABLE_MESSAGE)) =>
         toastManager.add({
           type: "warning",
-          title: "Setting not saved",
+          title: translate("Setting not saved"),
           description,
         });
       if (Object.keys(localPatch).length > 0) {
@@ -695,9 +712,11 @@ function useUpdateSettingsTarget(environmentId: EnvironmentId | null) {
         if (writes.length === 0) {
           warnUnsaved(
             deniedLabels.length > 0
-              ? `This connection lacks permission to change settings on ${deniedLabels.join(", ")}.`
+              ? translate(
+                  "This connection lacks permission to change settings on {environment}.",
+                ).replace("{environment}", () => deniedLabels.join(", "))
               : targets.size > 0
-                ? "Update older servers to save this setting."
+                ? translate("Update older servers to save this setting.")
                 : undefined,
           );
         } else {
@@ -712,9 +731,7 @@ function useUpdateSettingsTarget(environmentId: EnvironmentId | null) {
             const failures = outcomes.flatMap(({ label, result }) => {
               if (result._tag !== "Failure" || isAtomCommandInterrupted(result)) return [];
               const error = squashAtomCommandFailure(result);
-              return [
-                `Could not save on ${label}: ${error instanceof Error ? error.message : "The save failed. Try reconnecting and saving again."}`,
-              ];
+              return [couldNotSaveOn(label, error)];
             });
             if (failures.length === 0) return;
             const saved = outcomes
@@ -722,10 +739,19 @@ function useUpdateSettingsTarget(environmentId: EnvironmentId | null) {
               .map(({ label }) => label);
             toastManager.add({
               type: "error",
-              title: saved.length > 0 ? "Setting saved on some environments" : "Setting not saved",
+              title:
+                saved.length > 0
+                  ? translate("Setting saved on some environments")
+                  : translate("Setting not saved"),
               description: [
                 ...failures,
-                ...(saved.length > 0 ? [`Saved on ${saved.join(", ")}.`] : []),
+                ...(saved.length > 0
+                  ? [
+                      translate("Saved on {environments}.").replace("{environments}", () =>
+                        saved.join(", "),
+                      ),
+                    ]
+                  : []),
               ].join("\n"),
             });
           });

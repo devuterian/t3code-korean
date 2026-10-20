@@ -28,6 +28,7 @@ import {
 import { useShallow } from "zustand/react/shallow";
 import { DraftId, useComposerDraftStore } from "../../composerDraftStore";
 import { useStableCallback } from "../../hooks/useStableCallback";
+import { translate } from "../../i18n/translate";
 import { getUploadedAttachments, useAttachmentUploadStore } from "../../lib/attachmentUploadQueue";
 import {
   buildPendingUserInputAnswers,
@@ -324,7 +325,7 @@ export function usePendingThreadRequests(input: {
       const error = squashAtomCommandFailure(result);
       setThreadError(
         activeThreadId,
-        error instanceof Error ? error.message : "Failed to submit approval decision.",
+        error instanceof Error ? error.message : translate("Failed to submit approval decision."),
       );
     }
     setRespondingRequestIds((existing) => existing.filter((id) => id !== requestId));
@@ -363,7 +364,7 @@ export function usePendingThreadRequests(input: {
       if (!uploaded) {
         setThreadError(
           activeThreadId,
-          "Wait for attachments to finish uploading, or remove failed uploads.",
+          translate("Wait for attachments to finish uploading, or remove failed uploads."),
         );
         return;
       }
@@ -389,7 +390,7 @@ export function usePendingThreadRequests(input: {
       const error = squashAtomCommandFailure(result);
       setThreadError(
         activeThreadId,
-        error instanceof Error ? error.message : "Failed to submit user input.",
+        error instanceof Error ? error.message : translate("Failed to submit user input."),
       );
     }
     userInputResponsesInFlight.current.delete(responseKey);
@@ -413,7 +414,7 @@ export function usePendingThreadRequests(input: {
       const error = squashAtomCommandFailure(result);
       setThreadError(
         activeThreadId,
-        error instanceof Error ? error.message : "Failed to dismiss the question.",
+        error instanceof Error ? error.message : translate("Failed to dismiss the question."),
       );
     }
     setRespondingUserInputRequestIds((existing) => existing.filter((id) => id !== requestId));

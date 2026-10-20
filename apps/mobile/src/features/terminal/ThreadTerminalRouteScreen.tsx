@@ -1220,9 +1220,12 @@ export function ThreadTerminalRouteScreen(props: ThreadTerminalRouteScreenProps)
             />
           ) : canOperateTerminal && launchLocation === null ? (
             sessionsError !== null ? (
-              <EmptyState title="Could not load terminals" detail={sessionsError} />
+              <EmptyState title={t("Could not load terminals")} detail={sessionsError} />
             ) : (
-              <EmptyState title="Loading terminals" detail="Reading existing terminal sessions." />
+              <EmptyState
+                title={t("Loading terminals")}
+                detail={t("Reading existing terminal sessions.")}
+              />
             )
           ) : !canOperateTerminal && !hasTerminalTarget && sessionsPending ? (
             <EmptyState

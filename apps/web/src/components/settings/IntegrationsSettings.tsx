@@ -736,13 +736,13 @@ function BrowserSearchEngineSetting() {
               }
             }}
           >
-            <SelectTrigger size="sm" className="w-full sm:w-40" aria-label="Search engine">
-              <SelectValue>{SEARCH_ENGINE_LABELS[engine]}</SelectValue>
+            <SelectTrigger size="sm" className="w-full sm:w-40" aria-label={t("Search engine")}>
+              <SelectValue>{t(SEARCH_ENGINE_LABELS[engine])}</SelectValue>
             </SelectTrigger>
             <SelectPopup align="end" alignItemWithTrigger={false}>
               {BrowserSearchEngine.literals.map((literal) => (
                 <SelectItem hideIndicator key={literal} value={literal}>
-                  {SEARCH_ENGINE_LABELS[literal]}
+                  {t(SEARCH_ENGINE_LABELS[literal])}
                 </SelectItem>
               ))}
             </SelectPopup>
@@ -763,7 +763,7 @@ function BrowserSearchEngineSetting() {
               nativeInput
               size="sm"
               className="w-full sm:w-64"
-              aria-label="Custom search URL"
+              aria-label={t("Custom search URL")}
               placeholder="https://example.com/search?q=%s"
               autoCapitalize="none"
               spellCheck={false}
@@ -1112,7 +1112,7 @@ function AgentBrowserAccessSetting() {
       control={
         <ScopedSwitch
           settingKeys={["enableAgentBrowserAccess"]}
-          aria-label="Agent browser access"
+          aria-label={t("Agent browser access")}
           checked={settings.enableAgentBrowserAccess}
           onCheckedChange={(enabled) => updateSettings({ enableAgentBrowserAccess: enabled })}
         />

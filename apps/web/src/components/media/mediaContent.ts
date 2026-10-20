@@ -22,14 +22,24 @@ async function readMediaBlob(src: string): Promise<Blob> {
     response = await fetch(src);
   } catch (cause) {
     throw new Error(
-      "The file could not be fetched. The host may block browser access (CORS), or the connection may be unavailable.",
+      translate(
+        "The file could not be fetched. The host may block browser access (CORS), or the connection may be unavailable.",
+      ),
       { cause },
     );
   }
-  if (!response.ok) throw new Error(`The file could not be fetched (HTTP ${response.status}).`);
+  if (!response.ok) {
+    throw new Error(
+      translate("The file could not be fetched (HTTP {status}).").replace("{status}", () =>
+        String(response.status),
+      ),
+    );
+  }
   const blob = await response.blob();
   if (blob.type.split(";", 1)[0] === "text/html") {
-    throw new Error("This link returned a web page instead of media. Open the original URL.");
+    throw new Error(
+      translate("This link returned a web page instead of media. Open the original URL."),
+    );
   }
   return blob;
 }
@@ -103,15 +113,19 @@ export async function readMediaPng(src: string): Promise<Blob> {
   return withDecodedImage(
     blob,
     {
-      decode: "The browser could not decode this image for copying. Try saving it instead.",
-      size: "This image is too large or has no usable dimensions. Try saving it instead.",
+      decode: translate(
+        "The browser could not decode this image for copying. Try saving it instead.",
+      ),
+      size: translate(
+        "This image is too large or has no usable dimensions. Try saving it instead.",
+      ),
     },
     async (image) => {
       const canvas = document.createElement("canvas");
       canvas.width = image.naturalWidth;
       canvas.height = image.naturalHeight;
       const context = canvas.getContext("2d");
-      if (!context) throw new Error("Image copying is unavailable in this browser.");
+      if (!context) throw new Error(translate("Image copying is unavailable in this browser."));
       context.drawImage(image, 0, 0);
       return canvasToPng(canvas);
     },

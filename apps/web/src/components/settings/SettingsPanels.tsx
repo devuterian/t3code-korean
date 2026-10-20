@@ -1456,7 +1456,7 @@ export function AppearanceSettingsPanel() {
               onCheckedChange={(checked) =>
                 updateSettings({ mathRenderingEnabled: Boolean(checked) })
               }
-              aria-label="Render math"
+              aria-label={t("Render math")}
             />
           }
         />
@@ -2447,7 +2447,7 @@ export function GeneralSettingsPanel() {
               onCheckedChange={(checked) =>
                 updateSettings({ compactIdleThreads: Boolean(checked) })
               }
-              aria-label="Compact idle Claude threads (beta)"
+              aria-label={t("Compact idle Claude threads (beta)")}
             />
           }
         />

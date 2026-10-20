@@ -9,6 +9,7 @@ import { DeviceControlsRail } from "./DeviceControlsRail";
 import { DeviceStreamView, type DeviceStreamHandle } from "./DeviceStreamView";
 import { DeviceToolsPanel } from "./DeviceToolsPanel";
 import { useDeviceControls } from "./useDeviceControls";
+import { translate } from "~/i18n/translate";
 
 export function DeviceWorkspace(props: {
   environmentId: EnvironmentId;
@@ -64,7 +65,9 @@ export function DeviceWorkspace(props: {
           if (cause instanceof DeviceScreenshotError && cause.status === 401)
             refreshDeviceHubAccess(props.environmentId);
           setScreenshotError(
-            cause instanceof Error ? cause.message : "Screenshot capture failed. Try again.",
+            cause instanceof Error
+              ? cause.message
+              : translate("Screenshot capture failed. Try again."),
           );
         }
       })

@@ -10,6 +10,7 @@ import {
   AlertDialogTitle,
 } from "../ui/alert-dialog";
 import { Button, InlineButton } from "../ui/button";
+import { useTranslate } from "../../i18n/translate";
 import { useT3ConnectAccountPage } from "./T3ConnectAccountPages";
 
 export function RemoveT3ConnectEnvironmentDialog({
@@ -21,10 +22,14 @@ export function RemoveT3ConnectEnvironmentDialog({
   readonly onCancel: () => void;
   readonly onConfirm: () => void;
 }) {
+  const t = useTranslate();
   const accountPage = useT3ConnectAccountPage();
   const [shownLabel, setShownLabel] = useState(environmentLabel);
   if (environmentLabel !== null && environmentLabel !== shownLabel) setShownLabel(environmentLabel);
   const openAccountPage = accountPage.open;
+  const [deregisterBefore, deregisterAfter] = t(
+    "It stays on your T3 Connect account and keeps its host space. Deregister it in {link} to free it.",
+  ).split("{link}");
 
   return (
     <>
@@ -36,12 +41,14 @@ export function RemoveT3ConnectEnvironmentDialog({
       >
         <AlertDialogPopup>
           <AlertDialogHeader>
-            <AlertDialogTitle>Remove {shownLabel} from this device?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {t("Remove {name} from this device?").replace("{name}", () => shownLabel ?? "")}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              This forgets its pairing, credentials, and cached threads here.
+              {t("This forgets its pairing, credentials, and cached threads here.")}
             </AlertDialogDescription>
             <AlertDialogDescription>
-              It stays on your T3 Connect account and keeps its host space. Deregister it in{" "}
+              {deregisterBefore}
               {openAccountPage ? (
                 <InlineButton
                   onClick={() => {
@@ -49,18 +56,18 @@ export function RemoveT3ConnectEnvironmentDialog({
                     openAccountPage();
                   }}
                 >
-                  T3 Connect settings
+                  {t("T3 Connect settings")}
                 </InlineButton>
               ) : (
-                "T3 Connect settings"
-              )}{" "}
-              to free it.
+                t("T3 Connect settings")
+              )}
+              {deregisterAfter}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogClose render={<Button variant="outline" />}>Cancel</AlertDialogClose>
+            <AlertDialogClose render={<Button variant="outline" />}>{t("Cancel")}</AlertDialogClose>
             <Button variant="destructive" onClick={onConfirm}>
-              Remove from this device
+              {t("Remove from this device")}
             </Button>
           </AlertDialogFooter>
         </AlertDialogPopup>

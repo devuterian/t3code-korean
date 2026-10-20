@@ -444,13 +444,13 @@ export function PullRequestRouteScreen({ route }: StaticScreenProps<PullRequestP
                       onPress: () => void Linking.openURL(identity.url),
                     },
                     {
-                      accessibilityLabel: "Copy link",
+                      accessibilityLabel: t("Copy link"),
                       icon: "link" as const,
                       overflowOnly: true,
                       onPress: () => copyPullRequestLink(identity),
                     },
                     {
-                      accessibilityLabel: "Share…",
+                      accessibilityLabel: t("Share…"),
                       icon: "square.and.arrow.up" as const,
                       overflowOnly: true,
                       onPress: () => sharePullRequestLink(identity),
@@ -508,7 +508,7 @@ export function PullRequestRouteScreen({ route }: StaticScreenProps<PullRequestP
             ) : null}
             {identity ? (
               <Toolbar.MenuAction icon="link" onPress={() => copyPullRequestLink(identity)}>
-                <Toolbar.Label>Copy link</Toolbar.Label>
+                <Toolbar.Label>{t("Copy link")}</Toolbar.Label>
               </Toolbar.MenuAction>
             ) : null}
             {identity ? (
@@ -516,7 +516,7 @@ export function PullRequestRouteScreen({ route }: StaticScreenProps<PullRequestP
                 icon="square.and.arrow.up"
                 onPress={() => sharePullRequestLink(identity)}
               >
-                <Toolbar.Label>Share…</Toolbar.Label>
+                <Toolbar.Label>{t("Share…")}</Toolbar.Label>
               </Toolbar.MenuAction>
             ) : null}
             {showsDeleteBranch ? (

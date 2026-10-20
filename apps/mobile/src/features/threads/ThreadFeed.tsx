@@ -1278,7 +1278,7 @@ function renderFeedEntry(
                 <Pressable
                   key={attachment.id}
                   accessibilityRole="imagebutton"
-                  accessibilityLabel={`Open ${attachment.name}`}
+                  accessibilityLabel={t("Open {name}", { name: attachment.name })}
                   onPress={() =>
                     props.onPressPreview({
                       kind: "image",

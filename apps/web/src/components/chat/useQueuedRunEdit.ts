@@ -23,6 +23,7 @@ import {
   type ComposerThreadTarget,
 } from "../../composerDraftStore";
 import { useStableCallback } from "../../hooks/useStableCallback";
+import { translate } from "../../i18n/translate";
 import {
   awaitAttachmentUploads,
   getUploadedAttachments,
@@ -96,7 +97,8 @@ async function submitQueuedRunEdit(input: {
     await awaitAttachmentUploads(files.map((file) => file.id));
     validateFiles();
     const uploaded = getUploadedAttachments({ environmentId, images: files });
-    if (uploaded === null) throw new Error("Retry or remove failed uploads before saving.");
+    if (uploaded === null)
+      throw new Error(translate("Retry or remove failed uploads before saving."));
     return uploaded;
   };
   try {
@@ -148,9 +150,13 @@ async function submitQueuedRunEdit(input: {
         },
       },
     });
-    return result._tag === "Failure" ? "Could not save the edited queued message." : null;
+    return result._tag === "Failure"
+      ? translate("Could not save the edited queued message.")
+      : null;
   } catch (error) {
-    return error instanceof Error ? error.message : "Could not save the edited queued message.";
+    return error instanceof Error
+      ? error.message
+      : translate("Could not save the edited queued message.");
   }
 }
 
@@ -271,11 +277,11 @@ export function useQueuedRunEdit(input: {
       toastManager.add(
         stackedThreadToast({
           type: recovery === "kept" ? "info" : "warning",
-          title: "Queued message is no longer queued",
+          title: translate("Queued message is no longer queued"),
           description:
             recovery === "kept"
-              ? "Your unsaved edit was kept in the composer."
-              : "Your unsaved edit was discarded.",
+              ? translate("Your unsaved edit was kept in the composer.")
+              : translate("Your unsaved edit was discarded."),
         }),
       );
     }

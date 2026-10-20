@@ -20,6 +20,7 @@ export function T3ConnectSidebarAvatar() {
 }
 
 function ConfiguredT3ConnectSidebarAvatar() {
+  const t = useTranslate();
   const { isLoaded, isSignedIn } = useAuth();
 
   if (!isLoaded || !isSignedIn) return null;
@@ -36,7 +37,7 @@ function ConfiguredT3ConnectSidebarAvatar() {
       {T3_CONNECT_ACCOUNT_PAGES.map((page) => (
         <UserButton.UserProfilePage
           key={page.url}
-          label={page.label}
+          label={t(page.label)}
           labelIcon={page.icon}
           url={page.url}
         >

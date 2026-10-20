@@ -31,6 +31,7 @@ import { readEnvironmentScope, useEnvironmentScope } from "./session";
 import { sourceControlEnvironment } from "./sourceControl";
 import { useAtomCommand } from "./use-atom-command";
 import { vcsActionManager, vcsEnvironment } from "./vcs";
+import { translate } from "../i18n/translate";
 
 export type SourceControlActionKind =
   | "init"
@@ -99,7 +100,7 @@ function useAction<
         Cause.fail(
           new EnvironmentAuthorizationError({
             requiredScope: AuthSourceControlWriteScope,
-            message: "This connection cannot change source control.",
+            message: translate("This connection cannot change source control."),
           }),
         ),
       );
@@ -333,7 +334,7 @@ export function usePreparePullRequestThreadAction(scope: SourceControlActionScop
         Cause.fail(
           new EnvironmentAuthorizationError({
             requiredScope: AuthOrchestrationOperateScope,
-            message: "This connection cannot change threads.",
+            message: translate("This connection cannot change threads."),
           }),
         ),
       );

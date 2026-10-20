@@ -7,6 +7,7 @@ import type {
 import { scopedThreadKey } from "@t3tools/client-runtime/environment";
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { useStableCallback } from "~/hooks/useStableCallback";
+import { translate } from "~/i18n/translate";
 import { orchestrationEnvironment } from "~/state/orchestration";
 import { useEnvironmentQuery } from "~/state/query";
 import { useDebouncedValue } from "~/state/queries";
@@ -67,8 +68,8 @@ export function useThreadFind({
     if (!enabled) {
       toastManager.add({
         id: "thread-find-unavailable",
-        title: "Thread search is unavailable on this server.",
-        description: "Update the server to enable it.",
+        title: translate("Thread search is unavailable on this server."),
+        description: translate("Update the server to enable it."),
       });
       return;
     }

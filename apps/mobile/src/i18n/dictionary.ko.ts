@@ -20,6 +20,8 @@ import { KO_MERGE_V010_A } from "./ko/mergeV010a";
 import { KO_MERGE_V010_B } from "./ko/mergeV010b";
 import { KO_MERGE_V010_E } from "./ko/mergeV010e";
 import { KO_MERGE_V010_F } from "./ko/mergeV010f";
+import { KO_MERGE_1020_F } from "./ko/merge1020F";
+import { KO_MERGE_1020_G } from "./ko/merge1020G";
 import { KO_ANDROID_KOREAN } from "./ko/androidKorean";
 
 export const KO_DICTIONARY: Readonly<Record<string, string>> = {
@@ -40,5 +42,7 @@ export const KO_DICTIONARY: Readonly<Record<string, string>> = {
   ...KO_MERGE_V010_B,
   ...KO_MERGE_V010_E,
   ...KO_MERGE_V010_F,
+  ...KO_MERGE_1020_F,
+  ...KO_MERGE_1020_G,
   ...KO_ANDROID_KOREAN,
 };

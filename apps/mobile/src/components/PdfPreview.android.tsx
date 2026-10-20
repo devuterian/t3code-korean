@@ -6,8 +6,10 @@ import { FilePreviewLoading, FilePreviewNotice } from "../features/files/FilePre
 import { pdfInitialPage, pdfLinkUrl, preparePdfPreview } from "../lib/pdfPreview";
 import { tryOpenExternalUrl } from "../lib/openExternalUrl";
 import { ControlPill } from "./ui/ControlPill";
+import { translate, useTranslate } from "../i18n/translate";
 
 function NativePdfPreview(props: { readonly uri: string; readonly onRetry: () => void }) {
+  const t = useTranslate();
   const [localUri, setLocalUri] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const cached = useRef<Awaited<ReturnType<typeof preparePdfPreview>>>(null);
@@ -24,7 +26,9 @@ function NativePdfPreview(props: { readonly uri: string; readonly onRetry: () =>
       })
       .catch((cause: unknown) => {
         if (!controller.signal.aborted) {
-          setError(cause instanceof Error ? cause.message : "The PDF could not be loaded.");
+          setError(
+            cause instanceof Error ? cause.message : translate("The PDF could not be loaded."),
+          );
         }
       });
     return () => {
@@ -37,14 +41,15 @@ function NativePdfPreview(props: { readonly uri: string; readonly onRetry: () =>
   if (error) {
     return (
       <View className="flex-1 gap-4 bg-card">
-        <FilePreviewNotice title="Could not load PDF">{error}</FilePreviewNotice>
+        <FilePreviewNotice title={t("Could not load PDF")}>{error}</FilePreviewNotice>
         <View className="items-center">
-          <ControlPill label="Try again" variant="pill" onPress={props.onRetry} />
+          <ControlPill label={t("Try again")} variant="pill" onPress={props.onRetry} />
         </View>
       </View>
     );
   }
-  if (localUri === null) return <FilePreviewLoading message="Loading PDF..." background="card" />;
+  if (localUri === null)
+    return <FilePreviewLoading message={t("Loading PDF…")} background="card" />;
 
   return (
     <Pdf
@@ -61,7 +66,7 @@ function NativePdfPreview(props: { readonly uri: string; readonly onRetry: () =>
       onError={() => {
         cached.current?.dispose();
         cached.current = null;
-        setError("The PDF could not be rendered. It may be damaged or password protected.");
+        setError(t("The PDF could not be rendered. It may be damaged or password protected."));
       }}
       style={{ flex: 1, width: "100%" }}
     />

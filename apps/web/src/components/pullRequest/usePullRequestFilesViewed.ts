@@ -18,6 +18,7 @@ import {
   type FileViewedOverlay,
   type FileViewedStates,
 } from "./pullRequestFilesViewed.logic";
+import { translate } from "~/i18n/translate";
 
 const FLUSH_DELAY_MS = 400;
 
@@ -106,7 +107,7 @@ export function usePullRequestFilesViewed(options: {
         const owned = new Set(mine.filter((path) => !queued.current.has(path)));
         setOverlay((current) => revertFileViewedOverlay(current, batch, owned));
         if (owned.size > 0 && !isAtomCommandInterrupted(result)) {
-          toastManager.add({ type: "error", title: "Could not update viewed files" });
+          toastManager.add({ type: "error", title: translate("Could not update viewed files") });
           refresh();
         }
         return;

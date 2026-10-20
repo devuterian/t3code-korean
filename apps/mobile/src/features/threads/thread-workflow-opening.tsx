@@ -12,6 +12,7 @@ import { useState } from "react";
 import { Pressable, View } from "react-native";
 
 import { AppText as Text } from "../../components/ui/AppText";
+import { useTranslate } from "../../i18n/translate";
 import { environmentThreadDetails } from "../../state/threads";
 import { useAppearancePreferences } from "../settings/appearance/AppearancePreferencesProvider";
 import { useMarkdownCodeHighlight } from "./markdownCodeHighlightState";
@@ -77,6 +78,7 @@ export function ThreadWorkflowOpening(props: {
   readonly threadId: ThreadId;
   readonly opening: WorkflowOpeningValue;
 }) {
+  const t = useTranslate();
   const navigation = useNavigation();
   const { opening } = props;
   const headline = workflowOpeningHeadline(opening);
@@ -89,7 +91,7 @@ export function ThreadWorkflowOpening(props: {
       <Pressable
         key={member.id}
         accessibilityRole={threadId === null ? undefined : "link"}
-        accessibilityHint={threadId === null ? undefined : "Opens this agent's thread"}
+        accessibilityHint={threadId === null ? undefined : t("Opens this agent's thread")}
         disabled={threadId === null}
         onPress={() => {
           if (threadId !== null)
@@ -115,7 +117,9 @@ export function ThreadWorkflowOpening(props: {
       <View className="mb-5 gap-3">
         <View className="flex-row items-start gap-2">
           <View className="min-w-0 flex-1 gap-0.5">
-            <Text className="font-t3-medium text-2xs text-foreground-muted">Workflow started</Text>
+            <Text className="font-t3-medium text-2xs text-foreground-muted">
+              {t("Workflow started")}
+            </Text>
             <Text numberOfLines={1} className="font-t3-medium text-sm text-foreground">
               {headline.title}
             </Text>
@@ -148,6 +152,7 @@ export function ThreadWorkflowOpening(props: {
 
 /** The script as highlighted code; a long one shows its head until opened. */
 function WorkflowScript(props: { readonly script: string }) {
+  const t = useTranslate();
   const [expanded, setExpanded] = useState(false);
   const { themeAppearance } = useAppearancePreferences();
   const script = props.script.trimEnd();
@@ -193,7 +198,7 @@ function WorkflowScript(props: { readonly script: string }) {
           className="self-start py-1 active:opacity-70"
         >
           <Text className="font-t3-medium text-xs text-foreground-muted">
-            {expanded ? "Show less" : "Show full script"}
+            {expanded ? t("Show less") : t("Show full script")}
           </Text>
         </Pressable>
       ) : null}

@@ -51,6 +51,7 @@ import {
 import * as DateTime from "effect/DateTime";
 import * as Equal from "effect/Equal";
 import { shallow } from "zustand/vanilla/shallow";
+import { translate } from "./i18n/translate";
 
 export { formatDuration } from "@t3tools/shared/orchestrationTiming";
 export {
@@ -441,19 +442,25 @@ export function providerErrorPresentation(
     item.retry.maxAttempts === null
       ? `${item.retry.attempt}`
       : `${item.retry.attempt}/${item.retry.maxAttempts}`;
-  const label =
+  const label = translate(
     item.status === "running"
-      ? `Retrying provider (${progress})`
+      ? "Retrying provider ({progress})"
       : item.status === "completed"
-        ? `Provider recovered (${progress} retries)`
+        ? "Provider recovered ({progress} retries)"
         : item.status === "failed"
-          ? `${item.failure.class === "usage_limit" ? "Usage limit reached" : "Provider error"} after ${progress} retries`
-          : `Provider retry stopped (${progress})`;
+          ? item.failure.class === "usage_limit"
+            ? "Usage limit reached after {progress} retries"
+            : "Provider error after {progress} retries"
+          : "Provider retry stopped ({progress})",
+  ).replace("{progress}", () => progress);
+  const delayMs = item.status === "running" ? item.retry.retryDelayMs : null;
   const retryDelay =
-    item.status === "running" && item.retry.retryDelayMs !== null && item.retry.retryDelayMs > 0
-      ? item.retry.retryDelayMs < 1_000
-        ? ` Retrying in ${item.retry.retryDelayMs}ms.`
-        : ` Retrying in ${(item.retry.retryDelayMs / 1_000).toFixed(1).replace(/\.0$/u, "")}s.`
+    delayMs !== null && delayMs > 0
+      ? ` ${translate("Retrying in {duration}.").replace("{duration}", () =>
+          delayMs < 1_000
+            ? `${delayMs}ms`
+            : `${(delayMs / 1_000).toFixed(1).replace(/\.0$/u, "")}s`,
+        )}`
       : "";
   return {
     label,

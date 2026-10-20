@@ -13,6 +13,7 @@ import { AsyncResult } from "effect/reactivity";
 
 import { readEnvironmentScope } from "./session";
 import { useAtomCommand } from "./use-atom-command";
+import { translate } from "../i18n/translate";
 
 export const ORCHESTRATION_OPERATE_DENIED_MESSAGE =
   "This connection cannot change threads or projects.";
@@ -28,7 +29,7 @@ export function useOrchestrationCommand<W extends { readonly environmentId: Envi
         Cause.fail(
           new EnvironmentAuthorizationError({
             requiredScope: AuthOrchestrationOperateScope,
-            message: ORCHESTRATION_OPERATE_DENIED_MESSAGE,
+            message: translate(ORCHESTRATION_OPERATE_DENIED_MESSAGE),
           }),
         ),
       );

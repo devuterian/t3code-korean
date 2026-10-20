@@ -453,7 +453,13 @@ export function SettingsRow({
       : source === "t3.json"
         ? { state: "inherited", summary: "Inherited from the repository's t3.json" }
         : source === "environment" && scopedKeys.length > 0
-          ? { state: "inherited", summary: `Inherited from ${inheritedFrom}` }
+          ? {
+              state: "inherited",
+              summary:
+                inheritedFrom === "environment"
+                  ? "Inherited from environment"
+                  : t("Inherited from {environment}").replace("{environment}", () => inheritedFrom),
+            }
           : customized
             ? { state: "environment", summary: "Set on the environment" }
             : { state: "default", summary: "Built-in default" };

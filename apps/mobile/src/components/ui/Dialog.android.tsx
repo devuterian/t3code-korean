@@ -13,6 +13,7 @@ import {
 
 import { useAppearancePreferences } from "../../features/settings/appearance/AppearancePreferencesProvider";
 import { useScaledTextRole } from "../../features/settings/appearance/useScaledTextRole";
+import { translate } from "../../i18n/translate";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { themeColorWithContrast } from "../../lib/mobileTheme";
@@ -36,9 +37,9 @@ type DialogRequest =
 let presentRequest: ((request: DialogRequest) => void) | null = null;
 
 export function alert(...[title, message, buttons, options]: Parameters<typeof Alert.alert>): void {
-  const actions = buttons?.length ? buttons.slice(0, 3) : [{ text: "OK" }];
+  const actions = buttons?.length ? buttons.slice(0, 3) : [{ text: translate("OK") }];
   const normalized = actions.map((action, index) =>
-    index === actions.length - 1 ? { ...action, text: action.text || "OK" } : action,
+    index === actions.length - 1 ? { ...action, text: action.text || translate("OK") } : action,
   );
   presentRequest?.({
     kind: "alert",
@@ -101,7 +102,7 @@ export function Host() {
           message: presented.request.message ?? undefined,
           confirmText: "",
         }}
-        alertActions={presented.request.buttons ?? [{ text: "OK" }]}
+        alertActions={presented.request.buttons ?? [{ text: translate("OK") }]}
         dismissable={presented.request.options?.cancelable ?? false}
         onAlertAction={(action) => {
           setPresented(null);
@@ -140,7 +141,7 @@ function DialogPresentation(props: DialogPresentationProps) {
     props.onConfirm(value);
   };
   const actions = props.alertActions ?? [
-    { text: props.request.cancelText ?? "Cancel", onPress: props.onCancel },
+    { text: props.request.cancelText ?? translate("Cancel"), onPress: props.onCancel },
     {
       text: props.request.confirmText,
       style: props.request.destructive ? ("destructive" as const) : ("default" as const),

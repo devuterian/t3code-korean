@@ -7,6 +7,7 @@ import type {
 import { collectProviderUsageLimits, hasProviderUsageLimits } from "@t3tools/shared/usageLimits";
 import { useState } from "react";
 import { useStableCallback } from "../../hooks/useStableCallback";
+import { translate } from "../../i18n/translate";
 import { toastManager } from "../ui/toast";
 import { usageLimitsBannerItem } from "./ComposerUsageLimits";
 
@@ -76,7 +77,10 @@ export function useUsageLimitsPanel(input: {
       return true;
     }
     setPanel(null);
-    toastManager.add({ type: "info", title: "Usage limits are unavailable for this provider" });
+    toastManager.add({
+      type: "info",
+      title: translate("Usage limits are unavailable for this provider"),
+    });
     return false;
   });
   // Responses can resolve after navigating away; only the originating thread's panel clears.

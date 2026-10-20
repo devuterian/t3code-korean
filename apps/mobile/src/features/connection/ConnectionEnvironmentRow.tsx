@@ -173,7 +173,7 @@ export function ConnectionEnvironmentRow(props: {
         </Pressable>
 
         <ThemedSwitch
-          accessibilityLabel={`Enable ${props.environment.environmentLabel}`}
+          accessibilityLabel={t("Enable {name}", { name: props.environment.environmentLabel })}
           style={{ alignSelf: "center" }}
           disabled={unsupported && !canRetry}
           onValueChange={(next) => props.onSetEnabled(props.environment.environmentId, next)}
@@ -183,8 +183,10 @@ export function ConnectionEnvironmentRow(props: {
           accessibilityRole="button"
           accessibilityLabel={
             props.opensDetails
-              ? `Manage ${props.environment.environmentLabel}`
-              : `${props.expanded ? "Collapse" : "Expand"} details for ${props.environment.environmentLabel}`
+              ? t("Manage {name}", { name: props.environment.environmentLabel })
+              : props.expanded
+                ? t("Collapse details for {name}", { name: props.environment.environmentLabel })
+                : t("Expand details for {name}", { name: props.environment.environmentLabel })
           }
           onPress={props.onToggle}
           style={{

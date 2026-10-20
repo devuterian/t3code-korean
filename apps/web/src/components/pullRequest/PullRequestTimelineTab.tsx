@@ -396,6 +396,7 @@ function ReviewThreadEvent({
   onOpen: (url: string) => void;
   reactions: ReactionSurface;
 }) {
+  const t = useTranslate();
   const dismissed = pullRequestReviewOutcome(event.reviewState) === "dismissed";
   const [expanded, setExpanded] = useState(!thread.isResolved && !dismissed);
   const replyCount = thread.replies.length + thread.moreReplies;
@@ -421,18 +422,21 @@ function ReviewThreadEvent({
         {thread.isResolved ? (
           <span className="inline-flex shrink-0 items-center gap-1 font-medium text-success-foreground">
             <CircleCheckIcon aria-hidden className="size-3" />
-            Resolved
+            {t("Resolved")}
           </span>
         ) : null}
-        {dismissed ? <span className="shrink-0 font-medium">Review dismissed</span> : null}
-        {thread.isOutdated ? <span className="shrink-0 font-medium">Outdated</span> : null}
+        {dismissed ? <span className="shrink-0 font-medium">{t("Review dismissed")}</span> : null}
+        {thread.isOutdated ? <span className="shrink-0 font-medium">{t("Outdated")}</span> : null}
         {expanded ? null : (
           <span className="shrink-0">
             · {event.actor?.login ?? "ghost"}
             {replyCount > 0 ? (
               <>
                 {" "}
-                · {replyCount.toLocaleString()} {replyCount === 1 ? "reply" : "replies"}
+                ·{" "}
+                {t(replyCount === 1 ? "{count} reply" : "{count} replies").replace("{count}", () =>
+                  replyCount.toLocaleString(),
+                )}
               </>
             ) : null}
           </span>

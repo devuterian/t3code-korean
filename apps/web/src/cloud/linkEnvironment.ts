@@ -25,6 +25,7 @@ import { makeEnvironmentHttpApiClient } from "@t3tools/client-runtime/rpc";
 import { ManagedRelay, relayRequestFailureDetail } from "@t3tools/client-runtime/relay";
 
 import * as PrimaryEnvironmentHttpLayer from "../environments/primary/httpLayer";
+import { translate } from "../i18n/translate";
 import { resolveCloudPublicConfig } from "./publicConfig";
 import {
   finishRelayClientInstall,
@@ -44,7 +45,7 @@ export class CloudEnvironmentLinkError extends Data.TaggedError("CloudEnvironmen
 
 const relayClientRpcError = (message: string) => (cause: unknown) =>
   new CloudEnvironmentLinkError({
-    message,
+    message: translate(message),
     cause,
   });
 
@@ -59,7 +60,9 @@ const ensureRelayClientAvailable = Effect.fn("linkEnvironment.ensureRelayClientA
     if (status.status === "available") return;
     if (status.status === "unsupported") {
       return yield* new CloudEnvironmentLinkError({
-        message: `T3 Code cannot install the relay client automatically on ${status.platform}-${status.arch}.`,
+        message: translate(
+          "T3 Code cannot install the relay client automatically on {platform}.",
+        ).replace("{platform}", () => `${status.platform}-${status.arch}`),
       });
     }
 
@@ -69,7 +72,7 @@ const ensureRelayClientAvailable = Effect.fn("linkEnvironment.ensureRelayClientA
     });
     if (!confirmed) {
       return yield* new CloudEnvironmentLinkError({
-        message: "Relay client installation was cancelled.",
+        message: translate("Relay client installation was cancelled."),
       });
     }
 
@@ -87,7 +90,7 @@ const ensureRelayClientAvailable = Effect.fn("linkEnvironment.ensureRelayClientA
       );
     if (Option.isNone(installed) || installed.value.type !== "complete") {
       return yield* new CloudEnvironmentLinkError({
-        message: "The relay client install completed without a final status.",
+        message: translate("The relay client install completed without a final status."),
       });
     }
     const installedStatus = installed.value.status;
@@ -95,8 +98,10 @@ const ensureRelayClientAvailable = Effect.fn("linkEnvironment.ensureRelayClientA
       return yield* new CloudEnvironmentLinkError({
         message:
           installedStatus.status === "unsupported"
-            ? `T3 Code cannot install the relay client automatically on ${installedStatus.platform}-${installedStatus.arch}.`
-            : "The relay client is still unavailable after installation.",
+            ? translate(
+                "T3 Code cannot install the relay client automatically on {platform}.",
+              ).replace("{platform}", () => `${installedStatus.platform}-${installedStatus.arch}`)
+            : translate("The relay client is still unavailable after installation."),
       });
     }
   },
@@ -138,10 +143,11 @@ function findEnvironmentCloudApiError(cause: unknown): { readonly message: strin
 
 const environmentApiError = (message: string) => (cause: unknown) => {
   const environmentError = findEnvironmentCloudApiError(cause);
+  const localized = translate(message);
   return new CloudEnvironmentLinkError({
     message: environmentError
-      ? `${message.replace(/[.:]$/, "")}: ${environmentError.message}`
-      : message,
+      ? `${localized.replace(/[.:]$/, "")}: ${environmentError.message}`
+      : localized,
     cause,
   });
 };
@@ -164,12 +170,12 @@ function ensureLinkedEnvironmentMatches(input: {
 }): Effect.Effect<void, CloudEnvironmentLinkError> {
   if (input.link.environmentId !== input.expectedEnvironmentId) {
     return new CloudEnvironmentLinkError({
-      message: "Relay returned credentials for a different environment.",
+      message: translate("Relay returned credentials for a different environment."),
     });
   }
   if (input.link.endpoint.providerKind !== input.expectedProviderKind) {
     return new CloudEnvironmentLinkError({
-      message: "Relay returned credentials for a different endpoint provider.",
+      message: translate("Relay returned credentials for a different endpoint provider."),
     });
   }
   return Effect.void;

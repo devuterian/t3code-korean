@@ -31,6 +31,7 @@ import {
   MenuRadioItemIndicator,
 } from "~/components/ui/menu";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "~/components/ui/tooltip";
+import { useTranslate } from "~/i18n/translate";
 import type { DeviceStreamHandle, DeviceViewControls } from "./DeviceStreamView";
 import type { DeviceControls } from "./useDeviceControls";
 
@@ -47,6 +48,7 @@ export function DeviceControlsRail(props: {
   onClose: () => void;
   onPowerOff: () => void;
 }) {
+  const t = useTranslate();
   const { view, handle, controls } = props;
   const popupSide = "left";
   const settings = controls.detail?.settings;
@@ -54,7 +56,7 @@ export function DeviceControlsRail(props: {
   const nextAppearance = settings?.appearance === "dark" ? "light" : "dark";
   return (
     <aside
-      aria-label="Device controls"
+      aria-label={t("Device controls")}
       data-layout="rail"
       className="pointer-events-none absolute inset-y-0 right-0 z-10 flex w-14 flex-col items-center gap-2 overflow-y-auto [justify-content:safe_center] py-3 pr-2 [scrollbar-width:none]"
     >
@@ -91,7 +93,7 @@ export function DeviceControlsRail(props: {
                   <Button
                     size="icon-sm"
                     variant="ghost"
-                    aria-label="Rotate device"
+                    aria-label={t("Rotate device")}
                     disabled={controls.disabled}
                   />
                 }
@@ -102,14 +104,14 @@ export function DeviceControlsRail(props: {
                 <MenuItem
                   onClick={() => void controls.act({ type: "setOrientation", value: "portrait" })}
                 >
-                  Portrait
+                  {t("Portrait")}
                 </MenuItem>
                 <MenuItem
                   onClick={() =>
                     void controls.act({ type: "setOrientation", value: "landscape_left" })
                   }
                 >
-                  Landscape
+                  {t("Landscape")}
                 </MenuItem>
               </MenuPopup>
             </Menu>
@@ -127,7 +129,9 @@ export function DeviceControlsRail(props: {
         <RailDivider />
         <RailButton
           tooltipSide={popupSide}
-          label={`Switch device to ${nextAppearance} mode`}
+          label={
+            nextAppearance === "dark" ? "Switch device to dark mode" : "Switch device to light mode"
+          }
           disabled={controls.disabled || !settings?.appearance}
           onClick={() => void controls.act({ type: "setAppearance", value: nextAppearance })}
         >
@@ -139,8 +143,8 @@ export function DeviceControlsRail(props: {
               <Button
                 size="icon-sm"
                 variant="ghost"
-                aria-label="Device text size"
-                title="Device text size"
+                aria-label={t("Device text size")}
+                title={t("Device text size")}
                 disabled={controls.disabled || !settings?.textSize}
               />
             }
@@ -170,7 +174,7 @@ export function DeviceControlsRail(props: {
               ).map(([value, label]) => (
                 <MenuRadioItem key={value} value={value}>
                   <span className="flex items-center gap-2">
-                    <span className="flex-1">{label}</span>
+                    <span className="flex-1">{t(label)}</span>
                     <MenuRadioItemIndicator />
                   </span>
                 </MenuRadioItem>
@@ -200,8 +204,8 @@ export function DeviceControlsRail(props: {
               <Button
                 size="icon-sm"
                 variant="ghost"
-                aria-label="More device actions"
-                title="More device actions"
+                aria-label={t("More device actions")}
+                title={t("More device actions")}
               />
             }
           >
@@ -210,16 +214,16 @@ export function DeviceControlsRail(props: {
           <MenuPopup side={popupSide} align="end">
             <MenuItem onClick={props.onFloat}>
               <PictureInPicture2 />
-              Float device over chat
+              {t("Float device over chat")}
             </MenuItem>
             <MenuItem onClick={props.onClose}>
               <X />
-              Close device panel
+              {t("Close device panel")}
             </MenuItem>
             <MenuSeparator />
             <MenuItem variant="destructive" onClick={props.onPowerOff}>
               <Power />
-              Power off device
+              {t("Power off device")}
             </MenuItem>
           </MenuPopup>
         </Menu>
@@ -277,11 +281,13 @@ function RailButton(props: {
   onClick: () => void;
   children: ReactNode;
 }) {
+  const t = useTranslate();
+  const label = t(props.label);
   const button = (
     <Button
       size="icon-sm"
       variant={props.pressed ? "secondary" : "ghost"}
-      aria-label={props.label}
+      aria-label={label}
       aria-pressed={props.pressed}
       disabled={props.disabled}
       onClick={props.onClick}
@@ -293,16 +299,16 @@ function RailButton(props: {
     <Tooltip>
       {props.disabled && props.description ? (
         <TooltipTrigger
-          render={
-            <span className="inline-flex" tabIndex={0} role="group" aria-label={props.label} />
-          }
+          render={<span className="inline-flex" tabIndex={0} role="group" aria-label={label} />}
         >
           {button}
         </TooltipTrigger>
       ) : (
         <TooltipTrigger render={button} />
       )}
-      <TooltipPopup side={props.tooltipSide}>{props.description ?? props.label}</TooltipPopup>
+      <TooltipPopup side={props.tooltipSide}>
+        {props.description ? t(props.description) : label}
+      </TooltipPopup>
     </Tooltip>
   );
 }

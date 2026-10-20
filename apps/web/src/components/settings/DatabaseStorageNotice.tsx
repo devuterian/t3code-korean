@@ -4,6 +4,7 @@ import * as Schema from "effect/Schema";
 
 import { useCopyToClipboard } from "../../hooks/useCopyToClipboard";
 import { useLocalStorage } from "../../hooks/useLocalStorage";
+import { useTranslate } from "../../i18n/translate";
 import { serverEnvironment } from "../../state/server";
 import { Button } from "../ui/button";
 import { SettingsGroup } from "./SettingsGroup";
@@ -24,18 +25,21 @@ export function DatabaseStorageNotice({
     Schema.Boolean,
   );
   const { copyToClipboard } = useCopyToClipboard({ target: "command" });
+  const t = useTranslate();
   const status = result._tag === "Success" ? result.value : null;
   if (dismissed || status === null || !shouldRecommendDatabaseCompaction(status)) return null;
   return (
     <SettingsSection id={`storage-database-${environmentId}`} title="Database">
       <SettingsGroup>
         <SettingsRow
-          title={`Reclaim ${(status.reclaimableBytes / 1024 ** 3).toFixed(1)} GiB on ${label}`}
+          title={t("Reclaim {size} GiB on {label}")
+            .replace("{size}", () => (status.reclaimableBytes / 1024 ** 3).toFixed(1))
+            .replace("{label}", () => label)}
           description={
             <>
-              Old history is cleaned up automatically, but this database still holds the freed
-              space. Run the command on {label} to return it to disk; it pauses and restarts the
-              background service. Quit the desktop app first if it hosts this environment.
+              {t(
+                "Old history is cleaned up automatically, but this database still holds the freed space. Run the command on {label} to return it to disk; it pauses and restarts the background service. Quit the desktop app first if it hosts this environment.",
+              ).replace("{label}", () => label)}
               <code className="mt-2 block select-text break-all">{status.compactCommand}</code>
             </>
           }
@@ -46,10 +50,10 @@ export function DatabaseStorageNotice({
                 size="sm"
                 onClick={() => copyToClipboard(status.compactCommand, undefined)}
               >
-                Copy command
+                {t("Copy command")}
               </Button>
               <Button variant="ghost" size="sm" onClick={() => setDismissed(true)}>
-                Dismiss
+                {t("Dismiss")}
               </Button>
             </div>
           }

@@ -107,7 +107,8 @@ function GitOverviewSheetContent(props: GitOverviewSheetProps) {
       : null,
   );
 
-  const currentBranchLabel = gitStatus.data?.refName ?? selectedThread?.branch ?? "Detached HEAD";
+  const currentBranchLabel =
+    gitStatus.data?.refName ?? selectedThread?.branch ?? t("Detached HEAD");
   const currentStatusSummary = statusSummary(gitStatus.data);
   const currentWorktreePath = selectedThreadWorktreePath;
   const gitOperationLabel = gitState.gitOperationLabel;
@@ -312,8 +313,8 @@ function GitOverviewSheetContent(props: GitOverviewSheetProps) {
         {linkedPrActions.canLink ? (
           <ListRow
             icon="link"
-            label="Link pull request"
-            description="Attach a pull request by URL or number"
+            label={t("Link pull request")}
+            description={t("Attach a pull request by URL or number")}
             onPress={linkedPrActions.promptLink}
           />
         ) : null}

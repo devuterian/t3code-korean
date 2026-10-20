@@ -31,6 +31,7 @@ import {
   type ComposerNativeEventSnapshot,
 } from "./composerEditorRevision";
 import { DEFAULT_COMPOSER_ENTER_BEHAVIOR } from "../lib/composerEnterBehavior";
+import { translate } from "../i18n/translate";
 import type { ComposerEditorProps, ComposerEditorSelection } from "./T3ComposerEditor.types";
 
 const NATIVE_MODULE_NAME = "T3ComposerEditor";
@@ -276,8 +277,10 @@ export function ComposerEditor({
       editable={props.editable ?? true}
       readOnly={props.readOnly ?? false}
       enterBehavior={props.enterBehavior ?? DEFAULT_COMPOSER_ENTER_BEHAVIOR}
-      submitTitle={props.submitTitle ?? "Send Message"}
-      alternateSubmitTitle={props.alternateSubmitTitle ?? props.submitTitle ?? "Send Message"}
+      submitTitle={props.submitTitle ?? translate("Send Message")}
+      alternateSubmitTitle={
+        props.alternateSubmitTitle ?? props.submitTitle ?? translate("Send Message")
+      }
       scrollEnabled={props.scrollEnabled ?? true}
       autoFocus={props.autoFocus ?? false}
       autoCorrect={props.autoCorrect ?? true}

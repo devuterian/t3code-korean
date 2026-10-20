@@ -17,6 +17,7 @@ import { appAtomRegistry } from "../rpc/atomRegistry";
 import { readProjects, useProjects } from "../state/entities";
 import { environmentServerConfigsAtom, serverEnvironment } from "../state/server";
 import { usePrimaryEnvironmentId } from "../state/environments";
+import { translate } from "../i18n/translate";
 
 export {
   parseChangeRequestUrl,
@@ -237,8 +238,8 @@ export function useOpenPrLink(threadRef?: ScopedThreadRef) {
       toastManager.add(
         stackedThreadToast({
           type: "error",
-          title: "Unable to open pull request link",
-          description: error instanceof Error ? error.message : "An error occurred.",
+          title: translate("Unable to open pull request link"),
+          description: error instanceof Error ? error.message : translate("An error occurred."),
         }),
       );
     });

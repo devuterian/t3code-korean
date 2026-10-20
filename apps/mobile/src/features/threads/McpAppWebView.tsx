@@ -545,7 +545,7 @@ export function ThreadMcpApp(props: {
           onContentProcessDidTerminate={restart}
           onRenderProcessGone={restart}
           source={source!}
-          accessibilityLabel={`${app.server} app`}
+          accessibilityLabel={t("{server} app", { server: app.server })}
           style={{ flex: 1, backgroundColor: "transparent" }}
           nestedScrollEnabled
           originWhitelist={["*"]}

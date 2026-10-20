@@ -12,6 +12,7 @@ import { useEnvironmentQuery } from "../state/query";
 import { serverEnvironment } from "../state/server";
 import { readEnvironmentScope, useEnvironmentScope } from "../state/session";
 import { useAtomCommand } from "../state/use-atom-command";
+import { translate } from "../i18n/translate";
 
 export interface ResourceTelemetryState {
   readonly data: ResourceTelemetrySnapshot | null;
@@ -40,13 +41,13 @@ export function useResourceTelemetry(
   });
   const retry = async () => {
     if (environmentId === null) {
-      throw new Error("No environment is selected.");
+      throw new Error(translate("No environment is selected."));
     }
     if (
       !readEnvironmentScope(environmentId, AuthEnvironmentMaintainScope) ||
       !readEnvironmentScope(environmentId, AuthDiagnosticsReadScope)
     ) {
-      throw new Error("This connection cannot restart the resource monitor.");
+      throw new Error(translate("This connection cannot restart the resource monitor."));
     }
     const result = await retryCommand({ environmentId, input: {} });
     if (result._tag === "Failure") {

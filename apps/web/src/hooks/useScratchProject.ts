@@ -11,14 +11,15 @@ import { stackedThreadToast, toastManager } from "~/components/ui/toast";
 import { useEnvironments } from "~/state/environments";
 import { projectEnvironment } from "~/state/projects";
 import { useAtomCommand } from "~/state/use-atom-command";
+import { translate } from "~/i18n/translate";
 import { useNewThreadHandler } from "./useHandleNewThread";
 
 function reportScratchFailure(title: string, error: unknown) {
   toastManager.add(
     stackedThreadToast({
       type: "error",
-      title,
-      description: error instanceof Error ? error.message : "An error occurred.",
+      title: translate(title),
+      description: error instanceof Error ? error.message : translate("An error occurred."),
     }),
   );
 }

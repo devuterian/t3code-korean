@@ -19,6 +19,7 @@ import { ManagedRelay, relayRequestFailureDetail } from "@t3tools/client-runtime
 import { makeEnvironmentHttpApiClient } from "@t3tools/client-runtime/rpc";
 
 import type { SavedRemoteConnection } from "../../lib/connection";
+import { translate } from "../../i18n/translate";
 import * as MobileStorage from "../../persistence/mobile-storage";
 import { resolveCloudPublicConfig } from "./publicConfig";
 
@@ -114,7 +115,9 @@ function requireRelayUrl(): Effect.Effect<string, CloudEnvironmentLinkError> {
   const relayUrl = readRelayUrl();
   return relayUrl
     ? Effect.succeed(relayUrl)
-    : Effect.fail(new CloudEnvironmentLinkError({ message: "Relay URL is not configured." }));
+    : Effect.fail(
+        new CloudEnvironmentLinkError({ message: translate("Relay URL is not configured.") }),
+      );
 }
 
 function endpointOrigin(httpBaseUrl: string) {
@@ -132,12 +135,12 @@ function ensureLinkedEnvironmentMatches(input: {
 }): Effect.Effect<void, CloudEnvironmentLinkError> {
   if (input.link.environmentId !== input.expectedEnvironmentId) {
     return new CloudEnvironmentLinkError({
-      message: "Relay returned credentials for a different environment.",
+      message: translate("Relay returned credentials for a different environment."),
     });
   }
   if (input.link.endpoint.providerKind !== input.expectedProviderKind) {
     return new CloudEnvironmentLinkError({
-      message: "Relay returned credentials for a different endpoint provider.",
+      message: translate("Relay returned credentials for a different endpoint provider."),
     });
   }
   return Effect.void;
@@ -160,7 +163,7 @@ export const linkEnvironmentToCloudWithPreference = Effect.fn(
 ): Effect.fn.Return<void, CloudEnvironmentLinkError, LinkEnvironmentToCloudRequirements> {
   if (!input.connection.bearerToken) {
     return yield* new CloudEnvironmentLinkError({
-      message: "Only a locally paired bearer connection can be linked to the cloud.",
+      message: translate("Only a locally paired bearer connection can be linked to the cloud."),
     });
   }
   const localBearerToken = input.connection.bearerToken;
@@ -168,7 +171,7 @@ export const linkEnvironmentToCloudWithPreference = Effect.fn(
   const relayClient = yield* ManagedRelay.ManagedRelayClient;
   const storage = yield* MobileStorage.MobileStorage;
   const deviceId = yield* storage.loadOrCreateAgentAwarenessDeviceId.pipe(
-    Effect.mapError(cloudEnvironmentLinkError("Could not load the mobile device id.")),
+    Effect.mapError(cloudEnvironmentLinkError(translate("Could not load the mobile device id."))),
   );
   const liveActivitiesEnabled = input.liveActivitiesEnabled;
   const challenge = yield* relayClient
@@ -200,7 +203,11 @@ export const linkEnvironmentToCloudWithPreference = Effect.fn(
         origin: endpointOrigin(input.connection.httpBaseUrl),
       },
     })
-    .pipe(Effect.mapError(cloudEnvironmentLinkError("Could not obtain environment link proof.")));
+    .pipe(
+      Effect.mapError(
+        cloudEnvironmentLinkError(translate("Could not obtain environment link proof.")),
+      ),
+    );
   const link = yield* relayClient
     .linkEnvironment({
       clerkToken: input.clerkToken,
@@ -234,6 +241,8 @@ export const linkEnvironmentToCloudWithPreference = Effect.fn(
       },
     })
     .pipe(
-      Effect.mapError(cloudEnvironmentLinkError("Could not configure environment relay access.")),
+      Effect.mapError(
+        cloudEnvironmentLinkError(translate("Could not configure environment relay access.")),
+      ),
     );
 });

@@ -12,6 +12,7 @@ import { SymbolView } from "../../components/ui/AppSymbol";
 import { AppText as Text } from "../../components/ui/AppText";
 import * as Dialog from "../../components/ui/Dialog";
 import { Menu } from "../../components/ui/Menu";
+import { useTranslate } from "../../i18n/translate";
 import { cn } from "../../lib/cn";
 import { relativeTime } from "../../lib/time";
 import type { EnvironmentRuntimeState } from "../../state/remote-runtime-types";
@@ -59,6 +60,7 @@ export const LinkedPullRequestRow = memo(function LinkedPullRequestRow(props: {
   readonly openPullRequest: (url: string) => Promise<boolean>;
   readonly actions: LinkedPullRequestActions | null;
 }) {
+  const t = useTranslate();
   const { link, depth, stack } = props.line;
   const snapshot = link.snapshot;
   const status = snapshot === null ? null : pullRequestStatus(snapshot);
@@ -80,11 +82,12 @@ export const LinkedPullRequestRow = memo(function LinkedPullRequestRow(props: {
   const row = (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`Pull request ${link.number}, ${snapshot?.title ?? "waiting for host state"}${status ? `, ${status.label}` : ""}${conflict ? `, ${conflict.label.toLowerCase()}` : ""}, ${link.repository}${stack ? `, stack of ${stack.size}` : ""}${watching ? ", watching" : ""}${checks ? `, checks ${snapshot?.checksState}` : ""}${review ? `, ${review.accessibleLabel}` : ""}`}
-      accessibilityHint={props.actions ? "Touch and hold for actions." : undefined}
+      accessibilityLabel={`${t("Pull request {number}", { number: link.number })}, ${snapshot?.title ?? t("waiting for host state")}${status ? `, ${status.label}` : ""}${conflict ? `, ${conflict.label.toLowerCase()}` : ""}, ${link.repository}${stack ? `, ${t("stack of {count}", { count: stack.size })}` : ""}${watching ? `, ${t("watching")}` : ""}${checks ? `, ${t("checks {state}", { state: snapshot?.checksState ?? "" })}` : ""}${review ? `, ${review.accessibleLabel}` : ""}`}
+      accessibilityHint={props.actions ? t("Touch and hold for actions.") : undefined}
       onPress={() => {
         void props.openPullRequest(link.url).then((opened) => {
-          if (!opened) Dialog.alert("Unable to open PR", "The pull request could not be opened.");
+          if (!opened)
+            Dialog.alert(t("Unable to open PR"), t("The pull request could not be opened."));
         });
       }}
       // Steps in per layer like the web list, capped so deep stacks keep their width.
@@ -154,7 +157,7 @@ export const LinkedPullRequestRow = memo(function LinkedPullRequestRow(props: {
           numberOfLines={2}
           ellipsizeMode="tail"
         >
-          {snapshot?.title ?? "Waiting for host state"}
+          {snapshot?.title ?? t("Waiting for host state")}
         </Text>
       </View>
     </Pressable>

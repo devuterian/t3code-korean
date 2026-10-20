@@ -8,6 +8,7 @@ import { GlassSurface } from "./GlassSurface";
 import { IconButton } from "./IconButton";
 import { AppActivityIndicator } from "./AppActivityIndicator";
 import { SymbolView } from "./AppSymbol";
+import { useTranslate } from "../../i18n/translate";
 
 export interface ToastProps {
   readonly message: string;
@@ -20,6 +21,7 @@ export interface ToastProps {
 
 /** The owning screen places and dismisses feedback; actions are never implicit. */
 export function Toast(props: ToastProps) {
+  const t = useTranslate();
   useEffect(() => {
     if (Platform.OS === "ios") AccessibilityInfo.announceForAccessibility(props.message);
   }, [props.message]);
@@ -48,7 +50,11 @@ export function Toast(props: ToastProps) {
           ) : null}
         </View>
         {props.onDismiss ? (
-          <IconButton accessibilityLabel="Dismiss message" icon="xmark" onPress={props.onDismiss} />
+          <IconButton
+            accessibilityLabel={t("Dismiss message")}
+            icon="xmark"
+            onPress={props.onDismiss}
+          />
         ) : null}
       </View>
       {props.action ? (

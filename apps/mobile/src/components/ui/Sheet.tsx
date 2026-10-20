@@ -5,6 +5,7 @@ import { useResolveClassNames } from "uniwind";
 
 import { nativeHeaderScrollEdgeEffects } from "../../native/StackHeader";
 import { NativeHeader, NativeScreen } from "../../native/ThemedScreenStack";
+import { useTranslate } from "../../i18n/translate";
 
 const HEADER_SCROLL_EDGE_EFFECTS = nativeHeaderScrollEdgeEffects(Platform.OS, Platform.Version);
 
@@ -13,6 +14,7 @@ import type { SheetProps } from "./Sheet.types";
 
 /** Native presentation. Scrollable children use automatic insets beneath the iOS header. */
 export function Sheet(props: SheetProps) {
+  const t = useTranslate();
   const containerStyle = useResolveClassNames("bg-sheet");
   const screenId = useId();
   const [isOpen, setIsOpen] = useState(true);
@@ -52,7 +54,7 @@ export function Sheet(props: SheetProps) {
                 {
                   type: "button",
                   icon: { name: "xmark", type: "sfSymbol" },
-                  accessibilityLabel: `Close ${props.title}`,
+                  accessibilityLabel: t("Close {name}", { name: props.title }),
                   identifier: `app-sheet-close-${screenId}`,
                   onPress: close,
                 },

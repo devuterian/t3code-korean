@@ -20,7 +20,7 @@ import { useNewThreadHandler } from "./useHandleNewThread";
 function errorMessage(error: unknown): string {
   return error instanceof Error && error.message.trim().length > 0
     ? error.message
-    : "An error occurred.";
+    : translate("An error occurred.");
 }
 
 export function useNewProject() {
@@ -83,7 +83,7 @@ export function useNewProject() {
         toastManager.add(
           stackedThreadToast({
             type: "error",
-            title: "Could not create the project",
+            title: translate("Could not create the project"),
             description: errorMessage(squashAtomCommandFailure(result)),
           }),
         );
@@ -95,11 +95,18 @@ export function useNewProject() {
     toastManager.add(
       stackedThreadToast(
         commitError === undefined
-          ? { type: "success", title: `Created ${input.name}`, description: workspaceRoot }
+          ? {
+              type: "success",
+              title: translate("Created {name}").replace("{name}", () => input.name),
+              description: workspaceRoot,
+            }
           : {
               type: "warning",
-              title: `Created ${input.name} without a first commit`,
-              description: `${commitError} The project is in ${workspaceRoot}.`,
+              title: translate("Created {name} without a first commit").replace(
+                "{name}",
+                () => input.name,
+              ),
+              description: `${commitError} ${translate("The project is in {path}.").replace("{path}", () => workspaceRoot)}`,
             },
       ),
     );
@@ -118,8 +125,8 @@ export function useNewProject() {
       toastManager.add(
         stackedThreadToast({
           type: "error",
-          title: "Failed to open project",
-          description: `${errorMessage(error)} It will appear in the sidebar once this client catches up.`,
+          title: translate("Failed to open project"),
+          description: `${errorMessage(error)} ${translate("It will appear in the sidebar once this client catches up.")}`,
         }),
       );
       return null;
@@ -129,7 +136,7 @@ export function useNewProject() {
       toastManager.add(
         stackedThreadToast({
           type: "error",
-          title: "Failed to open project",
+          title: translate("Failed to open project"),
           description: errorMessage(error),
         }),
       );

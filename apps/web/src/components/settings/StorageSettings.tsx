@@ -219,23 +219,23 @@ function CleanupResults({
                   {entry.reason}
                 </span>
                 <span className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 border-l border-border/60 pl-3">
-                  <span>Machine</span>
+                  <span>{t("Machine")}</span>
                   <span className="text-foreground/80">{environmentLabel}</span>
                   {entry.projectPath && (
                     <>
-                      <span>Project</span>
+                      <span>{t("Project")}</span>
                       <code className="text-foreground/80">{entry.projectPath}</code>
                     </>
                   )}
                   {entry.path && (
                     <>
-                      <span>Folder</span>
+                      <span>{t("Folder")}</span>
                       <code className="text-foreground/80">{entry.path}</code>
                     </>
                   )}
                   {entry.threadTitle && (
                     <>
-                      <span>Thread</span>
+                      <span>{t("Thread")}</span>
                       <span>{entry.threadTitle}</span>
                     </>
                   )}

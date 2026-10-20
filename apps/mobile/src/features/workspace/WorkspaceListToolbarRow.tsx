@@ -3,6 +3,7 @@ import { View } from "react-native";
 import { AndroidHeaderIconButton } from "../../components/ui/AndroidScreenHeader";
 import { CompactBrandTitle } from "../../components/CompactBrandTitle";
 import { useToolbarLayout } from "../../components/ui/useToolbarLayout";
+import { useTranslate } from "../../i18n/translate";
 import { WorkspaceConnectionTitle } from "../home/WorkspaceConnectionTitle";
 
 /**
@@ -22,13 +23,14 @@ export function WorkspaceListToolbarRow(props: {
   /** Stays trailing while searching, so it never moves and still narrows the results. */
   readonly filter: ReactNode;
 }) {
+  const t = useTranslate();
   const { height } = useToolbarLayout();
   return (
     <View className="flex-row items-center gap-1" style={{ minHeight: height }}>
       {props.searching ? (
         <>
           <AndroidHeaderIconButton
-            accessibilityLabel="Close search"
+            accessibilityLabel={t("Close search")}
             icon="arrow.left"
             onPress={props.onCloseSearch}
           />

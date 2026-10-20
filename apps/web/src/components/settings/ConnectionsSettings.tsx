@@ -1689,7 +1689,7 @@ function SavedBackendListRow({
             onClick={() => setPermissionsOpen((open) => !open)}
             className="inline-flex shrink-0 items-center gap-0.5 rounded-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-ring"
           >
-            Permissions
+            {t("Permissions")}
             <ChevronRightIcon
               aria-hidden
               className={cn(
@@ -1898,7 +1898,7 @@ function ConfiguredCloudLinkRow({ canManageRelay }: { readonly canManageRelay: b
       formatConnectReachable(reachability)
     ) : reachability?.status === "unreachable" ? (
       <span className="block text-destructive">
-        {[reachability.reason, reachability.hint, `Fix: ${reachability.fix}`]
+        {[reachability.reason, reachability.hint, `${t("Fix:")} ${reachability.fix}`]
           .filter(Boolean)
           .join(" ")}{" "}
         <a
@@ -1907,7 +1907,7 @@ function ConfiguredCloudLinkRow({ canManageRelay }: { readonly canManageRelay: b
           rel="noreferrer"
           className="underline underline-offset-2"
         >
-          More info
+          {t("More info")}
         </a>
       </span>
     ) : null;
@@ -3668,7 +3668,7 @@ export function ConnectionsSettings() {
             {primaryEnvironment ? (
               <details className="group px-3 sm:px-4">
                 <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-md text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
-                  Permissions
+                  {t("Permissions")}
                   <ChevronRightIcon
                     aria-hidden
                     className="size-3 text-muted-foreground group-open:rotate-90"
