@@ -987,7 +987,7 @@ function ManagedCodexSetup({
       {updateAvailable && provider?.setup?.canInstall ? (
         <SettingsRow
           title="Codex update available"
-          description={`Version ${installation.version} is available. ${runtimeDescription}`}
+          description={`${t("Version {version} is available.").replace("{version}", () => installation.version ?? "")} ${runtimeDescription}`}
           control={
             <Button
               size="sm"
@@ -995,7 +995,7 @@ function ManagedCodexSetup({
               disabled={unavailable || busy || !canStartInstall}
               onClick={() => void run(() => startInstall(target))}
             >
-              Update Codex
+              {t("Update Codex")}
             </Button>
           }
         />

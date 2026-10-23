@@ -189,11 +189,11 @@ function SegmentPopover({
         ) : null}
         {account.instances.length > 1 ? (
           <>
-            <Row label="Signed in on">
+            <Row label={t("Signed in on")}>
               {[...new Set(account.instances.map((instance) => instance.displayName))].join(", ")}
             </Row>
             <p className="text-muted-foreground">
-              One login, one quota: these instances share this limit.
+              {t("One login, one quota: these instances share this limit.")}
             </p>
           </>
         ) : null}
@@ -587,6 +587,7 @@ function PoolWindowCard({
 }
 
 function PoolSection({ pool, now }: { readonly pool: LimitPool; readonly now: number }) {
+  const t = useTranslate();
   const color = barColor(pool.driver);
   const label = providerClients.get(pool.driver)?.label ?? String(pool.driver);
   const windows = displayLimitWindows(pool);
@@ -605,7 +606,7 @@ function PoolSection({ pool, now }: { readonly pool: LimitPool; readonly now: nu
         {label}
         {accountCount > 1 || instanceCount > 1 ? (
           <span className="font-normal text-muted-foreground">
-            {` · ${accountCount} ${accountCount === 1 ? "account" : "accounts"}`}
+            {` · ${t(accountCount === 1 ? "{count} account" : "{count} accounts").replace("{count}", () => String(accountCount))}`}
           </span>
         ) : null}
       </h2>

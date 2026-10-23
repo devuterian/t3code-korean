@@ -19,7 +19,7 @@ import {
   usePersistEnvironmentProviderInstanceMutation,
 } from "../../hooks/useSettings";
 
-import { translate, useTranslate } from "../../i18n/translate";
+import { useTranslate } from "../../i18n/translate";
 import { cn } from "../../lib/utils";
 import { normalizeProviderAccentColor } from "../../providerInstances";
 import { readEnvironmentScope, useEnvironmentScope } from "../../state/session";
@@ -433,12 +433,9 @@ export function AddProviderInstanceDialog({
           }
           description={
             providerView === "connection" ? (
-              <>
-                {environmentLabel}
-                {t(" — choose how ")}
-                {driverOption.label}
-                {t(" connects.")}
-              </>
+              t("{environment}: choose how {provider} connects.")
+                .replace("{environment}", () => environmentLabel)
+                .replace("{provider}", () => driverOption.label)
             ) : (
               <>
                 {t("Add an account or configure a provider on")} {environmentLabel}.
@@ -550,7 +547,7 @@ export function AddProviderInstanceDialog({
                     id="add-provider-connection-label"
                     className="text-sm font-medium text-foreground"
                   >
-                    Connection method
+                    {t("Connection method")}
                   </div>
                   <RadioGroup
                     aria-labelledby="add-provider-connection-label"
@@ -567,16 +564,16 @@ export function AddProviderInstanceDialog({
                         <RadioPrimitive.Root
                           key={option.value}
                           value={option.value}
-                          aria-label={`${option.label}. ${option.description}`}
+                          aria-label={`${t(option.label)}. ${t(option.description)}`}
                           className="flex min-w-0 cursor-pointer items-center gap-3 rounded-lg bg-card px-3 py-2.5 text-left outline-none ring-1 ring-black/5 hover:bg-muted focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring data-checked:bg-primary/8 data-checked:ring-2 data-checked:ring-inset data-checked:ring-primary dark:bg-white/3 dark:ring-white/5 dark:hover:bg-white/5 dark:data-checked:bg-primary/15 dark:data-checked:ring-primary"
                         >
                           <Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
                           <span className="min-w-0 flex-1">
                             <span className="block truncate text-sm font-medium text-foreground">
-                              {option.label}
+                              {t(option.label)}
                             </span>
                             <span className="block text-xs text-muted-foreground">
-                              {option.description}
+                              {t(option.description)}
                             </span>
                           </span>
                           <span aria-hidden className="size-4.5 shrink-0">

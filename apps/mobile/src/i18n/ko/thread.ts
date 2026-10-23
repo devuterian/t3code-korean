@@ -145,7 +145,7 @@ export const KO_THREAD: Readonly<Record<string, string>> = {
   "Set up Antigravity on web or desktop, or choose another model.":
     "웹이나 데스크톱에서 Antigravity를 설정하거나 다른 모델을 선택하세요.",
   "Start a Codex thread first": "먼저 Codex 스레드를 시작하세요",
-  "Send a message before you submit feedback.": "피드백을 보내기 전에 메시지를 보내세요.",
+  "Send a message before you submit feedback.": "피드백을 보내려면 먼저 메시지를 보내야 합니다.",
   "Failed to save the queued message.": "대기 중인 메시지를 저장하지 못했습니다.",
   "You can attach up to {max} attachments per message.":
     "메시지당 첨부 파일은 최대 {max}개까지 첨부할 수 있습니다.",

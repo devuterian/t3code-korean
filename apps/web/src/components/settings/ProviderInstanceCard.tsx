@@ -994,7 +994,7 @@ export function ProviderInstanceCard({
 
   const poolBadge = poolName ? (
     <Badge variant="outline" size="sm">
-      In {poolName} pool
+      {t("In {pool} pool").replace("{pool}", () => poolName)}
     </Badge>
   ) : null;
 

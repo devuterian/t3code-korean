@@ -901,6 +901,7 @@ function OnboardingCodexSetup({
   } | null;
   readonly onAutoStartConsumed: () => void;
 }) {
+  const t = useTranslate();
   const canOperateTerminal = useEnvironmentScope(environmentId, AuthTerminalOperateScope);
   const update = useAtomCommand(serverEnvironment.updateSettings, "Codex setup settings");
   const instanceId =
@@ -944,7 +945,7 @@ function OnboardingCodexSetup({
   return mode === "cli" && provider ? (
     <ProviderAuthenticationSection
       environmentId={environmentId}
-      environmentLabel="this environment"
+      environmentLabel={t("this environment")}
       instanceId={instanceId}
       provider={provider}
       readOnly={false}

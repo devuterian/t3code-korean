@@ -1,6 +1,7 @@
 import type { ServerProvider } from "@t3tools/contracts";
 
 import { useClientSettings } from "../../hooks/useSettings";
+import { useTranslate } from "../../i18n/translate";
 import { limitedUntilLabel } from "./ProviderPoolsSettings.logic";
 import { useRelativeTimeTick } from "./settingsLayout";
 
@@ -17,8 +18,9 @@ export function ProviderLimitedUntil({
   readonly provider: Pick<ServerProvider, "limitedUntil"> | undefined;
   readonly className?: string;
 }) {
+  const t = useTranslate();
   const timestampFormat = useClientSettings((settings) => settings.timestampFormat);
   const nowMs = useRelativeTimeTick(LIMIT_EXPIRY_CHECK_MS);
   const label = provider ? limitedUntilLabel(provider, nowMs, timestampFormat) : null;
-  return label === null ? null : <span className={className}>{label}</span>;
+  return label === null ? null : <span className={className}>{t(label)}</span>;
 }

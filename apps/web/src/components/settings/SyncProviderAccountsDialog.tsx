@@ -19,6 +19,8 @@ import { Atom } from "effect/reactivity";
 import { ArrowLeftRightIcon } from "lucide-react";
 import { useState } from "react";
 
+import { translate, useTranslate } from "../../i18n/translate";
+
 import { environmentAtomList, environmentIdsKey } from "../../state/environmentAtomList";
 import { type EnvironmentPresentation, useEnvironments } from "../../state/environments";
 import { EMPTY_SERVER_PROVIDERS, providerAccountSync, serverEnvironment } from "../../state/server";
@@ -69,15 +71,21 @@ function useAccountSyncEnvironments(sourceEnvironmentId: EnvironmentId) {
 function blockNote(reason: AccountSyncBlockReason, device: string): string {
   switch (reason) {
     case "same-environment":
-      return "This is the source device.";
+      return translate("This is the source device.");
     case "not-connected":
-      return `${device} isn't connected.`;
+      return translate("{device} isn't connected.").replace("{device}", () => device);
     case "update-required":
-      return `Update ${device} to sync accounts.`;
+      return translate("Update {device} to sync accounts.").replace("{device}", () => device);
     case "permission-required":
-      return `This connection can't manage providers on ${device}.`;
+      return translate("This connection can't manage providers on {device}.").replace(
+        "{device}",
+        () => device,
+      );
     case "instance-id-conflict":
-      return `${device} uses this account's ID for another provider.`;
+      return translate("{device} uses this account's ID for another provider.").replace(
+        "{device}",
+        () => device,
+      );
   }
 }
 
@@ -91,15 +99,22 @@ function omittedNote(
       .filter((omission) => omission.reason === reason)
       .map(({ setting }) => (setting._tag === "ConfigField" ? setting.field : setting.name));
   const parts: Array<string> = [];
+  const note = (template: string, device: string, settings: ReadonlyArray<string>) =>
+    translate(template)
+      .replace("{device}", () => device)
+      .replace("{settings}", () => settings.join(", "));
   const local = names("machine-local");
-  if (local.length > 0) parts.push(`Stays on ${sourceLabel}: ${local.join(", ")}.`);
+  if (local.length > 0) parts.push(note("Stays on {device}: {settings}.", sourceLabel, local));
   const unsupported = names("unsupported-here");
   if (unsupported.length > 0)
-    parts.push(`Not supported on ${destinationLabel}, update it: ${unsupported.join(", ")}.`);
+    parts.push(
+      note("Not supported on {device}, update it: {settings}.", destinationLabel, unsupported),
+    );
   const missing = names("missing-on-source");
-  if (missing.length > 0) parts.push(`No value on ${sourceLabel}: ${missing.join(", ")}.`);
+  if (missing.length > 0)
+    parts.push(note("No value on {device}: {settings}.", sourceLabel, missing));
   const oversized = names("too-large");
-  if (oversized.length > 0) parts.push(`Too large to copy: ${oversized.join(", ")}.`);
+  if (oversized.length > 0) parts.push(note("Too large to copy: {settings}.", "", oversized));
   return parts.length === 0 ? null : parts.join(" ");
 }
 
@@ -123,10 +138,12 @@ function SyncedAccountRow({
   readonly destinationLabel: string;
   readonly onOpen: () => void;
 }) {
+  const t = useTranslate();
   const providers =
     useAtomValue(serverEnvironment.providersValueAtom(cell.destinationEnvironmentId)) ??
     EMPTY_SERVER_PROVIDERS;
-  const title = `${accountLabel} on ${destinationLabel}`;
+  const withDevice = (template: string) => t(template).replace("{device}", () => destinationLabel);
+  const title = withDevice("{account} on {device}").replace("{account}", () => accountLabel);
   if (cell.status === "skipped") {
     const device = cell.end === "source" ? sourceLabel : destinationLabel;
     return <SettingsRow title={title} description={blockNote(cell.reason, device)} />;
@@ -140,24 +157,31 @@ function SyncedAccountRow({
   const status = (() => {
     switch (state.kind) {
       case "ready":
-        return `Ready${state.signedInAs ? `, signed in as ${state.signedInAs}` : ""}.`;
+        return state.signedInAs
+          ? t("Ready, signed in as {account}.").replace("{account}", () => state.signedInAs ?? "")
+          : t("Ready.");
       case "starting":
-        return `Starting on ${destinationLabel}.`;
+        return withDevice("Starting on {device}.");
       case "disabled":
-        return `Turned off on ${destinationLabel}.`;
+        return withDevice("Turned off on {device}.");
       case "error":
-        return `Problem on ${destinationLabel}${state.message ? `: ${state.message}` : "."}`;
+        return state.message
+          ? withDevice("Problem on {device}: {message}").replace(
+              "{message}",
+              () => state.message ?? "",
+            )
+          : withDevice("Problem on {device}.");
       case "needs-sign-in":
-        return `Sign in on ${destinationLabel} to finish.`;
+        return withDevice("Sign in on {device} to finish.");
       case "needs-host-setup":
-        return `Sign in on ${destinationLabel} with the provider's own tool.`;
+        return withDevice("Sign in on {device} with the provider's own tool.");
     }
   })();
   const openLabel =
     state.kind === "needs-sign-in" || state.kind === "needs-host-setup"
-      ? `Sign in on ${destinationLabel}`
+      ? withDevice("Sign in on {device}")
       : state.kind === "disabled" || state.kind === "error"
-        ? `Open on ${destinationLabel}`
+        ? withDevice("Open on {device}")
         : null;
   const note = omittedNote(cell.omitted, sourceLabel, destinationLabel);
   return (
@@ -219,9 +243,17 @@ function destinationNote(
       cell.instanceId;
     switch (cell.action) {
       case "create":
-        return [`Adds ${account}`];
+        return [translate("Adds {account}").replace("{account}", () => account)];
       case "update":
-        return [`Updates ${account}${cell.signedInAs ? ` (signed in as ${cell.signedInAs})` : ""}`];
+        return [
+          (cell.signedInAs
+            ? translate("Updates {account} (signed in as {email})").replace(
+                "{email}",
+                () => cell.signedInAs ?? "",
+              )
+            : translate("Updates {account}")
+          ).replace("{account}", () => account),
+        ];
       case "blocked":
         return [`${account}: ${blockNote(cell.reason, destination.label)}`];
     }
@@ -235,6 +267,7 @@ function SyncProviderAccountsDialog(props: {
   readonly sourceEnvironmentId: EnvironmentId;
   readonly initialInstanceIds: ReadonlyArray<ProviderInstanceId>;
 }) {
+  const t = useTranslate();
   const { source, destinations } = useAccountSyncEnvironments(props.sourceEnvironmentId);
   const [instanceIds, setInstanceIds] = useState<ReadonlySet<ProviderInstanceId>>(
     () => new Set(props.initialInstanceIds),
@@ -282,21 +315,28 @@ function SyncProviderAccountsDialog(props: {
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
       <WizardPopup size="wide">
         <WizardHeader
-          title="Sync accounts"
+          title={t("Sync accounts")}
           description={
             report === null
-              ? `Settings and API keys are copied from ${source.label}. Sign-ins are not: each device signs in on its own, and a Cursor sign-in travels as an API key. Paths stay on ${source.label}.`
-              : "Sync again at any time; it updates the copies without duplicating them."
+              ? t(
+                  "Settings and API keys are copied from {device}. Sign-ins are not: each device signs in on its own, and a Cursor sign-in travels as an API key. Paths stay on {device}.",
+                ).replaceAll("{device}", () => source.label)
+              : t("Sync again at any time; it updates the copies without duplicating them.")
           }
         />
         <WizardPanel>
           {report === null ? (
             <>
               <div className="space-y-1">
-                <p className="text-sm font-medium text-foreground">Accounts on {source.label}</p>
+                <p className="text-sm font-medium text-foreground">
+                  {t("Accounts on {device}").replace("{device}", () => source.label)}
+                </p>
                 {accounts.length === 0 ? (
                   <p className="text-sm text-muted-foreground">
-                    No configured or signed-in accounts on {source.label}.
+                    {t("No configured or signed-in accounts on {device}.").replace(
+                      "{device}",
+                      () => source.label,
+                    )}
                   </p>
                 ) : (
                   accounts.map((account) => (
@@ -304,7 +344,14 @@ function SyncProviderAccountsDialog(props: {
                       key={account.instanceId}
                       checked={instanceIds.has(account.instanceId)}
                       title={account.label}
-                      description={account.signedInAs ? `Signed in as ${account.signedInAs}` : null}
+                      description={
+                        account.signedInAs
+                          ? t("Signed in as {account}").replace(
+                              "{account}",
+                              () => account.signedInAs ?? "",
+                            )
+                          : null
+                      }
                       onCheckedChange={(checked) =>
                         setInstanceIds((current) => toggled(current, account.instanceId, checked))
                       }
@@ -313,10 +360,10 @@ function SyncProviderAccountsDialog(props: {
                 )}
               </div>
               <div className="space-y-1">
-                <p className="text-sm font-medium text-foreground">Copy to</p>
+                <p className="text-sm font-medium text-foreground">{t("Copy to")}</p>
                 {plan.destinations.length === 0 ? (
                   <p className="text-sm text-muted-foreground">
-                    Connect another device to sync accounts to it.
+                    {t("Connect another device to sync accounts to it.")}
                   </p>
                 ) : (
                   plan.destinations.map((destination) => (
@@ -353,10 +400,10 @@ function SyncProviderAccountsDialog(props: {
           {report === null ? (
             <>
               <Button size="sm" variant="ghost" onClick={() => props.onOpenChange(false)}>
-                Cancel
+                {t("Cancel")}
               </Button>
               <Button size="sm" disabled={!canRun} onClick={() => void runSync()}>
-                {running ? "Syncing…" : "Sync"}
+                {running ? t("Syncing…") : t("Sync")}
               </Button>
             </>
           ) : (
@@ -368,11 +415,11 @@ function SyncProviderAccountsDialog(props: {
                   disabled={running}
                   onClick={() => void runSync()}
                 >
-                  Retry
+                  {t("Retry")}
                 </Button>
               ) : null}
               <Button size="sm" onClick={() => props.onOpenChange(false)}>
-                Done
+                {t("Done")}
               </Button>
             </>
           )}
@@ -391,6 +438,7 @@ export function SyncProviderAccountsAction({
   readonly readOnly: boolean;
   readonly instanceIds?: ReadonlyArray<ProviderInstanceId>;
 }) {
+  const t = useTranslate();
   const [open, setOpen] = useState(false);
   const { environments } = useEnvironments();
   const canExport = useAtomValue(providerAccountSync.canExportAtom(sourceEnvironmentId));
@@ -427,13 +475,13 @@ export function SyncProviderAccountsAction({
                 size="icon-xs"
                 variant="ghost"
                 onClick={() => setOpen(true)}
-                aria-label="Sync this account to another device"
+                aria-label={t("Sync this account to another device")}
               >
                 <ArrowLeftRightIcon />
               </Button>
             }
           />
-          <TooltipPopup side="top">Sync to…</TooltipPopup>
+          <TooltipPopup side="top">{t("Sync to…")}</TooltipPopup>
         </Tooltip>
         {dialog}
       </>
@@ -445,7 +493,7 @@ export function SyncProviderAccountsAction({
       <SettingsSearchTarget id={search.id} className="inline-flex">
         <Button size="xs" variant="ghost-muted" onClick={() => setOpen(true)}>
           <ArrowLeftRightIcon />
-          <span className="hidden sm:inline">Sync accounts</span>
+          <span className="hidden sm:inline">{t("Sync accounts")}</span>
         </Button>
       </SettingsSearchTarget>
       {dialog}

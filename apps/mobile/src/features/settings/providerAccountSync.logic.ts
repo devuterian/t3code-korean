@@ -11,18 +11,20 @@ import type {
   ProviderInstanceId,
 } from "@t3tools/contracts";
 
+import { translate } from "../../i18n/translate";
+
 export function blockNote(reason: AccountSyncBlockReason, device: string): string {
   switch (reason) {
     case "same-environment":
-      return "This is the source device.";
+      return translate("This is the source device.");
     case "not-connected":
-      return `${device} isn't connected.`;
+      return translate("{device} isn't connected.", { device });
     case "update-required":
-      return `Update ${device} to sync accounts.`;
+      return translate("Update {device} to sync accounts.", { device });
     case "permission-required":
-      return `This connection can't manage providers on ${device}.`;
+      return translate("This connection can't manage providers on {device}.", { device });
     case "instance-id-conflict":
-      return `${device} uses this account's ID for another provider.`;
+      return translate("{device} uses this account's ID for another provider.", { device });
   }
 }
 
@@ -63,7 +65,12 @@ export function syncDestinationChoice(input: {
       environmentId,
       label,
       disabled: false,
-      note: `Updates the copy on ${label}${cell.signedInAs ? ` (signed in as ${cell.signedInAs})` : ""}.`,
+      note: cell.signedInAs
+        ? translate("Updates the copy on {device} (signed in as {account}).", {
+            device: label,
+            account: cell.signedInAs,
+          })
+        : translate("Updates the copy on {device}.", { device: label }),
     };
   return { environmentId, label, disabled: false, note: null };
 }
@@ -79,14 +86,32 @@ function omittedNote(
       .map(({ setting }) => (setting._tag === "ConfigField" ? setting.field : setting.name));
   const parts: Array<string> = [];
   const local = names("machine-local");
-  if (local.length > 0) parts.push(`Stays on ${sourceLabel}: ${local.join(", ")}.`);
+  if (local.length > 0)
+    parts.push(
+      translate("Stays on {device}: {settings}.", {
+        device: sourceLabel,
+        settings: local.join(", "),
+      }),
+    );
   const unsupported = names("unsupported-here");
   if (unsupported.length > 0)
-    parts.push(`Not supported on ${destinationLabel}, update it: ${unsupported.join(", ")}.`);
+    parts.push(
+      translate("Not supported on {device}, update it: {settings}.", {
+        device: destinationLabel,
+        settings: unsupported.join(", "),
+      }),
+    );
   const missing = names("missing-on-source");
-  if (missing.length > 0) parts.push(`No value on ${sourceLabel}: ${missing.join(", ")}.`);
+  if (missing.length > 0)
+    parts.push(
+      translate("No value on {device}: {settings}.", {
+        device: sourceLabel,
+        settings: missing.join(", "),
+      }),
+    );
   const oversized = names("too-large");
-  if (oversized.length > 0) parts.push(`Too large to copy: ${oversized.join(", ")}.`);
+  if (oversized.length > 0)
+    parts.push(translate("Too large to copy: {settings}.", { settings: oversized.join(", ") }));
   return parts.length === 0 ? null : parts.join(" ");
 }
 
@@ -107,7 +132,10 @@ export function syncResultRow(input: {
 }): SyncResultRow {
   const { cell, accountLabel, sourceLabel, destinationLabel } = input;
   const key = `${cell.instanceId}:${cell.destinationEnvironmentId}`;
-  const title = `${accountLabel} on ${destinationLabel}`;
+  const title = translate("{account} on {device}", {
+    account: accountLabel,
+    device: destinationLabel,
+  });
   if (cell.status === "skipped") {
     const device = cell.end === "source" ? sourceLabel : destinationLabel;
     return { key, title, description: blockNote(cell.reason, device), tone: "default" };
@@ -119,17 +147,26 @@ export function syncResultRow(input: {
   const status = (() => {
     switch (state.kind) {
       case "ready":
-        return `Ready${state.signedInAs ? `, signed in as ${state.signedInAs}` : ""}.`;
+        return state.signedInAs
+          ? translate("Ready, signed in as {account}.", { account: state.signedInAs })
+          : translate("Ready.");
       case "starting":
-        return `Starting on ${destinationLabel}.`;
+        return translate("Starting on {device}.", { device: destinationLabel });
       case "disabled":
-        return `Turned off on ${destinationLabel}.`;
+        return translate("Turned off on {device}.", { device: destinationLabel });
       case "error":
-        return `Problem on ${destinationLabel}${state.message ? `: ${state.message}` : "."}`;
+        return state.message
+          ? translate("Problem on {device}: {message}", {
+              device: destinationLabel,
+              message: state.message,
+            })
+          : translate("Problem on {device}.", { device: destinationLabel });
       case "needs-sign-in":
-        return `Sign in on ${destinationLabel} to finish.`;
+        return translate("Sign in on {device} to finish.", { device: destinationLabel });
       case "needs-host-setup":
-        return `Sign in on ${destinationLabel} with the provider's own tool.`;
+        return translate("Sign in on {device} with the provider's own tool.", {
+          device: destinationLabel,
+        });
     }
   })();
   const note = omittedNote(cell.omitted, sourceLabel, destinationLabel);

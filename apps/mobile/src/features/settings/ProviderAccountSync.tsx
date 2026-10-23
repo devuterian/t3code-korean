@@ -9,6 +9,7 @@ import { useState } from "react";
 import { View } from "react-native";
 
 import { AppText as Text } from "../../components/ui/AppText";
+import { useTranslate } from "../../i18n/translate";
 import { useEnvironments, type EnvironmentPresentation } from "../../state/environments";
 import { providerAccountSync, serverEnvironment } from "../../state/server";
 import { useAtomCommand } from "../../state/use-atom-command";
@@ -123,6 +124,7 @@ export function ProviderAccountSync({
   readonly provider: ServerProvider;
   readonly accountLabel: string;
 }) {
+  const t = useTranslate();
   const { environments } = useEnvironments();
   const canExport = useAtomValue(providerAccountSync.canExportAtom(environment.environmentId));
   const [open, setOpen] = useState(false);
@@ -140,8 +142,8 @@ export function ProviderAccountSync({
     <>
       <SettingsActionRow
         icon="arrow.left.arrow.right"
-        label="Sync to…"
-        description="Copy this account's settings to another device."
+        label={t("Sync to…")}
+        description={t("Copy this account's settings to another device.")}
         disabled={running}
         onPress={() => setOpen((current) => !current)}
       />
@@ -178,6 +180,7 @@ function SyncPanel({
   readonly setRunning: (running: boolean) => void;
   readonly onClose: () => void;
 }) {
+  const t = useTranslate();
   const source = useAccountSyncEnvironment(environment, true);
   const sync = useAtomCommand(providerAccountSync, { reportFailure: false });
   const [chosen, setChosen] = useState<ReadonlySet<EnvironmentId>>(() => new Set());
@@ -198,8 +201,11 @@ function SyncPanel({
     <View>
       <Text textRole="footnote" className="px-4 py-3 text-foreground-muted">
         {report === null
-          ? `Settings and API keys are copied from ${environment.label}. Sign-ins are not: each device signs in on its own. Paths stay on ${environment.label}.`
-          : "Sync again at any time; it updates the copies without duplicating them."}
+          ? t(
+              "Settings and API keys are copied from {device}. Sign-ins are not: each device signs in on its own. Paths stay on {device}.",
+              { device: environment.label },
+            )
+          : t("Sync again at any time; it updates the copies without duplicating them.")}
       </Text>
       {report === null ? (
         <>
@@ -223,12 +229,17 @@ function SyncPanel({
           ))}
           <SettingsActionRow
             icon="arrow.right"
-            label={running ? "Syncing…" : "Sync"}
+            label={running ? t("Syncing…") : t("Sync")}
             disabled={chosen.size === 0}
             loading={running}
             onPress={() => void runSync()}
           />
-          <SettingsActionRow icon="xmark" label="Cancel" disabled={running} onPress={onClose} />
+          <SettingsActionRow
+            icon="xmark"
+            label={t("Cancel")}
+            disabled={running}
+            onPress={onClose}
+          />
         </>
       ) : (
         <>
@@ -246,12 +257,12 @@ function SyncPanel({
           {report.cells.some((cell) => cell.status === "failed") ? (
             <SettingsActionRow
               icon="arrow.clockwise"
-              label="Retry"
+              label={t("Retry")}
               loading={running}
               onPress={() => void runSync()}
             />
           ) : null}
-          <SettingsActionRow icon="checkmark" label="Done" onPress={onClose} />
+          <SettingsActionRow icon="checkmark" label={t("Done")} onPress={onClose} />
         </>
       )}
     </View>

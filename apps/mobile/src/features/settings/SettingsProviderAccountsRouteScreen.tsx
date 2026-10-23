@@ -258,18 +258,29 @@ function ProviderAccount({
   }
   const installDescription =
     installation?.phase === "downloading"
-      ? `Downloading Codex CLI (${(installation.downloadedBytes / 1_000_000).toFixed(1)} MB${installation.totalBytes === null ? "" : ` of ${(installation.totalBytes / 1_000_000).toFixed(1)} MB`}).`
+      ? installation.totalBytes === null
+        ? t("Downloading Codex CLI ({downloaded} MB).", {
+            downloaded: (installation.downloadedBytes / 1_000_000).toFixed(1),
+          })
+        : t("Downloading Codex CLI ({downloaded} MB of {total} MB).", {
+            downloaded: (installation.downloadedBytes / 1_000_000).toFixed(1),
+            total: (installation.totalBytes / 1_000_000).toFixed(1),
+          })
       : installation?.phase === "extracting"
-        ? "Extracting Codex CLI."
+        ? t("Extracting Codex CLI.")
         : installation?.phase === "verifying"
-          ? "Checking Codex CLI."
+          ? t("Checking Codex CLI.")
           : installation?.phase === "succeeded" && installation.source === "local"
-            ? "This provider cannot use the environment's Codex executable. Install Codex CLI for this provider."
+            ? t(
+                "This provider cannot use the environment's Codex executable. Install Codex CLI for this provider.",
+              )
             : installation?.phase === "succeeded"
-              ? "Codex CLI is installed. Checking whether this provider can run it."
+              ? t("Codex CLI is installed. Checking whether this provider can run it.")
               : installation?.phase === "failed" || installation?.phase === "cancelled"
-                ? (installation.message ?? "Codex CLI installation failed.")
-                : `Install Codex CLI on ${environment.label} before signing in.`;
+                ? (installation.message ?? t("Codex CLI installation failed."))
+                : t("Install Codex CLI on {environment} before signing in.", {
+                    environment: environment.label,
+                  });
   return (
     <View className="border-b border-border-subtle">
       <View className="gap-2 p-4">
@@ -297,16 +308,16 @@ function ProviderAccount({
             icon="arrow.down.circle"
             label={
               installActive
-                ? "Cancel installation"
+                ? t("Cancel installation")
                 : updateAvailable
-                  ? "Update Codex CLI"
+                  ? t("Update Codex CLI")
                   : installation?.phase === "succeeded"
                     ? installation.source === "local"
-                      ? "Install Codex CLI"
-                      : "Refresh provider status"
+                      ? t("Install Codex CLI")
+                      : t("Refresh provider status")
                     : installation?.phase === "failed" || installation?.phase === "cancelled"
-                      ? "Retry installation"
-                      : "Install Codex CLI"
+                      ? t("Retry installation")
+                      : t("Install Codex CLI")
             }
             description={
               installationQuery.error ??
@@ -314,7 +325,7 @@ function ProviderAccount({
               !installActive &&
               installation.phase !== "failed" &&
               installation.phase !== "cancelled"
-                ? `Codex ${installation.version} is available.`
+                ? t("Codex {version} is available.", { version: installation.version })
                 : installDescription)
             }
             disabled={(installActive ? cancelInstallDisabled : installDisabled) || active}

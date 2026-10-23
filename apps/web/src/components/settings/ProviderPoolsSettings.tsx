@@ -2,6 +2,7 @@ import { useAtomValue } from "@effect/atom-react";
 import { AuthProvidersManageScope, type EnvironmentId } from "@t3tools/contracts";
 
 import { useEnvironmentSettings, useUpdateEnvironmentSettings } from "../../hooks/useSettings";
+import { useTranslate } from "../../i18n/translate";
 import { useEnvironmentScope } from "../../state/session";
 import { providersIgnoringCheckedAtAtom, serverEnvironment } from "../../state/server";
 import { Checkbox } from "../ui/checkbox";
@@ -21,6 +22,7 @@ export function ProviderPoolsSettings({
 }: {
   readonly environmentId: EnvironmentId;
 }) {
+  const t = useTranslate();
   const providers = useAtomValue(providersIgnoringCheckedAtAtom(environmentId));
   const providerPools = useEnvironmentSettings(environmentId, (settings) => settings.providerPools);
   const supportsProviderPools = useAtomValue(
@@ -31,12 +33,17 @@ export function ProviderPoolsSettings({
   const updateSettings = useUpdateEnvironmentSettings(environmentId);
   const cards = buildProviderPoolCards(providers, providerPools);
   const { id, title } = searchableSetting("account-pools");
+  // Status headlines may carry an auth label after " · "; only the headline is translated.
+  const translateStatus = (status: string) => {
+    const [headline = status, ...tail] = status.split(" · ");
+    return [t(headline), ...tail].join(" · ");
+  };
 
   if (!supportsProviderPools) {
     return (
       <SettingsPageContainer>
         <p className="text-sm text-muted-foreground">
-          This environment's server is too old for account pools. Update it to use them.
+          {t("This environment's server is too old for account pools. Update it to use them.")}
         </p>
       </SettingsPageContainer>
     );
@@ -52,7 +59,7 @@ export function ProviderPoolsSettings({
       </SettingsSection>
       {cards.length === 0 ? (
         <p className="px-3 text-sm text-muted-foreground sm:px-4">
-          Add a second account for a provider on the Providers page to pool them.
+          {t("Add a second account for a provider on the Providers page to pool them.")}
         </p>
       ) : (
         cards.map((card) => {
@@ -70,13 +77,18 @@ export function ProviderPoolsSettings({
                 title="Pool these accounts"
                 description={
                   card.canEnable
-                    ? `One ${card.label} entry in the model picker, with turns routed across the ticked accounts.`
+                    ? t(
+                        "One {provider} entry in the model picker, with turns routed across the ticked accounts.",
+                      ).replace("{provider}", () => card.label)
                     : "Tick at least two accounts to turn the pool on."
                 }
                 status={card.modelCoverage ? modelCoverageLabel(card.modelCoverage) : undefined}
                 control={
                   <Switch
-                    aria-label={`Pool ${card.label} accounts`}
+                    aria-label={t("Pool {provider} accounts").replace(
+                      "{provider}",
+                      () => card.label,
+                    )}
                     checked={card.enabled}
                     disabled={!canManage || (!card.canEnable && !card.enabled)}
                     onCheckedChange={(enabled) => update({ type: "enabled", enabled })}
@@ -90,25 +102,27 @@ export function ProviderPoolsSettings({
                   description={
                     <>
                       <span className="block">
-                        {candidate.status}
+                        {translateStatus(candidate.status)}
                         <ProviderLimitedUntil
                           provider={candidate.provider}
                           className="ms-1.5 text-warning-foreground"
                         />
                       </span>
                       {candidate.continuationHint ? (
-                        <span className="block">{candidate.continuationHint}</span>
+                        <span className="block">{t(candidate.continuationHint)}</span>
                       ) : null}
                       {candidate.sameLoginHint ? (
                         <span className="block text-muted-foreground">
-                          {candidate.sameLoginHint}
+                          {t(candidate.sameLoginHint)}
                         </span>
                       ) : null}
                     </>
                   }
                   control={
                     <Checkbox
-                      aria-label={`Include ${candidate.displayName} in the ${card.label} pool`}
+                      aria-label={t("Include {account} in the {provider} pool")
+                        .replace("{account}", () => candidate.displayName)
+                        .replace("{provider}", () => card.label)}
                       checked={candidate.ticked}
                       disabled={!canManage}
                       onCheckedChange={(ticked) =>

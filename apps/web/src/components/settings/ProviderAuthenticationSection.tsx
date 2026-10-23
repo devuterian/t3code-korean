@@ -181,10 +181,10 @@ export function ProviderAuthenticationSection({
       void ensureLocalApi()
         .shell.openExternal(url)
         .catch(() => {
-          setError("Could not open the sign-in page. Use Open browser or copy the link.");
+          setError(t("Could not open the sign-in page. Use Open browser or copy the link."));
         });
     }
-  }, [active, auth?.flowId, browserFlowId, interaction, query.error, url]);
+  }, [active, auth?.flowId, browserFlowId, interaction, query.error, t, url]);
 
   async function beginSignIn() {
     if (pendingRef.current) return;
@@ -272,21 +272,31 @@ export function ProviderAuthenticationSection({
 
   const installStatus =
     installation?.phase === "downloading"
-      ? `Downloading Codex CLI (${(installation.downloadedBytes / 1_000_000).toFixed(1)} MB${installation.totalBytes === null ? "" : ` of ${(installation.totalBytes / 1_000_000).toFixed(1)} MB`}).`
+      ? (installation.totalBytes === null
+          ? t("Downloading Codex CLI ({downloaded} MB).")
+          : t("Downloading Codex CLI ({downloaded} MB of {total} MB).").replace("{total}", () =>
+              ((installation.totalBytes ?? 0) / 1_000_000).toFixed(1),
+            )
+        ).replace("{downloaded}", () => (installation.downloadedBytes / 1_000_000).toFixed(1))
       : installation?.phase === "extracting"
-        ? "Extracting Codex CLI."
+        ? t("Extracting Codex CLI.")
         : installation?.phase === "verifying"
-          ? "Checking Codex CLI."
+          ? t("Checking Codex CLI.")
           : installation?.phase === "succeeded" &&
               installation.source === "local" &&
               !provider.installed
-            ? "This provider cannot use the environment's Codex executable. Install Codex CLI for this provider."
+            ? t(
+                "This provider cannot use the environment's Codex executable. Install Codex CLI for this provider.",
+              )
             : installation?.phase === "succeeded" && !provider.installed
-              ? "Codex CLI is installed. Checking whether this provider can run it."
+              ? t("Codex CLI is installed. Checking whether this provider can run it.")
               : installation?.phase === "failed" || installation?.phase === "cancelled"
-                ? (installation.message ?? "Codex CLI installation failed.")
+                ? (installation.message ?? t("Codex CLI installation failed."))
                 : updateAvailable
-                  ? `Codex ${installation.version} is available.`
+                  ? t("Codex {version} is available.").replace(
+                      "{version}",
+                      () => installation.version ?? "",
+                    )
                   : null;
 
   return (
@@ -330,7 +340,7 @@ export function ProviderAuthenticationSection({
             installation.totalBytes !== null &&
             installation.totalBytes > 0 ? (
               <progress
-                aria-label="Codex CLI download"
+                aria-label={t("Codex CLI download")}
                 className="mt-2 block h-1 w-full accent-foreground"
                 value={installation.downloadedBytes}
                 max={installation.totalBytes}
@@ -357,11 +367,11 @@ export function ProviderAuthenticationSection({
                     );
                   }}
                 >
-                  Cancel installation
+                  {t("Cancel installation")}
                 </Button>
               ) : (
                 <Button size="sm" variant="outline" disabled>
-                  Installing Codex CLI
+                  {t("Installing Codex CLI")}
                 </Button>
               )
             ) : (
@@ -390,15 +400,17 @@ export function ProviderAuthenticationSection({
                   }
                 }}
               >
-                {updateAvailable
-                  ? "Update Codex CLI"
-                  : installation?.phase === "failed" || installation?.phase === "cancelled"
-                    ? "Retry installation"
-                    : installation?.phase === "succeeded"
-                      ? installation.source === "local"
-                        ? "Install Codex CLI"
-                        : "Refresh status"
-                      : "Install Codex CLI"}
+                {t(
+                  updateAvailable
+                    ? "Update Codex CLI"
+                    : installation?.phase === "failed" || installation?.phase === "cancelled"
+                      ? "Retry installation"
+                      : installation?.phase === "succeeded"
+                        ? installation.source === "local"
+                          ? "Install Codex CLI"
+                          : "Refresh status"
+                        : "Install Codex CLI",
+                )}
               </Button>
             )
           ) : null}

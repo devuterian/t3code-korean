@@ -3,6 +3,7 @@ import {
   buildTraitsTriggerDisplay,
   getPromptControlledTraits,
 } from "@t3tools/client-runtime/model-traits";
+import { useTranslate } from "../i18n/translate";
 import type { ModelOption } from "../lib/modelOptions";
 import { resolveProviderOptionDescriptors } from "../lib/providerOptions";
 import { AppText as Text } from "./ui/AppText";
@@ -21,6 +22,7 @@ export function ComposerModelControl(props: {
   readonly iconOnly?: boolean;
   readonly onPress: () => void;
 }) {
+  const t = useTranslate();
   const descriptors = resolveProviderOptionDescriptors({
     capabilities: props.modelOption?.capabilities,
     selections: props.selection?.options,
@@ -37,11 +39,11 @@ export function ComposerModelControl(props: {
       }).label
     : "";
   const badge = props.modelOption?.providerBadge;
-  const label = props.modelOption?.label ?? props.selection?.model ?? "Choose model";
+  const label = props.modelOption?.label ?? props.selection?.model ?? t("Choose model");
   return (
     <ComposerInlineControl
       accessibilityLabel={[
-        "Model and reasoning settings",
+        t("Model and reasoning settings"),
         label,
         badge?.showBadge ? badge.displayName : null,
         summary,

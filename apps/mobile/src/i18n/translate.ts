@@ -73,6 +73,17 @@ const LANGUAGE_PACKS: Partial<Record<MobileInterfaceLanguage, LanguagePack>> = {
       [/^Settled \((\d+)\)$/, (n) => `정리됨 (${n})`],
       [/^Snoozed \((\d+)\)$/, (n) => `미뤄 둠 (${n})`],
       [/^Worked for (.+)$/, (d) => `${d} 동안 작업함`],
+      [
+        /^(\d+) subagents need (input|approval|you)$/,
+        (n, need) =>
+          `서브에이전트 ${n}개 ${need === "input" ? "입력" : need === "approval" ? "승인" : "확인"} 필요`,
+      ],
+      // client-runtime formatProviderUpdateRequiredNotice
+      [
+        /^Update (?:the )?(.+) to (v\S+) or newer to use (.+)\.$/,
+        (provider, version, names) =>
+          `${names.replace(/,? and /g, ", ")} 모델을 쓰려면 ${provider} 버전을 ${version} 이상으로 업데이트해야 합니다.`,
+      ],
     ],
   },
 };

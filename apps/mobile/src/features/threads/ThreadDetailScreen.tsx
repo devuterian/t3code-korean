@@ -784,8 +784,13 @@ export const ThreadDetailScreen = function ThreadDetailScreen(props: ThreadDetai
     if (childInput && contentPresentationKind === "ready") {
       return {
         kind: "child-input",
-        label: childThreadInputsTitle(childThreadInputs),
-        accessibilityLabel: `Open ${childInput.hasPendingApprovals ? "approval" : "question"} from ${childInput.title}`,
+        label: t(childThreadInputsTitle(childThreadInputs)),
+        accessibilityLabel: t(
+          childInput.hasPendingApprovals
+            ? "Open approval from {title}"
+            : "Open question from {title}",
+          { title: childInput.title },
+        ),
         onPress: () => {
           Keyboard.dismiss();
           navigation.dispatch(

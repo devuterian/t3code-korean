@@ -793,10 +793,12 @@ function buildThreadSettingsCatalogItems(
       favoriteKeys: session.favoriteKeys,
       isDisplayed: session.isDisplayed,
     });
-    const updateRequiredNotice =
+    const englishUpdateRequiredNotice =
       group.updateRequired && session.providerFilter !== FAVORITES_PROVIDER_FILTER
         ? formatProviderUpdateRequiredNotice(group.updateRequired, session.searchQuery)
         : null;
+    const updateRequiredNotice =
+      englishUpdateRequiredNotice === null ? null : translate(englishUpdateRequiredNotice);
     if (visibleModels.length === 0 && !updateRequiredNotice) {
       return [];
     }

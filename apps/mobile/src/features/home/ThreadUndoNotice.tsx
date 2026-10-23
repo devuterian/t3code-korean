@@ -1,10 +1,12 @@
 import { View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Toast } from "../../components/ui/Toast";
+import { useTranslate } from "../../i18n/translate";
 import { APP_BAR_HEIGHT } from "../../lib/layoutMetrics";
 import { dismissThreadUndoNotice, useThreadUndoNotice } from "./thread-undo-notice";
 
 export function ThreadUndoNotice(props: { readonly visible: boolean }) {
+  const t = useTranslate();
   const notice = useThreadUndoNotice();
   const insets = useSafeAreaInsets();
   if (!props.visible || notice === null) return null;
@@ -15,9 +17,9 @@ export function ThreadUndoNotice(props: { readonly visible: boolean }) {
       pointerEvents="box-none"
     >
       <Toast
-        message={`${notice.action} thread`}
+        message={t(`${notice.action} thread`)}
         action={{
-          label: "Undo",
+          label: t("Undo"),
           onPress: () => {
             void notice.undo();
           },

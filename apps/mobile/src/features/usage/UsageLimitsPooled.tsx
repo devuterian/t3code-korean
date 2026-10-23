@@ -376,7 +376,7 @@ export function UsageLimitsSection({
                   {DRIVER_LABEL[pool.driver] ?? pool.driver}
                   {accountCount > 1 || instanceCount > 1 ? (
                     <Text className="text-foreground-muted">
-                      {` · ${accountCount} ${accountCount === 1 ? "account" : "accounts"}`}
+                      {` · ${t(accountCount === 1 ? "{count} account" : "{count} accounts", { count: accountCount })}`}
                     </Text>
                   ) : null}
                 </Text>
@@ -564,14 +564,14 @@ export function UsageLimitAccountScreen({ route }: AccountScreenProps) {
             </View>
             {account.instances.length > 1 ? (
               <View className="gap-2 rounded-[24px] border-continuous bg-grouped-card p-4">
-                <Text className="text-sm font-t3-medium text-foreground">Signed in on</Text>
+                <Text className="text-sm font-t3-medium text-foreground">{t("Signed in on")}</Text>
                 <Text className="text-sm text-foreground-muted">
                   {[...new Set(account.instances.map((instance) => instance.displayName))].join(
                     ", ",
                   )}
                 </Text>
                 <Text className="text-sm text-foreground-muted">
-                  One login, one quota: these instances share this limit.
+                  {t("One login, one quota: these instances share this limit.")}
                 </Text>
               </View>
             ) : null}
