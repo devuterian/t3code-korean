@@ -11,6 +11,7 @@ import {
   filterSharedServerPatch,
   findSharedSettingsMismatches,
   pickSharedServerSettings,
+  splitSharedServerPatch,
 } from "./sharedSettings.ts";
 
 const primaryId = EnvironmentId.make("env-primary");
