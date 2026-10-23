@@ -35,7 +35,7 @@ export const KO_ACCOUNT_POOLS: Readonly<Record<string, string>> = {
   "Syncing…": "동기화 중…",
   Sync: "동기화",
   "This is the source device.": "원본 기기입니다.",
-  "{device} isn't connected.": "{device}에 연결되어 있지 않습니다.",
+  "{device} isn't connected.": "{device} 기기가 연결되어 있지 않습니다.",
   "Update {device} to sync accounts.": "계정을 동기화하려면 {device}에서 업데이트가 필요합니다.",
   "This connection can't manage providers on {device}.":
     "이 연결로는 {device}의 프로바이더를 관리할 수 없습니다.",

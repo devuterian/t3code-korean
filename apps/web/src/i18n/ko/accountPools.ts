@@ -130,6 +130,7 @@ export const KO_ACCOUNT_POOLS: Readonly<Record<string, string>> = {
   "Adds {account}": "{account} 추가",
   "Updates {account}": "{account} 업데이트",
   "Updates {account} (signed in as {email})": "{account} 업데이트 (로그인 계정: {email})",
+  "Connect {provider}": "{provider} 연결",
 };
 
 /** Strings built by `ProviderPoolsSettings.logic.ts`, whose tests assert the English output. */

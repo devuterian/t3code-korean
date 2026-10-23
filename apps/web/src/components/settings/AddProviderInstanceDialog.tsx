@@ -428,7 +428,7 @@ export function AddProviderInstanceDialog({
         <WizardHeader
           title={
             providerView === "connection"
-              ? `${driverOption.label} ${t("Connect")}`
+              ? t("Connect {provider}").replace("{provider}", () => driverOption.label)
               : t("Add provider")
           }
           description={
