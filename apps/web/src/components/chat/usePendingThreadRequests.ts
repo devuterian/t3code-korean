@@ -1,7 +1,7 @@
+import type { ThreadStructure } from "@t3tools/client-runtime/state/shell";
 import {
   AuthOrchestrationOperateScope,
   type EnvironmentId,
-  type OrchestrationV2ThreadProjection,
   type ProviderApprovalDecision,
   type RuntimeRequestId,
   type ScopedThreadRef,
@@ -111,7 +111,7 @@ export function usePendingThreadRequests(input: {
   readonly environmentId: EnvironmentId;
   readonly activeThreadId: ThreadId | null;
   readonly activeThread: { readonly id: ThreadId } | undefined;
-  readonly serverProjection: OrchestrationV2ThreadProjection | null;
+  readonly serverProjection: ThreadStructure | null;
   readonly supportsQuestionAttachments: boolean;
   readonly composerDraftTarget: ScopedThreadRef | DraftId;
   readonly setComposerDraftPrompt: (target: ScopedThreadRef | DraftId, prompt: string) => void;
@@ -301,6 +301,7 @@ export function usePendingThreadRequests(input: {
   const onRespondToApproval = async (
     requestId: RuntimeRequestId,
     decision: ProviderApprovalDecision,
+    feedback?: string,
   ) => {
     if (!activeThreadId || !readEnvironmentScope(environmentId, AuthOrchestrationOperateScope))
       return;
@@ -319,6 +320,7 @@ export function usePendingThreadRequests(input: {
         threadId: activeThreadId,
         requestId,
         decision,
+        ...(feedback === undefined ? {} : { feedback }),
       },
     });
     if (result._tag === "Failure" && !isAtomCommandInterrupted(result)) {

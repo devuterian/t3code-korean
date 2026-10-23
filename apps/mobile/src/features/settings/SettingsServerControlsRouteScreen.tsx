@@ -442,15 +442,14 @@ function ServerSettingsDetail(props: { readonly page: SettingsPage }) {
 
               {props.page === "maintenance" ? (
                 <>
-                  {!projectSelected &&
-                    selectedTargets
-                      .filter(
+                  {!projectSelected ? (
+                    <DatabaseStorageNotice
+                      targets={selectedTargets.filter(
                         (target) =>
                           target.serverConfig.environment.capabilities.databaseStorage === true,
-                      )
-                      .map((target) => (
-                        <DatabaseStorageNotice key={target.environmentId} target={target} />
-                      ))}
+                      )}
+                    />
+                  ) : null}
                   {!projectSelected ? (
                     <SettingsSection title={t("Manage environments")}>
                       {selectedTargets.map((target) => (

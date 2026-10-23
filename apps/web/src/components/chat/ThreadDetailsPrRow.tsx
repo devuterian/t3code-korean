@@ -22,6 +22,7 @@ import { cn } from "~/lib/utils";
 import { useTranslate } from "~/i18n/translate";
 import { useServerConfigs } from "~/state/entities";
 import { pullRequestEnvironment } from "~/state/pullRequests";
+import { useUiStateStore } from "~/uiStateStore";
 import {
   useEnvironmentQueryIsNewer,
   useEnvironmentQueryRefresh,
@@ -32,9 +33,10 @@ import {
   buildFixFindingsHandoff,
   buildResolveConflictsPrompt,
   classifyPullRequestChecks,
+  resolvePullRequestDetailChecks,
   describePullRequestChecks,
   isPullRequestConflicting,
-  resolveSelectedMergeMethod,
+  resolvePullRequestMergeMethod,
   allowedPullRequestMergeMethods,
   resolveThreadPanelPullRequestAction,
 } from "../pullRequest/pullRequestDetail.logic";
@@ -47,6 +49,7 @@ import {
 } from "../pullRequest/pullRequestPresentation";
 import {
   usePullRequestActionRunner,
+  usePullRequestDefaultMergeMethodResolver,
   usePullRequestHandoffs,
 } from "../pullRequest/usePullRequestActions";
 import {
@@ -135,12 +138,7 @@ export function ThreadDetailsPrRow({
   const checksSettledEmpty = useEnvironmentQuerySelector(checksAtom, isSettledWithoutChecks);
   const checksQuery = useEnvironmentQueryRefresh(checksAtom);
   const checksAreNewer = useEnvironmentQueryIsNewer(checksAtom, detailAtom);
-  const detail =
-    detailData === null
-      ? null
-      : checksData !== null && checksAreNewer
-        ? { ...detailData, ...checksData }
-        : detailData;
+  const detail = resolvePullRequestDetailChecks(detailData, checksData, checksAreNewer);
   const open = reference !== null && (detail?.state ?? pr?.state) === "open";
   const refreshKey = `${environmentId}:${project?.id}:${reference?.host}:${reference?.repository}:${number}`;
   useLiveRefresh(
@@ -168,6 +166,11 @@ export function ThreadDetailsPrRow({
     },
   });
   const { handoff, startHandoff } = usePullRequestHandoffs({ environmentId, detail });
+  const lastSelectedMergeMethod = useUiStateStore((state) => state.pullRequestMergeMethod);
+  const resolveProjectDefaultMergeMethod = usePullRequestDefaultMergeMethodResolver(
+    environmentId,
+    (project?.id as ProjectId | undefined) ?? null,
+  );
   const [confirmingMerge, setConfirmingMerge] = useState(false);
 
   const rowAction = resolveThreadPanelPullRequestAction(detail);
@@ -177,9 +180,11 @@ export function ThreadDetailsPrRow({
   const conflicting = isPullRequestConflicting(detail);
   const checksState = detail === null ? "none" : classifyPullRequestChecks(detail.checks);
   const checksRollup = detail === null ? null : pullRequestChecksState(detail.checks);
-  const selectedMergeMethod = resolveSelectedMergeMethod(
+  const selectedMergeMethod = resolvePullRequestMergeMethod(
     allowedPullRequestMergeMethods(detail),
-    "merge",
+    null,
+    resolveProjectDefaultMergeMethod(),
+    lastSelectedMergeMethod,
   );
 
   const startResolveConflicts = () => {

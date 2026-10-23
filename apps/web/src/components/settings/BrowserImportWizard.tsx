@@ -277,7 +277,7 @@ function FullDiskAccessStep({
         </DialogTitle>
         <DialogDescription>
           {t(
-            "To import cookies from {name}, T3 Code needs Full Disk Access. Turn it on in System Settings, then come back to finish the import — you can revoke it again once the import is done.",
+            "To import cookies from {name}, T3 Code needs Full Disk Access. Turn it on in System Settings, then come back to finish the import. You can revoke it again once the import is done.",
           ).replace("{name}", source.name)}
         </DialogDescription>
       </DialogHeader>

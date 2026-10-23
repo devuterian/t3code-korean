@@ -6,12 +6,15 @@ import { NewThreadButton } from "../../components/NewThreadButton";
 import { FloatingActionButton } from "../../components/ui/FloatingActionButton";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { useTranslate } from "../../i18n/translate";
+import type { WorkspaceTab } from "../workspace/workspace-tabs-state";
 
 export function WorkspaceEmptyDetail(props: {
+  readonly tab?: WorkspaceTab;
   readonly onStartNewTask?: () => void;
   readonly onAddConnection?: () => void;
 }) {
   const t = useTranslate();
+  const pullRequests = props.tab === "pullRequests";
   return (
     <View
       className={
@@ -45,13 +48,17 @@ export function WorkspaceEmptyDetail(props: {
             tintColorClassName="accent-icon-subtle"
             type="hierarchical"
           />
-          <Text className="text-center text-xl font-t3-bold">{t("Select a thread")}</Text>
-          <Text className="text-center text-base text-foreground-muted">
-            {Platform.OS === "android"
-              ? t("Choose a thread from the sidebar or start a new thread.")
-              : t("Choose a thread from the sidebar or start a new task.")}
+          <Text className="text-center text-xl font-t3-bold">
+            {pullRequests ? t("Select a pull request") : t("Select a thread")}
           </Text>
-          {props.onStartNewTask ? (
+          <Text className="text-center text-base text-foreground-muted">
+            {pullRequests
+              ? t("Choose a pull request from the sidebar to review it.")
+              : Platform.OS === "android"
+                ? t("Choose a thread from the sidebar or start a new thread.")
+                : t("Choose a thread from the sidebar or start a new task.")}
+          </Text>
+          {props.onStartNewTask && !pullRequests ? (
             Platform.OS === "android" ? (
               <NewThreadButton extended className="mt-2" onPress={props.onStartNewTask} />
             ) : (
@@ -61,7 +68,7 @@ export function WorkspaceEmptyDetail(props: {
                 onPress={props.onStartNewTask}
               >
                 <Text className="text-base font-t3-bold text-primary-foreground">
-                  {t("New Task")}
+                  {t("New thread")}
                 </Text>
               </Pressable>
             )

@@ -1,5 +1,3 @@
-"use client";
-
 import { scopeThreadRef, scopedThreadKey } from "@t3tools/client-runtime/environment";
 import { settlePromise } from "@t3tools/client-runtime/state/runtime";
 import { previewStreamDownloadUrl } from "@t3tools/client-runtime/preview/server-browser-stream";
@@ -948,7 +946,7 @@ export function PreviewView({
         pickDisabled={!tabId || isUnreachable}
         pickDisabledReason={
           isUnreachable
-            ? t("Page didn't load — pick unavailable until the page renders")
+            ? t("Page didn't load. Pick is unavailable until the page renders")
             : undefined
         }
         leadingActions={

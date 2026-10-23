@@ -399,8 +399,6 @@ export function SourceControlWritingSettingsSection() {
                   provider={writerInstanceEntry.driverKind}
                   models={writerInstanceEntry.models}
                   model={activeSelection.model}
-                  prompt=""
-                  onPromptChange={() => {}}
                   modelOptions={activeSelection.options ?? []}
                   allowPromptInjectedEffort={false}
                   planModeEnabled={
@@ -505,8 +503,6 @@ export function SourceControlWritingSettingsSection() {
                       provider={reviewGuideInstanceEntry.driverKind}
                       models={reviewGuideInstanceEntry.models}
                       model={reviewGuideSelection.model}
-                      prompt=""
-                      onPromptChange={() => {}}
                       modelOptions={reviewGuideSelection.options ?? []}
                       allowPromptInjectedEffort={false}
                       planModeEnabled={

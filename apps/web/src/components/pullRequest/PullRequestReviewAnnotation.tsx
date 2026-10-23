@@ -89,7 +89,7 @@ export function PendingReviewCommentCard({
     >
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
         <MessageSquareIcon className="size-3.5" />
-        <span>{t("Pending — sent when you submit the review")}</span>
+        <span>{t("Pending. Sent when you submit the review")}</span>
         <Button
           size="icon-xs"
           variant="ghost"

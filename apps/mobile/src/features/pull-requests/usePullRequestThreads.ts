@@ -149,9 +149,8 @@ export function usePullRequestThreads(
       previousPrompts.current.set(draftKey, pullRequestAgentPrompt(task));
       if (thread) openThread(thread);
       else
-        navigation.navigate("NewTaskSheet", {
-          screen: "NewTaskDraft",
-          params: {
+        navigation.navigate("Thread", {
+          draft: {
             draftId: draftKey,
             title: translate("Ask about #{number}", { number: pr.number }),
           },

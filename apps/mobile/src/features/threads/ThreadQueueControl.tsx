@@ -151,6 +151,8 @@ export function ThreadQueueSheet({ route }: StaticScreenProps<QueueTarget>) {
     void Haptics.selectionAsync();
     if (action === "remove") {
       await cancel(buildCancelQueuedRunCommand({ ...target, runId }));
+    } else if (workflow?.canSendNow) {
+      await resume({ ...target, input: { threadId: target.threadId, runId } });
     } else if (workflow?.activeRun && workflow.canPromoteToSteer) {
       await promote({
         ...target,
@@ -223,6 +225,7 @@ export function ThreadQueueSheet({ route }: StaticScreenProps<QueueTarget>) {
         const controls = resolveThreadQueueRowControls({
           busy: busyRunId !== null || draggedRunId !== null,
           canPromoteToSteer: workflow?.canPromoteToSteer ?? false,
+          canSendNow: workflow?.canSendNow ?? false,
           canReorder: workflow?.canReorder ?? false,
           index,
           isEditing: editing?.runId === run.id,
@@ -328,12 +331,12 @@ export function ThreadQueueSheet({ route }: StaticScreenProps<QueueTarget>) {
                   accessibilityLabel={t("Actions for queued message {index}", { index: index + 1 })}
                   shouldOpenOnLongPress
                   actions={[
-                    ...(workflow?.canPromoteToSteer
+                    ...(workflow?.canPromoteToSteer || workflow?.canSendNow
                       ? [
                           {
                             id: "steer",
-                            title: t("Steer now"),
-                            attributes: { disabled: !controls.canSteer },
+                            title: workflow?.canSendNow ? t("Send now") : t("Steer now"),
+                            attributes: { disabled: !controls.canSend },
                             image: Platform.OS === "ios" ? "arrow.turn.left.up" : "arrow_upward",
                           },
                         ]
@@ -391,18 +394,20 @@ export function ThreadQueueSheet({ route }: StaticScreenProps<QueueTarget>) {
                         {t("Editing")}
                       </Text>
                     ) : null}
-                    {workflow?.canPromoteToSteer ? (
+                    {workflow?.canPromoteToSteer || workflow?.canSendNow ? (
                       <Pressable
                         accessibilityRole="button"
-                        accessibilityLabel={t("Steer with message {index} now", {
-                          index: index + 1,
-                        })}
-                        disabled={!controls.canSteer}
+                        accessibilityLabel={
+                          workflow?.canSendNow
+                            ? t("Send message {index} now", { index: index + 1 })
+                            : t("Steer with message {index} now", { index: index + 1 })
+                        }
+                        disabled={!controls.canSend}
                         onPress={() => void act(run.id, "steer")}
                         className="h-8 shrink-0 justify-center rounded-full bg-primary px-3 active:opacity-70 disabled:opacity-40"
                       >
                         <Text className="font-t3-medium text-xs text-primary-foreground">
-                          {t("Steer")}
+                          {workflow?.canSendNow ? t("Send now") : t("Steer")}
                         </Text>
                       </Pressable>
                     ) : null}

@@ -1,6 +1,6 @@
 import { MOBILE_SHAPE } from "../../lib/designTokens";
 import { useEffect } from "react";
-import { AccessibilityInfo, Platform, View } from "react-native";
+import { AccessibilityInfo, Platform, View, useWindowDimensions } from "react-native";
 
 import { AppText } from "./AppText";
 import { Button } from "./Button";
@@ -22,6 +22,13 @@ export interface ToastProps {
 /** The owning screen places and dismisses feedback; actions are never implicit. */
 export function Toast(props: ToastProps) {
   const t = useTranslate();
+  const { fontScale } = useWindowDimensions();
+  // A one-line message keeps its action on the same row. Descriptions and
+  // accessibility text sizes need the full width, so the action moves below.
+  const inlineAction = !props.description && fontScale < 1.5;
+  const action = props.action ? (
+    <Button label={props.action.label} onPress={props.action.onPress} />
+  ) : null;
   useEffect(() => {
     if (Platform.OS === "ios") AccessibilityInfo.announceForAccessibility(props.message);
   }, [props.message]);
@@ -49,6 +56,7 @@ export function Toast(props: ToastProps) {
             </AppText>
           ) : null}
         </View>
+        {inlineAction ? action : null}
         {props.onDismiss ? (
           <IconButton
             accessibilityLabel={t("Dismiss message")}
@@ -57,11 +65,7 @@ export function Toast(props: ToastProps) {
           />
         ) : null}
       </View>
-      {props.action ? (
-        <View className="mt-2 self-end">
-          <Button label={props.action.label} onPress={props.action.onPress} />
-        </View>
-      ) : null}
+      {action && !inlineAction ? <View className="mt-2 self-end">{action}</View> : null}
     </GlassSurface>
   );
 }

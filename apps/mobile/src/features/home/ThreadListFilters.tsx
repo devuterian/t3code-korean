@@ -1,8 +1,10 @@
+import { ACTIVE_THREAD_SORT_OPTIONS } from "@t3tools/client-runtime/state/shared-settings";
 import { Pressable, ScrollView } from "react-native";
 import { SymbolView } from "../../components/ui/AppSymbol";
 import { useTranslate } from "../../i18n/translate";
 import { ListFilterMenu } from "../workspace/ListFilterMenu";
 import type { HomeHeaderProps } from "./HomeHeader.types";
+import { useActiveThreadSort } from "../threads/use-active-thread-sort";
 
 export function ThreadListFilters(
   props: Pick<
@@ -16,6 +18,7 @@ export function ThreadListFilters(
   >,
 ) {
   const t = useTranslate();
+  const activeThreadSort = useActiveThreadSort();
   const selectedEnvironment = props.environments.find(
     (environment) => environment.environmentId === props.selectedEnvironmentId,
   );
@@ -83,6 +86,25 @@ export function ThreadListFilters(
           }
         }}
       />
+      {activeThreadSort.available ? (
+        <ListFilterMenu
+          label={t(
+            ACTIVE_THREAD_SORT_OPTIONS.find((option) => option.value === activeThreadSort.order)
+              ?.label ?? "Configured order",
+          )}
+          accessibilityLabel={t("Sort active threads")}
+          active={activeThreadSort.order !== "manual"}
+          actions={ACTIVE_THREAD_SORT_OPTIONS.map((option) => ({
+            id: option.value,
+            title: t(option.label),
+            state: option.value === activeThreadSort.order ? ("on" as const) : ("off" as const),
+          }))}
+          onSelect={(id) => {
+            const option = ACTIVE_THREAD_SORT_OPTIONS.find((candidate) => candidate.value === id);
+            if (option) activeThreadSort.setOrder(option.value);
+          }}
+        />
+      ) : null}
       {props.selectedEnvironmentId !== null || props.selectedProjectKey !== null ? (
         <Pressable
           accessibilityRole="button"

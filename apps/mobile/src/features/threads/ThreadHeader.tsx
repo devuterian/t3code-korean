@@ -22,7 +22,8 @@ export function ThreadHeader(
 ) {
   const t = useTranslate();
   const goBack = useWorkspaceBackNavigation("threads");
-  const { layout, panes, toggleAuxiliaryPane } = useAdaptiveWorkspaceLayout();
+  const { layout, panes, toggleAuxiliaryPane, composerKeyboardActive } =
+    useAdaptiveWorkspaceLayout();
   const { onOpenTerminal, onMergeBack } = props.gitControls;
   const native = useThreadHeaderOptions(props);
   const androidHeaderActions = useMemo<ReadonlyArray<AppBarAction>>(() => {
@@ -103,6 +104,7 @@ export function ThreadHeader(
         onBack={layout.usesSplitView ? undefined : goBack}
         actions={androidHeaderActions}
         hideBottomBorder
+        compact={composerKeyboardActive}
       />
       {native.fallback}
     </>
