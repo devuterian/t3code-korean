@@ -26,6 +26,7 @@ import * as ChildProcessSpawner from "effect/process/ChildProcessSpawner";
 import * as BackgroundPolicy from "../../background/BackgroundPolicy.ts";
 import * as ServerConfig from "../../config.ts";
 import * as ServerSettings from "../../serverSettings.ts";
+import * as CodexUsageHistory from "../../usage/CodexUsageHistory.ts";
 import * as ResetCreditCoordinator from "../resetCreditCoordinator.ts";
 import * as ProviderLatestVersions from "@t3tools/provider-core/server/ProviderLatestVersions";
 import * as McpProviderSessions from "@t3tools/provider-core/server/McpProviderSessions";
@@ -56,6 +57,7 @@ const layerDeps = ServerConfig.layerTest(process.cwd(), {
   Layer.provideMerge(
     Layer.mock(CodexInstallation.CodexInstallation)({
       managedDirectory: "unused-managed-installation",
+      refresh: () => Effect.void,
     }),
   ),
   Layer.provideMerge(Layer.mock(ServerSecretStore.ServerSecretStore)({})),
@@ -71,6 +73,7 @@ const layerDeps = ServerConfig.layerTest(process.cwd(), {
     }),
   ),
   Layer.provideMerge(ServerSettings.layerTest()),
+  Layer.provideMerge(Layer.mock(CodexUsageHistory.CodexUsageHistory)({})),
   Layer.provideMerge(ModelManifest.layerTest),
   Layer.provideMerge(ResetCreditCoordinator.layerTest),
   Layer.provideMerge(
@@ -201,6 +204,7 @@ it.layer(layerTest)("CodexDriver", (it) => {
             CodexInstallation.CodexInstallation.of({
               ...installation,
               managedDirectory: "unused-managed-installation",
+              refresh: () => Effect.void,
               resolve: () => Effect.succeed(executable),
               acquire,
             }),
@@ -340,6 +344,57 @@ it.layer(layerTest)("CodexDriver", (it) => {
   it.effect.each(["unchanged", "during-probe"] as const)(
     "managed catalog keeps its account label and token together: %s",
     checkManagedAccount,
+  );
+
+  it.effect.each(["direct", "symlink", "path", "neighbor"] as const)(
+    "resolves maintenance for a %s reference to the managed installation",
+    (reference) =>
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const root = yield* fs.makeTempDirectoryScoped({ prefix: "t3-codex-managed-update-" });
+        const managedDirectory = NodePath.join(root, "tools", "codex");
+        yield* fs.makeDirectory(managedDirectory, { recursive: true });
+        const binary = NodePath.join(
+          reference === "neighbor"
+            ? NodePath.join(`${managedDirectory}-external`, "packages", "standalone")
+            : managedDirectory,
+          "0.156.1",
+          "bin",
+          "codex",
+        );
+        yield* fs.makeDirectory(NodePath.dirname(binary), { recursive: true });
+        yield* fs.writeFileString(binary, "#!/bin/sh\n", { mode: 0o755 });
+        const link = NodePath.join(root, "bin", "codex");
+        yield* fs.makeDirectory(NodePath.dirname(link));
+        yield* fs.symlink(binary, link);
+        const installation = yield* CodexInstallation.CodexInstallation;
+        const instance = yield* CodexDriver.create({
+          instanceId: ProviderInstanceId.make("codex-managed-update"),
+          displayName: "Managed Codex",
+          enabled: false,
+          environment: [{ name: "PATH", value: NodePath.dirname(link), sensitive: false }],
+          config: {
+            ...CodexDriver.defaultConfig(),
+            binaryPath: reference === "path" ? "codex" : reference === "symlink" ? link : binary,
+          },
+        }).pipe(
+          Effect.provideService(CodexInstallation.CodexInstallation, {
+            ...installation,
+            managedDirectory,
+          }),
+        );
+        const maintenance = yield* instance.snapshot.resolveMaintenance({ fresh: true });
+        if (reference === "neighbor") {
+          expect(maintenance.update).toMatchObject({ executable: binary, args: ["update"] });
+        } else {
+          expect(maintenance.update).toBeNull();
+          expect(yield* resolveLatestProviderVersion(maintenance)).toBeNull();
+        }
+      }).pipe(
+        Effect.provideService(ChildProcessSpawner.ChildProcessSpawner, noSpawn),
+        Effect.scoped,
+      ),
+    { skip: windowsHost },
   );
 
   it.effect.skipIf(windowsHost)(

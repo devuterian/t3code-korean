@@ -161,6 +161,13 @@ import {
   ProviderUploadFeedbackResult,
 } from "./provider.ts";
 import { ProviderInstanceId, ProviderInstanceMutation } from "./providerInstance.ts";
+import {
+  ProviderAccountExport,
+  ProviderAccountExportInput,
+  ProviderAccountImportInput,
+  ProviderAccountImportResult,
+  ProviderAccountTransferError,
+} from "./providerAccountTransfer.ts";
 import { PullRequestReviewGuideResult } from "./pullRequestReviewGuide.ts";
 import {
   PullRequestActionInput,
@@ -414,6 +421,8 @@ export const WS_METHODS = {
   chatGptReconnectProfile: "provider.chatgpt.reconnect-profile",
   chatGptImportProfile: "provider.chatgpt.import-profile",
   chatGptHandoffSubscribe: "provider.chatgpt.handoff.subscribe",
+  providerAccountExport: "provider.account.export",
+  providerAccountImport: "provider.account.import",
   codexAuthCallbackSubscribe: "provider.codex.auth-callback.subscribe",
   providerAuthRespond: "provider.auth.respond",
   providerAuthCancel: "provider.auth.cancel",
@@ -665,6 +674,22 @@ const WsChatGptHandoffSubscribeRpc = Rpc.make(WS_METHODS.chatGptHandoffSubscribe
   success: ChatGptHandoffState,
   error: ProviderSetupRpcError,
   stream: true,
+});
+const ProviderAccountTransferRpcError = Schema.Union([
+  ProviderAccountTransferError,
+  ProviderSetupError,
+  ServerSettingsError,
+  EnvironmentAuthorizationError,
+]);
+const WsProviderAccountExportRpc = Rpc.make(WS_METHODS.providerAccountExport, {
+  payload: ProviderAccountExportInput,
+  success: ProviderAccountExport,
+  error: ProviderAccountTransferRpcError,
+});
+const WsProviderAccountImportRpc = Rpc.make(WS_METHODS.providerAccountImport, {
+  payload: ProviderAccountImportInput,
+  success: ProviderAccountImportResult,
+  error: ProviderAccountTransferRpcError,
 });
 const WsCodexAuthCallbackSubscribeRpc = Rpc.make(WS_METHODS.codexAuthCallbackSubscribe, {
   payload: CodexAuthCallbackInput,
@@ -1890,6 +1915,8 @@ export const WsRpcGroup = RpcGroup.make(
   WsChatGptReconnectProfileRpc,
   WsChatGptImportProfileRpc,
   WsChatGptHandoffSubscribeRpc,
+  WsProviderAccountExportRpc,
+  WsProviderAccountImportRpc,
   WsCodexAuthCallbackSubscribeRpc,
   WsProviderAuthRespondRpc,
   WsProviderAuthCancelRpc,

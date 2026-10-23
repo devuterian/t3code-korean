@@ -12,6 +12,7 @@ import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Function from "effect/Function";
 import * as Layer from "effect/Layer";
+import * as Option from "effect/Option";
 import type * as Scope from "effect/Scope";
 import * as Stream from "effect/Stream";
 import * as Semaphore from "effect/Semaphore";
@@ -36,6 +37,12 @@ export class ProviderAuthService extends Context.Service<
     readonly importProfile: (
       input: ProviderAuthTarget & { profile: ChatGptTransferredProfile },
     ) => Effect.Effect<ProviderAuthState, ProviderSetupError>;
+    readonly readStaticCredential: (
+      input: ProviderAuthTarget,
+    ) => Effect.Effect<
+      Option.Option<{ readonly name: string; readonly value: string }>,
+      ProviderSetupError
+    >;
     readonly start: (
       input: ProviderAuthStartInput,
       ownerSessionId: string,
@@ -223,6 +230,15 @@ export const makeProviderAuthService = Effect.gen(function* () {
             input.profile,
             stopSessions(input.instanceId, auth.credentialBinding),
           );
+        }),
+      ),
+    readStaticCredential: (input) =>
+      credentialChanges.withPermit(
+        Effect.gen(function* () {
+          const auth = (yield* registry.getInstance(input.instanceId))?.auth;
+          return auth?.exportStaticCredential === undefined
+            ? Option.none()
+            : yield* auth.exportStaticCredential;
         }),
       ),
     start: Effect.fn("ProviderAuthService.start")(function* (input, ownerSessionId) {

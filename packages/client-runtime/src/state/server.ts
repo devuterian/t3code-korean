@@ -1,5 +1,8 @@
 import {
   type EnvironmentId,
+  type ProviderAuthState,
+  type ProviderInstanceId,
+  ProviderSetupError,
   type ServerConfig,
   type ServerConfigStreamEvent,
   type ServerLifecycleWelcomePayload,
@@ -58,6 +61,8 @@ import {
 export type { ServerConfigProjection } from "./serverConfigProjection.ts";
 
 export type ServerUpdateStage = "downloading" | "installing" | "resuming";
+
+type ProviderAuthAvailability = "pending" | "registering" | "available" | "deleted";
 
 export type ServerUpdateState =
   | { readonly status: "idle" }
@@ -938,6 +943,56 @@ export function createServerEnvironmentAtoms<R, E>(
       Atom.withLabel(`environment-data:server:providers:${environmentId}`),
     ),
   );
+  const providerAuthAvailability = Atom.family((environmentId: EnvironmentId) =>
+    Atom.family((instanceId: ProviderInstanceId) =>
+      Atom.make((get): ProviderAuthAvailability => {
+        const providers = get(providersValueAtom(environmentId));
+        const available = providers?.some((provider) => provider.instanceId === instanceId);
+        if (available) return "available";
+
+        const settings = get(settingsValueAtom(environmentId));
+        const previous = Option.getOrUndefined(get.self<ProviderAuthAvailability>());
+        if (providers === null || settings === null) return previous ?? "pending";
+        if (Object.hasOwn(settings.providerInstances, instanceId)) return "registering";
+        return previous === undefined || previous === "pending" ? "pending" : "deleted";
+      }).pipe(
+        Atom.withLabel(
+          `environment-data:provider:auth-availability:${environmentId}:${instanceId}`,
+        ),
+      ),
+    ),
+  );
+  const providerAuthSubscription = createEnvironmentRpcSubscriptionAtomFamily(runtime, {
+    label: "environment-data:provider:auth-subscription",
+    tag: WS_METHODS.providerAuthSubscribe,
+    idleTtlMs: 0,
+  });
+  const providerAuthStateFamily = Atom.family((environmentId: EnvironmentId) =>
+    Atom.family((instanceId: ProviderInstanceId) =>
+      Atom.make((get) => {
+        switch (get(providerAuthAvailability(environmentId)(instanceId))) {
+          case "available":
+            return get(providerAuthSubscription({ environmentId, input: { instanceId } }));
+          case "deleted":
+            return AsyncResult.failure<ProviderAuthState, unknown>(
+              Cause.fail(
+                new ProviderSetupError({
+                  instanceId,
+                  operation: "subscribe",
+                  detail: "This provider instance is no longer available.",
+                }),
+              ),
+            );
+          case "pending":
+          case "registering":
+            return AsyncResult.initial();
+        }
+      }).pipe(
+        Atom.setIdleTTL(0),
+        Atom.withLabel(`environment-data:provider:auth-state:${environmentId}:${instanceId}`),
+      ),
+    ),
+  );
   const welcomeStateFamily = Atom.family((environmentId: EnvironmentId) =>
     runtime
       .atom(serverWelcomeStateChanges(environmentId), { initialValue: null })
@@ -1011,11 +1066,10 @@ export function createServerEnvironmentAtoms<R, E>(
     updateStateAtom,
     settingsValueAtom,
     providersValueAtom,
-    providerAuthState: createEnvironmentRpcSubscriptionAtomFamily(runtime, {
-      label: "environment-data:provider:auth-state",
-      tag: WS_METHODS.providerAuthSubscribe,
-      idleTtlMs: 0,
-    }),
+    providerAuthState: (target: {
+      readonly environmentId: EnvironmentId;
+      readonly input: EnvironmentRpcInput<typeof WS_METHODS.providerAuthSubscribe>;
+    }) => providerAuthStateFamily(target.environmentId)(target.input.instanceId),
     startProviderAuth: createEnvironmentRpcCommand(runtime, {
       label: "environment-data:provider:auth-start",
       tag: WS_METHODS.providerAuthStart,

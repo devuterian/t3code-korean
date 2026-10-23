@@ -1,8 +1,32 @@
 # Codex
 
-Use your ChatGPT plan or an existing Codex CLI login to code in T3 Code.
+Use a Codex CLI account or ChatGPT subscription sharing to code in T3 Code.
 
-## Connect with ChatGPT
+## Sign in with Codex CLI
+
+In **Settings > Providers**, choose **Add provider**, then **Codex** and **Sign in
+with Codex CLI**. Name the account and continue to sign-in. T3 Code stores this
+account's login separately. The account shares your Codex skills, plugins, and
+thread history.
+
+If Codex is unavailable, install it from the account's setup panel before signing
+in. T3 Code installs it on the selected environment's machine.
+
+For a T3-managed installation, use **Refresh provider status** in **Settings >
+Providers** to check for the latest stable Codex release, then choose **Update
+Codex** when offered. On mobile, the update is offered under **Provider accounts**.
+Updates install only when requested; a failed update keeps the previous runtime.
+
+Choose **Device code** to sign in from any device. Enter the displayed code on the
+OpenAI page and choose your account. Choose **Browser on server machine** to sign
+in with a browser on the machine running the T3 Code environment.
+
+Use **Open browser** if the sign-in page does not open. You can cancel and retry,
+change accounts, or sign out in the provider's settings. Signing out stops this
+account's running threads and keeps their history. On mobile, open **Provider
+accounts** to sign in or out of an account you have configured.
+
+## Connect with ChatGPT sharing
 
 Connect during onboarding or in **Settings → Providers**. For a remote machine,
 select that environment first. T3 Code handles Codex installation; sign in on
@@ -21,15 +45,30 @@ localhost page into the sign-in panel, even if that page could not load.
 
 ## Use an existing Codex login
 
-T3 Code can use your installed Codex and its existing login. Run `codex login`
-on the environment's machine to sign in. [Provider setup](./install.md#providers)
-covers installation and custom configuration.
+Choose **Use existing Codex CLI** when adding the provider to use the CLI's current
+login and settings. Run `codex login` on the environment's machine to sign in.
+[Provider setup](./install.md#providers) covers installation and custom configuration.
+
+## Use Traex bridge
+
+Run traex-bridge at `127.0.0.1:8317` on the selected environment's macOS or Linux
+machine. Store its API key in `~/.traex-bridge/api-key` on that machine.
+In **Settings > Providers**, choose **Add provider**, then **Traex**.
+The preset uses Codex from that machine's PATH or a copy T3 Code has installed.
+To use another executable, set its path in **Config**.
+
+Traex stores its sessions and configuration in a separate Codex home.
 
 ## Use multiple accounts
 
 Add another ChatGPT account in **Settings → Providers**, then select the account
 from the thread's model picker. Compatible accounts can continue the same thread.
 Connecting accounts through T3 Code leaves your CLI login unchanged.
+
+To show your accounts as one entry in the model picker, pool them in **Settings >
+Account pools**. Pooled ChatGPT accounts that share a Codex home resume the same
+thread natively when a turn moves between them. An account with its own Codex home,
+such as Traex, continues from a summary of the conversation instead.
 
 ### Multiple CLI logins
 

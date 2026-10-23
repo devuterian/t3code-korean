@@ -1,3 +1,4 @@
+import { createProviderAccountSyncCommand } from "@t3tools/client-runtime/state/provider-account-sync";
 import { createServerEnvironmentAtoms } from "@t3tools/client-runtime/state/server";
 import {
   createOutdatedServerDescriptionCommand,
@@ -15,6 +16,7 @@ export const serverEnvironment = createServerEnvironmentAtoms(connectionAtomRunt
   usageLimitSources: true,
   usageLimitsCommand: true,
 });
+export const providerAccountSync = createProviderAccountSyncCommand(connectionAtomRuntime);
 export const describeOutdatedServer = createOutdatedServerDescriptionCommand(connectionAtomRuntime);
 export const updateOutdatedServer = createOutdatedServerUpdateCommand(connectionAtomRuntime);
 export const environmentServerConfigsAtom = createEnvironmentServerConfigsAtom({

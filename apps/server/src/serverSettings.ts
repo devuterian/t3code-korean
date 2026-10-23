@@ -8,6 +8,7 @@ import {
   type ProviderInstanceMutation,
   defaultInstanceIdForDriver,
   isProviderDriverKind,
+  isReservedProviderInstanceId,
   ProviderDriverKind,
   ProviderInstanceId,
   resolveProviderInstanceEnabled,
@@ -147,10 +148,21 @@ export function applyProviderInstanceMutation(
   const providerInstances = { ...settings.providerInstances };
   if (mutation.operation === "upsert" || mutation.operation === "create") {
     providerInstances[mutation.instanceId] = mutation.instance;
-  } else {
-    delete providerInstances[mutation.instanceId];
+    return { ...settings, providerInstances };
   }
-  return { ...settings, providerInstances };
+  delete providerInstances[mutation.instanceId];
+  const providerPools = Object.fromEntries(
+    Object.entries(settings.providerPools).map(([driver, pool]) => [
+      driver,
+      {
+        ...pool,
+        memberInstanceIds: pool.memberInstanceIds.filter(
+          (memberId) => memberId !== mutation.instanceId,
+        ),
+      },
+    ]),
+  );
+  return { ...settings, providerInstances, providerPools };
 }
 
 function ensureProviderInstanceMutationAllowed(
@@ -159,8 +171,10 @@ function ensureProviderInstanceMutationAllowed(
   settingsPath: string,
 ): Effect.Effect<void, ServerSettingsError> {
   if (
-    mutation.operation === "create" &&
-    settings.providerInstances[mutation.instanceId] !== undefined
+    mutation.operation !== "remove" &&
+    (isReservedProviderInstanceId(mutation.instanceId) ||
+      (mutation.operation === "create" &&
+        settings.providerInstances[mutation.instanceId] !== undefined))
   ) {
     return Effect.fail(
       new ServerSettingsError({
@@ -169,6 +183,39 @@ function ensureProviderInstanceMutationAllowed(
         providerInstanceId: mutation.instanceId,
       }),
     );
+  }
+  return Effect.void;
+}
+
+/**
+ * A built-in driver's default instance exists without a settings entry, and
+ * its id is the driver kind, so an unconfigured member resolves that way.
+ */
+const configuredInstanceDriver = (
+  settings: ServerSettings,
+  instanceId: ProviderInstanceId,
+): ProviderDriverKind | undefined =>
+  settings.providerInstances[instanceId]?.driver ??
+  (isProviderDriverKind(instanceId) ? instanceId : undefined);
+
+function ensureProviderPoolsValid(
+  settings: ServerSettings,
+  settingsPath: string,
+): Effect.Effect<void, ServerSettingsError> {
+  for (const [driver, pool] of Object.entries(settings.providerPools)) {
+    const seen = new Set<ProviderInstanceId>();
+    for (const memberId of pool.memberInstanceIds) {
+      if (seen.has(memberId) || configuredInstanceDriver(settings, memberId) !== driver) {
+        return Effect.fail(
+          new ServerSettingsError({
+            settingsPath,
+            operation: "validate-provider-pool",
+            providerInstanceId: memberId,
+          }),
+        );
+      }
+      seen.add(memberId);
+    }
   }
   return Effect.void;
 }
@@ -190,6 +237,22 @@ export class ServerSettingsService extends Context.Service<
       mutation: ProviderInstanceMutation,
       patch?: ServerSettingsPatch,
     ) => Effect.Effect<ServerSettings, ServerSettingsError>;
+
+    /**
+     * Atomic read-modify-write of one provider instance. `current` is the stored entry (undefined
+     * for an implicit default) and its secrets are redaction markers, never plaintext: returning a
+     * marker keeps the stored secret, returning plaintext replaces it, omitting the field removes it.
+     */
+    readonly reviseProviderInstance: <A, E>(
+      instanceId: ProviderInstanceId,
+      revise: (
+        current: ProviderInstanceConfig | undefined,
+        settings: ServerSettings,
+      ) => Effect.Effect<{ readonly instance: ProviderInstanceConfig; readonly result: A }, E>,
+    ) => Effect.Effect<
+      { readonly settings: ServerSettings; readonly result: A },
+      ServerSettingsError | E
+    >;
 
     readonly withSettingsSnapshot: <A, E, R>(
       use: (settings: ServerSettings) => Effect.Effect<A, E, R>,
@@ -226,17 +289,35 @@ const makeTest = Effect.fn("serverSettings.makeTest")(function* (
   const writeSemaphore = yield* Semaphore.make(1);
   const getSettings = Ref.get(currentSettingsRef).pipe(Effect.map(resolveTextGenerationProvider));
 
-  const updateTestSettings = (
-    update: (current: ServerSettings) => Effect.Effect<ServerSettings, ServerSettingsError>,
-  ): Effect.Effect<ServerSettings, ServerSettingsError> =>
+  const reviseTestSettings = <A, E>(
+    update: (
+      current: ServerSettings,
+    ) => Effect.Effect<{ readonly settings: ServerSettings; readonly result: A }, E>,
+  ): Effect.Effect<
+    { readonly settings: ServerSettings; readonly result: A },
+    ServerSettingsError | E
+  > =>
     writeSemaphore.withPermits(1)(
       Ref.get(currentSettingsRef).pipe(
         Effect.flatMap(update),
-        Effect.flatMap(normalizeServerSettings),
-        Effect.tap((nextSettings) => Ref.set(currentSettingsRef, nextSettings)),
-        Effect.map(resolveTextGenerationProvider),
+        Effect.flatMap(({ settings, result }) =>
+          normalizeServerSettings(settings).pipe(
+            Effect.map((next) => ({ settings: next, result })),
+          ),
+        ),
+        Effect.tap(({ settings }) => Ref.set(currentSettingsRef, settings)),
+        Effect.map(({ settings, result }) => ({
+          settings: resolveTextGenerationProvider(settings),
+          result,
+        })),
       ),
     );
+  const updateTestSettings = (
+    update: (current: ServerSettings) => Effect.Effect<ServerSettings, ServerSettingsError>,
+  ): Effect.Effect<ServerSettings, ServerSettingsError> =>
+    reviseTestSettings((current) =>
+      update(current).pipe(Effect.map((settings) => ({ settings, result: undefined }))),
+    ).pipe(Effect.map(({ settings }) => settings));
 
   return {
     start: Effect.void,
@@ -253,6 +334,19 @@ const makeTest = Effect.fn("serverSettings.makeTest")(function* (
           const patched = applyServerSettingsPatch(currentSettings, patch);
           return applyProviderInstanceMutation(patched, mutation);
         }),
+      ),
+    reviseProviderInstance: (instanceId, revise) =>
+      reviseTestSettings((current) =>
+        revise(current.providerInstances[instanceId], current).pipe(
+          Effect.map(({ instance, result }) => ({
+            settings: applyProviderInstanceMutation(current, {
+              operation: "upsert",
+              instanceId,
+              instance,
+            }),
+            result,
+          })),
+        ),
       ),
     withSettingsSnapshot: (use) =>
       writeSemaphore.withPermits(1)(getSettings.pipe(Effect.flatMap(use))),
@@ -1005,9 +1099,14 @@ const make = Effect.gen(function* () {
     );
   };
 
-  const updateAndPersistSettings = (
-    update: (current: ServerSettings) => Effect.Effect<ServerSettings, ServerSettingsError>,
-  ): Effect.Effect<ServerSettings, ServerSettingsError> =>
+  const persistSettingsUpdate = <A, E>(
+    update: (
+      current: ServerSettings,
+    ) => Effect.Effect<{ readonly settings: ServerSettings; readonly result: A }, E>,
+  ): Effect.Effect<
+    { readonly settings: ServerSettings; readonly result: A },
+    ServerSettingsError | E
+  > =>
     writeSemaphore.withPermits(1)(
       Effect.gen(function* () {
         const { settings: current, parseFailure } = yield* reloadSettings;
@@ -1018,7 +1117,7 @@ const make = Effect.gen(function* () {
             cause: parseFailure.value,
           });
         }
-        const updated = yield* update(current);
+        const { settings: updated, result } = yield* update(current);
         const persisted = yield* persistSettingsSecrets(current, updated);
         const next = yield* normalizeServerSettings(persisted.settings);
         const materialized = yield* Effect.uninterruptibleMask(() =>
@@ -1039,9 +1138,16 @@ const make = Effect.gen(function* () {
         );
         yield* Cache.set(settingsCache, cacheKey, { settings: next, parseFailure: Option.none() });
         yield* emitChange(next);
-        return resolveTextGenerationProvider(materialized);
+        return { settings: resolveTextGenerationProvider(materialized), result };
       }),
     );
+
+  const updateAndPersistSettings = (
+    update: (current: ServerSettings) => Effect.Effect<ServerSettings, ServerSettingsError>,
+  ): Effect.Effect<ServerSettings, ServerSettingsError> =>
+    persistSettingsUpdate((current) =>
+      update(current).pipe(Effect.map((settings) => ({ settings, result: undefined }))),
+    ).pipe(Effect.map(({ settings }) => settings));
 
   const withSettingsSnapshot: ServerSettingsService["Service"]["withSettingsSnapshot"] = (use) =>
     writeSemaphore.withPermits(1)(
@@ -1164,15 +1270,40 @@ const make = Effect.gen(function* () {
     ),
     updateSettings: (patch) =>
       updateAndPersistSettings((current) =>
-        Effect.succeed(applyServerSettingsPatch(current, patch)),
+        Effect.gen(function* () {
+          const next = applyServerSettingsPatch(current, patch);
+          if (patch.providerPools !== undefined) {
+            yield* ensureProviderPoolsValid(next, settingsPath);
+          }
+          return next;
+        }),
       ),
     updateProviderInstance: (mutation, patch = {}) =>
       updateAndPersistSettings((current) =>
         Effect.gen(function* () {
           yield* ensureProviderInstanceMutationAllowed(current, mutation, settingsPath);
-          const patched = applyServerSettingsPatch(current, patch);
-          return applyProviderInstanceMutation(patched, mutation);
+          const next = applyProviderInstanceMutation(
+            applyServerSettingsPatch(current, patch),
+            mutation,
+          );
+          if (patch.providerPools !== undefined) {
+            yield* ensureProviderPoolsValid(next, settingsPath);
+          }
+          return next;
         }),
+      ),
+    reviseProviderInstance: (instanceId, revise) =>
+      persistSettingsUpdate((current) =>
+        revise(current.providerInstances[instanceId], current).pipe(
+          Effect.map(({ instance, result }) => ({
+            settings: applyProviderInstanceMutation(current, {
+              operation: "upsert",
+              instanceId,
+              instance,
+            }),
+            result,
+          })),
+        ),
       ),
     withSettingsSnapshot,
     get streamChanges() {

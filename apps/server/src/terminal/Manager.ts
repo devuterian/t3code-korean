@@ -62,8 +62,11 @@ import * as SynchronizedRef from "effect/SynchronizedRef";
 
 import * as ServerConfig from "../config.ts";
 import { mergeProviderInstanceEnvironment } from "@t3tools/provider-core/server/instanceEnvironment";
-import { resolveCodexHomeLayout } from "../provider/Drivers/CodexHomeLayout.ts";
-import { makeClaudeEnvironment } from "../provider/Drivers/ClaudeHome.ts";
+import {
+  CODEX_CLI_ACCOUNT_ENVIRONMENT,
+  resolveCodexRuntime,
+} from "../provider/Drivers/CodexRuntime.ts";
+import { claudeAccountSettings, resolveClaudeRuntime } from "../provider/Drivers/ClaudeHome.ts";
 import { deriveProviderInstanceConfigMap } from "../provider/ProviderInstanceRegistryHydration.ts";
 import * as ServerSettings from "../serverSettings.ts";
 import {
@@ -1362,6 +1365,13 @@ function createTerminalSpawnEnv(
         platform === "win32"
           ? Object.keys(spawnEnv).find((candidate) => candidate.toLowerCase() === key.toLowerCase())
           : undefined;
+      if (platform === "win32") {
+        for (const candidate of Object.keys(spawnEnv)) {
+          if (candidate !== existingKey && candidate.toLowerCase() === key.toLowerCase()) {
+            delete spawnEnv[candidate];
+          }
+        }
+      }
       spawnEnv[existingKey ?? key] =
         key === "CODEX_HOME" || key === "CLAUDE_CONFIG_DIR" ? expandHomePath(value, home) : value;
     }
@@ -1433,6 +1443,7 @@ export const resolveProviderInstanceTerminalEnvironment = Effect.fn(
   readonly serverSettings: ServerSettings.ServerSettingsService["Service"];
   readonly path: Path.Path;
   readonly rawProviderInstanceId: string;
+  readonly stateDir: string;
   readonly env: Record<string, string> | undefined;
 }) {
   const providerInstanceId = ProviderInstanceId.make(input.rawProviderInstanceId);
@@ -1448,18 +1459,30 @@ export const resolveProviderInstanceTerminalEnvironment = Effect.fn(
   if (instance.driver === "codex") {
     const config = decodeCodexSettings(instance.config ?? {});
     if (Option.isSome(config)) {
-      const layout = yield* resolveCodexHomeLayout(config.value).pipe(
-        Effect.provideService(Path.Path, input.path),
-      );
-      if (layout.effectiveHomePath)
-        resolved = { ...resolved, CODEX_HOME: layout.effectiveHomePath };
+      const runtime = yield* resolveCodexRuntime({
+        instanceId: providerInstanceId,
+        config: config.value,
+        environment: {
+          CODEX_HOME: (yield* HostProcess.Environment).CODEX_HOME,
+          ...resolved,
+        },
+        stateDir: input.stateDir,
+      }).pipe(Effect.provideService(Path.Path, input.path));
+      resolved = {
+        ...runtime.environment,
+        ...(config.value.setupMode === "cli" ? CODEX_CLI_ACCOUNT_ENVIRONMENT : {}),
+      };
     }
   } else if (instance.driver === "claudeAgent") {
     const config = decodeClaudeSettings(instance.config ?? {});
     if (Option.isSome(config)) {
-      resolved = yield* makeClaudeEnvironment(config.value, resolved).pipe(
-        Effect.provideService(Path.Path, input.path),
-      );
+      const runtime = yield* resolveClaudeRuntime({
+        instanceId: providerInstanceId,
+        config: config.value,
+        environment: resolved,
+        stateDir: input.stateDir,
+      }).pipe(Effect.provideService(Path.Path, input.path));
+      resolved = { ...runtime.environment, ...claudeAccountSettings(runtime.config)?.env };
     }
   }
 
@@ -1470,7 +1493,8 @@ export const resolveProviderInstanceTerminalEnvironment = Effect.fn(
 
 /** @public Service construction is part of the canonical Effect module API. */
 export const make = Effect.fn("TerminalManager.make")(function* () {
-  const { terminalLogsDir, providerStatusCacheDir, baseDir } = yield* ServerConfig.ServerConfig;
+  const serverConfig = yield* ServerConfig.ServerConfig;
+  const { terminalLogsDir, providerStatusCacheDir, baseDir } = serverConfig;
   const ptyAdapter = yield* PtyAdapter.PtyAdapter;
   const portDiscovery = yield* PortScanner.PortDiscovery;
   const nativeTelemetry = yield* NativeTelemetryClient.NativeTelemetryClient;
@@ -1484,6 +1508,7 @@ export const make = Effect.fn("TerminalManager.make")(function* () {
       path,
       rawProviderInstanceId,
       env,
+      stateDir: serverConfig.stateDir,
     }),
   );
   return yield* makeWithOptions({

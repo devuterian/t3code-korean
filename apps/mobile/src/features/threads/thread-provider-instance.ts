@@ -9,6 +9,7 @@ import {
 import type { EnvironmentId, ProviderDriverKind } from "@t3tools/contracts";
 
 import type { ThreadListProvider } from "../../state/thread-list-environments";
+
 export interface ThreadRowProviderInstance {
   readonly driverKind: ProviderDriverKind;
   readonly displayName: string;

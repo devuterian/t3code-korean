@@ -4,42 +4,49 @@ T3 Code uses Claude Code's login and configuration. Start with the default provi
 for one account; [provider setup](./install.md#providers) covers installation and
 shared provider settings.
 
-## Separate accounts or configurations
+## Add another account
 
-Use a separate Claude config directory for each account. This also works for named
-presets that need different Claude settings or a router connection.
+In **Settings > Providers**, add Claude and choose **Sign in with Claude Code**.
+Name the account and continue to sign-in. Open the browser link, then paste the
+code from Claude into T3 Code. You can sign in from another device when the
+T3 Code environment runs remotely. To sign out, open that account's provider
+settings.
 
-Keep your existing account in the default directory. On the environment's machine,
-create the second login:
+Each account has its own Claude configuration and conversation history. T3 Code
+does not copy global settings, skills, or plugins from your existing Claude
+installation. The account can still use project instructions and project skills.
 
-```bash
-mkdir -p ~/.claude_personal
-CLAUDE_CONFIG_DIR=~/.claude_personal claude auth login
-```
+To reuse an installed CLI account, choose **Use existing Claude Code**. Leave
+**CLAUDE_CONFIG_DIR path** empty to use the CLI's default configuration. For a
+custom directory, sign in with `CLAUDE_CONFIG_DIR=/path/to/config claude auth login`
+and enter that directory in the provider settings. Keep `HOME` unchanged so Claude
+can find the system keychain.
 
-Add another Claude instance in **Settings > Providers**:
-
-| Instance        | Binary path | CLAUDE_CONFIG_DIR path |
-| --------------- | ----------- | ---------------------- |
-| Claude Work     | `claude`    | Leave empty            |
-| Claude Personal | `claude`    | `~/.claude_personal`   |
-
-An empty config-directory setting uses Claude Code's normal configuration. The
-custom setting changes `CLAUDE_CONFIG_DIR`, leaving `HOME` and the system keychain
-location intact. Use the same variable for the login command. Setting `HOME`
-instead can put credentials where this provider will not find them.
-
-Check the account reported in provider settings after signing in. Existing
-threads can switch only between Claude instances with the same config directory.
-Separate account directories stay isolated, including their local conversation
-state. Claude does not have Codex's shared-home and shadow-home arrangement.
-
-For presets that differ only in API keys or endpoints, use the instance's
-**Environment variables**. Variable assignments do not belong in **Launch arguments**.
+For API keys, custom endpoints, and routers, choose **Use existing Claude Code**
+and configure its **Environment variables**. Independent subscription accounts
+use their own Claude login and ignore credential and endpoint overrides.
 
 Claude Code's verbose mode can stay enabled when you use Claude for text generation, including
 thread titles, branch names, commit messages, and pull request descriptions. On a remote connection,
 T3 Code uses the Claude configuration on the connected server.
+
+## Account pools
+
+With two or more Claude accounts, you can offer them as one. In **Settings >
+Account pools**, tick the Claude accounts to share and turn on **Pool these
+accounts**. The model picker then shows a single Claude entry in place of the
+ticked accounts. Each turn runs on an account that still has usage left. If an
+account reaches its usage limit mid-turn, the turn continues on another account,
+and the thread's model picker shows the account that ran it.
+
+A thread stays on its account while that account is available. Moving a thread to
+another Claude account continues from a summary of the conversation, because each
+account keeps its own history.
+
+Pooled accounts stay in **Settings**, where you can still select them and where
+**Settings > Providers** shows which pool each belongs to and when a limited account
+is available again. To bring an account back into the model picker, untick it or
+turn the pool off. Threads stay on the account that last ran them.
 
 ## Compact long conversations
 
@@ -96,7 +103,7 @@ between turns in the same Claude session.
 
 ## OpenRouter
 
-Create a Claude instance with its own config directory, such as
+Choose **Use existing Claude Code**. Set a separate config directory, such as
 `~/.claude_openrouter`, and keep **Binary path** set to `claude`. In that instance's
 **Environment variables**, use:
 

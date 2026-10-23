@@ -1231,6 +1231,7 @@ it.layer(
       const path = yield* Path.Path;
       const serverSettings = yield* ServerSettings.ServerSettingsService;
       const environment = yield* TerminalManager.resolveProviderInstanceTerminalEnvironment({
+        stateDir: "/state",
         serverSettings,
         path,
         rawProviderInstanceId: "configured_home",
@@ -1272,6 +1273,110 @@ it.layer(
     }),
   );
 
+  it.effect.each(["linux", "win32"] as const)(
+    "keeps a private Codex account through the final terminal environment merge on %s",
+    (platform) =>
+      Effect.gen(function* () {
+        const serverSettings = yield* ServerSettings.ServerSettingsService;
+        const path = yield* Path.Path;
+        const providerInstanceId = ProviderInstanceId.make("codex_private");
+        const { manager, ptyAdapter } = yield* createManager(5, {
+          shellResolver: () => "/bin/sh",
+          env: {
+            CODEX_HOME: "/ambient-account",
+            OPENAI_API_KEY: "ambient-key",
+            ...(platform === "win32" ? { OpenAI_Api_Key: "mixed-case-key" } : {}),
+            CODEX_API_KEY: "ambient-codex-key",
+            OPENAI_BASE_URL: "https://other-provider.example",
+            ACCESS_TOKEN: "ambient-token",
+            AWS_PROFILE: "project-tools",
+          },
+          resolveProviderInstanceEnvironment: (rawProviderInstanceId, env) =>
+            TerminalManager.resolveProviderInstanceTerminalEnvironment({
+              serverSettings,
+              path,
+              rawProviderInstanceId,
+              env,
+              stateDir: "/state",
+            }),
+        }).pipe(Effect.provide(layerWithHostPlatform(platform)));
+        yield* manager.open(openInput({ providerInstanceId }));
+        yield* manager.restart(restartInput({ providerInstanceId }));
+        expect(ptyAdapter.spawnInputs).toHaveLength(2);
+        for (const { env } of ptyAdapter.spawnInputs) {
+          expect(env).toMatchObject({
+            CODEX_HOME: "/state/providers/codex/codex_private/cli",
+            OPENAI_API_KEY: "",
+            CODEX_API_KEY: "",
+            OPENAI_BASE_URL: "",
+            ACCESS_TOKEN: "",
+            AWS_PROFILE: "project-tools",
+          });
+          expect(
+            Object.entries(env).filter(([key]) => key.toUpperCase() === "OPENAI_API_KEY"),
+          ).toEqual([["OPENAI_API_KEY", ""]]);
+        }
+      }).pipe(
+        Effect.provide(
+          ServerSettings.layerTest({
+            providerInstances: {
+              [ProviderInstanceId.make("codex_private")]: {
+                driver: ProviderDriverKind.make("codex"),
+                environment: [{ name: "CODEX_API_KEY", value: "instance-key", sensitive: true }],
+                config: { setupMode: "cli", shadowHomePath: "/ignored" },
+              },
+            },
+          }),
+        ),
+      ),
+  );
+
+  it.effect("keeps a private Claude account through the final terminal environment merge", () =>
+    Effect.gen(function* () {
+      const serverSettings = yield* ServerSettings.ServerSettingsService;
+      const path = yield* Path.Path;
+      const providerInstanceId = ProviderInstanceId.make("claude_private");
+      const { manager, ptyAdapter } = yield* createManager(5, {
+        env: {
+          ...process.env,
+          ANTHROPIC_API_KEY: "ambient-key",
+          CLAUDE_CODE_OAUTH_TOKEN: "ambient-token",
+          CLAUDE_CODE_USE_GATEWAY: "1",
+          CLAUDE_SECURESTORAGE_CONFIG_DIR: "/ambient-keychain",
+          AWS_PROFILE: "project-tools",
+        },
+        resolveProviderInstanceEnvironment: (rawProviderInstanceId, env) =>
+          TerminalManager.resolveProviderInstanceTerminalEnvironment({
+            serverSettings,
+            path,
+            rawProviderInstanceId,
+            env,
+            stateDir: "/state",
+          }),
+      });
+      yield* manager.open(openInput({ providerInstanceId }));
+      expect(ptyAdapter.spawnInputs[0]!.env).toMatchObject({
+        CLAUDE_CONFIG_DIR: "/state/providers/claude/claude_private/cli",
+        CLAUDE_SECURESTORAGE_CONFIG_DIR: "/state/providers/claude/claude_private/cli",
+        ANTHROPIC_API_KEY: "",
+        CLAUDE_CODE_OAUTH_TOKEN: "",
+        CLAUDE_CODE_USE_GATEWAY: "0",
+        AWS_PROFILE: "project-tools",
+      });
+    }).pipe(
+      Effect.provide(
+        ServerSettings.layerTest({
+          providerInstances: {
+            [ProviderInstanceId.make("claude_private")]: {
+              driver: ProviderDriverKind.make("claudeAgent"),
+              config: { setupMode: "cli", homePath: "/ignored" },
+            },
+          },
+        }),
+      ),
+    ),
+  );
+
   it.effect("restarts with current provider secrets and clears bounded history", () =>
     Effect.gen(function* () {
       const serverSettings = yield* ServerSettings.ServerSettingsService;
@@ -1281,6 +1386,7 @@ it.layer(
         historyByteLimit: 8,
         resolveProviderInstanceEnvironment: (rawProviderInstanceId, env) =>
           TerminalManager.resolveProviderInstanceTerminalEnvironment({
+            stateDir: "/state",
             serverSettings,
             path,
             rawProviderInstanceId,

@@ -1,3 +1,4 @@
+import { PullRequestProviderError } from "@t3tools/source-control-core/server/PullRequestProvider";
 import { SourceControlProviderKind } from "@t3tools/contracts";
 import { limitRecoveryCommand } from "./UsageLimitRecoveryWorker.ts";
 import * as McpProviderSessions from "@t3tools/provider-core/server/McpProviderSessions";
@@ -22,6 +23,7 @@ import {
   type PullRequestDetail,
   type PullRequestComment,
   PullRequestOperationError,
+  PullRequestUnavailableError,
   ProviderDriverKind,
   ProviderInstanceId,
   ProviderSessionId,
@@ -2210,6 +2212,193 @@ it.layer(layerTest)("OrchestrationV2LayerLive lifecycle", (it) => {
     }),
   );
 
+  it.effect.each(["success", "failure"] as const)(
+    "ends only the CI watch after all checks finish with %s, including across restart",
+    (outcome) =>
+      Effect.gen(function* () {
+        const orchestrator = yield* Orchestrator.OrchestratorV2;
+        const maintenance = yield* ProjectionMaintenance.ProjectionMaintenanceV2;
+        const threadId = ThreadId.make(`ci-watch-${outcome}`);
+        const projectId = ProjectId.make(`ci-watch-project-${outcome}`);
+        yield* seedProject({
+          projectId,
+          title: "CI watch",
+          workspaceRoot: "/workspace/ci-watch",
+          defaultModelSelection: null,
+          createdAt: "2026-10-01T00:00:00.000Z",
+        });
+        yield* orchestrator.dispatch({
+          type: "thread.create",
+          createdBy: "user",
+          creationSource: "web",
+          commandId: CommandId.make(`ci-create-${outcome}`),
+          threadId,
+          projectId,
+          title: "CI watch",
+          modelSelection,
+          runtimeMode: "full-access",
+          interactionMode: "default",
+          branch: null,
+          worktreePath: null,
+        });
+        for (const [number, mode] of [
+          [1, "checks"],
+          [2, "review"],
+        ] as const) {
+          yield* orchestrator.dispatch({
+            type: "thread.pull-request.watch",
+            commandId: CommandId.make(`ci-start-${outcome}-${number}`),
+            threadId,
+            host: "github.com",
+            repository: "pingdotgg/t3code",
+            number,
+            watching: true,
+            ...(mode === "checks" ? { initialMode: mode } : { mode }),
+            link: { url: `https://github.com/pingdotgg/t3code/pull/${number}`, source: "agent" },
+          });
+        }
+        let pending = true;
+        const invalidated: Array<number> = [];
+        const activityReads: Array<number> = [];
+        const host = Layer.mergeAll(
+          NodeServices.layer,
+          Layer.mock(PullRequestService.PullRequestService)({
+            invalidate: ({ reference }) =>
+              Effect.sync(() => {
+                if (reference) invalidated.push(reference.number);
+              }),
+            detail: (input) =>
+              Effect.sync(() => ({
+                ...watchedPullRequestDetail({
+                  projectId,
+                  number: input.number,
+                  at: "2026-10-02T12:00:00.000Z",
+                }),
+                checks: [
+                  { name: "Binary Size Limit", status: outcome, description: null, url: null },
+                  {
+                    name: "tests",
+                    status: pending ? ("pending" as const) : ("success" as const),
+                    description: null,
+                    url: null,
+                  },
+                ],
+              })),
+            activity: (input) =>
+              Effect.sync(() => {
+                activityReads.push(input.number);
+                return {
+                  comments: [],
+                  commentCount: 0,
+                  commentsTruncated: false,
+                  reviewThreads: [],
+                  commits: [],
+                };
+              }),
+          }),
+        );
+        const reactor = yield* PullRequestWatchReactor.make.pipe(Effect.provide(host));
+        yield* reactor.sweep;
+        const active = (yield* orchestrator.getThreadShell(threadId))?.pullRequests;
+        assert.equal(active?.find((link) => link.number === 1)?.watch?.mode, "checks");
+        assert.equal(active?.find((link) => link.number === 2)?.watch?.mode, "review");
+        pending = false;
+        const restarted = yield* PullRequestWatchReactor.make.pipe(Effect.provide(host));
+        yield* restarted.sweep;
+        const links = (yield* orchestrator.getThreadShell(threadId))?.pullRequests;
+        assert.isUndefined(links?.find((link) => link.number === 1)?.watch);
+        assert.equal(links?.find((link) => link.number === 1)?.endedWatch?.mode, "checks");
+        assert.equal(links?.find((link) => link.number === 2)?.watch?.mode, "review");
+        const { messages } = yield* orchestrator.getThreadRecords(threadId, ["messages"]);
+        const completion = messages.filter(
+          (message) => message.notification?.summary === "#1: checks finished, stopped watching",
+        );
+        assert.equal(completion.length, 1);
+        assert.equal(
+          completion[0]?.notification?.outcome,
+          outcome === "failure" ? "failed" : "completed",
+        );
+        assert.deepEqual(invalidated, [1, 1]);
+        assert.isFalse(activityReads.includes(1));
+        assert.isTrue(activityReads.includes(2));
+        assert.isTrue((yield* maintenance.rebuild).valid);
+        const recovered = yield* PullRequestWatchReactor.make.pipe(Effect.provide(host));
+        yield* recovered.sweep;
+        const after = yield* orchestrator.getThreadRecords(threadId, ["messages"]);
+        assert.equal(after.messages.length, messages.length);
+        assert.isUndefined(
+          (yield* orchestrator.getThreadShell(threadId))?.pullRequests?.find(
+            (link) => link.number === 1,
+          )?.watch,
+        );
+      }),
+  );
+
+  it.effect("changing a CI watch to ongoing review rejects its in-flight completion", () =>
+    Effect.gen(function* () {
+      const orchestrator = yield* Orchestrator.OrchestratorV2;
+      const threadId = ThreadId.make("watch-mode-race");
+      yield* orchestrator.dispatch({
+        type: "thread.create",
+        createdBy: "user",
+        creationSource: "web",
+        commandId: CommandId.make("watch-mode-create"),
+        threadId,
+        projectId: ProjectId.make("watch-mode-project"),
+        title: "Watch mode",
+        modelSelection,
+        runtimeMode: "full-access",
+        interactionMode: "default",
+        branch: null,
+        worktreePath: null,
+      });
+      const key = { threadId, host: "github.com", repository: "pingdotgg/t3code", number: 7 };
+      yield* orchestrator.dispatch({
+        type: "thread.pull-request.watch",
+        commandId: CommandId.make("watch-mode-checks"),
+        ...key,
+        watching: true,
+        mode: "checks",
+        link: { url: "https://github.com/pingdotgg/t3code/pull/7", source: "agent" },
+      });
+      const watchOf = Effect.map(
+        orchestrator.getThreadShell(threadId),
+        (shell) => shell?.pullRequests?.[0]?.watch,
+      );
+      const ci = yield* watchOf;
+      assert.isDefined(ci);
+      if (ci === undefined) return;
+      yield* orchestrator.dispatch({
+        type: "thread.pull-request.watch",
+        commandId: CommandId.make("watch-mode-review"),
+        ...key,
+        watching: true,
+        mode: "review",
+      });
+      const review = yield* watchOf;
+      assert.equal(review?.mode, "review");
+      assert.notEqual(review?.startedAt, ci.startedAt);
+      const late = yield* orchestrator
+        .dispatch({
+          type: "thread.pull-request-watch.sync",
+          commandId: CommandId.make("watch-mode-late"),
+          ...key,
+          startedAt: ci.startedAt,
+          watch: null,
+        })
+        .pipe(Effect.flip);
+      assert.equal(late._tag, "OrchestratorDispatchError");
+      yield* orchestrator.dispatch({
+        type: "thread.pull-request.watch",
+        commandId: CommandId.make("watch-mode-omitted"),
+        ...key,
+        watching: true,
+        initialMode: "checks",
+      });
+      assert.deepEqual(yield* watchOf, review);
+    }),
+  );
+
   it.effect("starts, records, and stops a pull request watch", () =>
     Effect.gen(function* () {
       const orchestrator = yield* Orchestrator.OrchestratorV2;
@@ -2464,11 +2653,20 @@ it.layer(layerTest)("OrchestrationV2LayerLive lifecycle", (it) => {
     }),
   );
 
-  it.effect("ends a watch it cannot read, and tells the agent", () =>
+  it.effect.each([
+    "not-found",
+    "failed",
+    "unauthenticated",
+    "missing-tool",
+    "rate-limited",
+    "defect",
+    "restart",
+  ] as const)("handles repeated %s reads without abandoning recoverable watches", (scenario) =>
     Effect.gen(function* () {
+      const reason = scenario === "restart" ? "not-found" : scenario;
       const orchestrator = yield* Orchestrator.OrchestratorV2;
-      const threadId = ThreadId.make("runtime-pull-request-watch-unreadable");
-      const projectId = ProjectId.make("pr-watch-unreadable-project");
+      const threadId = ThreadId.make(`runtime-pull-request-watch-unreadable-${scenario}`);
+      const projectId = ProjectId.make(`pr-watch-unreadable-project-${scenario}`);
       yield* seedProject({
         projectId,
         title: "Watch unreadable",
@@ -2480,7 +2678,7 @@ it.layer(layerTest)("OrchestrationV2LayerLive lifecycle", (it) => {
         type: "thread.create",
         createdBy: "user",
         creationSource: "web",
-        commandId: CommandId.make("pr-watch-unreadable-create"),
+        commandId: CommandId.make(`pr-watch-unreadable-create-${scenario}`),
         threadId,
         projectId,
         title: "Watch unreadable",
@@ -2492,7 +2690,7 @@ it.layer(layerTest)("OrchestrationV2LayerLive lifecycle", (it) => {
       });
       yield* orchestrator.dispatch({
         type: "thread.pull-request.watch",
-        commandId: CommandId.make("pr-watch-unreadable-start"),
+        commandId: CommandId.make(`pr-watch-unreadable-start-${scenario}`),
         threadId,
         host: "github.com",
         repository: "pingdotgg/t3code",
@@ -2500,26 +2698,100 @@ it.layer(layerTest)("OrchestrationV2LayerLive lifecycle", (it) => {
         watching: true,
         link: { url: "https://github.com/pingdotgg/t3code/pull/8", source: "agent" },
       });
+      const failure =
+        reason === "defect"
+          ? Effect.die("host unreachable")
+          : reason === "missing-tool" || reason === "unauthenticated"
+            ? Effect.fail(
+                new PullRequestUnavailableError({
+                  reason: reason === "missing-tool" ? "cli-missing" : "cli-unauthenticated",
+                  provider: SourceControlProviderKind.make("github"),
+                }),
+              )
+            : Effect.fail(
+                new PullRequestOperationError({
+                  operation: "detail",
+                  detail: "Read failed",
+                  cause: new PullRequestProviderError({
+                    provider: SourceControlProviderKind.make("github"),
+                    operation: "detail",
+                    reason,
+                    detail: "Read failed",
+                  }),
+                }),
+              );
+      let recovering = false;
+      let recoveredReads = 0;
       const reactor = yield* PullRequestWatchReactor.make.pipe(
         Effect.provide(
           Layer.mergeAll(
             NodeServices.layer,
             Layer.mock(PullRequestService.PullRequestService)({
-              detail: () => Effect.die("host unreachable"),
-              activity: () => Effect.die("host unreachable"),
+              detail: (reference) =>
+                recovering
+                  ? Effect.sync(() => {
+                      if (reference.projectId === projectId) recoveredReads++;
+                      return watchedPullRequestDetail({
+                        projectId,
+                        number: 8,
+                        at: "2026-10-01T00:00:00.000Z",
+                      });
+                    })
+                  : failure,
+              activity: () =>
+                Effect.succeed({
+                  comments: [],
+                  commentCount: 0,
+                  commentsTruncated: false,
+                  reviewThreads: [],
+                  commits: [],
+                }),
             }),
           ),
         ),
       );
+      if (scenario === "restart") {
+        for (let pass = 0; pass < 7; pass += 1) yield* reactor.sweep;
+        for (const watching of [false, true]) {
+          yield* TestClock.adjust(1);
+          yield* orchestrator.dispatch({
+            type: "thread.pull-request.watch",
+            commandId: CommandId.make(`pr-watch-restart-${watching}`),
+            threadId,
+            host: "github.com",
+            repository: "pingdotgg/t3code",
+            number: 8,
+            watching,
+          });
+        }
+        yield* reactor.sweep;
+        assert.isDefined((yield* orchestrator.getThreadShell(threadId))?.pullRequests?.[0]?.watch);
+      }
       for (let pass = 0; pass < 15; pass += 1) yield* reactor.sweep;
 
       const thread = yield* orchestrator.getThreadShell(threadId);
-      assert.isUndefined(thread?.pullRequests?.[0]?.watch);
+      if (reason === "not-found") assert.isUndefined(thread?.pullRequests?.[0]?.watch);
+      else assert.isDefined(thread?.pullRequests?.[0]?.watch);
       const { messages } = yield* orchestrator.getThreadRecords(threadId, ["messages"]);
       assert.deepEqual(
         messages.flatMap((message) => message.notification?.summary ?? []),
-        ["#8: stopped watching, could not read it"],
+        reason === "not-found" ? ["#8: stopped watching, could not read it"] : [],
       );
+      if (reason !== "not-found") {
+        recovering = true;
+        yield* reactor.sweep;
+        assert.equal(recoveredReads, 1);
+        assert.isDefined((yield* orchestrator.getThreadShell(threadId))?.pullRequests?.[0]?.watch);
+        yield* orchestrator.dispatch({
+          type: "thread.pull-request.watch",
+          commandId: CommandId.make(`pr-watch-unreadable-stop-${scenario}`),
+          threadId,
+          host: "github.com",
+          repository: "pingdotgg/t3code",
+          number: 8,
+          watching: false,
+        });
+      }
     }),
   );
 

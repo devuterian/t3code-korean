@@ -94,6 +94,89 @@ const recordProviderUsage = (provider: string, instanceId: string | null = provi
   });
 
 it.layer(NodeServices.layer)("server settings", (it) => {
+  it.effect("refuses a pool whose members are unknown, repeated, or on another driver", () =>
+    Effect.gen(function* () {
+      const service = yield* ServerSettingsModule.ServerSettingsService;
+      const claude = ProviderDriverKind.make("claudeAgent");
+      yield* service.updateProviderInstance({
+        operation: "create",
+        instanceId: ProviderInstanceId.make("claudeAgent_work"),
+        instance: { driver: claude, config: {} },
+      });
+      for (const members of [
+        ["claudeAgent", "claudeAgent_missing"],
+        ["claudeAgent", "claudeAgent"],
+        ["claudeAgent", "codex"],
+      ]) {
+        const result = yield* service
+          .updateSettings({
+            providerPools: {
+              [claude]: {
+                enabled: true,
+                memberInstanceIds: members.map((member) => ProviderInstanceId.make(member)),
+              },
+            },
+          })
+          .pipe(Effect.result);
+        assert.equal(result._tag, "Failure", members.join(","));
+        if (result._tag === "Failure") {
+          assert.equal(result.failure.operation, "validate-provider-pool");
+          assert.equal(result.failure.providerInstanceId, members[1]);
+        }
+      }
+      assert.deepEqual((yield* service.getSettings).providerPools, {});
+    }).pipe(Effect.provide(layerServerSettings())),
+  );
+
+  it.effect("pools a built-in default with a configured account and prunes a removed one", () =>
+    Effect.gen(function* () {
+      const service = yield* ServerSettingsModule.ServerSettingsService;
+      const claude = ProviderDriverKind.make("claudeAgent");
+      const work = ProviderInstanceId.make("claudeAgent_work");
+      yield* service.updateProviderInstance({
+        operation: "create",
+        instanceId: work,
+        instance: { driver: claude, config: {} },
+      });
+      const pooled = yield* service.updateSettings({
+        providerPools: {
+          [claude]: {
+            enabled: true,
+            memberInstanceIds: [ProviderInstanceId.make("claudeAgent"), work],
+          },
+        },
+      });
+      assert.deepEqual(pooled.providerPools[claude]?.memberInstanceIds, [
+        ProviderInstanceId.make("claudeAgent"),
+        work,
+      ]);
+
+      const removed = yield* service.updateProviderInstance({
+        operation: "remove",
+        instanceId: work,
+      });
+      assert.deepEqual(removed.providerPools[claude]?.memberInstanceIds, [
+        ProviderInstanceId.make("claudeAgent"),
+      ]);
+    }).pipe(Effect.provide(layerServerSettings())),
+  );
+
+  it.effect("reserves the pool id prefix for pools", () =>
+    Effect.gen(function* () {
+      const service = yield* ServerSettingsModule.ServerSettingsService;
+      for (const operation of ["create", "upsert"] as const) {
+        const result = yield* service
+          .updateProviderInstance({
+            operation,
+            instanceId: ProviderInstanceId.make("pool_claudeAgent"),
+            instance: { driver: ProviderDriverKind.make("claudeAgent"), config: {} },
+          })
+          .pipe(Effect.result);
+        assert.equal(result._tag, "Failure", operation);
+      }
+    }).pipe(Effect.provide(layerServerSettings())),
+  );
+
   it.effect("serializes concurrent model preference edits without cancelling duplicate adds", () =>
     Effect.gen(function* () {
       const service = yield* ServerSettingsModule.ServerSettingsService;
@@ -1183,6 +1266,60 @@ it.layer(NodeServices.layer)("server settings", (it) => {
   );
 
   it.effect(
+    "revises a provider instance in place and hands the callback markers, not secrets",
+    () =>
+      Effect.gen(function* () {
+        const service = yield* ServerSettingsModule.ServerSettingsService;
+        const config = yield* ServerConfig.ServerConfig;
+        const fs = yield* FileSystem.FileSystem;
+        const instanceId = ProviderInstanceId.make("antigravity_revised");
+        const first = yield* service.reviseProviderInstance(instanceId, (current) =>
+          Effect.succeed({
+            instance: {
+              driver: ProviderDriverKind.make("antigravity"),
+              config: { apiKey: "revised-secret", binaryPath: "/b/antigravity" },
+              environment: [{ name: "GEMINI_API_KEY", value: "env-revised", sensitive: true }],
+            },
+            result: current,
+          }),
+        );
+        assert.isUndefined(first.result);
+        assert.propertyVal(
+          first.settings.providerInstances[instanceId]?.config,
+          "apiKey",
+          "revised-secret",
+        );
+        const disk = yield* fs.readFileString(config.settingsPath);
+        assert.notInclude(disk, "revised-secret");
+        assert.notInclude(disk, "env-revised");
+        assert.include(disk, "/b/antigravity");
+
+        const second = yield* service.reviseProviderInstance(instanceId, (current) =>
+          current === undefined
+            ? Effect.die("the first revision was not stored")
+            : Effect.succeed({ instance: { ...current, displayName: "Kept" }, result: current }),
+        );
+        assert.propertyVal(second.result.config, "apiKey", "••••••");
+        assert.equal(second.result.environment?.[0]?.value, "");
+        assert.propertyVal(
+          second.settings.providerInstances[instanceId]?.config,
+          "apiKey",
+          "revised-secret",
+        );
+        assert.equal(second.settings.providerInstances[instanceId]?.displayName, "Kept");
+
+        const rejected = yield* service
+          .reviseProviderInstance(instanceId, () => Effect.fail("vetoed" as const))
+          .pipe(Effect.flip);
+        assert.equal(rejected, "vetoed");
+        assert.equal(
+          (yield* service.getSettings).providerInstances[instanceId]?.displayName,
+          "Kept",
+        );
+      }).pipe(Effect.provide(layerServerSettings())),
+  );
+
+  it.effect(
     "uses the same secret lifecycle for provider config, environment, host tokens, and quota keys",
     () =>
       Effect.gen(function* () {
@@ -1546,6 +1683,7 @@ it.layer(NodeServices.layer)("server settings", (it) => {
       });
 
       const environment = yield* resolveProviderInstanceTerminalEnvironment({
+        stateDir: "/state",
         serverSettings,
         path,
         rawProviderInstanceId: instanceId,

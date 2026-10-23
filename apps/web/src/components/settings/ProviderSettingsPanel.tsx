@@ -99,12 +99,15 @@ import { stackedThreadToast, toastManager } from "../ui/toast";
 import { AddProviderInstanceDialog } from "./AddProviderInstanceDialog";
 import { ExpandableText } from "./ExpandableText";
 import { ProviderInstanceCard } from "./ProviderInstanceCard";
+import { SyncProviderAccountsAction } from "./SyncProviderAccountsDialog";
 import { UsageProviderSettings } from "./UsageProviderSettings";
 import { ProviderSetupSection, readAntigravityAuthMethod } from "./ProviderSetupSection";
 import { ProviderAuthenticationSection } from "./ProviderAuthenticationSection";
 import { CodexSetupSection, CodexManagedRuntimeFields } from "./CodexSetupSection";
+import { readProviderConfigString } from "./ProviderSettingsForm";
 import { readCodexSetupMode } from "./CodexSetupSection.logic";
 import { providerClients } from "./providerDriverMeta";
+import { resolveProviderPoolName } from "./ProviderPoolsSettings.logic";
 import { searchableSetting } from "./settingsSearch";
 import {
   backgroundActivityOverrideSettings,
@@ -957,6 +960,9 @@ export function EnvironmentProviderSettings({
   const renderProviderInstance = (row: InstanceRow, mode: "list" | "editor") => {
     const showProjectOverride =
       representativeProjectId !== undefined && supportsProjectProviderOverrides;
+    const liveProvider = serverProviders.find(
+      (candidate) => candidate.instanceId === row.instanceId,
+    );
     return (
       <ProviderInstanceRow
         key={row.instanceId}
@@ -971,7 +977,8 @@ export function EnvironmentProviderSettings({
         selected={mode === "list" && selectedRow?.instanceId === row.instanceId}
         readOnly={readOnly}
         canWriteSettings={canWriteSettings}
-        liveProvider={serverProviders.find((candidate) => candidate.instanceId === row.instanceId)}
+        liveProvider={liveProvider}
+        poolName={resolveProviderPoolName(serverProviders, liveProvider)}
         isUpdateDispatching={updatingProviderInstanceIds.has(row.instanceId)}
         showProjectOverride={showProjectOverride}
         projectOverrideValue={
@@ -1023,6 +1030,7 @@ export function EnvironmentProviderSettings({
         }
         headerAction={
           <div className="flex min-w-0 items-center gap-2">
+            <SyncProviderAccountsAction sourceEnvironmentId={environmentId} readOnly={readOnly} />
             <ProviderUpdatesAction />
             <Tooltip>
               <TooltipTrigger
@@ -1258,6 +1266,7 @@ function ProviderInstanceRow({
   readOnly,
   canWriteSettings,
   liveProvider,
+  poolName,
   isUpdateDispatching,
   showProjectOverride,
   projectOverrideValue,
@@ -1278,6 +1287,7 @@ function ProviderInstanceRow({
   readonly readOnly: boolean;
   readonly canWriteSettings: boolean;
   readonly liveProvider: ServerProvider | undefined;
+  readonly poolName: string | undefined;
   readonly isUpdateDispatching: boolean;
   readonly showProjectOverride: boolean;
   readonly projectOverrideValue: boolean | undefined;
@@ -1337,16 +1347,18 @@ function ProviderInstanceRow({
       instance={instance}
       driverOption={driverOption}
       liveProvider={liveProvider}
+      poolName={poolName}
       mode={mode}
       selected={selected}
       onSelect={mode === "list" ? () => actions.selectInstance(instanceId) : undefined}
       readOnly={readOnly}
       runtime={
-        mode === "editor" && codexSetupMode === "managed" ? (
+        mode === "editor" && codexSetupMode !== null && codexSetupMode !== "existing" ? (
           <CodexManagedRuntimeFields
             environmentId={environmentId}
             instanceId={instanceId}
             provider={liveProvider}
+            setupMode={codexSetupMode}
           />
         ) : undefined
       }
@@ -1369,7 +1381,7 @@ function ProviderInstanceRow({
             environmentId={environmentId}
             instanceId={instanceId}
             provider={liveProvider}
-            mode={codexSetupMode}
+            mode="managed"
             enabled={resolveProviderInstanceEnabled(instance)}
             readOnly={readOnly}
             onModeChange={(setupMode) =>
@@ -1390,6 +1402,7 @@ function ProviderInstanceRow({
           !readOnly &&
           liveProvider &&
           (liveProvider.setup?.canAuthenticate ||
+            liveProvider.setup?.canInstall ||
             (liveProvider.driver === "acpRegistry" && liveProvider.installed)) ? (
           <ProviderAuthenticationSection
             key={`${environmentId}:${instanceId}`}
@@ -1398,6 +1411,10 @@ function ProviderInstanceRow({
             instanceId={instanceId}
             provider={liveProvider}
             readOnly={readOnly}
+            autoOpenBrowser={
+              (driver === "codex" || driver === "claudeAgent") &&
+              readProviderConfigString(instance.config, "setupMode") === "cli"
+            }
           />
         ) : mode === "editor" &&
           !readOnly &&
@@ -1414,6 +1431,15 @@ function ProviderInstanceRow({
         mode === "editor" && !isDefault
           ? () => actions.deleteInstance(instanceId, instance)
           : undefined
+      }
+      syncAction={
+        mode === "editor" ? (
+          <SyncProviderAccountsAction
+            sourceEnvironmentId={environmentId}
+            readOnly={readOnly}
+            instanceIds={[instanceId]}
+          />
+        ) : undefined
       }
       headerAction={
         mode === "editor" && isDefault && isDirty ? (

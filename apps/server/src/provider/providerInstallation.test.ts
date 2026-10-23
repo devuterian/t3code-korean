@@ -79,11 +79,13 @@ const makeHarness = Effect.fn("providerInstallation.test.makeHarness")(function*
             }),
         }),
         Layer.mock(CodexInstallation.CodexInstallation)({
+          refresh: () => Effect.void,
           managedDirectory: "/unused-managed-codex",
-          start: Effect.sync(() => {
-            calls.push("codex-start");
-            return { ...state, driver: ProviderDriverKind.make("codex") };
-          }),
+          start: (options) =>
+            Effect.sync(() => {
+              calls.push(options?.managedOnly ? "codex-start-managed-only" : "codex-start");
+              return { ...state, driver: ProviderDriverKind.make("codex") };
+            }),
           cancel: () =>
             Effect.sync(() => {
               calls.push("codex-cancel");

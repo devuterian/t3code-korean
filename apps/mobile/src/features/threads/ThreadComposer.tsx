@@ -4,6 +4,7 @@ import * as Dialog from "../../components/ui/Dialog";
 import type { ComposerTextPaste } from "../../native/T3ComposerEditor.types";
 import { useAdaptiveWorkspaceLayout } from "../layout/AdaptiveWorkspaceLayout";
 import { useAppearancePreferences } from "../settings/appearance/AppearancePreferencesProvider";
+import { composerModelSelectionFor } from "@t3tools/client-runtime/provider-pools";
 import type { EnvironmentThreadShell } from "@t3tools/client-runtime/state/shell";
 import { settlePromise, squashAtomCommandFailure } from "@t3tools/client-runtime/state/runtime";
 import { AsyncResult } from "effect/reactivity";
@@ -514,7 +515,10 @@ export const ThreadComposer = function ThreadComposer(props: ThreadComposerProps
       props.connectionState !== "connected" || props.queueCount > 0 || attachmentsUploading,
   });
   const sendLabel = t(sendPresentation.label);
-  const currentModelSelection = props.selectedThread.modelSelection;
+  const currentModelSelection = composerModelSelectionFor(
+    props.serverConfig?.providers ?? [],
+    props.selectedThread.modelSelection,
+  );
   const currentRuntimeMode = props.selectedThread.runtimeMode;
   const modelUnavailable =
     props.connectionState === "connected" &&
@@ -553,7 +557,8 @@ export const ThreadComposer = function ThreadComposer(props: ThreadComposerProps
     );
   const openUsageLimits = () => {
     const report = collectProviderUsageLimits(
-      currentModelSelection.instanceId,
+      props.selectedThread.runtime?.providerInstanceId ??
+        props.selectedThread.modelSelection.instanceId,
       props.serverConfig?.providers ?? [],
       props.serverConfig?.usageLimitSources ?? [],
       Date.now(),
@@ -747,6 +752,7 @@ export const ThreadComposer = function ThreadComposer(props: ThreadComposerProps
     currentModelSelection,
     lockedProviderInstanceId,
     props.selectedThread.projectId,
+    "composer",
   );
   const threadProviderGroups = groupByProvider(modelOptions);
   const currentModelOption =

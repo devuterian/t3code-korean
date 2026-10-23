@@ -420,7 +420,7 @@ export const make = Effect.fn("ProviderAuthFlow.make")(function* (options: {
             return yield* new ProviderSetupError({
               instanceId: options.instanceId,
               operation: "complete",
-              detail: "This sign-in does not accept a redirect URL.",
+              detail: "This sign-in does not accept a response.",
             });
           yield* flow.complete(input.callbackUrl);
           return snapshot.value.state;
@@ -430,13 +430,6 @@ export const make = Effect.fn("ProviderAuthFlow.make")(function* (options: {
       const flow = yield* lock.withPermit(
         Effect.gen(function* () {
           const flow = yield* requireFlow(owner, id);
-          yield* publish(flow, {
-            phase: "cancelled",
-            interaction: null,
-            authorizationUrl: null,
-            expiresAt: null,
-            message: "Sign-in cancelled.",
-          });
           active = undefined;
           operation = "stopping";
           return flow;
@@ -444,7 +437,22 @@ export const make = Effect.fn("ProviderAuthFlow.make")(function* (options: {
       );
       if (flow.responseFiber) yield* Fiber.interrupt(flow.responseFiber);
       if (flow.fiber) yield* Fiber.interrupt(flow.fiber);
-      operation = "idle";
+      yield* lock.withPermit(
+        Effect.gen(function* () {
+          operation = "idle";
+          yield* SubscriptionRef.update(snapshot, (current) => ({
+            ...current,
+            state: {
+              ...current.state,
+              phase: "cancelled" as const,
+              interaction: null,
+              authorizationUrl: null,
+              expiresAt: null,
+              message: "Sign-in cancelled.",
+            },
+          }));
+        }),
+      );
       return snapshot.value.state;
     }, Effect.uninterruptible),
     logout: Effect.fn("providerAuthFlow.logout")(function* (stopSessions) {

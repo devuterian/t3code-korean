@@ -2,6 +2,7 @@ import * as Schema from "effect/Schema";
 import { GitPreparePullRequestThreadInput, GitRunStackedActionInput } from "./git.ts";
 import {
   AuthOrchestrationOperateScope,
+  AuthProvidersManageScope,
   AuthOrchestrationReadScope,
   AuthPreviewOperateScope,
   AuthSettingsWriteScope,
@@ -42,6 +43,13 @@ export const CLIENT_GUARDED_RPC_SCOPES = {
   [WS_METHODS.vcsCreateRef]: AuthSourceControlWriteScope,
   [WS_METHODS.vcsSwitchRef]: AuthSourceControlWriteScope,
   [WS_METHODS.vcsInit]: AuthSourceControlWriteScope,
+
+  [WS_METHODS.providerInstallStart]: AuthProvidersManageScope,
+  [WS_METHODS.providerInstallCancel]: AuthProvidersManageScope,
+  [WS_METHODS.providerInstallRemove]: AuthProvidersManageScope,
+  // Export returns plaintext provider secrets.
+  [WS_METHODS.providerAccountExport]: AuthProvidersManageScope,
+  [WS_METHODS.providerAccountImport]: AuthProvidersManageScope,
 
   [WS_METHODS.scheduledTasksUpsert]: AuthOrchestrationOperateScope,
   [WS_METHODS.scheduledTasksSetEnabled]: AuthOrchestrationOperateScope,

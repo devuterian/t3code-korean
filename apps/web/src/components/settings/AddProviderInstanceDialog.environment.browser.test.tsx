@@ -50,8 +50,8 @@ vi.mock(import("../ui/toast"), async (original) => {
   const actual = await original();
   return { ...actual, toastManager: { ...actual.toastManager, add: actions.toast } };
 });
-// The registry search and the sign-in step talk to the environment over RPC; these
-// stand-ins expose the choices a user makes there.
+// The registry search, ChatGPT sharing, and the sign-in step talk to the environment
+// over RPC; these stand-ins expose the choices a user makes there.
 vi.mock(import("./AcpRegistrySearchStep"), async (original) => ({
   ...(await original()),
   AcpRegistrySearchStep: ((props: {
@@ -77,15 +77,23 @@ vi.mock(import("./ProviderWizardAuthenticationStep"), async (original) => ({
   ProviderWizardAuthenticationStep: (props: {
     environmentId: string;
     instanceId: string;
+    autoOpenBrowser?: boolean;
     onFinish: () => void;
   }) => (
     <section aria-label="Sign-in step">
       {props.environmentId}/{props.instanceId}
+      {props.autoOpenBrowser ? " opens the browser" : null}
       <button type="button" onClick={props.onFinish}>
         Finish sign-in
       </button>
     </section>
   ),
+}));
+vi.mock(import("./CodexSetupSection"), async (original) => ({
+  ...(await original()),
+  AddManagedCodexAccountDialog: ((props: { environmentId: string }) => (
+    <section aria-label="ChatGPT sharing">{props.environmentId}</section>
+  )) as never,
 }));
 
 import { AddProviderInstanceDialog } from "./AddProviderInstanceDialog";
@@ -108,14 +116,23 @@ const dialog = () => (
     onOpenChange={actions.onOpenChange}
   />
 );
+const queryButton = (label: string) =>
+  [...document.querySelectorAll("button")].find((element) => element.textContent?.trim() === label);
 function button(label: string) {
-  const found = [...document.querySelectorAll("button")].find(
-    (element) => element.textContent?.trim() === label,
-  );
+  const found = queryButton(label);
   expect(found, `button ${label}`).toBeDefined();
   return found!;
 }
 const click = (label: string) => act(async () => button(label).click());
+// Connection methods are named by their aria-label, which also carries the description.
+function radio(name: string) {
+  const found = [...document.querySelectorAll<HTMLElement>('[role="radio"]')].find((element) =>
+    (element.getAttribute("aria-label") ?? element.textContent ?? "").trim().startsWith(name),
+  );
+  expect(found, `radio ${name}`).toBeDefined();
+  return found!;
+}
+const choose = (name: string) => act(async () => radio(name).click());
 const input = (selector: string) => {
   const found = document.querySelector<HTMLInputElement>(selector);
   expect(found, selector).not.toBeNull();
@@ -127,10 +144,16 @@ async function type(selector: string, value: string) {
 }
 const signInStep = () => document.querySelector('[aria-label="Sign-in step"]');
 
+async function useExistingCodexCli() {
+  await click("Next");
+  await choose("Use existing Codex CLI");
+  await click("Continue");
+}
+
 async function prepareCodexInstance() {
   await using stack = new AsyncDisposableStack();
   const screen = stack.use(await render(dialog()));
-  await click("Configure manually");
+  await useExistingCodexCli();
   await type("#add-provider-label", "Work");
   await click("Next");
   stack.move();
@@ -153,7 +176,7 @@ describe("AddProviderInstanceDialog environment routing", () => {
       providerInstances: { codex_2: { driver: "codex", enabled: false } },
     });
     await using _screen = await render(dialog());
-    await click("Configure manually");
+    await useExistingCodexCli();
     await click("Next");
     await click("Add instance");
     expect(settingsHooks.mutate).toHaveBeenCalledWith({

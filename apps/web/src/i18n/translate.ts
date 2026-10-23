@@ -104,6 +104,7 @@ const LANGUAGE_PACKS: Partial<Record<InterfaceLanguage, LanguagePack>> = {
       [/^Thread: Jump: (\d+)$/, (n) => `스레드: 이동: ${n}`],
       ...KO_V2_SETTINGS_PATTERNS,
       [/^Working \((\d+)\)$/, (n) => `작업 중 (${n})`],
+      [/^An instance named '(.+)' already exists\.$/, (id) => `'${id}' 인스턴스가 이미 있습니다.`],
       [/^(\d+) archived threads?$/, (n) => `보관된 스레드 ${n}개`],
       [/^Archived thread actions for (.+)$/, (project) => `${project}의 보관된 스레드 작업`],
       [

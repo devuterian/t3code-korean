@@ -1,3 +1,5 @@
+import { useAtomValue } from "@effect/atom-react";
+import { compareSemverVersions } from "@t3tools/shared/semver";
 import { AuthProvidersManageScope } from "@t3tools/contracts";
 import { useEnvironmentScope } from "../../state/session";
 import {
@@ -251,6 +253,9 @@ function ManagedCodexSetup({
   const cancelAuth = useAtomCommand(serverEnvironment.cancelProviderAuth, options);
   const logoutAuth = useAtomCommand(serverEnvironment.logoutProviderAuth, options);
   const startInstall = useAtomCommand(serverEnvironment.startProviderInstall, options);
+  const canStartInstall = useAtomValue(
+    serverEnvironment.startProviderInstall.permissionAtom(environmentId),
+  );
   const cancelInstall = useAtomCommand(serverEnvironment.cancelProviderInstall, options);
   const reconnectProfile = useAtomCommand(serverEnvironment.chatGptReconnectProfile, options);
   const importProfile = useAtomCommand(serverEnvironment.chatGptImportProfile, options);
@@ -292,7 +297,7 @@ function ManagedCodexSetup({
     installed &&
     installation?.source !== "local" &&
     installation?.version != null &&
-    installation.version !== installation.installedVersion;
+    compareSemverVersions(installation.version, installation.installedVersion!) > 0;
   const finishingSignIn =
     awaitingProvider !== null &&
     !authenticated &&
@@ -326,6 +331,13 @@ function ManagedCodexSetup({
   const unavailable =
     readOnly || !enabled || pending || authQuery.error !== null || installQuery.error !== null;
   const busy = pending || authInProgress || installActive;
+  const completedInstallation =
+    installation?.phase === "succeeded" && installation.source === "managed"
+      ? installation.operationId
+      : null;
+  useEffect(() => {
+    if (completedInstallation) void refreshProviders({ environmentId, input: { instanceId } });
+  }, [completedInstallation, environmentId, instanceId, refreshProviders]);
 
   const run = async <A, E>(
     request: () => Promise<AtomCommandResult<A, E>>,
@@ -972,6 +984,22 @@ function ManagedCodexSetup({
           </div>
         }
       />
+      {updateAvailable && provider?.setup?.canInstall ? (
+        <SettingsRow
+          title="Codex update available"
+          description={`Version ${installation.version} is available. ${runtimeDescription}`}
+          control={
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={unavailable || busy || !canStartInstall}
+              onClick={() => void run(() => startInstall(target))}
+            >
+              Update Codex
+            </Button>
+          }
+        />
+      ) : null}
       {authenticated ? (
         <div className="flex justify-end px-3 py-1 sm:px-4">
           <ChatGptUsageButton />
@@ -999,24 +1027,30 @@ export function CodexManagedRuntimeFields({
   environmentId,
   instanceId,
   provider,
+  setupMode,
 }: {
   readonly environmentId: EnvironmentId;
   readonly instanceId: ProviderInstanceId;
   readonly provider: ServerProvider | undefined;
+  readonly setupMode: "managed" | "cli";
 }) {
   const t = useTranslate();
   const installation = useEnvironmentQuery(
-    serverEnvironment.providerInstallState({
-      environmentId,
-      input: { instanceId },
-    }),
+    setupMode === "managed"
+      ? serverEnvironment.providerInstallState({ environmentId, input: { instanceId } })
+      : null,
   );
-  const executablePath = installation.data?.executablePath ?? "";
+  const executablePath =
+    setupMode === "cli"
+      ? (provider?.runtimePaths?.binaryPath ?? "")
+      : (installation.data?.executablePath ?? "");
   return (
     <>
       <SettingsRow
         title="Binary path"
-        description="Selected by T3 Code."
+        description={
+          setupMode === "cli" ? "Selected by this provider instance." : "Selected by T3 Code."
+        }
         control={
           <div className="w-full sm:w-80">
             <Input
@@ -1024,7 +1058,9 @@ export function CodexManagedRuntimeFields({
               value={executablePath}
               title={executablePath}
               placeholder={
-                installation.error ? t("Could not read runtime path") : t("Not installed")
+                setupMode === "managed" && installation.error
+                  ? t("Could not read runtime path")
+                  : t("Not installed")
               }
               disabled
             />

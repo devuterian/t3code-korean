@@ -43,16 +43,21 @@ function resolveHomePath(path: Path.Path, home: string, value: string | undefine
 
 export const resolveCodexHomeLayout = Effect.fn("resolveCodexHomeLayout")(function* (
   config: CodexSettings,
+  environment: NodeJS.ProcessEnv = {},
 ): Effect.fn.Return<CodexHomeLayout, never, Path.Path> {
   const path = yield* Path.Path;
   const home = yield* HostProcess.HomeDirectory;
-  const sharedHomePath = resolveHomePath(path, home, config.homePath);
+  const configuredHome =
+    config.homePath.trim() ||
+    (config.setupMode === "managed" ? "" : environment.CODEX_HOME?.trim()) ||
+    "";
+  const sharedHomePath = resolveHomePath(path, home, configuredHome);
   const shadowHomePath = config.shadowHomePath.trim();
   if (shadowHomePath.length === 0) {
     return {
       mode: "direct",
       sharedHomePath,
-      effectiveHomePath: config.homePath.trim().length > 0 ? sharedHomePath : undefined,
+      effectiveHomePath: configuredHome.length > 0 ? sharedHomePath : undefined,
       continuationKey: `codex:home:${sharedHomePath}`,
     };
   }
@@ -321,10 +326,9 @@ const ensureShadowAuthIsPrivate = Effect.fn("CodexHomeLayout.ensureShadowAuthIsP
 export const materializeCodexShadowHome = Effect.fn("materializeCodexShadowHome")(function* (
   layout: CodexHomeLayout,
 ) {
-  if (layout.mode !== "authOverlay") return;
   const effectiveHomePath = layout.effectiveHomePath;
   if (!effectiveHomePath) return;
-  if (layout.sharedHomePath === effectiveHomePath) {
+  if (layout.mode === "authOverlay" && layout.sharedHomePath === effectiveHomePath) {
     return yield* new CodexShadowHomePathConflictError({
       sharedHomePath: layout.sharedHomePath,
       effectiveHomePath,
@@ -347,6 +351,8 @@ export const materializeCodexShadowHome = Effect.fn("materializeCodexShadowHome"
           }),
       }),
     );
+
+  if (layout.mode === "direct") return yield* makeDirectory(effectiveHomePath);
 
   yield* Effect.all(
     [

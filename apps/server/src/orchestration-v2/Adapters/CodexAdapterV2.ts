@@ -106,10 +106,8 @@ import {
   describeMcpElicitation,
   toMcpElicitationResponse,
 } from "../../provider/CodexMcpElicitation.ts";
-import {
-  materializeCodexShadowHome,
-  resolveCodexHomeLayout,
-} from "../../provider/Drivers/CodexHomeLayout.ts";
+import { materializeCodexShadowHome } from "../../provider/Drivers/CodexHomeLayout.ts";
+import { resolveCodexRuntime } from "../../provider/Drivers/CodexRuntime.ts";
 import {
   boundProviderEventForLogging,
   shouldPersistProviderEvent,
@@ -1635,7 +1633,13 @@ export const createCodexAdapterV2 = Effect.fn("CodexAdapterV2.createCodexAdapter
   const hostEnvironment = yield* HostProcess.Environment;
   const idAllocator = yield* IdAllocator.IdAllocatorV2;
   const serverConfig = yield* ServerConfig;
-  const homeLayout = yield* resolveCodexHomeLayout(config);
+  const runtime = yield* resolveCodexRuntime({
+    instanceId,
+    config,
+    environment: yield* mergeProviderInstanceEnvironment(environment, hostEnvironment),
+    stateDir: serverConfig.stateDir,
+  });
+  const { homeLayout } = runtime;
 
   yield* materializeCodexShadowHome(homeLayout).pipe(
     Effect.mapError(
@@ -1650,7 +1654,7 @@ export const createCodexAdapterV2 = Effect.fn("CodexAdapterV2.createCodexAdapter
   );
 
   const settings = {
-    ...config,
+    ...runtime.config,
     enabled,
     binaryPath: expandHomePath(config.binaryPath, yield* HostProcess.HomeDirectory),
     homePath: homeLayout.effectiveHomePath ?? "",
@@ -1659,7 +1663,7 @@ export const createCodexAdapterV2 = Effect.fn("CodexAdapterV2.createCodexAdapter
   return yield* makeCodexAdapterV2({
     instanceId,
     settings,
-    environment: yield* mergeProviderInstanceEnvironment(environment, hostEnvironment),
+    environment: runtime.environment,
     clientFactory,
     crypto,
     fileSystem,
@@ -1843,6 +1847,17 @@ export const makeCodexAdapterV2 = Effect.fn("makeCodexAdapterV2")(function* (
           }),
         );
         const now = yield* DateTime.now;
+        const readModelProvider = (runtimePolicy = input.runtimePolicy) =>
+          ensureInitialized.pipe(
+            Effect.andThen(
+              client.raw.request("config/read", {
+                cwd: runtimePolicy.cwd,
+                includeLayers: false,
+              }),
+            ),
+            Effect.flatMap(Schema.decodeUnknownEffect(CodexSchema.V2ConfigReadResponse)),
+            Effect.map((response) => response.config.model_provider ?? "openai"),
+          );
         const session = providerSession({
           providerSessionId: input.providerSessionId,
           providerInstanceId: adapterOptions.instanceId,
@@ -6411,7 +6426,8 @@ export const makeCodexAdapterV2 = Effect.fn("makeCodexAdapterV2")(function* (
               hasT3Mcp: mcpSession !== undefined,
               browserToolsAvailable: mcpSession?.browserToolsAvailable ?? true,
               deviceToolsAvailable: mcpSession?.capabilities?.has("device") ?? false,
-              omitServiceTier: adapterOptions.resolveRuntime !== undefined,
+              omitServiceTier:
+                (resolvedRuntime?.config ?? adapterOptions.settings).setupMode === "managed",
               ...(turnInput.appContext === undefined ? {} : { appContext: turnInput.appContext }),
             });
             yield* Ref.update(pendingRootTurns, (current) => {
@@ -6722,6 +6738,7 @@ export const makeCodexAdapterV2 = Effect.fn("makeCodexAdapterV2")(function* (
               // excludeTurns is not in the generated request schema yet.
               const resume = client.raw.request("thread/resume", {
                 threadId: nativeThreadId,
+                modelProvider: yield* readModelProvider(threadInput.runtimePolicy),
                 excludeTurns: true,
                 ...codexThreadRuntimeParams({
                   mcpSession: yield* readMcpSession(
@@ -7462,6 +7479,7 @@ export const makeCodexAdapterV2 = Effect.fn("makeCodexAdapterV2")(function* (
               if (!loaded) {
                 yield* client.raw.request("thread/resume", {
                   threadId,
+                  modelProvider: yield* readModelProvider(),
                   excludeTurns: true,
                   ...codexThreadRuntimeParams({
                     mcpSession: yield* readMcpSession(threadInput.providerThread.appThreadId),
@@ -7512,6 +7530,7 @@ export const makeCodexAdapterV2 = Effect.fn("makeCodexAdapterV2")(function* (
                 Effect.andThen(
                   client.request("thread/fork", {
                     threadId,
+                    modelProvider: yield* readModelProvider(threadInput.runtimePolicy),
                     ...(boundary.lastTurnId === undefined
                       ? {}
                       : { lastTurnId: boundary.lastTurnId }),

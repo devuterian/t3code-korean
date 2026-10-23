@@ -305,6 +305,15 @@ export const makeCursorAuth = Effect.fn("makeCursorAuth")(function* (options: Cu
       key: `cursor:${options.instanceId}`,
     },
     isChangingCredentials: Effect.sync(() => operation !== "idle"),
+    exportStaticCredential: configuredKey
+      ? Effect.succeed(Option.none())
+      : readApiKey.pipe(
+          Effect.map((apiKey) =>
+            apiKey === undefined
+              ? Option.none()
+              : Option.some({ name: "CURSOR_API_KEY", value: apiKey }),
+          ),
+        ),
     start: (owner, stopSessions = Effect.void) =>
       lock.withPermits(1)(
         Effect.uninterruptible(

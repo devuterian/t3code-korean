@@ -8,6 +8,7 @@ import * as McpAppModelContext from "../mcpApps/McpAppModelContext.ts";
 import * as McpAppRequests from "../mcpApps/McpAppRequests.ts";
 import * as ProviderSessionRuntime from "../persistence/ProviderSessionRuntime.ts";
 import * as TextGeneration from "../textGeneration/TextGeneration.ts";
+import * as ProviderAccountTransfer from "../provider/ProviderAccountTransfer.ts";
 import * as ProviderAuthService from "../provider/ProviderAuthService.ts";
 import * as AgentSessionImporter from "../project/AgentSessionImporter.ts";
 import * as AgentSessionScanner from "../project/AgentSessionScanner.ts";
@@ -31,6 +32,8 @@ import * as ProjectionStore from "./ProjectionStore.ts";
 import * as ProjectionMaintenance from "./ProjectionMaintenance.ts";
 import * as ProjectStore from "./ProjectStore.ts";
 import * as ProviderAdapterRegistry from "./ProviderAdapterRegistry.ts";
+import * as ProviderPoolCatalog from "./ProviderPoolCatalog.ts";
+import * as ProviderPoolFailover from "./ProviderPoolFailover.ts";
 import * as ProviderContinuationRequests from "@t3tools/provider-core/server/ProviderContinuationRequests";
 import * as ProviderContinuationService from "./ProviderContinuationService.ts";
 import * as ThreadTitleRegenerationService from "./ThreadTitleRegenerationService.ts";
@@ -148,32 +151,8 @@ const layerProviderAuthServiceProvided = ProviderAuthService.layer.pipe(
   Layer.provide(Layer.merge(ProjectionStore.layer, layerProviderSessionManagerProvided)),
 );
 
-const layerRunExecutionServiceProvided = RunExecutionService.layer.pipe(
-  Layer.provide(
-    Layer.mergeAll(
-      McpAppModelContext.layer,
-      layerCheckpointServiceProvided,
-      layerEventSinkProvided,
-      IdAllocator.layer,
-      layerProviderEventIngestorProvided,
-      TurnItemPositionStore.layer,
-    ),
-  ),
-);
-
-const layerProviderTurnStartServiceProvided = ProviderTurnStartService.layer.pipe(
-  Layer.provide(
-    Layer.mergeAll(
-      layerContextHandoffServiceProvided,
-      layerEventSinkProvided,
-      IdAllocator.layer,
-      ProjectionStore.layer,
-      layerProviderSessionManagerProvided,
-      layerProviderAuthServiceProvided,
-      layerRunExecutionServiceProvided,
-      layerRuntimePolicyProvided,
-    ),
-  ),
+const layerProviderAccountTransferProvided = ProviderAccountTransfer.layer.pipe(
+  Layer.provide(layerProviderAuthServiceProvided),
 );
 
 const layerProviderTurnControlServiceProvided = ProviderTurnControlService.layer.pipe(
@@ -229,8 +208,40 @@ const layerOrchestratorProvided = Orchestrator.layer.pipe(
       layerRuntimePolicyProvided,
       layerProviderSessionManagerProvided,
       layerProviderSwitchServiceProvided,
-      layerRunExecutionServiceProvided,
       ThreadForkService.layer,
+    ),
+  ),
+);
+
+// The usage-limit hook dispatches into the orchestrator, so run execution is
+// built after it; the orchestrator itself never calls run execution.
+const layerRunExecutionServiceProvided = RunExecutionService.layer.pipe(
+  Layer.provide(
+    Layer.mergeAll(
+      McpAppModelContext.layer,
+      layerCheckpointServiceProvided,
+      layerEventSinkProvided,
+      IdAllocator.layer,
+      layerProviderEventIngestorProvided,
+      TurnItemPositionStore.layer,
+      ProviderPoolFailover.layer.pipe(
+        Layer.provide(Layer.merge(layerOrchestratorProvided, ProjectionStore.layer)),
+      ),
+    ),
+  ),
+);
+
+const layerProviderTurnStartServiceProvided = ProviderTurnStartService.layer.pipe(
+  Layer.provide(
+    Layer.mergeAll(
+      layerContextHandoffServiceProvided,
+      layerEventSinkProvided,
+      IdAllocator.layer,
+      ProjectionStore.layer,
+      layerProviderSessionManagerProvided,
+      layerProviderAuthServiceProvided,
+      layerRunExecutionServiceProvided,
+      layerRuntimePolicyProvided,
     ),
   ),
 );
@@ -354,6 +365,7 @@ export const layer = Layer.mergeAll(
   layerEffectWorkerProvided,
   layerProviderSessionManagerProvided,
   layerProviderAuthServiceProvided,
+  layerProviderAccountTransferProvided,
   layerProviderRuntimeRecoveryProvided,
   layerProjectionMaintenanceProvided,
   layerLegacyV1ThreadImporterProvided,
@@ -382,5 +394,6 @@ export const layerProduction = Layer.mergeAll(
 ).pipe(
   Layer.provide(ResourceCleanupService.layer.pipe(Layer.provide(layerScheduledTaskProvided))),
   Layer.provide(Scheduler.layer),
+  Layer.provide(ProviderPoolCatalog.layer),
   Layer.provideMerge(layerEventInfrastructure),
 );

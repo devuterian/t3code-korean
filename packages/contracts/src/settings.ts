@@ -45,6 +45,11 @@ import {
   ProviderInstanceId,
   ProviderDriverKind,
 } from "./providerInstance.ts";
+import {
+  ProviderPoolSettings,
+  ProviderPoolSettingsPatch,
+  providerPoolDriver,
+} from "./providerPool.ts";
 import { PullRequestMergeMethod } from "./pullRequest.ts";
 
 export const TimestampFormat = Schema.Literals(["locale", "12-hour", "24-hour"]);
@@ -584,6 +589,8 @@ export const makeBinaryPathSetting = (fallback: string) =>
       }),
     ),
     Schema.withDecodingDefault(Effect.succeed(fallback)),
+    // Last on purpose: a key annotation placed before `decodeTo` is dropped by the transformation.
+    machineLocalSetting,
   );
 
 export type ProviderSettingsFormControl = "text" | "password" | "textarea" | "switch" | "select";
@@ -619,6 +626,11 @@ declare module "effect/Schema" {
     interface Annotations {
       /** Store this credential separately and expose only whether it is configured to clients. */
       readonly settingsSecret?: boolean | undefined;
+      /**
+       * Describes the machine, not the account (binary paths, home directories). Account sync
+       * never copies it, and the destination keeps its own value when it updates a copy.
+       */
+      readonly settingsMachineLocal?: boolean | undefined;
       readonly providerSettingsForm?: ProviderSettingsFormAnnotation | undefined;
       readonly providerSettingsFormSchema?: ProviderSettingsFormSchemaAnnotation | undefined;
     }
@@ -635,6 +647,23 @@ export function isSecretSetting(schema: Schema.Top): boolean {
   return (
     annotations?.settingsSecret === true ||
     annotations?.providerSettingsForm?.control === "password"
+  );
+}
+
+export function machineLocalSetting<S extends Schema.Top>(schema: S): S["Rebuild"] {
+  return schema.annotateKey({ settingsMachineLocal: true });
+}
+
+function isMachineLocalSetting(schema: Schema.Top): boolean {
+  const annotations = Schema.resolveAnnotationsKey(schema) ?? Schema.resolveAnnotations(schema);
+  return annotations?.settingsMachineLocal === true;
+}
+
+export function machineLocalSettingsFields(schema: {
+  readonly fields: Readonly<Record<string, Schema.Top>>;
+}): ReadonlyArray<string> {
+  return Object.entries(schema.fields).flatMap(([field, fieldSchema]) =>
+    isMachineLocalSetting(fieldSchema) ? [field] : [],
   );
 }
 
@@ -659,7 +688,7 @@ export function makeProviderSettingsSchema<const Fields extends Schema.Struct.Fi
 
 export const CodexSettings = makeProviderSettingsSchema(
   {
-    setupMode: Schema.optionalKey(Schema.Literals(["managed", "existing"])).pipe(
+    setupMode: Schema.optionalKey(Schema.Literals(["managed", "existing", "cli"])).pipe(
       Schema.annotateKey({ providerSettingsForm: { hidden: true } }),
     ),
     enabled: Schema.Boolean.pipe(
@@ -674,6 +703,7 @@ export const CodexSettings = makeProviderSettingsSchema(
       }),
     ),
     homePath: TrimmedString.pipe(
+      machineLocalSetting,
       Schema.withDecodingDefault(Effect.succeed("")),
       Schema.annotateKey({
         title: "CODEX_HOME path",
@@ -685,6 +715,7 @@ export const CodexSettings = makeProviderSettingsSchema(
       }),
     ),
     shadowHomePath: TrimmedString.pipe(
+      machineLocalSetting,
       Schema.withDecodingDefault(Effect.succeed("")),
       Schema.annotateKey({
         title: "Shadow home path",
@@ -741,6 +772,9 @@ const InstanceIdleCompaction = Schema.Literals(
 
 export const ClaudeSettings = makeProviderSettingsSchema(
   {
+    setupMode: Schema.optionalKey(Schema.Literals(["existing", "cli"])).pipe(
+      Schema.annotateKey({ providerSettingsForm: { hidden: true } }),
+    ),
     enabled: Schema.Boolean.pipe(
       Schema.withDecodingDefault(Effect.succeed(true)),
       Schema.annotateKey({ providerSettingsForm: { hidden: true } }),
@@ -753,6 +787,7 @@ export const ClaudeSettings = makeProviderSettingsSchema(
       }),
     ),
     homePath: TrimmedString.pipe(
+      machineLocalSetting,
       Schema.withDecodingDefault(Effect.succeed("")),
       Schema.annotateKey({
         title: "CLAUDE_CONFIG_DIR path",
@@ -871,6 +906,7 @@ export const AntigravitySettings = makeProviderSettingsSchema(
       }),
     ),
     binaryPath: TrimmedString.pipe(
+      machineLocalSetting,
       Schema.withDecodingDefault(Effect.succeed("")),
       Schema.annotateKey({
         title: "Binary path",
@@ -1373,6 +1409,7 @@ export const ServerSettings = Schema.Struct({
   providerInstances: Schema.Record(ProviderInstanceId, ProviderInstanceConfig).pipe(
     Schema.withDecodingDefault(Effect.succeed({})),
   ),
+  providerPools: ProviderPoolSettings.pipe(Schema.withDecodingDefault(Effect.succeed({}))),
   observability: ObservabilitySettings.pipe(Schema.withDecodingDefault(Effect.succeed({}))),
   sourceControlHosts: Schema.Record(Schema.String, SourceControlHostSettings).pipe(
     Schema.withDecodingDefault(Effect.succeed({})),
@@ -1435,7 +1472,31 @@ export const resolveProviderInstanceEnabled = (
   return instance.enabled ?? configEnabled ?? defaultEnabledForDriver(instance.driver);
 };
 
+/**
+ * A pool id is enabled when any of its configured members is, so a pooled
+ * selection is never rejected while one account can still take the turn.
+ */
 export const resolveProjectProviderInstanceEnabled = (
+  settings: Pick<
+    ServerSettings,
+    "providerInstances" | "projectSettingsOverrides" | "providerPools"
+  >,
+  projectId: ProjectId | null,
+  instanceId: ProviderInstanceId,
+): boolean => {
+  const poolDriver = providerPoolDriver(instanceId);
+  if (poolDriver === null) {
+    return resolveConcreteInstanceEnabled(settings, projectId, instanceId);
+  }
+  const pool = settings.providerPools[poolDriver];
+  return (
+    pool?.memberInstanceIds.some((memberId) =>
+      resolveConcreteInstanceEnabled(settings, projectId, memberId),
+    ) ?? false
+  );
+};
+
+const resolveConcreteInstanceEnabled = (
   settings: Pick<ServerSettings, "providerInstances" | "projectSettingsOverrides">,
   projectId: ProjectId | null,
   instanceId: ProviderInstanceId,
@@ -1506,6 +1567,7 @@ export const ServerSettingsOperation = Schema.Literals([
   "normalize",
   "check-exists",
   "create-provider-instance",
+  "validate-provider-pool",
   "read-file",
   "read-provider-history",
   "read-project-settings",
@@ -1707,6 +1769,8 @@ export const ServerSettingsPatch = Schema.Struct({
   usageLimitSources: Schema.optionalKey(
     Schema.Record(UsageLimitSourceId, Schema.NullOr(UsageLimitSourceConfig)),
   ),
+  // Per-entry for the same reason as `usageLimitSources`.
+  providerPools: Schema.optionalKey(ProviderPoolSettingsPatch),
   cursorKeychainUsageEnabled: Schema.optionalKey(Schema.Boolean),
 
   usagePriceOverrides: Schema.optionalKey(
@@ -1726,7 +1790,12 @@ export function requiredScopesForServerSettingsPatch(
   let changesSettings = false;
   for (const [key, value] of Object.entries(patch)) {
     if (value === undefined) continue;
-    if (key === "providers" || key === "providerInstances" || key === "usageLimitSources") {
+    if (
+      key === "providers" ||
+      key === "providerInstances" ||
+      key === "usageLimitSources" ||
+      key === "providerPools"
+    ) {
       changesProviders = true;
     } else {
       changesSettings = true;

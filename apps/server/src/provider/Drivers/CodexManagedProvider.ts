@@ -222,6 +222,10 @@ export const makeManagedCodexProvider = Effect.fn("makeManagedCodexProvider")(fu
     haveSettingsChanged: () => false,
     initialSnapshot: () => pending,
     checkProvider: check,
+    enrichSnapshot: ({ settings }) =>
+      settings.enableProviderUpdateChecks
+        ? runtime.installation.refresh().pipe(Effect.ignore)
+        : Effect.void,
   }).pipe(
     Effect.mapError(
       (cause) =>
@@ -293,7 +297,14 @@ export const makeManagedCodexProvider = Effect.fn("makeManagedCodexProvider")(fu
     displayName,
     accentColor,
     enabled,
-    snapshot,
+    snapshot: {
+      ...snapshot,
+      refresh: enabled
+        ? runtime.installation
+            .refresh({ fresh: true })
+            .pipe(Effect.ignore, Effect.andThen(snapshot.refresh))
+        : snapshot.refresh,
+    },
     orchestrationAdapter,
     textGeneration,
     auth: runtime.auth.controller,

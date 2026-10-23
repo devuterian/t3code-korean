@@ -1,19 +1,25 @@
 import { describe, expect, it } from "vite-plus/test";
 import * as Schema from "effect/Schema";
 
+import { AuthProvidersManageScope, AuthSettingsWriteScope } from "./auth.ts";
 import { type CommandId, ProjectId } from "./baseSchemas.ts";
 import { ProviderDriverKind, ProviderInstanceId } from "./providerInstance.ts";
 import {
+  AntigravitySettings,
   ClientSettingsSchema,
   ClientSettingsPatch,
   ClaudeSettings,
+  CodexSettings,
   DEFAULT_SERVER_SETTINGS,
   globalIdleCompaction,
   idleCompactionPatch,
+  machineLocalSettingsFields,
   requiredScopesForProjectMutation,
+  requiredScopesForServerSettingsPatch,
   resolveIdleCompaction,
   resolveProjectProviderInstanceEnabled,
   resolveProviderInstanceEnabled,
+  secretSettingsFields,
   ServerSettings,
   ServerSettingsPatch,
   withIdleCompaction,
@@ -400,6 +406,86 @@ describe("resolveProjectProviderInstanceEnabled", () => {
   });
 });
 
+describe("providerPools settings", () => {
+  const claude = ProviderDriverKind.make("claudeAgent");
+
+  it("defaults to no pools and turns a configured pool on unless it says otherwise", () => {
+    expect(decodeServerSettings({}).providerPools).toEqual({});
+    expect(
+      decodeServerSettings({
+        providerPools: { claudeAgent: { memberInstanceIds: ["claudeAgent"] } },
+      }).providerPools[claude]?.enabled,
+    ).toBe(true);
+  });
+
+  it("patches one pool at a time, with null removing it", () => {
+    const patch = {
+      providerPools: {
+        claudeAgent: { enabled: false, memberInstanceIds: ["claudeAgent", "claudeAgent_icloud"] },
+        codex: null,
+      },
+    };
+    expect(decodeServerSettingsPatch(patch)).toEqual(patch);
+  });
+
+  it("needs the provider-manage scope, like the instances it pools", () => {
+    expect(requiredScopesForServerSettingsPatch({ providerPools: { [claude]: null } })).toEqual([
+      AuthProvidersManageScope,
+    ]);
+    expect(
+      requiredScopesForServerSettingsPatch({
+        providerPools: { [claude]: null },
+        snoozeLimitedThreads: true,
+      }),
+    ).toEqual([AuthSettingsWriteScope, AuthProvidersManageScope]);
+  });
+});
+
+describe("resolveProjectProviderInstanceEnabled for a pool id", () => {
+  const projectId = "project-a" as ProjectId;
+  const claude = ProviderDriverKind.make("claudeAgent");
+  const poolId = ProviderInstanceId.make("pool_claudeAgent");
+  const personal = ProviderInstanceId.make("claudeAgent");
+  const work = ProviderInstanceId.make("claudeAgent_work");
+  const settings: ServerSettings = {
+    ...DEFAULT_SERVER_SETTINGS,
+    providerInstances: {
+      [personal]: { driver: claude, enabled: false },
+      [work]: { driver: claude, enabled: true },
+    },
+    providerPools: { [claude]: { enabled: true, memberInstanceIds: [personal, work] } },
+  };
+
+  it("is enabled while any member is enabled for the project", () => {
+    expect(resolveProjectProviderInstanceEnabled(settings, projectId, poolId)).toBe(true);
+  });
+
+  it("is disabled once the project disables every enabled member", () => {
+    const overridden: ServerSettings = {
+      ...settings,
+      projectSettingsOverrides: {
+        [projectId]: { providerInstances: { [work]: { enabled: false } } },
+      },
+    };
+    expect(resolveProjectProviderInstanceEnabled(overridden, projectId, poolId)).toBe(false);
+    expect(resolveProjectProviderInstanceEnabled(overridden, null, poolId)).toBe(true);
+  });
+
+  it("is disabled when no pool is configured for the driver", () => {
+    expect(
+      resolveProjectProviderInstanceEnabled({ ...settings, providerPools: {} }, projectId, poolId),
+    ).toBe(false);
+  });
+
+  it("does not recurse through a pool that lists its own id", () => {
+    const selfListed: ServerSettings = {
+      ...settings,
+      providerPools: { [claude]: { enabled: true, memberInstanceIds: [poolId] } },
+    };
+    expect(resolveProjectProviderInstanceEnabled(selfListed, projectId, poolId)).toBe(false);
+  });
+});
+
 describe("requiredScopesForProjectMutation", () => {
   it("adds the settings scope only when a mutation carries scripts", () => {
     const projectId = "project-1" as ProjectId;
@@ -427,5 +513,25 @@ describe("server model preferences", () => {
     const input = { favorites: [], providerModelPreferences: {} };
     expect(encodeServerSettings(decodeServerSettings(input))).toMatchObject(input);
     expect(decodeServerSettingsPatch(input)).toEqual(input);
+  });
+});
+
+describe("machine-local provider settings", () => {
+  it("marks every path field on Codex, and only those", () => {
+    expect(machineLocalSettingsFields(CodexSettings)).toEqual([
+      "binaryPath",
+      "homePath",
+      "shadowHomePath",
+    ]);
+  });
+
+  it("marks home and binary paths on Claude", () => {
+    expect(machineLocalSettingsFields(ClaudeSettings)).toEqual(["binaryPath", "homePath"]);
+  });
+
+  it("keeps secret and machine-local classifications apart", () => {
+    expect(secretSettingsFields(AntigravitySettings)).toEqual(["apiKey"]);
+    expect(machineLocalSettingsFields(AntigravitySettings)).toEqual(["binaryPath"]);
+    expect(secretSettingsFields(CodexSettings)).toEqual([]);
   });
 });

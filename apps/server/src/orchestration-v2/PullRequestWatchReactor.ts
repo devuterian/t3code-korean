@@ -56,13 +56,13 @@ const FINGERPRINT_REREAD_MS = 30 * 60_000;
 
 const isProviderError = Schema.is(PullRequestProviderError);
 
-const isRateLimited = (cause: Cause.Cause<PullRequestService.PullRequestError>) =>
+const providerFailureReason = (cause: Cause.Cause<PullRequestService.PullRequestError>) =>
   Option.match(Cause.findErrorOption(cause), {
-    onNone: () => false,
+    onNone: () => null,
     onSome: (error) =>
-      error._tag === "PullRequestOperationError" &&
-      isProviderError(error.cause) &&
-      error.cause.reason === "rate-limited",
+      error._tag === "PullRequestOperationError" && isProviderError(error.cause)
+        ? error.cause.reason
+        : null,
   });
 
 const logFailure =
@@ -105,6 +105,7 @@ type WatchEndReason =
   | "merged"
   | "closed"
   | "unreadable"
+  | "checks-completed"
   | "comment-limit"
   | "settled"
   | "subagent"
@@ -167,6 +168,7 @@ function planRead(
 function watchesEqual(left: ThreadPullRequestWatch, right: ThreadPullRequestWatch): boolean {
   return (
     left.startedAt === right.startedAt &&
+    left.mode === right.mode &&
     left.headSha === right.headSha &&
     left.failedChecks.join("\n") === right.failedChecks.join("\n") &&
     left.passed === right.passed &&
@@ -243,7 +245,7 @@ export const make = Effect.gen(function* () {
   const ended = (target: WatchTarget, reason: WatchEndReason) =>
     Effect.suspend(() => reportEnd(lifeKey(target), lifeOf(target), reason));
 
-  const readFailures = new Map<string, number>();
+  const readFailures = new Map<string, { count: number; watches: string }>();
   const lastReads = new Map<string, LastRead>();
   const threadTails = new Map<
     string,
@@ -441,7 +443,7 @@ export const make = Effect.gen(function* () {
         (cause): Effect.Effect<ProviderChangeRequestWatchFingerprint | null | "paused"> =>
           Cause.hasInterruptsOnly(cause)
             ? Effect.interrupt
-            : isRateLimited(cause)
+            : providerFailureReason(cause) === "rate-limited"
               ? Effect.succeed("paused")
               : Effect.logDebug("pull request watch fingerprint failed", {
                   pullRequest: group.key,
@@ -457,6 +459,7 @@ export const make = Effect.gen(function* () {
     const now = yield* Clock.currentTimeMillis;
     const last = lastReads.get(group.key);
     const plan = planRead(group, last, fingerprint, now);
+    const watchReviews = group.targets.some((target) => target.watch.mode !== "checks");
     if (!plan.detail) return;
     if (
       last === undefined ||
@@ -469,12 +472,15 @@ export const make = Effect.gen(function* () {
     const reference = referenceOf(group);
     // The reads are recorded against this fingerprint, so a cached answer older than it must not
     // stand in for them. Clients are not told: this only drops this pull request's cached reads.
-    if (fingerprint !== null) yield* pullRequests.invalidate({ reference });
+    // A bounded watch must not finish on a cached result from before a push or rerun.
+    if (fingerprint !== null || group.targets.some((target) => target.watch.mode === "checks")) {
+      yield* pullRequests.invalidate({ reference });
+    }
     const read = yield* Effect.exit(
       Effect.all(
         [
           pullRequests.detail({ ...reference, allowStale: false }),
-          plan.activity
+          plan.activity && watchReviews
             ? pullRequests.activity(reference).pipe(Effect.map(Option.some))
             : Effect.succeed(Option.none<PullRequestActivity>()),
         ],
@@ -484,9 +490,16 @@ export const make = Effect.gen(function* () {
     if (Exit.isFailure(read)) {
       if (Cause.hasInterruptsOnly(read.cause)) return yield* Effect.failCause(read.cause);
       lastReads.delete(group.key);
-      if (isRateLimited(read.cause)) return;
-      const failures = (readFailures.get(group.key) ?? 0) + 1;
-      readFailures.set(group.key, failures);
+      const reason = providerFailureReason(read.cause);
+      if (reason !== "not-found") {
+        readFailures.delete(group.key);
+        if (reason === "rate-limited") return;
+        return yield* Effect.failCause(read.cause);
+      }
+      const watches = group.targets.map(watchKey).sort().join("\n");
+      const previous = readFailures.get(group.key);
+      const failures = (previous?.watches === watches ? previous.count : 0) + 1;
+      readFailures.set(group.key, { count: failures, watches });
       if (failures >= READ_FAILURE_LIMIT && (yield* eachTarget(group, giveUp))) {
         readFailures.delete(group.key);
       }
@@ -535,7 +548,8 @@ export const make = Effect.gen(function* () {
       inFlight:
         detail.mergeability === "unknown" ||
         detail.checks.some((check) => check.status === "pending"),
-      remarksComplete: plan.activity ? remarks !== null : (last?.remarksComplete ?? false),
+      remarksComplete:
+        !watchReviews || (plan.activity ? remarks !== null : (last?.remarksComplete ?? false)),
       watches: new Set(group.targets.map(watchKey)),
       status: fingerprint?.status ?? null,
       remarks: fingerprint?.remarks ?? null,
@@ -552,12 +566,18 @@ export const make = Effect.gen(function* () {
         });
         // An ending watch keeps what this pass saw, so watching again starts from it.
         return (
-          report.exhausted
+          report.exhausted || report.completed
             ? record(target, null, wake, report.next)
             : record(target, report.next, wake)
         ).pipe(
           Effect.tap(() => woke(target)),
-          Effect.tap(() => (report.exhausted ? ended(target, "comment-limit") : Effect.void)),
+          Effect.tap(() =>
+            report.completed
+              ? ended(target, "checks-completed")
+              : report.exhausted
+                ? ended(target, "comment-limit")
+                : Effect.void,
+          ),
         );
       }
       return watchesEqual(report.next, target.watch) ? Effect.void : record(target, report.next);

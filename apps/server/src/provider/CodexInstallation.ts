@@ -1,8 +1,10 @@
 // @effect-diagnostics nodeBuiltinImport:off - Effect has no incremental digest.
 import { ProviderDriverKind, type ProviderInstallState } from "@t3tools/contracts";
+import { compareSemverVersions } from "@t3tools/shared/semver";
 import { cliArchiveTarCommand } from "@t3tools/shared/cliRelease";
 import * as HostProcess from "@t3tools/shared/HostProcess";
 import { resolveCommandPath, resolveSpawnCommand } from "@t3tools/shared/shell";
+import * as GitHubCredentials from "@t3tools/source-control-github/server/GitHubCredentials";
 import * as Clock from "effect/Clock";
 import * as Cause from "effect/Cause";
 import * as Context from "effect/Context";
@@ -14,6 +16,7 @@ import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import * as Path from "effect/Path";
+import * as Redacted from "effect/Redacted";
 import * as Schedule from "effect/Schedule";
 import * as Schema from "effect/Schema";
 import * as Scope from "effect/Scope";
@@ -29,6 +32,10 @@ import { resolveProviderCompatibility } from "./providerCompatibility.ts";
 
 const DRIVER = ProviderDriverKind.make("codex");
 const STAGING_STALE_AFTER_MS = 24 * 60 * 60_000;
+const RELEASE_CHECK_SUCCESS_TTL_MS = 3_600_000;
+const RELEASE_CHECK_FAILURE_COOLDOWN_MS = 30_000;
+const RELEASE_CHECK_RATE_LIMIT_MESSAGE =
+  "GitHub rate-limited Codex release checks. Sign in to GitHub in Settings → Source Control or try again after the rate limit resets.";
 const Version = Schema.String.check(Schema.isPattern(/^\d+\.\d+\.\d+(?:-[a-zA-Z0-9.-]+)?$/u));
 const ActiveRelease = Schema.Struct({ version: Version });
 const InstalledRelease = Schema.Struct({
@@ -52,52 +59,76 @@ export interface CodexReleaseAsset {
   readonly sha256: string;
   readonly archiveBytes: number;
 }
-const RELEASES: Readonly<Record<string, CodexReleaseAsset>> = {
-  "darwin-arm64": {
-    version: "0.156.1",
-    target: "aarch64-apple-darwin",
-    url: "https://github.com/openai/codex/releases/download/rust-v0.156.1/codex-package-aarch64-apple-darwin.tar.gz",
-    sha256: "fea42f9625091f011e38f059da974d52e57ba31831648bb1c7f0b1a385fde547",
-    archiveBytes: 127394863,
-  },
-  "darwin-x64": {
-    version: "0.156.1",
-    target: "x86_64-apple-darwin",
-    url: "https://github.com/openai/codex/releases/download/rust-v0.156.1/codex-package-x86_64-apple-darwin.tar.gz",
-    sha256: "618dbcd55419fa041871f777a14b107ceb3fe2d339ef81e21e6ab5374420dc71",
-    archiveBytes: 138670455,
-  },
-  "linux-arm64": {
-    version: "0.156.1",
-    target: "aarch64-unknown-linux-musl",
-    url: "https://github.com/openai/codex/releases/download/rust-v0.156.1/codex-package-aarch64-unknown-linux-musl.tar.gz",
-    sha256: "fdd47ed6aade0360796fd3f6f95a45096f327c15e19e8c7339f9dc5633041786",
-    archiveBytes: 136933361,
-  },
-  "linux-x64": {
-    version: "0.156.1",
-    target: "x86_64-unknown-linux-musl",
-    url: "https://github.com/openai/codex/releases/download/rust-v0.156.1/codex-package-x86_64-unknown-linux-musl.tar.gz",
-    sha256: "8b711520beddf385467b8da4d2c93736637c6ba1e46811cf0d8606b7c490b6f6",
-    archiveBytes: 145976992,
-  },
-  "win32-arm64": {
-    version: "0.156.1",
-    target: "aarch64-pc-windows-msvc",
-    url: "https://github.com/openai/codex/releases/download/rust-v0.156.1/codex-package-aarch64-pc-windows-msvc.tar.gz",
-    sha256: "85994caecdc7609c49fd585c1cdb5677fa9d0acbf789650cff23a13afc9505db",
-    archiveBytes: 142037952,
-  },
-  "win32-x64": {
-    version: "0.156.1",
-    target: "x86_64-pc-windows-msvc",
-    url: "https://github.com/openai/codex/releases/download/rust-v0.156.1/codex-package-x86_64-pc-windows-msvc.tar.gz",
-    sha256: "a2e017db9807e6a2269a26fea0e1d9546469cef4d472a33016bc9f3ad7d3b733",
-    archiveBytes: 153839991,
-  },
+const TARGETS: Readonly<Record<string, string>> = {
+  "darwin-arm64": "aarch64-apple-darwin",
+  "darwin-x64": "x86_64-apple-darwin",
+  "linux-arm64": "aarch64-unknown-linux-musl",
+  "linux-x64": "x86_64-unknown-linux-musl",
+  "win32-arm64": "aarch64-pc-windows-msvc",
+  "win32-x64": "x86_64-pc-windows-msvc",
 };
-const resolveCodexReleaseAsset = (platform: NodeJS.Platform, arch: string) =>
-  RELEASES[`${platform}-${arch}`] ?? null;
+const Release = Schema.Struct({
+  tag_name: Schema.String,
+  draft: Schema.Boolean,
+  prerelease: Schema.Boolean,
+  assets: Schema.Array(
+    Schema.Struct({
+      name: Schema.String,
+      size: Schema.Number,
+      digest: Schema.NullOr(Schema.String),
+      browser_download_url: Schema.String,
+    }),
+  ),
+});
+const hasGitHubRateLimitHeaders = (
+  status: number,
+  headers: Readonly<Record<string, string | undefined>>,
+) =>
+  status === 429 ||
+  (status === 403 &&
+    (headers["x-ratelimit-remaining"] === "0" || headers["retry-after"] !== undefined));
+const retryAtFromGitHubHeaders = (
+  headers: Readonly<Record<string, string | undefined>>,
+  now: number,
+) => {
+  const deadlines: Array<number> = [];
+  const retryAfter = headers["retry-after"];
+  if (retryAfter !== undefined) {
+    const seconds = Number(retryAfter);
+    const retryAfterAt = Number.isFinite(seconds)
+      ? now + Math.max(seconds, 0) * 1_000
+      : Date.parse(retryAfter);
+    if (Number.isFinite(retryAfterAt) && retryAfterAt > now) deadlines.push(retryAfterAt);
+  }
+  const reset = headers["x-ratelimit-reset"];
+  if (reset !== undefined) {
+    const resetAt = Number(reset) * 1_000;
+    if (Number.isFinite(resetAt) && resetAt > now) deadlines.push(resetAt);
+  }
+  return deadlines.length === 0 ? undefined : Math.max(...deadlines);
+};
+export const resolveCodexReleaseAsset = (
+  platform: NodeJS.Platform,
+  arch: string,
+  release: typeof Release.Type,
+): CodexReleaseAsset | null => {
+  const target = TARGETS[`${platform}-${arch}`];
+  const version = /^rust-v(\d+\.\d+\.\d+)$/u.exec(release.tag_name)?.[1];
+  if (!target || !version || release.draft || release.prerelease) return null;
+  const name = `codex-package-${target}.tar.gz`;
+  const asset = release.assets.find((candidate) => candidate.name === name);
+  const sha256 = /^sha256:([a-fA-F0-9]{64})$/u.exec(asset?.digest ?? "")?.[1];
+  const url = `https://github.com/openai/codex/releases/download/${release.tag_name}/${name}`;
+  if (
+    !asset ||
+    !sha256 ||
+    asset.browser_download_url !== url ||
+    !Number.isSafeInteger(asset.size) ||
+    asset.size <= 0
+  )
+    return null;
+  return { version, target, url, sha256: sha256.toLowerCase(), archiveBytes: asset.size };
+};
 export class CodexInstallationError extends Schema.TaggedError<CodexInstallationError>()(
   "CodexInstallationError",
   {
@@ -123,9 +154,16 @@ export interface CodexExecutable {
 }
 interface CodexInstallationService {
   readonly managedDirectory: string;
+  readonly refresh: (options?: {
+    readonly fresh?: boolean;
+  }) => Effect.Effect<void, CodexInstallationError>;
   readonly resolve: () => Effect.Effect<CodexExecutable, CodexInstallationError>;
-  readonly acquire: () => Effect.Effect<CodexExecutable, CodexInstallationError, Scope.Scope>;
-  readonly start: Effect.Effect<ProviderInstallState, CodexInstallationError>;
+  readonly acquire: (
+    options?: CodexRuntimeOptions,
+  ) => Effect.Effect<CodexExecutable, CodexInstallationError, Scope.Scope>;
+  readonly start: (
+    options?: CodexRuntimeOptions,
+  ) => Effect.Effect<ProviderInstallState, CodexInstallationError>;
   readonly cancel: (
     operationId: string,
   ) => Effect.Effect<ProviderInstallState, CodexInstallationError>;
@@ -134,6 +172,9 @@ interface CodexInstallationService {
   readonly remove: (
     protectedBinaryPaths?: ReadonlyArray<string>,
   ) => Effect.Effect<void, CodexInstallationError>;
+}
+interface CodexRuntimeOptions {
+  readonly managedOnly?: boolean;
 }
 export class CodexInstallation extends Context.Service<
   CodexInstallation,
@@ -149,7 +190,7 @@ export class CodexInstallation extends Context.Service<
 }
 export interface CodexInstallationOptions {
   readonly baseDir: string;
-  readonly releaseAsset?: CodexReleaseAsset | null;
+  readonly releaseAsset?: CodexReleaseAsset | null | undefined;
   readonly validate?: (
     executable: CodexExecutable,
     expectedVersion: string,
@@ -165,15 +206,21 @@ export const makeCodexInstallation = Effect.fn("makeCodexInstallation")(function
   const path = yield* Path.Path;
   const crypto = yield* Crypto.Crypto;
   const http = yield* HttpClient.HttpClient;
+  const githubCredentials = yield* GitHubCredentials.GitHubCredentials;
   const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
   const serviceScope = yield* Effect.scope;
   const platform = yield* HostProcess.Platform;
   const environment = yield* HostProcess.Environment;
   const arch = yield* HostProcess.Architecture;
-  const asset =
-    options.releaseAsset === undefined
-      ? resolveCodexReleaseAsset(platform, arch)
-      : options.releaseAsset;
+  let asset = options.releaseAsset ?? null;
+  let checkedAt: number | undefined;
+  let retryAt: number | undefined;
+  let lastDiscoveryFailure: CodexInstallationError | undefined;
+  let lastDiscoveryFailureCredentialFingerprint: string | null | undefined;
+  let currentDiscoveryCredentialFingerprint: string | null = null;
+  // Settings-backed tokens can return after cache invalidation, so skip a rejected token until credentials change.
+  let rejectedCredentialFingerprint: string | undefined;
+  const discoveryGate = yield* Semaphore.make(1);
   const managedDirectory = path.join(options.baseDir, "tools", "codex");
   const activePath = path.join(managedDirectory, "active.json");
   const executableName = platform === "win32" ? "codex.exe" : "codex";
@@ -192,6 +239,110 @@ export const makeCodexInstallation = Effect.fn("makeCodexInstallation")(function
     canRemove: false,
     message: null,
   });
+  const refresh: CodexInstallationService["refresh"] = Effect.fn("CodexInstallation.refresh")(
+    function* (input?: { readonly fresh?: boolean }) {
+      if (options.releaseAsset !== undefined) return;
+      const current = yield* SubscriptionRef.get(state);
+      if (isRunning(current)) return;
+      currentDiscoveryCredentialFingerprint = null;
+      const now = yield* Clock.currentTimeMillis;
+      let credential: Option.Option<GitHubCredentials.GitHubCredential> | undefined;
+      if (retryAt !== undefined && lastDiscoveryFailure !== undefined) {
+        credential = yield* Effect.option(githubCredentials.get("github.com"));
+        currentDiscoveryCredentialFingerprint = Option.match(credential, {
+          onNone: () => null,
+          onSome: (value) => value.fingerprint,
+        });
+        if (
+          now < retryAt &&
+          lastDiscoveryFailureCredentialFingerprint === currentDiscoveryCredentialFingerprint
+        )
+          return yield* Effect.fail(lastDiscoveryFailure);
+        retryAt = undefined;
+        lastDiscoveryFailure = undefined;
+        lastDiscoveryFailureCredentialFingerprint = undefined;
+      } else if (
+        !input?.fresh &&
+        checkedAt !== undefined &&
+        now - checkedAt < RELEASE_CHECK_SUCCESS_TTL_MS
+      )
+        return;
+      credential ??= yield* Effect.option(githubCredentials.get("github.com"));
+      currentDiscoveryCredentialFingerprint = Option.match(credential, {
+        onNone: () => null,
+        onSome: (value) => value.fingerprint,
+      });
+      const baseRequest = HttpClientRequest.get(
+        "https://api.github.com/repos/openai/codex/releases/latest",
+      ).pipe(HttpClientRequest.setHeader("Accept", "application/vnd.github+json"));
+      const authenticatedCredential = Option.filter(
+        credential,
+        (value) => value.fingerprint !== rejectedCredentialFingerprint,
+      );
+      const request = Option.match(authenticatedCredential, {
+        onNone: () => baseRequest,
+        onSome: (value) =>
+          HttpClientRequest.setHeader(
+            baseRequest,
+            "Authorization",
+            `Bearer ${Redacted.value(value.token)}`,
+          ),
+      });
+      let response = yield* http.execute(request).pipe(Effect.timeout("5 seconds"));
+      if (response.status === 401 && Option.isSome(authenticatedCredential)) {
+        rejectedCredentialFingerprint = authenticatedCredential.value.fingerprint;
+        yield* githubCredentials.invalidate("github.com");
+        response = yield* http.execute(baseRequest).pipe(Effect.timeout("5 seconds"));
+      }
+      const responseAt = yield* Clock.currentTimeMillis;
+      if (response.status < 200 || response.status >= 300) {
+        let rateLimited = hasGitHubRateLimitHeaders(response.status, response.headers);
+        if (!rateLimited && response.status === 403) {
+          const body = yield* response.text.pipe(
+            Effect.timeout("5 seconds"),
+            Effect.catch(() => Effect.succeed("")),
+          );
+          rateLimited = /rate limit/i.test(body);
+        }
+        if (rateLimited) {
+          retryAt =
+            retryAtFromGitHubHeaders(response.headers, responseAt) ??
+            responseAt + RELEASE_CHECK_FAILURE_COOLDOWN_MS;
+          return yield* installationError("refresh", RELEASE_CHECK_RATE_LIMIT_MESSAGE);
+        }
+        yield* HttpClientResponse.filterStatusOk(response);
+      }
+      const release = yield* HttpClientResponse.schemaBodyJson(Release)(response).pipe(
+        Effect.timeout("5 seconds"),
+      );
+      const discovered = resolveCodexReleaseAsset(platform, arch, release);
+      if (!discovered)
+        return yield* installationError(
+          "refresh",
+          "The latest Codex release has no verified package for this platform.",
+        );
+      asset = discovered;
+      checkedAt = yield* Clock.currentTimeMillis;
+      yield* SubscriptionRef.update(state, (value) =>
+        isRunning(value)
+          ? value
+          : {
+              ...value,
+              version: discovered.version,
+              totalBytes: discovered.archiveBytes,
+            },
+      );
+    },
+    Effect.mapError(wrapFailure("refresh", "Could not check for Codex updates. Try again.")),
+    Effect.tapError((failure) =>
+      Effect.gen(function* () {
+        lastDiscoveryFailure = failure;
+        lastDiscoveryFailureCredentialFingerprint = currentDiscoveryCredentialFingerprint;
+        retryAt ??= (yield* Clock.currentTimeMillis) + RELEASE_CHECK_FAILURE_COOLDOWN_MS;
+      }),
+    ),
+    discoveryGate.withPermit,
+  );
   const readRecord = Effect.fn("CodexInstallation.readRecord")(function* <A>(
     file: string,
     schema: Schema.Codec<A>,
@@ -287,10 +438,10 @@ export const makeCodexInstallation = Effect.fn("makeCodexInstallation")(function
       wrapFailure("resolve", "Codex is not installed in T3 Code. Install it to continue."),
     ),
   );
-  const acquire = Effect.fn("CodexInstallation.acquire")(function* () {
+  const acquire = Effect.fn("CodexInstallation.acquire")(function* (options?: CodexRuntimeOptions) {
     return yield* Effect.acquireRelease(
       gate.withPermit(
-        resolve().pipe(
+        (options?.managedOnly === true ? resolveManaged() : resolve()).pipe(
           Effect.tap(() =>
             Effect.sync(() => {
               leases += 1;
@@ -613,64 +764,74 @@ export const makeCodexInstallation = Effect.fn("makeCodexInstallation")(function
       ),
     ),
   );
-  const start = gate
-    .withPermit(
-      Effect.gen(function* () {
-        const current = yield* SubscriptionRef.get(state);
-        if (isRunning(current)) return current;
-        if (yield* reuseLocal()) return yield* SubscriptionRef.get(state);
-        if (!asset) {
-          return yield* installationError(
-            "start",
-            `OpenAI does not publish a Codex runtime for ${platform}-${arch}. Use a supported remote environment or a custom executable.`,
+  const start = (options?: CodexRuntimeOptions) =>
+    gate
+      .withPermit(
+        Effect.gen(function* () {
+          const current = yield* SubscriptionRef.get(state);
+          if (isRunning(current)) return current;
+          if (!options?.managedOnly && (yield* reuseLocal()))
+            return yield* SubscriptionRef.get(state);
+          if (!asset) yield* refresh({ fresh: true });
+          if (!asset) {
+            return yield* installationError(
+              "start",
+              `OpenAI does not publish a Codex runtime for ${platform}-${arch}. Use a supported remote environment or a custom executable.`,
+            );
+          }
+          const release = asset;
+          if (
+            current.installedVersion &&
+            compareSemverVersions(current.installedVersion, release.version) > 0
+          ) {
+            return yield* SubscriptionRef.get(state);
+          }
+          const operationId = yield* crypto.randomUUIDv4();
+          const next: ProviderInstallState = {
+            driver: DRIVER,
+            operationId,
+            phase: "downloading",
+            downloadedBytes: 0,
+            totalBytes: release.archiveBytes,
+            version: release.version,
+            installedVersion: current.installedVersion,
+            canRemove: current.canRemove,
+            message: "Downloading Codex.",
+          };
+          yield* SubscriptionRef.set(state, next);
+          const work = install(release).pipe(
+            Effect.onExit((exit) =>
+              Exit.isFailure(exit)
+                ? SubscriptionRef.update(state, (value) => {
+                    if (value.operationId !== operationId || value.phase === "succeeded")
+                      return value;
+                    const error = Cause.findErrorOption(exit.cause);
+                    const cancelled = Cause.hasInterruptsOnly(exit.cause);
+                    return {
+                      ...value,
+                      phase: cancelled ? "cancelled" : "failed",
+                      message: cancelled
+                        ? "Installation cancelled. The previous runtime is unchanged."
+                        : Option.isSome(error)
+                          ? error.value.detail
+                          : "Could not finish the Codex installation. Check disk space and directory access.",
+                    } satisfies ProviderInstallState;
+                  })
+                : Effect.void,
+            ),
+            Effect.ignoreCause,
+            Effect.ensuring(
+              Effect.sync(() => {
+                if (running?.operationId === operationId) running = undefined;
+              }),
+            ),
           );
-        }
-        const operationId = yield* crypto.randomUUIDv4();
-        const next: ProviderInstallState = {
-          driver: DRIVER,
-          operationId,
-          phase: "downloading",
-          downloadedBytes: 0,
-          totalBytes: asset.archiveBytes,
-          version: asset.version,
-          installedVersion: current.installedVersion,
-          canRemove: current.canRemove,
-          message: "Downloading Codex.",
-        };
-        yield* SubscriptionRef.set(state, next);
-        const work = install(asset).pipe(
-          Effect.onExit((exit) =>
-            Exit.isFailure(exit)
-              ? SubscriptionRef.update(state, (value) => {
-                  if (value.operationId !== operationId || value.phase === "succeeded")
-                    return value;
-                  const error = Cause.findErrorOption(exit.cause);
-                  const cancelled = Cause.hasInterruptsOnly(exit.cause);
-                  return {
-                    ...value,
-                    phase: cancelled ? "cancelled" : "failed",
-                    message: cancelled
-                      ? "Installation cancelled. The previous runtime is unchanged."
-                      : Option.isSome(error)
-                        ? error.value.detail
-                        : "Could not finish the Codex installation. Check disk space and directory access.",
-                  } satisfies ProviderInstallState;
-                })
-              : Effect.void,
-          ),
-          Effect.ignoreCause,
-          Effect.ensuring(
-            Effect.sync(() => {
-              if (running?.operationId === operationId) running = undefined;
-            }),
-          ),
-        );
-        const fiber = yield* Effect.forkIn(Effect.interruptible(work), serviceScope);
-        running = { operationId, fiber };
-        return next;
-      }).pipe(Effect.uninterruptible),
-    )
-    .pipe(Effect.mapError(wrapFailure("start", "Could not start the Codex installation.")));
+          const fiber = yield* Effect.forkIn(Effect.interruptible(work), serviceScope);
+          running = { operationId, fiber };
+          return next;
+        }).pipe(Effect.uninterruptible),
+      )
+      .pipe(Effect.mapError(wrapFailure("start", "Could not start the Codex installation.")));
 
   const cancel = Effect.fn("CodexInstallation.cancel")(function* (operationId: string) {
     return yield* gate.withPermit(
@@ -798,6 +959,7 @@ export const makeCodexInstallation = Effect.fn("makeCodexInstallation")(function
 
   return CodexInstallation.of({
     managedDirectory,
+    refresh,
     resolve,
     acquire,
     start,

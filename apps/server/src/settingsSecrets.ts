@@ -2,9 +2,11 @@ import {
   AntigravitySettings,
   ClaudeSettings,
   CodexSettings,
+  type ProviderDriverKind,
   EasDeviceHostConfig,
   type ServerSettings,
   UsageLimitSourceConfig,
+  machineLocalSettingsFields,
   secretSettingsFields,
 } from "@t3tools/contracts";
 import { acpRegistryClient } from "@t3tools/provider-acp-registry/client";
@@ -22,15 +24,33 @@ import {
 
 export const SECRET_REDACTED = "\u2022\u2022\u2022\u2022\u2022\u2022";
 
-const providerSecretFields = new Map([
-  ["codex", secretSettingsFields(CodexSettings)],
-  ["claudeAgent", secretSettingsFields(ClaudeSettings)],
-  ["antigravity", secretSettingsFields(AntigravitySettings)],
+export interface ProviderSettingsFieldPolicy {
+  readonly secret: ReadonlySet<string>;
+  readonly machineLocal: ReadonlySet<string>;
+}
+
+const providerSettingsSchemas = [
+  ["codex", CodexSettings],
+  ["claudeAgent", ClaudeSettings],
+  ["antigravity", AntigravitySettings],
   ...[cursorClient, grokClient, museClient, openCodeClient, piClient, acpRegistryClient].map(
-    (definition) =>
-      [definition.driverKind, secretSettingsFields(definition.settingsSchema)] as const,
+    (definition) => [definition.driverKind, definition.settingsSchema] as const,
   ),
-]);
+] as const;
+
+const providerFieldPolicies = new Map<string, ProviderSettingsFieldPolicy>(
+  providerSettingsSchemas.map(([driver, schema]) => [
+    driver,
+    {
+      secret: new Set(secretSettingsFields(schema)),
+      machineLocal: new Set(machineLocalSettingsFields(schema)),
+    },
+  ]),
+);
+
+export const providerSettingsFieldPolicy = (
+  driver: ProviderDriverKind,
+): ProviderSettingsFieldPolicy | undefined => providerFieldPolicies.get(driver);
 const usageLimitSecretFields = secretSettingsFields(UsageLimitSourceConfig);
 const easDeviceHostSecretFields = secretSettingsFields(EasDeviceHostConfig);
 const encode = (value: string) => Buffer.from(value, "utf8").toString("base64url");
@@ -87,7 +107,7 @@ export function mapSettingsSecrets(
             ? {
                 config: mapFields(
                   config as Record<string, unknown>,
-                  providerSecretFields.get(instance.driver) ?? [],
+                  [...(providerFieldPolicies.get(instance.driver)?.secret ?? [])],
                   (field, serverHost) =>
                     `provider-config-${encode(instanceId)}-${encode(instance.driver)}-${encode(field)}` +
                     (serverHost === null ? "" : `-${encode(serverHost)}`),

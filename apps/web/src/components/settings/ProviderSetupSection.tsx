@@ -4,6 +4,7 @@ import {
   squashAtomCommandFailure,
   type AtomCommandResult,
 } from "@t3tools/client-runtime/state/runtime";
+import { useAtomValue } from "@effect/atom-react";
 import {
   ANTIGRAVITY_AUTH_METHODS,
   type AntigravityAuthMethod,
@@ -119,6 +120,15 @@ function ProviderSetupActions({
   const removeInstall = useAtomCommand(
     serverEnvironment.removeProviderInstallation,
     commandOptions,
+  );
+  const canStartInstall = useAtomValue(
+    serverEnvironment.startProviderInstall.permissionAtom(environmentId),
+  );
+  const canCancelInstall = useAtomValue(
+    serverEnvironment.cancelProviderInstall.permissionAtom(environmentId),
+  );
+  const canRemoveInstall = useAtomValue(
+    serverEnvironment.removeProviderInstallation.permissionAtom(environmentId),
   );
   const [pendingLabel, setPendingLabel] = useState<string | null>(null);
   const pendingRef = useRef(false);
@@ -246,7 +256,7 @@ function ProviderSetupActions({
                   <Button
                     size="sm"
                     variant="outline"
-                    disabled={actionsDisabled}
+                    disabled={actionsDisabled || !canCancelInstall}
                     onClick={() => {
                       const operationId = installation.operationId;
                       if (!operationId) return;
@@ -261,7 +271,9 @@ function ProviderSetupActions({
                   <Button
                     size="sm"
                     variant="outline"
-                    disabled={actionsDisabled || installation === null || authActive}
+                    disabled={
+                      actionsDisabled || !canStartInstall || installation === null || authActive
+                    }
                     onClick={() =>
                       void runCommand(t("Starting installation"), () => startInstall(target))
                     }
@@ -288,7 +300,7 @@ function ProviderSetupActions({
                         variant="ghost"
                         className="col-start-1 row-start-1"
                         aria-label={t("Remove downloaded runtime")}
-                        disabled={actionsDisabled || authActive}
+                        disabled={actionsDisabled || !canRemoveInstall || authActive}
                         onClick={() => void removeRuntime()}
                       />
                     }

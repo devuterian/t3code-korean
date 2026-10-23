@@ -997,7 +997,12 @@ interface StagePackageJson {
   };
 }
 
-export const STAGE_INSTALL_ARGS = ["install", "--prod"] as const;
+export const STAGE_INSTALL_ARGS = [
+  "install",
+  "--prod",
+  "--",
+  "--registry=https://registry.npmjs.org/",
+] as const;
 export const DESKTOP_ELECTRON_LANGUAGES = ["en-US"] as const;
 export const DESKTOP_FILE_EXCLUSIONS = [
   // Cursor finds platform assets by walking up from argv[1]. Keep them outside
@@ -3299,6 +3304,7 @@ export const stageWindowsServerSidecar = Effect.fn("stageWindowsServerSidecar")(
   }
 
   yield* Effect.log("[desktop-artifact] Installing server sidecar runtime externals...");
+  yield* fs.copyFile(path.join(input.repoRoot, ".npmrc"), path.join(serverStageDir, ".npmrc"));
   const installCommand = yield* resolveSpawnCommand("vp", [...STAGE_INSTALL_ARGS]);
   yield* runCommand(
     ChildProcess.make(installCommand.command, installCommand.args, {
@@ -4055,6 +4061,7 @@ const buildDesktopArtifactUnlocked = Effect.fn("buildDesktopArtifactUnlocked")(f
   }
 
   yield* Effect.log("[desktop-artifact] Installing staged production dependencies...");
+  yield* fs.copyFile(path.join(repoRoot, ".npmrc"), path.join(stageAppDir, ".npmrc"));
   const installCommand = yield* resolveSpawnCommand("vp", [...STAGE_INSTALL_ARGS]);
   yield* runCommand(
     ChildProcess.make(installCommand.command, installCommand.args, {

@@ -8,6 +8,7 @@ vi.mock("@anthropic-ai/claude-agent-sdk", { spy: true });
 
 it("drops strict MCP mode, and only that, next to an administrator's managed-mcp.json", () => {
   const options = buildClaudeCapabilitiesProbeQueryOptions({
+    platform: "linux",
     executablePath: "/usr/bin/claude",
     abortController: new AbortController(),
     environment: { HOME: "/home/user" },

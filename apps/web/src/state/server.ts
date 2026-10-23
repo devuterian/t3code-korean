@@ -17,6 +17,7 @@ import {
 } from "@t3tools/client-runtime/connection";
 import { createServerEnvironmentAtoms } from "@t3tools/client-runtime/state/server";
 import { createOutdatedServerUpdateCommand } from "@t3tools/client-runtime/state/outdatedServerUpdate";
+import { createProviderAccountSyncCommand } from "@t3tools/client-runtime/state/provider-account-sync";
 import { createEnvironmentServerConfigsAtom } from "@t3tools/client-runtime/state/shell";
 import { mergeWithDefaultKeybindings } from "@t3tools/shared/keybindings";
 import * as Option from "effect/Option";
@@ -44,6 +45,7 @@ export const environmentUpdateStatesAtom = environmentAtomList(
   serverEnvironment.updateStateAtom,
 );
 export const updateOutdatedServer = createOutdatedServerUpdateCommand(connectionAtomRuntime);
+export const providerAccountSync = createProviderAccountSyncCommand(connectionAtomRuntime);
 export const environmentServerConfigsAtom = createEnvironmentServerConfigsAtom({
   catalogValueAtom: environmentCatalog.catalogValueAtom,
   serverConfigValueAtom: serverEnvironment.configValueAtom,

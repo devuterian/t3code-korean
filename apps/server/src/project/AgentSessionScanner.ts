@@ -1,3 +1,5 @@
+import { resolveClaudeRuntime } from "../provider/Drivers/ClaudeHome.ts";
+import { mergeProviderInstanceEnvironment } from "@t3tools/provider-core/server/instanceEnvironment";
 import * as NodeOS from "node:os";
 
 import {
@@ -639,8 +641,12 @@ export const make = Effect.gen(function* () {
   const serverConfig = yield* ServerConfig.ServerConfig;
   const serverSettings = yield* ServerSettings.ServerSettingsService;
   const projectStore = yield* ProjectStore.ProjectStoreV2;
-  const baseDir = path.resolve(serverConfig.baseDir);
-  const worktreesDir = path.resolve(serverConfig.worktreesDir);
+  const baseDir = yield* fileSystem
+    .realPath(path.resolve(serverConfig.baseDir))
+    .pipe(Effect.orElseSucceed(() => path.resolve(serverConfig.baseDir)));
+  const worktreesDir = yield* fileSystem
+    .realPath(path.resolve(serverConfig.worktreesDir))
+    .pipe(Effect.orElseSucceed(() => path.resolve(serverConfig.worktreesDir)));
   const foldWorktreeCase = (yield* HostProcess.Platform) === "win32";
   const hostEnvironment = yield* HostProcess.Environment;
   const homeDir = yield* HostProcess.HomeDirectory;
@@ -911,18 +917,6 @@ export const make = Effect.gen(function* () {
     );
   });
 
-  const resolveClaudeConfigDir = (homePath: string, environmentHome?: string): string => {
-    const configured = homePath.trim();
-    if (configured.length > 0) {
-      return path.resolve(expandHomePath(configured, homeDir));
-    }
-    const fromEnvironment = environmentHome?.trim() ?? "";
-    if (fromEnvironment.length > 0) {
-      return path.resolve(expandHomePath(fromEnvironment, homeDir));
-    }
-    return path.join(homeDir, ".claude");
-  };
-
   const discoverClaudeTranscripts = Effect.fn("AgentSessionScanner.discoverClaudeTranscripts")(
     function* (homePath: string, providerInstanceId: ProviderInstanceId, operationBudget: number) {
       const projectsDir = path.join(homePath, "projects");
@@ -1120,26 +1114,24 @@ export const make = Effect.gen(function* () {
       const homes: Array<{ homePath: string; providerInstanceId: ProviderInstanceId }> = [];
       const seenHomes = new Set<string>();
       for (const { instanceId, config: instance } of instances) {
-        const homeVariable = source === "claudeAgent" ? "CLAUDE_CONFIG_DIR" : "CODEX_HOME";
-        const environmentHome =
-          instance.environment?.findLast((variable) => variable.name === homeVariable)?.value ??
-          hostEnvironment[homeVariable];
-
+        const environment = yield* mergeProviderInstanceEnvironment(
+          instance.environment,
+          hostEnvironment,
+        );
         let homePath: string;
         if (source === "claudeAgent") {
           const config = decodeClaudeSettings(instance.config ?? {});
           if (Option.isNone(config)) continue;
-          homePath = resolveClaudeConfigDir(config.value.homePath, environmentHome);
+          homePath = (yield* resolveClaudeRuntime({
+            instanceId,
+            config: config.value,
+            environment,
+            stateDir: serverConfig.stateDir,
+          }).pipe(Effect.provideService(Path.Path, path))).configDir;
         } else {
           const config = decodeCodexSettings(instance.config ?? {});
           if (Option.isNone(config)) continue;
-          const codexSettings =
-            config.value.homePath.trim().length === 0 &&
-            config.value.shadowHomePath.trim().length === 0 &&
-            environmentHome?.trim()
-              ? { ...config.value, homePath: environmentHome }
-              : config.value;
-          const layout = yield* resolveCodexHomeLayout(codexSettings).pipe(
+          const layout = yield* resolveCodexHomeLayout(config.value, environment).pipe(
             Effect.provideService(Path.Path, path),
           );
           homePath = layout.sharedHomePath;

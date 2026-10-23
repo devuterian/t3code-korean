@@ -15,11 +15,13 @@ export function ProviderWizardAuthenticationStep({
   environmentLabel,
   instanceId,
   onFinish,
+  autoOpenBrowser = false,
 }: {
   readonly environmentId: EnvironmentId;
   readonly environmentLabel: string;
   readonly instanceId: ProviderInstanceId;
   readonly onFinish: () => void;
+  readonly autoOpenBrowser?: boolean;
 }) {
   const t = useTranslate();
   const providers =
@@ -36,12 +38,13 @@ export function ProviderWizardAuthenticationStep({
     (provider?.auth.status === "unknown" && auth?.phase === "succeeded");
   const isDiscovering = !signedIn && !query.error && auth?.methods === undefined;
   const canAuthenticate = (auth?.methods?.length ?? 0) > 0;
+  const canInstall = provider?.driver === "codex" && provider.setup?.canInstall === true;
 
   return (
     <>
       <WizardPanel className="min-h-72">
         <SettingsGroup variant="plain">
-          {provider && (canAuthenticate || signedIn) ? (
+          {provider && (canAuthenticate || signedIn || canInstall) ? (
             <ProviderAuthenticationSection
               environmentId={environmentId}
               environmentLabel={environmentLabel}
@@ -51,10 +54,11 @@ export function ProviderWizardAuthenticationStep({
                 setup: {
                   ...provider.setup,
                   canInstall: provider.setup?.canInstall ?? false,
-                  canAuthenticate,
+                  canAuthenticate: provider.setup?.canAuthenticate ?? canAuthenticate,
                 },
               }}
               readOnly={false}
+              autoOpenBrowser={autoOpenBrowser}
             />
           ) : (
             <SettingsRow

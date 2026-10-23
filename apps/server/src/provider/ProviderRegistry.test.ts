@@ -281,6 +281,7 @@ function makeMutableServerSettingsService(
           yield* PubSub.publish(changes, next);
           return next;
         }),
+      reviseProviderInstance: () => Effect.die("Unexpected provider revision"),
       withSettingsSnapshot: (use) => Ref.get(settingsRef).pipe(Effect.flatMap(use)),
       get streamChanges() {
         return Stream.fromPubSub(changes);
@@ -869,6 +870,7 @@ it.layer(
                 refresh: Ref.get(nextProvider),
                 streamChanges: Stream.empty,
                 applyUsageLimits: () => Effect.void,
+                markLimited: () => Effect.void,
               },
               orchestrationAdapter: {} as ProviderInstance["orchestrationAdapter"],
               textGeneration: {} as ProviderInstance["textGeneration"],
@@ -999,6 +1001,7 @@ it.layer(
               refresh: Ref.get(nextProvider),
               streamChanges: Stream.empty,
               applyUsageLimits: () => Effect.void,
+              markLimited: () => Effect.void,
             },
             orchestrationAdapter: {} as ProviderInstance["orchestrationAdapter"],
             textGeneration: {} as ProviderInstance["textGeneration"],
@@ -1297,6 +1300,7 @@ it.layer(
             refresh: Effect.succeed(unhealthyProvider),
             streamChanges: Stream.empty,
             applyUsageLimits: () => Effect.void,
+            markLimited: () => Effect.void,
           },
           snapshotForCwd: () => Ref.get(scanResult),
           orchestrationAdapter: {} as ProviderInstance["orchestrationAdapter"],
@@ -1424,6 +1428,7 @@ it.layer(
               }),
               streamChanges: Stream.empty,
               applyUsageLimits: () => Effect.void,
+              markLimited: () => Effect.void,
             },
             orchestrationAdapter: {} as ProviderInstance["orchestrationAdapter"],
             textGeneration: {} as ProviderInstance["textGeneration"],
@@ -1529,6 +1534,7 @@ it.layer(
             refresh: Effect.succeed(refreshedProvider),
             streamChanges: Stream.fromPubSub(changes),
             applyUsageLimits: () => Effect.void,
+            markLimited: () => Effect.void,
           },
           orchestrationAdapter: {} as ProviderInstance["orchestrationAdapter"],
           textGeneration: {} as ProviderInstance["textGeneration"],
@@ -1657,6 +1663,7 @@ it.layer(
               refresh: Effect.succeed(authoritativeProvider),
               streamChanges: Stream.fromPubSub(changes),
               applyUsageLimits: () => Effect.void,
+              markLimited: () => Effect.void,
             },
             orchestrationAdapter: {} as ProviderInstance["orchestrationAdapter"],
             textGeneration: {} as ProviderInstance["textGeneration"],
@@ -1760,6 +1767,7 @@ it.layer(
             refresh: Effect.die(new Error("simulated refresh failure")),
             streamChanges: Stream.empty,
             applyUsageLimits: () => Effect.void,
+            markLimited: () => Effect.void,
           },
           orchestrationAdapter: {} as ProviderInstance["orchestrationAdapter"],
           textGeneration: {} as ProviderInstance["textGeneration"],
