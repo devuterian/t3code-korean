@@ -52,7 +52,7 @@ export function evaluatePullRequestWatch(
   const changes: Array<PullRequestWatchChange> = [];
   const headSha = detail.headSha ?? null;
   const headMoved = headSha !== watch.headSha;
-  const completed =
+  let completed =
     watch.mode === "checks" &&
     detail.checks.length > 0 &&
     detail.checks.every((check) => check.status !== "pending");
@@ -123,6 +123,8 @@ export function evaluatePullRequestWatch(
     if (awaitedMs >= PULL_REQUEST_WATCH_NO_CHECKS_MS) {
       changes.push({ kind: "no-checks", minutes: Math.round(awaitedMs / 60_000) });
       checksAwaitedSince = null;
+      // A checks-only watch has nothing left to wait for once no CI ever reported.
+      if (watch.mode === "checks") completed = true;
     }
   }
 
@@ -261,11 +263,13 @@ export function pullRequestWatchMessage(input: {
     `Update on pull request #${input.number} (${input.url}), which T3 Code is watching for you:`,
     ...changes.flatMap((change) => changeLines(change, context)),
     "",
-    completed
-      ? 'T3 Code stopped watching because all reported checks finished. Review the results and report back; a finished check is not necessarily successful or approval to merge. Do not restart this watch for an accepted failure. If you push a fix or need another CI run, call watch_pull_request with mode "checks" again. Use mode "review" only when the user wants ongoing checks and review monitoring.'
-      : exhausted
-        ? `T3 Code stopped watching after ${PULL_REQUEST_WATCH_WAKE_LIMIT} comment-only updates in a row. Call watch_pull_request to watch it again.`
-        : "Look into each item and act on it as your task requires. T3 Code keeps watching and wakes you on the next change, so end your turn when you are done. When you hand the work back to the user, call unwatch_pull_request first so the thread returns to their inbox.",
+    completed && changes.some((change) => change.kind === "no-checks")
+      ? 'T3 Code stopped watching because no checks reported on this head. Report back to the user. If you push a change that should run CI, call watch_pull_request with mode "checks" again.'
+      : completed
+        ? 'T3 Code stopped watching because all reported checks finished. Review the results and report back; a finished check is not necessarily successful or approval to merge. Do not restart this watch for an accepted failure. If you push a fix or need another CI run, call watch_pull_request with mode "checks" again. Use mode "review" only when the user wants ongoing checks and review monitoring.'
+        : exhausted
+          ? `T3 Code stopped watching after ${PULL_REQUEST_WATCH_WAKE_LIMIT} comment-only updates in a row. Call watch_pull_request to watch it again.`
+          : "Look into each item and act on it as your task requires. T3 Code keeps watching and wakes you on the next change, so end your turn when you are done. When you hand the work back to the user, call unwatch_pull_request first so the thread returns to their inbox.",
   ].join("\n");
   const failed = changes.some(
     (change) =>

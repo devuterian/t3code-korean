@@ -439,6 +439,23 @@ describe("evaluatePullRequestWatch", () => {
     assert.deepEqual(pushed.flat(), ["no-checks"]);
   });
 
+  it("ends a checks-only watch once no checks reported on its head", () => {
+    const checksOnly = watch({ mode: "checks", headSha: "aaaaaaaaaa", checksAwaitedSince: null });
+    const first = evaluate(checksOnly, detail({ headSha: "bbbbbbbbbb", checks: [] }), noRemarks, 0);
+    assert.isFalse(first.completed);
+    const later = evaluate(
+      first.next,
+      detail({ headSha: "bbbbbbbbbb", checks: [] }),
+      noRemarks,
+      15 * 60_000,
+    );
+    assert.deepEqual(
+      later.changes.map((change) => change.kind),
+      ["no-checks"],
+    );
+    assert.isTrue(later.completed);
+  });
+
   it("never reports missing checks on a host whose checks it cannot read", () => {
     const azure = detail({
       provider: SourceControlProviderKind.make("azure-devops"),

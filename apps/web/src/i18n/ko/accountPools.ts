@@ -131,6 +131,8 @@ export const KO_ACCOUNT_POOLS: Readonly<Record<string, string>> = {
   "Updates {account}": "{account} 업데이트",
   "Updates {account} (signed in as {email})": "{account} 업데이트 (로그인 계정: {email})",
   "Connect {provider}": "{provider} 연결",
+  "Sign in on {environment}.": "{environment}에서 로그인합니다.",
+  "Sign out of {provider} on {environment}?": "{environment}에서 {provider} 로그아웃하시겠습니까?",
 };
 
 /** Strings built by `ProviderPoolsSettings.logic.ts`, whose tests assert the English output. */

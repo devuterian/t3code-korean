@@ -129,7 +129,7 @@ export function ProviderAuthenticationSection({
           ? t("Discovering sign-in methods…")
           : needsExternalSetup
             ? t("No in-app sign-in advertised. Follow the provider's docs to finish setup.")
-            : `${t("Sign in on")} ${environmentLabel}.`;
+            : t("Sign in on {environment}.").replace("{environment}", () => environmentLabel);
   const statusMessage = auth?.phase === "failed" ? auth.message : null;
   const disabled = readOnly || pending || query.error !== null || isDiscovering;
   const installDisabled =
@@ -520,7 +520,12 @@ export function ProviderAuthenticationSection({
                 onClick={() => {
                   void ensureLocalApi()
                     .dialogs.confirm(
-                      `${t("Sign out of")} ${provider.displayName ?? provider.driver} ${t("on")} ${environmentLabel}? ${t("This stops running threads that share this sign-in. Thread history is kept.")}`,
+                      `${t("Sign out of {provider} on {environment}?")
+                        .replace("{provider}", () => provider.displayName ?? provider.driver)
+                        .replace(
+                          "{environment}",
+                          () => environmentLabel,
+                        )} ${t("This stops running threads that share this sign-in. Thread history is kept.")}`,
                     )
                     .then((confirmed) => {
                       if (confirmed) void run(() => logout(target));
