@@ -1,4 +1,8 @@
-import { ComposerSelectControl } from "./chat/ComposerControl";
+import {
+  ComposerControl,
+  ComposerControlChevron,
+  ComposerSelectControl,
+} from "./chat/ComposerControl";
 import { ComposerContextLabel } from "./ComposerContextLabel";
 import { FolderGit2Icon, FolderGitIcon, FolderIcon } from "lucide-react";
 import { memo, type MouseEvent as ReactMouseEvent } from "react";
@@ -11,6 +15,7 @@ import {
   type EnvMode,
 } from "./BranchToolbar.logic";
 import { useComposerMenuProps } from "./chat/composerEventScope";
+import { MoveToLocalCheckoutMenu, type MoveToLocalCheckoutTarget } from "./MoveToLocalCheckoutMenu";
 import { PreviousWorktreeItemContent } from "./PreviousWorktreeItemContent";
 import {
   Select,
@@ -36,6 +41,8 @@ interface BranchToolbarEnvModeSelectorProps {
   previousWorktreeLabel?: string | null;
   previousWorktreeBranch?: string | null;
   onUsePreviousWorktree?: () => void;
+  /** Set for a started thread in a worktree; the locked label then offers to move it out. */
+  moveToLocalTarget?: MoveToLocalCheckoutTarget | null;
 }
 
 export const BranchToolbarEnvModeSelector = memo(function BranchToolbarEnvModeSelector({
@@ -47,6 +54,7 @@ export const BranchToolbarEnvModeSelector = memo(function BranchToolbarEnvModeSe
   previousWorktreeLabel,
   previousWorktreeBranch = null,
   onUsePreviousWorktree,
+  moveToLocalTarget = null,
 }: BranchToolbarEnvModeSelectorProps) {
   const t = useTranslate();
   const composerFloatingLayerProps = useComposerMenuProps();
@@ -71,6 +79,28 @@ export const BranchToolbarEnvModeSelector = memo(function BranchToolbarEnvModeSe
       event.stopPropagation();
     }
   };
+
+  if (envLocked && !forceNewWorktree && moveToLocalTarget !== null) {
+    return (
+      <MoveToLocalCheckoutMenu
+        target={moveToLocalTarget}
+        trigger={
+          <ComposerControl
+            size="xs"
+            className="min-w-0 shrink"
+            data-composer-shortcut="composer.workspace"
+            data-composer-context-control
+          />
+        }
+      >
+        <FolderGitIcon className="size-3" />
+        <ComposerContextLabel>
+          {resolveLockedWorkspaceLabel(activeWorktreePath, effectiveEnvMode)}
+        </ComposerContextLabel>
+        <ComposerControlChevron size="xs" />
+      </MoveToLocalCheckoutMenu>
+    );
+  }
 
   if (envLocked || forceNewWorktree) {
     const lockedRow = (

@@ -45,6 +45,7 @@ import {
 import { BranchToolbarEnvironmentSelector } from "./BranchToolbarEnvironmentSelector";
 import { openAddProjectToMachine } from "./AddProjectToMachineDialog";
 import { type AddProjectTarget, useAddProjectTargets } from "../hooks/useAddProjectTargets";
+import { MoveToLocalCheckoutMenu, type MoveToLocalCheckoutTarget } from "./MoveToLocalCheckoutMenu";
 import { BranchToolbarEnvModeSelector } from "./BranchToolbarEnvModeSelector";
 import { PreviousWorktreeItemContent } from "./PreviousWorktreeItemContent";
 import { ThreadDetailsControl } from "./chat/ThreadDetailsControl";
@@ -169,6 +170,7 @@ interface RunContextSelectorProps {
   onUsePreviousWorktree: () => void;
   addTargets: readonly AddProjectTarget[];
   onAddToMachine: (environmentId: EnvironmentId) => void;
+  moveToLocalTarget?: MoveToLocalCheckoutTarget | null;
 }
 
 const RunContextSelector = memo(function RunContextSelector({
@@ -192,6 +194,7 @@ const RunContextSelector = memo(function RunContextSelector({
   onUsePreviousWorktree,
   addTargets,
   onAddToMachine,
+  moveToLocalTarget = null,
 }: RunContextSelectorProps) {
   const t = useTranslate();
   const composerFloatingLayerProps = useComposerMenuProps();
@@ -284,13 +287,35 @@ const RunContextSelector = memo(function RunContextSelector({
   );
 
   if (isLocked) {
+    const lockedRowClassName = cn(
+      "inline-flex h-7 min-w-0 max-w-[48%] flex-initial items-center justify-start gap-1 rounded-md border border-transparent px-1.75 font-normal text-foreground/70 text-xs sm:h-6 dark:text-muted-foreground",
+      isPanel && "max-w-full",
+      isPanel && THREAD_DETAILS_PANEL_LOCKED_ROW_CLASS,
+    );
+    if (moveToLocalTarget !== null && !forceNewWorktree) {
+      return (
+        <MoveToLocalCheckoutMenu
+          target={moveToLocalTarget}
+          trigger={
+            <button
+              type="button"
+              className={cn(
+                lockedRowClassName,
+                "cursor-pointer hover:bg-accent hover:text-foreground",
+              )}
+              onContextMenu={handleContextMenu}
+              data-composer-shortcut="composer.workspace"
+              data-composer-context-control
+            />
+          }
+        >
+          {triggerContent}
+        </MoveToLocalCheckoutMenu>
+      );
+    }
     return (
       <span
-        className={cn(
-          "inline-flex h-7 min-w-0 max-w-[48%] flex-initial items-center justify-start gap-1 rounded-md border border-transparent px-1.75 font-normal text-foreground/70 text-xs sm:h-6 dark:text-muted-foreground",
-          isPanel && "max-w-full",
-          isPanel && THREAD_DETAILS_PANEL_LOCKED_ROW_CLASS,
-        )}
+        className={lockedRowClassName}
         onContextMenu={handleContextMenu}
         aria-label={isPanel ? t("Run context") : undefined}
         data-composer-context-control
@@ -656,6 +681,10 @@ export const BranchToolbar = memo(function BranchToolbar({
   const activeWorktreePath = forceNewWorktree ? null : worktreePath;
   const effectiveEnvMode = forceNewWorktree ? "worktree" : envMode;
   const envModeLocked = envLocked || (isServerThread && activeWorktreePath !== null);
+  const moveToLocalTarget: MoveToLocalCheckoutTarget | null =
+    isServerThread && activeWorktreePath !== null && !forceNewWorktree
+      ? { environmentId, threadId, projectId, worktreePath: activeWorktreePath }
+      : null;
 
   const canUsePreviousWorktree = !isServerThread && !envModeLocked && !forceNewWorktree;
   const projectRefsForWorktreeLookup = canUsePreviousWorktree ? [activeProjectRef] : [];
@@ -741,6 +770,7 @@ export const BranchToolbar = memo(function BranchToolbar({
             onUsePreviousWorktree={onUsePreviousWorktree}
             addTargets={addTargets}
             onAddToMachine={onAddToMachine}
+            moveToLocalTarget={moveToLocalTarget}
           />
         ) : null}
         {panelSection !== "workspace" ? (
@@ -795,6 +825,7 @@ export const BranchToolbar = memo(function BranchToolbar({
             onUsePreviousWorktree={onUsePreviousWorktree}
             addTargets={addTargets}
             onAddToMachine={onAddToMachine}
+            moveToLocalTarget={moveToLocalTarget}
           />
         </div>
       ) : null}
@@ -836,6 +867,7 @@ export const BranchToolbar = memo(function BranchToolbar({
               previousWorktreeLabel={previousWorktreeLabel}
               previousWorktreeBranch={previousWorktreeSeed?.branch ?? null}
               onUsePreviousWorktree={onUsePreviousWorktree}
+              moveToLocalTarget={moveToLocalTarget}
             />
           ) : null}
         </div>
