@@ -12,7 +12,7 @@ import { AsyncResult } from "effect/reactivity";
 import { View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { DEFAULT_SERVER_SETTINGS } from "@t3tools/contracts";
+import { DEFAULT_SERVER_SETTINGS, PROVIDER_SESSION_IDLE_TIMEOUT_PRESETS } from "@t3tools/contracts";
 import { supportsSharedSettingsSync } from "@t3tools/client-runtime/state/shared-settings";
 import { AppText as Text } from "../../components/ui/AppText";
 import { mobilePreferencesAtom, updateMobilePreferencesAtom } from "../../state/preferences";
@@ -84,6 +84,7 @@ export function AutoSettleSettingsRows(props: {
     patch: Partial<AutoSettleSettings> & {
       autoResumeLimitedThreads?: boolean;
       snoozeLimitedThreads?: boolean;
+      providerSessionIdleTimeoutMinutes?: number | null;
     },
   ) => props.write(patch);
 
@@ -127,6 +128,32 @@ export function AutoSettleSettingsRows(props: {
             disabled={disabled}
             onValueChange={(value) => writeToAll({ snoozeLimitedThreads: value })}
           />
+        </SettingsSection>
+      ) : null}
+      {!projectSelected &&
+      displayTargets.every(
+        (target) =>
+          target.environment.serverConfig.environment.capabilities.providerSessionIdleTimeout ===
+          true,
+      ) ? (
+        <SettingsSection title={t("Release idle agents")}>
+          <Text className="px-4 text-sm text-foreground-muted">
+            {t(
+              "Free memory while idle. Conversations resume when you send a message. Active turns and background work delay release.",
+            )}
+          </Text>
+          {PROVIDER_SESSION_IDLE_TIMEOUT_PRESETS.map((option, index) => (
+            <SettingsChoiceRow
+              key={option.value ?? "never"}
+              label={t(option.label)}
+              separated={index > 0}
+              disabled={disabled}
+              selected={displayTargets.every(
+                (target) => target.settings.providerSessionIdleTimeoutMinutes === option.value,
+              )}
+              onPress={() => writeToAll({ providerSessionIdleTimeoutMinutes: option.value })}
+            />
+          ))}
         </SettingsSection>
       ) : null}
       <SettingsSection title={t("Auto-settle")}>
