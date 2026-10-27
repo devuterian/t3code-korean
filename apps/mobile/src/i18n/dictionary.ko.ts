@@ -29,6 +29,7 @@ import { KO_MERGE_1020_G } from "./ko/merge1020G";
 import { KO_ANDROID_KOREAN } from "./ko/androidKorean";
 import { KO_ACCOUNT_POOLS } from "./ko/accountPools";
 import { KO_MERGE_1027_C } from "./ko/merge1027c";
+import { KO_MERGE_1027_D } from "./ko/merge1027d";
 
 export const KO_DICTIONARY: Readonly<Record<string, string>> = {
   ...KO_COMMON,
@@ -48,6 +49,7 @@ export const KO_DICTIONARY: Readonly<Record<string, string>> = {
   ...KO_MERGE_1027_A,
   ...KO_MERGE_1027_B,
   ...KO_MERGE_1027_C,
+  ...KO_MERGE_1027_D,
   ...KO_COMPOSER_USAGE,
   ...KO_MERGE_V010_A,
   ...KO_MERGE_V010_B,

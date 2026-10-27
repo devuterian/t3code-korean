@@ -1,5 +1,6 @@
 import { useRef } from "react";
 
+import { useTranslate } from "../../i18n/translate";
 import { Switch } from "../ui/switch";
 import { Textarea } from "../ui/textarea";
 import { SettingsRow, SettingResetButton } from "./settingsLayout";
@@ -12,6 +13,7 @@ import {
 } from "./useScopedSettings";
 
 export function NextPromptSuggestionSettings() {
+  const t = useTranslate();
   const settings = useScopedSettings();
   const { targets } = useSettingsScope();
   const scopeKey = targets.map((target) => `${target.environmentId}:${target.projectId}`).join(",");
@@ -35,7 +37,7 @@ export function NextPromptSuggestionSettings() {
             onCheckedChange={(checked) =>
               updateSettings({ nextPromptSuggestionsEnabled: Boolean(checked) })
             }
-            aria-label="Next prompt suggestions"
+            aria-label={t("Next prompt suggestions")}
           />
         }
       />
@@ -57,7 +59,7 @@ export function NextPromptSuggestionSettings() {
           <div className="mt-3 max-w-2xl pb-3.5">
             <Textarea
               key={`${scopeKey}:${mixedInstructions}:${settings.nextPromptInstructions}`}
-              aria-label="Next prompt instructions"
+              aria-label={t("Next prompt instructions")}
               onChange={() => {
                 edited.current = true;
               }}
@@ -65,8 +67,8 @@ export function NextPromptSuggestionSettings() {
               defaultValue={mixedInstructions ? "" : settings.nextPromptInstructions}
               placeholder={
                 mixedInstructions
-                  ? "Mixed. Enter instructions to apply to all selected targets."
-                  : "Write suggestions as short commands. Prefer asking for tests before merging."
+                  ? t("Mixed. Enter instructions to apply to all selected targets.")
+                  : t("Write suggestions as short commands. Prefer asking for tests before merging.")
               }
               onBlur={(event) => {
                 const value = event.target.value.trim();

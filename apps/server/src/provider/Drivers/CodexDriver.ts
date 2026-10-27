@@ -405,6 +405,8 @@ export const CodexDriver: ProviderDriver<
             protect("generateThreadTitle", nativeGeneration.generateThreadTitle(input)),
           generateReviewGuide: (input) =>
             protect("generateReviewGuide", nativeGeneration.generateReviewGuide(input)),
+          generateNextPrompt: (input) =>
+            protect("generateNextPrompt", nativeGeneration.generateNextPrompt(input)),
         }
       : nativeGeneration;
     const snapshotForCwd = (cwd: string) =>

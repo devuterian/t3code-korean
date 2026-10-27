@@ -1874,10 +1874,21 @@ export function ThreadsSettingsPanel() {
                 if (preset) updateSettings({ providerSessionIdleTimeoutMinutes: preset.value });
               }}
             >
-              <SelectTrigger size="sm" className="w-full sm:w-56" aria-label="Release idle agents">
+              <SelectTrigger
+                size="sm"
+                className="w-full sm:w-56"
+                aria-label={t("Release idle agents")}
+              >
                 <SelectValue>
                   {(value: string | null) =>
-                    value === null ? "Mixed" : value === "never" ? "Never" : `${value} minutes`
+                    value === null
+                      ? t("Mixed")
+                      : t(
+                          PROVIDER_SESSION_IDLE_TIMEOUT_PRESETS.find(
+                            (option) =>
+                              (option.value === null ? "never" : String(option.value)) === value,
+                          )?.label ?? `${value} minutes`,
+                        )
                   }
                 </SelectValue>
               </SelectTrigger>
@@ -1888,7 +1899,7 @@ export function ThreadsSettingsPanel() {
                     key={option.value ?? "never"}
                     value={option.value === null ? "never" : String(option.value)}
                   >
-                    {option.label}
+                    {t(option.label)}
                   </SelectItem>
                 ))}
               </SelectPopup>

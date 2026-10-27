@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
+import { useTranslate } from "../i18n/translate";
 import { useEnvironmentQuery } from "../state/query";
 import { useAtomCommand } from "../state/use-atom-command";
 import { vcsEnvironment } from "../state/vcs";
@@ -53,9 +54,10 @@ type PreviewState =
   | { readonly status: "failed"; readonly message: string };
 
 function Section(props: { readonly label: string; readonly children: React.ReactNode }) {
+  const t = useTranslate();
   return (
     <div className="grid gap-1.5">
-      <div className="font-medium text-muted-foreground text-xs">{props.label}</div>
+      <div className="font-medium text-muted-foreground text-xs">{t(props.label)}</div>
       {props.children}
     </div>
   );
@@ -66,10 +68,11 @@ function PathRow(props: {
   readonly label: string;
   readonly path: string;
 }) {
+  const t = useTranslate();
   return (
     <div className="flex min-w-0 items-center gap-2 text-sm">
       <span className="shrink-0 text-muted-foreground [&_svg]:size-4">{props.icon}</span>
-      <span className="shrink-0 text-muted-foreground">{props.label}</span>
+      <span className="shrink-0 text-muted-foreground">{t(props.label)}</span>
       <code className="min-w-0 flex-1 text-xs">
         <MiddleTruncate value={props.path} />
       </code>
@@ -78,6 +81,7 @@ function PathRow(props: {
 }
 
 function PreviewBody(props: { readonly preview: ThreadMoveToLocalCheckoutPreview }) {
+  const t = useTranslate();
   const { preview } = props;
   const changes = describeChanges(preview.changes);
   const distance = describeBranchDistance(preview);
@@ -96,8 +100,8 @@ function PreviewBody(props: { readonly preview: ThreadMoveToLocalCheckoutPreview
         <Section label="Branch">
           <div className="flex min-w-0 flex-wrap items-center gap-1.5 text-sm">
             <GitBranchIcon className="size-4 text-muted-foreground" aria-hidden="true" />
-            <code className="text-xs">{preview.currentLocalBranch ?? "detached HEAD"}</code>
-            <ArrowRightIcon className="size-3.5 text-muted-foreground" aria-label="becomes" />
+            <code className="text-xs">{preview.currentLocalBranch ?? t("detached HEAD")}</code>
+            <ArrowRightIcon className="size-3.5 text-muted-foreground" aria-label={t("becomes")} />
             <code className="font-medium text-xs">{preview.branch}</code>
             {distance !== null ? (
               <span className="text-muted-foreground text-xs">· {distance}</span>
@@ -107,7 +111,7 @@ function PreviewBody(props: { readonly preview: ThreadMoveToLocalCheckoutPreview
       ) : null}
       <Section label="Comes along">
         {changes === null ? (
-          <p className="text-sm">No uncommitted changes. Only the branch switches.</p>
+          <p className="text-sm">{t("No uncommitted changes. Only the branch switches.")}</p>
         ) : (
           <Collapsible>
             <CollapsibleTrigger className="group flex items-center gap-1 text-sm">
@@ -125,7 +129,7 @@ function PreviewBody(props: { readonly preview: ThreadMoveToLocalCheckoutPreview
                       size="sm"
                       variant={file.change === "untracked" ? "success" : "secondary"}
                     >
-                      {FILE_CHANGE_LABEL[file.change]}
+                      {t(FILE_CHANGE_LABEL[file.change])}
                     </Badge>
                     <code className="min-w-0 flex-1">
                       <MiddleTruncate value={file.path} />
@@ -133,7 +137,9 @@ function PreviewBody(props: { readonly preview: ThreadMoveToLocalCheckoutPreview
                   </li>
                 ))}
                 {more > 0 ? (
-                  <li className="text-muted-foreground text-xs">and {more} more</li>
+                  <li className="text-muted-foreground text-xs">
+                    {t("and {more} more").replace("{more}", String(more))}
+                  </li>
                 ) : null}
               </ul>
             </CollapsiblePanel>
@@ -143,8 +149,10 @@ function PreviewBody(props: { readonly preview: ThreadMoveToLocalCheckoutPreview
       <Section label="Stays behind">
         <p className="text-muted-foreground text-sm">
           {preview.worktreeOnDisk
-            ? "The worktree folder keeps its own copy of these changes, on a detached HEAD. Ignored files there, like node_modules or .env, don't come along. Delete the folder once you no longer need it."
-            : "The worktree folder is already gone, so only the branch moves."}
+            ? t(
+                "The worktree folder keeps its own copy of these changes, on a detached HEAD. Ignored files there, like node_modules or .env, don't come along. Delete the folder once you no longer need it.",
+              )
+            : t("The worktree folder is already gone, so only the branch moves.")}
         </p>
       </Section>
     </div>
@@ -152,8 +160,9 @@ function PreviewBody(props: { readonly preview: ThreadMoveToLocalCheckoutPreview
 }
 
 function LoadingBody() {
+  const t = useTranslate();
   return (
-    <div className="grid gap-3 px-6" aria-busy="true" aria-label="Checking what would move">
+    <div className="grid gap-3 px-6" aria-busy="true" aria-label={t("Checking what would move")}>
       <Skeleton className="h-16" shape="card" />
       <Skeleton className="h-4 w-2/3" />
       <Skeleton className="h-4 w-1/2" />
@@ -171,6 +180,7 @@ export function MoveToLocalCheckoutDialog(props: {
   readonly onMoved: (result: ThreadMoveToLocalCheckoutResult) => void;
   readonly onFailed: (message: string) => void;
 }) {
+  const t = useTranslate();
   const { environmentId, threadId, open } = props;
   const moveThread = useAtomCommand(vcsEnvironment.moveThreadToLocalCheckout, {
     reportFailure: false,
@@ -217,22 +227,22 @@ export function MoveToLocalCheckoutDialog(props: {
     <AlertDialog open={open} onOpenChange={(next) => !pending && props.onOpenChange(next)}>
       <AlertDialogPopup className="sm:max-w-lg">
         <AlertDialogHeader>
-          <AlertDialogTitle>Move to the local checkout</AlertDialogTitle>
+          <AlertDialogTitle>{t("Move to the local checkout")}</AlertDialogTitle>
           <AlertDialogDescription>
-            The thread continues in the project folder from its next message.
+            {t("The thread continues in the project folder from its next message.")}
           </AlertDialogDescription>
         </AlertDialogHeader>
         {blocker !== null || state.status === "failed" ? (
           <div className="px-6">
             <Alert variant="error">
               <TriangleAlertIcon />
-              <AlertTitle>Can't move yet</AlertTitle>
+              <AlertTitle>{t("Can't move yet")}</AlertTitle>
               <AlertDescription>
                 {blocker?.message ?? (state.status === "failed" ? state.message : null)}
               </AlertDescription>
               <AlertAction>
                 <Button size="xs" variant="outline" onClick={() => query.refresh()}>
-                  Check again
+                  {t("Check again")}
                 </Button>
               </AlertAction>
             </Alert>
@@ -242,9 +252,9 @@ export function MoveToLocalCheckoutDialog(props: {
           <div className="px-6">
             <Alert variant="warning">
               <TriangleAlertIcon />
-              <AlertTitle>An earlier move didn't finish</AlertTitle>
+              <AlertTitle>{t("An earlier move didn't finish")}</AlertTitle>
               <AlertDescription>
-                Moving now first undoes what it left behind, then moves the thread.
+                {t("Moving now first undoes what it left behind, then moves the thread.")}
               </AlertDescription>
             </Alert>
           </div>
@@ -256,10 +266,10 @@ export function MoveToLocalCheckoutDialog(props: {
         ) : null}
         <AlertDialogFooter>
           <AlertDialogClose render={<Button variant="outline" size="sm" disabled={pending} />}>
-            Cancel
+            {t("Cancel")}
           </AlertDialogClose>
           <Button size="sm" disabled={!canMove} onClick={() => void confirm()}>
-            {pending ? "Moving…" : "Move"}
+            {pending ? t("Moving…") : t("Move")}
           </Button>
         </AlertDialogFooter>
       </AlertDialogPopup>

@@ -384,6 +384,8 @@ export const ClaudeDriver: ProviderDriver<
             protect("generateThreadTitle", nativeGeneration.generateThreadTitle(input)),
           generateReviewGuide: (input) =>
             protect("generateReviewGuide", nativeGeneration.generateReviewGuide(input)),
+          generateNextPrompt: (input) =>
+            protect("generateNextPrompt", nativeGeneration.generateNextPrompt(input)),
         }
       : nativeGeneration;
 

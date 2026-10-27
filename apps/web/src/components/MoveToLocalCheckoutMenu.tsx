@@ -10,6 +10,7 @@ import {
 import { FolderInputIcon } from "lucide-react";
 import { cloneElement, useState, type ReactElement, type ReactNode } from "react";
 
+import { useTranslate } from "../i18n/translate";
 import { useQuietThreadShell } from "../state/entities";
 import { useEnvironmentScope } from "../state/session";
 import { useAtomCommand } from "../state/use-atom-command";
@@ -34,6 +35,7 @@ export function MoveToLocalCheckoutMenu(props: {
   readonly trigger: ReactElement;
   readonly children: ReactNode;
 }) {
+  const t = useTranslate();
   const { environmentId, threadId } = props.target;
   const composerMenuProps = useComposerMenuProps();
   const thread = useQuietThreadShell(scopeThreadRef(environmentId, threadId));
@@ -60,7 +62,7 @@ export function MoveToLocalCheckoutMenu(props: {
     toastManager.add(
       stackedThreadToast({
         type: "success",
-        title: "Moved to the local checkout",
+        title: t("Moved to the local checkout"),
         description: describeMoveResult(result),
       }),
     );
@@ -69,15 +71,15 @@ export function MoveToLocalCheckoutMenu(props: {
   return (
     <>
       <Menu modal={false}>
-        <MenuTrigger render={props.trigger} aria-label="Workspace actions">
+        <MenuTrigger render={props.trigger} aria-label={t("Workspace actions")}>
           {props.children}
         </MenuTrigger>
         <MenuPopup align="start" {...composerMenuProps}>
           <MenuItem disabled={running} onClick={() => setConfirming(true)}>
             <FolderInputIcon />
             {running
-              ? "Move to local checkout (wait for the turn to end)"
-              : "Move to local checkout…"}
+              ? t("Move to local checkout (wait for the turn to end)")
+              : t("Move to local checkout…")}
           </MenuItem>
         </MenuPopup>
       </Menu>
@@ -91,7 +93,7 @@ export function MoveToLocalCheckoutMenu(props: {
           toastManager.add(
             stackedThreadToast({
               type: "error",
-              title: "Couldn't move to the local checkout",
+              title: t("Couldn't move to the local checkout"),
               description: message,
             }),
           )
