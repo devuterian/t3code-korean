@@ -957,6 +957,12 @@ export const ThreadComposer = function ThreadComposer(props: ThreadComposerProps
                   compactEditor.isExpanded ? { flex: 1, justifyContent: "flex-end" } : undefined
                 }
               >
+                <ComposerUsageLimitsText
+                  providers={props.serverConfig?.providers ?? EMPTY_PROVIDERS}
+                  instanceId={currentModelSelection.instanceId}
+                  mode={usageLimitsDisplay}
+                  onPress={toggleUsageLimits}
+                />
                 {modelControl}
                 <ComposerDictationStartAction
                   size={hasSidebarTabBar ? "large" : "regular"}
@@ -1182,14 +1188,6 @@ export const ThreadComposer = function ThreadComposer(props: ThreadComposerProps
                   </View>
                 )}
                 <View className="shrink-0 flex-row items-center">
-                  {isVoiceInputPresented ? null : (
-                    <ComposerUsageLimitsText
-                      providers={props.serverConfig?.providers ?? EMPTY_PROVIDERS}
-                      instanceId={currentModelSelection.instanceId}
-                      mode={usageLimitsDisplay}
-                      onPress={toggleUsageLimits}
-                    />
-                  )}
                   <ComposerDictationPrimaryAction
                     size={hasSidebarTabBar ? "large" : "regular"}
                     state={voiceInput.state}
