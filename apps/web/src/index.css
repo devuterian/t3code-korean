@@ -2173,6 +2173,10 @@ code {
   color: var(--contrast-foreground);
 }
 
+.chat-markdown strong {
+  font-weight: 700;
+}
+
 .chat-markdown pre {
   max-width: 100%;
   overflow-x: auto;
