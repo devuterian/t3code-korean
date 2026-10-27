@@ -3,8 +3,11 @@ import { Button } from "../../components/ui/Button";
 import * as Dialog from "../../components/ui/Dialog";
 import type { ComposerTextPaste } from "../../native/T3ComposerEditor.types";
 import { useAdaptiveWorkspaceLayout } from "../layout/AdaptiveWorkspaceLayout";
-import { useAppearancePreferences } from "../settings/appearance/AppearancePreferencesProvider";
 import { composerModelSelectionFor } from "@t3tools/client-runtime/provider-pools";
+import {
+  useAppearancePreferences,
+  useAndroidFloatingTabs,
+} from "../settings/appearance/AppearancePreferencesProvider";
 import type { EnvironmentThreadShell } from "@t3tools/client-runtime/state/shell";
 import { settlePromise, squashAtomCommandFailure } from "@t3tools/client-runtime/state/runtime";
 import { AsyncResult } from "effect/reactivity";
@@ -590,8 +593,9 @@ export const ThreadComposer = function ThreadComposer(props: ThreadComposerProps
   );
   const isVoiceInputPresented = voicePresentation.statusLabel !== null;
   const isExpanded = isFocused || settingsSheetPresentation.keepsComposerExpanded;
-  const { setComposerEditing } = useAdaptiveWorkspaceLayout();
   const hasSidebarTabBar = useSidebarWorkspaceTabs() === "picker";
+  const { layout, setComposerEditing } = useAdaptiveWorkspaceLayout();
+  const floatingSidebarComposer = useAndroidFloatingTabs() && layout.usesSplitView;
   const [compactRowWidth, setCompactRowWidth] = useState(0);
   const compactAttachmentLimit = compactRowWidth >= 500 ? 3 : 1;
   const compactEditor = useCompactComposerEditor(bodyText, draftMessage);
@@ -885,7 +889,7 @@ export const ThreadComposer = function ThreadComposer(props: ThreadComposerProps
             borderRadius: hasSidebarTabBar ? 31 : 27,
             borderCurve: "circular",
             overflow: "hidden",
-            paddingVertical: hasSidebarTabBar ? 9 : 2,
+            paddingVertical: hasSidebarTabBar ? 9 : floatingSidebarComposer ? 6 : 2,
           }}
         >
           {isExpanded ? editingAttachments : null}
