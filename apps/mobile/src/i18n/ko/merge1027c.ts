@@ -1,0 +1,190 @@
+/** Korean strings for text added or left untranslated by the 2026-10-27 upstream merge sweep (mobile). */
+export const KO_MERGE_1027_C: Readonly<Record<string, string>> = {
+  "Reconnect to save changes.": "저장하려면 다시 연결해야 합니다.",
+  "This device isn't allowed to change source control on this environment.":
+    "이 기기는 이 환경의 소스 제어를 변경할 수 없습니다.",
+  "You can't edit this comment.": "이 코멘트는 편집할 수 없습니다.",
+  "You can't edit this pull request.": "이 풀 리퀘스트는 편집할 수 없습니다.",
+  "You can't edit this merge request.": "이 머지 리퀘스트는 편집할 수 없습니다.",
+  "You can't edit this change request.": "이 변경 요청은 편집할 수 없습니다.",
+  "The provider refused the change.": "프로바이더가 변경을 거부했습니다.",
+  "Edit comment": "코멘트 편집",
+  "Pull request title": "풀 리퀘스트 제목",
+  "Merge request title": "머지 리퀘스트 제목",
+  "Change request title": "변경 요청 제목",
+  "Pull request description": "풀 리퀘스트 설명",
+  "Merge request description": "머지 리퀘스트 설명",
+  "Change request description": "변경 요청 설명",
+  Title: "제목",
+  "Write in Markdown…": "마크다운으로 작성…",
+  "Search labels": "레이블 검색",
+  "Search authors": "작성자 검색",
+  "Close label filter": "레이블 필터 닫기",
+  "Close author filter": "작성자 필터 닫기",
+  "Clear label search": "레이블 검색 지우기",
+  "Clear author search": "작성자 검색 지우기",
+  "Couldn't search the host": "호스트에서 검색할 수 없음",
+  "No matching labels": "일치하는 레이블 없음",
+  "No matching authors": "일치하는 작성자 없음",
+  "The host didn't answer. Try again in a moment.":
+    "호스트가 응답하지 않았습니다. 잠시 후 다시 시도해야 합니다.",
+  "Search the labels of the repositories this list covers.":
+    "이 목록에 포함된 저장소의 레이블을 검색합니다.",
+  "Search people by name or handle on the repositories' hosts.":
+    "저장소 호스트에서 이름이나 핸들로 사용자를 검색합니다.",
+  "Reconnect to change labels.": "레이블을 변경하려면 다시 연결해야 합니다.",
+  "This provider doesn't support changing labels.":
+    "이 프로바이더는 레이블 변경을 지원하지 않습니다.",
+  "Changing labels needs triage access on this repository.":
+    "레이블을 변경하려면 이 저장소의 분류(triage) 권한이 필요합니다.",
+  "Couldn't update this label. Try again.":
+    "이 레이블을 업데이트할 수 없습니다. 다시 시도해야 합니다.",
+  "Close labels": "레이블 닫기",
+  "Couldn't load labels": "레이블을 불러올 수 없음",
+  "This repository has no labels": "이 저장소에 레이블 없음",
+  "Try another name.": "다른 이름으로 검색해야 합니다.",
+  "Create labels on the provider to use them here.":
+    "여기서 사용하려면 프로바이더에서 레이블을 만들어야 합니다.",
+  "This repository has more labels than are listed here. Apply the rest on the provider.":
+    "이 저장소에는 여기에 표시된 것보다 많은 레이블이 있습니다. 나머지는 프로바이더에서 적용해야 합니다.",
+  "Couldn't save the reaction": "리액션을 저장할 수 없음",
+  "Try again in a moment.": "잠시 후 다시 시도해야 합니다.",
+  "Add a reaction": "리액션 추가",
+  "thumbs up": "좋아요",
+  "thumbs down": "싫어요",
+  laugh: "웃음",
+  hooray: "만세",
+  confused: "혼란",
+  heart: "하트",
+  rocket: "로켓",
+  eyes: "눈",
+  "Phones show the first four enabled sections; Android tablet rails show all enabled sections. Remaining sections appear at the top of Settings. Hidden sections appear only here. Settings always stays last. Saved on this device.":
+    "휴대폰에는 켜 둔 섹션 중 처음 네 개가 표시되고, 안드로이드 태블릿 레일에는 켜 둔 섹션이 모두 표시됩니다. 나머지 섹션은 설정 맨 위에 나타나며, 숨긴 섹션은 이 화면에서만 보입니다. 설정은 항상 맨 뒤에 있습니다. 이 기기에 저장됩니다.",
+  "Tab customization becomes available when there are six sections, including Settings.":
+    "설정을 포함해 섹션이 여섯 개가 되면 탭을 직접 구성할 수 있습니다.",
+  "Tab order": "탭 순서",
+  "Tab {number}": "{number}번 탭",
+  "In Settings": "설정 안",
+  "Show {label}": "{label} 표시",
+  "Hide {label}": "{label} 숨기기",
+  "Move {label} up": "{label} 위로 이동",
+  "Move {label} down": "{label} 아래로 이동",
+  "Reset tabs": "탭 초기화",
+  "Stop sharing?": "공유를 중지하시겠습니까?",
+  "The guest loses access and the link stops working.":
+    "게스트의 접근 권한이 사라지고 링크가 더 이상 작동하지 않습니다.",
+  "Stop sharing": "공유 중지",
+  "Could not stop sharing": "공유를 중지할 수 없음",
+  "Could not send guest message": "게스트 메시지를 보낼 수 없음",
+  "Could not dismiss guest message": "게스트 메시지를 닫을 수 없음",
+  "Guest link expired": "게스트 링크 만료됨",
+  "Guest link active": "게스트 링크 사용 중",
+  "{name} is a guest": "{name} 님은 게스트",
+  "Dismiss message from {name}": "{name} 님의 메시지 닫기",
+  "Send message from {name}": "{name} 님의 메시지 보내기",
+  Audio: "오디오",
+  "Pause audio": "오디오 일시정지",
+  "Retry audio": "오디오 다시 재생",
+  "Play audio": "오디오 재생",
+  "Unavailable · tap play to retry": "사용할 수 없음 · 재생을 눌러 다시 시도",
+  "Linked {terms}": "연결된 {terms}",
+  "No linked {terms}.": "연결된 {terms}이(가) 없습니다.",
+  "{open} open · {linked} linked": "열림 {open} · 연결됨 {linked}",
+  "All sections are hidden": "모든 섹션이 숨겨져 있음",
+  "Show a section to add it back to navigation.": "섹션을 표시하면 탐색에 다시 추가됩니다.",
+  "Edit navigation tabs": "탐색 탭 편집",
+  "From {label} #{number}": "{label} #{number}에서 시작",
+  "Context automatically compacted before cache expiry": "캐시 만료 전 컨텍스트 자동 압축됨",
+  "Context compacted after being idle": "유휴 후 컨텍스트 압축됨",
+  "Context compacted after {age} idle": "{age} 유휴 후 컨텍스트 압축됨",
+  "Compacting after {age} idle…": "{age} 유휴 후 압축 중…",
+  Request: "요청",
+  "Commit, push & create MR from default branch?":
+    "기본 브랜치에서 커밋, 푸시 및 MR을 생성하시겠습니까?",
+  "Push & create MR from default branch?": "기본 브랜치에서 푸시 및 MR을 생성하시겠습니까?",
+  "Commit, push & create MR": "커밋, 푸시 및 MR 생성",
+  "Push & create MR": "푸시 및 MR 생성",
+  'This action will commit, push, and create an MR on "{branch}". You can continue on this branch or create a feature branch and run the same action there.':
+    '이 작업은 "{branch}"에서 변경사항을 커밋하고 푸시한 뒤 MR을 생성합니다. 이 브랜치에서 계속하거나, 기능 브랜치를 만들어 같은 작업을 실행할 수 있습니다.',
+  'This action will push local commits and create an MR on "{branch}". You can continue on this branch or create a feature branch and run the same action there.':
+    '이 작업은 "{branch}"에서 로컬 커밋을 푸시하고 MR을 생성합니다. 이 브랜치에서 계속하거나, 기능 브랜치를 만들어 같은 작업을 실행할 수 있습니다.',
+  "Commit, push & create change request from default branch?":
+    "기본 브랜치에서 커밋, 푸시 및 변경 요청을 생성하시겠습니까?",
+  "Push & create change request from default branch?":
+    "기본 브랜치에서 푸시 및 변경 요청을 생성하시겠습니까?",
+  "Commit, push & create change request": "커밋, 푸시 및 변경 요청 생성",
+  "Push & create change request": "푸시 및 변경 요청 생성",
+  'This action will commit, push, and create a change request on "{branch}". You can continue on this branch or create a feature branch and run the same action there.':
+    '이 작업은 "{branch}"에서 변경사항을 커밋하고 푸시한 뒤 변경 요청을 생성합니다. 이 브랜치에서 계속하거나, 기능 브랜치를 만들어 같은 작업을 실행할 수 있습니다.',
+  'This action will push local commits and create a change request on "{branch}". You can continue on this branch or create a feature branch and run the same action there.':
+    '이 작업은 "{branch}"에서 로컬 커밋을 푸시하고 변경 요청을 생성합니다. 이 브랜치에서 계속하거나, 기능 브랜치를 만들어 같은 작업을 실행할 수 있습니다.',
+  "Could not open change request": "변경 요청을 열 수 없음",
+  "Open change request": "변경 요청 열기",
+  "Stop the provider from automatically merging this change request.":
+    "프로바이더가 이 변경 요청을 자동으로 머지하지 않도록 합니다.",
+  "The change request changed. Refresh before merging.":
+    "변경 요청이 변경되었습니다. 머지하기 전에 새로고침해야 합니다.",
+  "Couldn't load this change request": "변경 요청을 불러올 수 없음",
+  "Couldn't load this change request.": "이 변경 요청을 불러올 수 없습니다.",
+  "Requesting reviews requires write access and an open change request.":
+    "리뷰를 요청하려면 쓰기 권한과 열린 변경 요청이 필요합니다.",
+  "Open this change request on its provider to view the changes.":
+    "변경사항을 보려면 프로바이더에서 이 변경 요청을 열어야 합니다.",
+  "Allow this change request's workflows to run? Review the workflow changes first.":
+    "이 변경 요청의 워크플로 실행을 허용하시겠습니까? 먼저 워크플로 변경사항을 확인해야 합니다.",
+  "Close this change request without merging its changes?":
+    "변경사항을 머지하지 않고 이 변경 요청을 닫으시겠습니까?",
+  "Open a new change request that reverses these changes?":
+    "이 변경사항을 되돌리는 새 변경 요청을 여시겠습니까?",
+  "Reopen this change request before merging.": "머지하기 전에 이 변경 요청을 다시 열어야 합니다.",
+  "This change request has been merged.": "이 변경 요청은 이미 머지되었습니다.",
+  "Your account cannot merge this change request.":
+    "이 계정으로는 이 변경 요청을 머지할 수 없습니다.",
+  "Some file contents are unavailable. Open the change request on its provider to see the full changes.":
+    "일부 파일 내용을 불러올 수 없습니다. 전체 변경사항은 프로바이더에서 변경 요청을 열어 확인해야 합니다.",
+  "There are no open layers to merge through this change request.":
+    "이 변경 요청까지 머지할 열린 레이어가 없습니다.",
+  "This change request is no longer in the stack. Refresh it.":
+    "이 변경 요청은 더 이상 스택에 없습니다. 새로고침해야 합니다.",
+  "Couldn't update this change request": "변경 요청을 업데이트할 수 없음",
+  "Review requests aren't available for this change request.":
+    "이 변경 요청에서는 리뷰를 요청할 수 없습니다.",
+  "This action isn't available for this change request.":
+    "이 변경 요청에서는 이 작업을 사용할 수 없습니다.",
+  "You can no longer submit line comments on this change request. Your drafts are kept here.":
+    "이 변경 요청에는 더 이상 줄 코멘트를 제출할 수 없습니다. 초안은 여기에 보관됩니다.",
+  "Merge change request": "변경 요청 머지",
+  "Close change request": "변경 요청 닫기",
+  "Reopen change request": "변경 요청 다시 열기",
+  "Create revert change request": "되돌리기 변경 요청 만들기",
+  "Merge change request?": "변경 요청을 머지하시겠습니까?",
+  "Close change request?": "변경 요청을 닫으시겠습니까?",
+  "Reopen change request?": "변경 요청을 다시 여시겠습니까?",
+  "Create revert pull request?": "되돌리기 풀 리퀘스트를 만드시겠습니까?",
+  "Create revert merge request?": "되돌리기 머지 리퀘스트를 만드시겠습니까?",
+  "Create revert change request?": "되돌리기 변경 요청을 만드시겠습니까?",
+  "Change request": "변경 요청",
+  "Change request {number}": "변경 요청 {number}",
+  "Change request actions": "변경 요청 작업",
+  "Change request status": "변경 요청 상태",
+  "Change request status, {status}": "변경 요청 상태, {status}",
+  "Work on change request": "변경 요청 작업하기",
+  "change request agent actions": "변경 요청 에이전트 작업",
+  "Explain this change request": "이 변경 요청 설명",
+  "Watch change request": "변경 요청 지켜보기",
+  "Starting work from this change request requires source control write access.":
+    "이 변경 요청에서 작업을 시작하려면 소스 제어 쓰기 권한이 필요합니다.",
+  "The merge request could not be opened.": "머지 리퀘스트를 열 수 없습니다.",
+  "{term} {number}": "{term} {number}",
+  "{label} #{number} {state}": "{label} #{number} {state}",
+  "Could not display diff": "diff를 표시할 수 없음",
+  "Try loading the diff view again.": "diff 화면을 다시 불러와야 합니다.",
+  "Retry diff": "diff 다시 불러오기",
+  "Resize inspector": "인스펙터 크기 조절",
+  "Close thread preview": "스레드 미리보기 닫기",
+  "Maximize thread": "스레드 최대화",
+  "Context compacted": "컨텍스트 압축됨",
+  "Context compaction failed": "컨텍스트 압축 실패",
+  "Context compaction stopped": "컨텍스트 압축 중지됨",
+  "{title} {before} → {after} tokens": "{title} {before} → {after} 토큰",
+};

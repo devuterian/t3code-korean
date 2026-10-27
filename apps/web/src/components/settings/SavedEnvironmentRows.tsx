@@ -24,7 +24,6 @@ import * as Option from "effect/Option";
 
 import { useCopyToClipboard } from "../../hooks/useCopyToClipboard";
 import { cn } from "../../lib/utils";
-import { translate, useTranslate } from "../../i18n/translate";
 import { SettingsRow } from "./settingsLayout";
 import { searchableSetting } from "./settingsSearch";
 import { EnvironmentIconMenu } from "./EnvironmentIconPicker";
@@ -49,6 +48,7 @@ import {
   supportsServerUpdateThreadContinuation,
 } from "~/versionSkew";
 import { hasCloudPublicConfig } from "~/cloud/publicConfig";
+import { isElectron } from "~/env";
 import { useCloudLinkController } from "~/cloud/useCloudLinkController";
 import { environmentCatalog } from "~/connection/catalog";
 import { readEnvironmentScope } from "~/state/session";
@@ -66,6 +66,8 @@ import {
   ServerUpdateProgress,
 } from "../ServerUpdateAction";
 import { CloudEnvironmentConnectRows } from "../cloud/CloudEnvironmentConnectList";
+import { useT3ConnectAuthPrompt } from "../clerk/useT3ConnectAuthPrompt";
+import { translate, useTranslate } from "../../i18n/translate";
 
 type SavedBackendListRowProps = {
   environment: EnvironmentPresentation;
@@ -400,7 +402,7 @@ export function SavedBackendListRow({
           }
         />
         <TooltipPopup side="top">
-          {blocked ? t("Client not supported") : enabled ? t("Switch off") : t("Switch on")}
+          {blocked ? translate("Client not supported") : enabled ? t("Switch off") : t("Switch on")}
         </TooltipPopup>
       </Tooltip>
       <Menu>
@@ -490,15 +492,29 @@ function ConfiguredCloudLinkRow({ canManageRelay }: { readonly canManageRelay: b
     reconcileCloudState,
   } = useCloudLinkController();
   const t = useTranslate();
+  const { openAuthPrompt } = useT3ConnectAuthPrompt();
   const [isUpdating, setIsUpdating] = useState(false);
   const [isUpdatingPreference, setIsUpdatingPreference] = useState(false);
 
-  const disabledReason = !isSignedIn
-    ? t("Sign in to T3 Connect to manage this environment.")
-    : !canManageRelay
-      ? t("Your session does not have permission to manage T3 Connect access.")
-      : null;
+  const disabledReason = canManageRelay
+    ? null
+    : t("Your session does not have permission to manage T3 Connect access.");
   const isBusy = isUpdating || isUpdatingPreference;
+  const switchDisabled =
+    !canManageRelay ||
+    !isSignedIn ||
+    primaryCloudLinkState.data === null ||
+    primaryCloudLinkState.isPending ||
+    isBusy;
+  // `isSignedIn` is undefined until Clerk loads. Signed out, one row shows a
+  // sign-in button instead of its switch; the onboarding dialog that opens after
+  // a fresh sign-in offers both linking and publishing.
+  const signedOut = isSignedIn === false;
+  const signInButton = (
+    <Button size="sm" variant="outline" onClick={openAuthPrompt}>
+      {t("Sign in")}
+    </Button>
+  );
   const refreshLinkState = useEffectEvent(primaryCloudLinkState.refresh);
   // The server rechecks reachability when the tunnel's 30 s readiness poll changes.
   // Poll while mounted, so a failed read does not stop later ones.
@@ -597,38 +613,40 @@ function ConfiguredCloudLinkRow({ canManageRelay }: { readonly canManageRelay: b
 
   return (
     <>
-      {window.desktopBridge ? (
+      {isElectron ? (
         <SettingsRow
           title={t(searchableSetting("t3-connect").title)}
           description={
-            linkRevoked
-              ? t("This environment was removed from T3 Connect. Turn it on to link it again.")
-              : managedTunnelActive
-                ? reachability?.status === "unreachable"
-                  ? t("T3 Connect is on, but other devices cannot reach this environment.")
-                  : reachability?.status === "reachable"
-                    ? t("This environment is available to your other devices through T3 Connect.")
-                    : t("T3 Connect is on. Reachability has not been checked yet.")
-                : managedTunnelOutOfSync
-                  ? t(
-                      "T3 Connect is out of sync. This environment is linked only to publish agent activity, so other devices cannot connect. Turn T3 Connect on to repair it.",
-                    )
-                  : t("Make this environment available to your other devices through T3 Connect.")
+            signedOut
+              ? t(
+                  "Sign in to make this environment available to your other devices through T3 Connect.",
+                )
+              : linkRevoked
+                ? t("This environment was removed from T3 Connect. Turn it on to link it again.")
+                : managedTunnelActive
+                  ? reachability?.status === "unreachable"
+                    ? t("T3 Connect is on, but other devices cannot reach this environment.")
+                    : reachability?.status === "reachable"
+                      ? t("This environment is available to your other devices through T3 Connect.")
+                      : t("T3 Connect is on. Reachability has not been checked yet.")
+                  : managedTunnelOutOfSync
+                    ? t(
+                        "T3 Connect is out of sync. This environment is linked only to publish agent activity, so other devices cannot connect. Turn T3 Connect on to repair it.",
+                      )
+                    : t("Make this environment available to your other devices through T3 Connect.")
           }
           status={operationError ?? primaryCloudLinkState.error ?? reachabilityStatus}
           control={
-            <CloudLinkSwitch
-              checked={managedTunnelActive}
-              disabled={
-                !canManageRelay ||
-                !isSignedIn ||
-                primaryCloudLinkState.data === null ||
-                primaryCloudLinkState.isPending ||
-                isBusy
-              }
-              disabledReason={disabledReason}
-              onCheckedChange={(enabled) => void updateManagedTunnel(enabled)}
-            />
+            signedOut ? (
+              signInButton
+            ) : (
+              <CloudLinkSwitch
+                checked={managedTunnelActive}
+                disabled={switchDisabled}
+                disabledReason={disabledReason}
+                onCheckedChange={(enabled) => void updateManagedTunnel(enabled)}
+              />
+            )
           }
         />
       ) : linkRevoked ? (
@@ -639,28 +657,30 @@ function ConfiguredCloudLinkRow({ canManageRelay }: { readonly canManageRelay: b
           )}
         />
       ) : null}
-      <SettingsRow
-        title={t(searchableSetting("publish-agent-activity").title)}
-        description={t(
-          "Send activity to mobile notifications and Live Activities without T3 Connect.",
-        )}
-        control={
-          <CloudLinkSwitch
-            ariaLabel="Publish agent activity to mobile clients"
-            checked={publishAgentActivity}
-            disabled={
-              !canManageRelay ||
-              !isSignedIn ||
-              primaryCloudLinkState.data === null ||
-              primaryCloudLinkState.isPending ||
-              isBusy
-            }
-            disabledReason={disabledReason}
-            onCheckedChange={(enabled) => void updatePublishAgentActivity(enabled)}
-          />
-        }
-      />
-      {managedTunnelActive ? (
+      {signedOut && isElectron ? null : (
+        <SettingsRow
+          title={t(searchableSetting("publish-agent-activity").title)}
+          description={
+            signedOut
+              ? t("Sign in to send activity to mobile notifications and Live Activities.")
+              : t("Send activity to mobile notifications and Live Activities without T3 Connect.")
+          }
+          control={
+            signedOut ? (
+              signInButton
+            ) : (
+              <CloudLinkSwitch
+                ariaLabel="Publish agent activity to mobile clients"
+                checked={publishAgentActivity}
+                disabled={switchDisabled}
+                disabledReason={disabledReason}
+                onCheckedChange={(enabled) => void updatePublishAgentActivity(enabled)}
+              />
+            )
+          }
+        />
+      )}
+      {managedTunnelActive && !signedOut ? (
         <SettingsRow
           title={t(searchableSetting("hold-webhooks-while-offline").title)}
           description={t(
@@ -670,7 +690,7 @@ function ConfiguredCloudLinkRow({ canManageRelay }: { readonly canManageRelay: b
             <CloudLinkSwitch
               ariaLabel="Hold webhook requests while this environment is offline"
               checked={holdWebhooksWhileOffline}
-              disabled={!canManageRelay || !isSignedIn || primaryCloudLinkState.isPending || isBusy}
+              disabled={switchDisabled}
               disabledReason={disabledReason}
               onCheckedChange={(enabled) => void updateHoldWebhooks(enabled)}
             />

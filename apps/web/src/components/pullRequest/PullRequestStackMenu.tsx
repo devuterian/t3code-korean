@@ -23,6 +23,7 @@ import {
   DialogFooter,
 } from "../ui/dialog";
 import { toastManager } from "../ui/toast";
+import type { ChangeRequestTerminology } from "~/sourceControlPresentation";
 import { PullRequestStackLayers } from "./PullRequestStackLayers";
 import { PullRequestStackHeader } from "./PullRequestStackHeader";
 import { PullRequestStackLayerContent } from "./PullRequestStackLayerContent";
@@ -30,6 +31,7 @@ import { PullRequestGlyph } from "./pullRequestIcons";
 
 export function PullRequestStackMenu({
   hostLabel,
+  terminology,
   stack,
   reference,
   environmentId,
@@ -42,6 +44,7 @@ export function PullRequestStackMenu({
   onRetry,
 }: {
   hostLabel: string;
+  terminology: ChangeRequestTerminology;
   notice?: string | null;
   onRetry?: (() => void) | undefined;
   stack: PullRequestStack;
@@ -223,8 +226,11 @@ export function PullRequestStackMenu({
           />
           <TooltipPopup>
             {t(
-              `Merge stack through #${reference.number} into ${stack.base} (${mergeLayers.length} ${mergeLayers.length === 1 ? "pull request" : "pull requests"})`,
-            )}
+              `Merge stack through #{number} into {base} ({count} ${mergeLayers.length === 1 ? terminology.singular : terminology.plural})`,
+            )
+              .replace("{number}", () => String(reference.number))
+              .replace("{base}", () => stack.base)
+              .replace("{count}", () => String(mergeLayers.length))}
           </TooltipPopup>
         </Tooltip>
       ) : null}
@@ -238,8 +244,12 @@ export function PullRequestStackMenu({
           <DialogHeader>
             <DialogTitle>
               {confirmation === "merge"
-                ? t(`Merge ${mergeLayers.length} pull requests?`)
-                : t(`Rebase ${unmerged.length} pull requests?`)}
+                ? t(
+                    `Merge {count} ${mergeLayers.length === 1 ? terminology.singular : terminology.plural}?`,
+                  ).replace("{count}", String(mergeLayers.length))
+                : t(
+                    `Rebase {count} ${unmerged.length === 1 ? terminology.singular : terminology.plural}?`,
+                  ).replace("{count}", String(unmerged.length))}
             </DialogTitle>
             <DialogDescription>
               {confirmation === "merge"

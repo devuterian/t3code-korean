@@ -17,6 +17,8 @@ import { KO_MERGE_1009 } from "./ko/merge1009";
 import { KO_MERGE_1009_B } from "./ko/merge1009b";
 import { KO_MERGE_1024_A } from "./ko/merge1024a";
 import { KO_MERGE_1024_B } from "./ko/merge1024b";
+import { KO_MERGE_1027_A } from "./ko/merge1027a";
+import { KO_MERGE_1027_B } from "./ko/merge1027b";
 import { KO_COMPOSER_USAGE } from "./ko/composerUsage";
 import { KO_MERGE_V010_A } from "./ko/mergeV010a";
 import { KO_MERGE_V010_B } from "./ko/mergeV010b";
@@ -26,6 +28,7 @@ import { KO_MERGE_1020_F } from "./ko/merge1020F";
 import { KO_MERGE_1020_G } from "./ko/merge1020G";
 import { KO_ANDROID_KOREAN } from "./ko/androidKorean";
 import { KO_ACCOUNT_POOLS } from "./ko/accountPools";
+import { KO_MERGE_1027_C } from "./ko/merge1027c";
 
 export const KO_DICTIONARY: Readonly<Record<string, string>> = {
   ...KO_COMMON,
@@ -42,6 +45,9 @@ export const KO_DICTIONARY: Readonly<Record<string, string>> = {
   ...KO_MERGE_1009_B,
   ...KO_MERGE_1024_A,
   ...KO_MERGE_1024_B,
+  ...KO_MERGE_1027_A,
+  ...KO_MERGE_1027_B,
+  ...KO_MERGE_1027_C,
   ...KO_COMPOSER_USAGE,
   ...KO_MERGE_V010_A,
   ...KO_MERGE_V010_B,

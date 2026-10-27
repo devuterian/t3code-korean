@@ -1,7 +1,7 @@
 import { StackActions, useNavigation } from "@react-navigation/native";
 import { useState } from "react";
 import { Platform, View } from "react-native";
-import { useAndroidWorkspaceSelection } from "../workspace/useAndroidWorkspaceSelection";
+import { useSelectWorkspaceDetail } from "../workspace/useSelectWorkspaceDetail";
 import { AppText as Text } from "../../components/ui/AppText";
 import { useTranslate } from "../../i18n/translate";
 import { PullRequestCardGroup, PullRequestCardRow } from "./PullRequestControls";
@@ -16,7 +16,7 @@ export function PullRequestStackCard(props: {
 }) {
   const navigation = useNavigation();
   const t = useTranslate();
-  const selectAndroidWorkspace = useAndroidWorkspaceSelection();
+  const selectDetail = useSelectWorkspaceDetail();
   const [expanded, setExpanded] = useState(false);
   const stack = props.state.stack;
   if (!stack) {
@@ -75,7 +75,7 @@ export function PullRequestStackCard(props: {
                       : () => {
                           const params = { ...props.params, number: layer.number };
                           if (Platform.OS === "android")
-                            selectAndroidWorkspace({ name: "PullRequest", params });
+                            selectDetail({ name: "PullRequest", params });
                           else navigation.dispatch(StackActions.push("PullRequest", params));
                         }
                   }

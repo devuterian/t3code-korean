@@ -12,6 +12,7 @@ import {
 import { mobilePreferencesAtom, updateMobilePreferencesAtom } from "../../state/preferences";
 import { SettingsChoiceRow } from "./components/SettingsChoiceRow";
 import { SettingsSection } from "./components/SettingsSection";
+import { WorkingSectionSettings } from "./ThreadSettingsSections";
 import { useTranslate } from "../../i18n/translate";
 
 const GROUPING_OPTIONS: ReadonlyArray<{
@@ -47,7 +48,7 @@ export function SettingsProjectGroupingRouteScreen() {
     : null;
 
   return (
-    <SettingsScreen title={t("Organization")}>
+    <SettingsScreen title={t("General")}>
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         showsVerticalScrollIndicator={false}
@@ -68,6 +69,7 @@ export function SettingsProjectGroupingRouteScreen() {
             />
           ))}
         </SettingsSection>
+        <WorkingSectionSettings />
       </ScrollView>
     </SettingsScreen>
   );

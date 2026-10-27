@@ -1,6 +1,7 @@
 import { Check, Copy, Maximize2, Minimize2 } from "lucide";
-import { useEffect, useLayoutEffect, useRef, useState, type ComponentProps } from "react";
+import { useRef, useState, type ComponentProps } from "react";
 
+import { useCopyToClipboard } from "../../hooks/useCopyToClipboard";
 import { getClientSettings } from "../../hooks/useSettings";
 import { useFitTables } from "../../hooks/useThreadWidth";
 import { useTranslate } from "../../i18n/translate";
@@ -43,95 +44,69 @@ function tableHasClippedCells(container: HTMLElement, table: HTMLTableElement): 
 
 export function MarkdownTable({ children, ...props }: ComponentProps<"table">) {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const tableRef = useRef<HTMLTableElement | null>(null);
   const [expanded, setExpanded] = useState(() => getClientSettings().wordWrap);
   const [fitTables] = useFitTables();
   const [hasClippedCells, setHasClippedCells] = useState(false);
-
-  useLayoutEffect(() => {
-    const table = tableRef.current;
-    if (!table) return;
-    // Read the rendered header so streaming and column spans keep the same
-    // readable minimum. CSS handles pane resizing without a resize observer.
-    const columns = [...(table.rows[0]?.cells ?? [])].reduce(
-      (count, cell) => count + cell.colSpan,
-      0,
-    );
-    table.style.setProperty("--table-column-count", String(Math.max(1, columns)));
+  const { copyToClipboard, isCopied: copied } = useCopyToClipboard<"markdown" | "csv">({
+    timeout: 1200,
+    onError: (cause, format) =>
+      reportMarkdownActionFailure({ operation: "copy-table", format }, cause),
   });
-  const [copied, setCopied] = useState(false);
-  const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const t = useTranslate();
   const expandLabel = expanded ? t("Collapse table cells") : t("Expand table cells");
   const copyLabel = copied ? t("Copied") : t("Copy table");
 
-  const measureClippedCells = () => {
-    const container = containerRef.current;
-    const table = tableRef.current;
+  // React calls this with null when a previous attach returned no cleanup.
+  const attachContainer = (container: HTMLDivElement | null) => {
+    containerRef.current = container;
+    const table = container?.querySelector("table");
     if (!container || !table) return;
-    setHasClippedCells(tableHasClippedCells(container, table));
+    const measure = () => {
+      // Read the rendered header so streaming and column spans keep the same readable
+      // minimum. CSS handles pane resizing without a resize observer.
+      const columns = [...(table.rows[0]?.cells ?? [])].reduce(
+        (count, cell) => count + cell.colSpan,
+        0,
+      );
+      table.style.setProperty("--table-column-count", String(Math.max(1, columns)));
+      setHasClippedCells(tableHasClippedCells(container, table));
+    };
+    measure();
+    // A streamed cell can grow until it clips while the table keeps its size, and a
+    // narrower column can clip a cell without this component rendering.
+    const mutations = new MutationObserver(measure);
+    mutations.observe(table, { childList: true, characterData: true, subtree: true });
+    const stopResize = observeResize(table, measure);
+    return () => {
+      mutations.disconnect();
+      stopResize();
+      containerRef.current = null;
+    };
   };
-
-  // A streamed cell can grow until it clips while the table keeps its size,
-  // so remeasure after every render, not only on resize.
-  useLayoutEffect(measureClippedCells);
-
-  // Column width changes can clip a cell without rendering this table.
-  useLayoutEffect(() => {
-    const table = tableRef.current;
-    if (!table) return;
-    return observeResize(table, measureClippedCells);
-  }, [measureClippedCells]);
 
   const handleCopy = (format: "markdown" | "csv") => {
     const table = containerRef.current?.querySelector("table");
-    if (!table || typeof navigator === "undefined" || navigator.clipboard == null) {
-      return;
-    }
-    const text =
+    if (!table) return;
+    copyToClipboard(
       format === "markdown"
         ? serializeTableElementToMarkdown(table)
-        : serializeTableElementToCsv(table);
-    void navigator.clipboard
-      .writeText(text)
-      .then(() => {
-        if (copiedTimerRef.current != null) {
-          clearTimeout(copiedTimerRef.current);
-        }
-        setCopied(true);
-        copiedTimerRef.current = setTimeout(() => {
-          setCopied(false);
-          copiedTimerRef.current = null;
-        }, 1200);
-      })
-      .catch((cause) => {
-        reportMarkdownActionFailure({ operation: "copy-table", format }, cause);
-      });
+        : serializeTableElementToCsv(table),
+      format,
+    );
   };
-
-  useEffect(
-    () => () => {
-      if (copiedTimerRef.current != null) {
-        clearTimeout(copiedTimerRef.current);
-        copiedTimerRef.current = null;
-      }
-    },
-    [],
-  );
 
   return (
     <div
-      ref={containerRef}
+      ref={attachContainer}
       className="chat-markdown-table-container"
       data-expanded={expanded ? "true" : "false"}
       data-fit={fitTables ? "true" : "false"}
     >
       <ScrollArea radius="none" chainVerticalScroll scrollFade className="w-full max-w-full">
-        <table ref={tableRef} {...props}>
-          {children}
-        </table>
+        <table {...props}>{children}</table>
       </ScrollArea>
-      <div className="mt-0.5 flex items-center justify-between select-none">
+      {/* Stays within the row's px-1: the chat lane clips sideways overflow. */}
+      <div className="mt-0.5 -mx-1 flex items-center justify-between select-none">
         {!fitTables && hasClippedCells ? (
           <Tooltip>
             <TooltipTrigger

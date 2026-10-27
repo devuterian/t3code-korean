@@ -63,6 +63,7 @@ it.effect.each(["adapter", "probe"] as const)(
           : buildClaudeCapabilitiesProbeQueryOptions({
               platform: yield* HostProcess.Platform,
               executablePath: process.execPath,
+              // @effect-diagnostics-next-line abortControllerInEffect:off
               abortController: new AbortController(),
               environment: runtime.environment,
               cwd: "/project",

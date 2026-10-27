@@ -2,7 +2,7 @@ import { Platform } from "react-native";
 
 import { AndroidHeaderIconButton } from "../../components/ui/AndroidScreenHeader";
 
-import { useAdaptiveWorkspaceLayout } from "./AdaptiveWorkspaceLayout";
+import { useAdaptiveWorkspaceLayout } from "./adaptive-workspace-context";
 import { useTranslate } from "../../i18n/translate";
 
 export function AndroidWorkspaceSidebarButton() {

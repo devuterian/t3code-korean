@@ -70,6 +70,10 @@ const LANGUAGE_PACKS: Partial<Record<MobileInterfaceLanguage, LanguagePack>> = {
   ko: {
     dictionary: KO_DICTIONARY,
     patterns: [
+      [
+        /^Context compacted (\S+) → (\S+) tokens$/,
+        (before, after) => `컨텍스트 압축됨 ${before} → ${after} 토큰`,
+      ],
       [/^Settled \((\d+)\)$/, (n) => `정리됨 (${n})`],
       [/^Snoozed \((\d+)\)$/, (n) => `미뤄 둠 (${n})`],
       [/^Worked for (.+)$/, (d) => `${d} 동안 작업함`],

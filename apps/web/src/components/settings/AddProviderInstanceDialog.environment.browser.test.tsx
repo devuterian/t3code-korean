@@ -125,14 +125,16 @@ function button(label: string) {
 }
 const click = (label: string) => act(async () => button(label).click());
 // Connection methods are named by their aria-label, which also carries the description.
-function radio(name: string) {
-  const found = [...document.querySelectorAll<HTMLElement>('[role="radio"]')].find((element) =>
+const radio = (name: string) =>
+  [...document.querySelectorAll<HTMLElement>('[role="radio"]')].find((element) =>
     (element.getAttribute("aria-label") ?? element.textContent ?? "").trim().startsWith(name),
   );
-  expect(found, `radio ${name}`).toBeDefined();
-  return found!;
-}
-const choose = (name: string) => act(async () => radio(name).click());
+const choose = (name: string) =>
+  act(async () => {
+    const found = radio(name);
+    expect(found, `radio ${name}`).toBeDefined();
+    found!.click();
+  });
 const input = (selector: string) => {
   const found = document.querySelector<HTMLInputElement>(selector);
   expect(found, selector).not.toBeNull();
@@ -191,11 +193,32 @@ describe("AddProviderInstanceDialog environment routing", () => {
     });
   });
 
+  it("keeps fx and the ACP Registry under Show more", async () => {
+    setup();
+    await using _screen = await render(dialog());
+    expect(radio("Codex")).toBeDefined();
+    expect(radio("fx")).toBeUndefined();
+    expect(document.body.textContent).not.toContain("Use Kilo Code");
+
+    await click("Show more");
+    button("Use Kilo Code");
+    await act(async () => radio("fx")!.click());
+    await click("Next");
+    await click("Next");
+    await click("Add instance");
+    expect(settingsHooks.mutate).toHaveBeenCalledWith({
+      operation: "create",
+      instanceId: "fx",
+      instance: { driver: "fx", enabled: true, displayName: "fx" },
+    });
+  });
+
   it("awaits an atomic create before closing and retains prepared ACP metadata", async () => {
     setup();
     const mutation = deferred<{ readonly _tag: "Success"; readonly value: unknown }>();
     settingsHooks.mutate.mockReturnValueOnce(mutation.promise);
     await using _screen = await render(dialog());
+    await click("Show more");
     await click("Use Kilo Code");
 
     expect(document.body.textContent).toContain("v4.2.0 · binary");
@@ -227,6 +250,7 @@ describe("AddProviderInstanceDialog environment routing", () => {
   it("creates a local command in the selected environment without a sign-in step", async () => {
     setup();
     await using _screen = await render(dialog());
+    await click("Show more");
     await click("Use local command");
     await click("Next");
     expect(document.body.textContent).toContain("Executable is required.");
@@ -275,7 +299,7 @@ describe("AddProviderInstanceDialog environment routing", () => {
     await using screen = await prepareCodexInstance();
     const save = button("Add instance");
     actions.canManageProviders = false;
-    // The rendered button is still enabled; the click must recheck the live grant.
+    // Click before React renders the revoked grant.
     await act(async () => save.click());
 
     expect(settingsHooks.mutate).not.toHaveBeenCalled();

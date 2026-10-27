@@ -9,12 +9,14 @@ import { useTranslate } from "../../i18n/translate";
 import type { WorkspaceTab } from "../workspace/workspace-tabs-state";
 
 export function WorkspaceEmptyDetail(props: {
-  readonly tab?: WorkspaceTab;
+  readonly tab?: WorkspaceTab | "settings";
   readonly onStartNewTask?: () => void;
   readonly onAddConnection?: () => void;
 }) {
   const t = useTranslate();
   const pullRequests = props.tab === "pullRequests";
+  const settings = props.tab === "settings";
+  if (props.tab === "usage") return <View className="flex-1 bg-screen" />;
   return (
     <View
       className={
@@ -49,16 +51,22 @@ export function WorkspaceEmptyDetail(props: {
             type="hierarchical"
           />
           <Text className="text-center text-xl font-t3-bold">
-            {pullRequests ? t("Select a pull request") : t("Select a thread")}
+            {settings
+              ? t("Select a setting")
+              : pullRequests
+                ? t("Select a pull request")
+                : t("Select a thread")}
           </Text>
           <Text className="text-center text-base text-foreground-muted">
-            {pullRequests
-              ? t("Choose a pull request from the sidebar to review it.")
-              : Platform.OS === "android"
-                ? t("Choose a thread from the sidebar or start a new thread.")
-                : t("Choose a thread from the sidebar or start a new task.")}
+            {settings
+              ? t("Choose a page from the sidebar.")
+              : pullRequests
+                ? t("Choose a pull request from the sidebar to review it.")
+                : Platform.OS === "android"
+                  ? t("Choose a thread from the sidebar or start a new thread.")
+                  : t("Choose a thread from the sidebar or start a new task.")}
           </Text>
-          {props.onStartNewTask && !pullRequests ? (
+          {props.onStartNewTask && !pullRequests && !settings ? (
             Platform.OS === "android" ? (
               <NewThreadButton extended className="mt-2" onPress={props.onStartNewTask} />
             ) : (

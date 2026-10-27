@@ -9,7 +9,6 @@ import { describe, expect, it } from "@effect/vitest";
 import {
   resolveActiveThreadSortOrder,
   filterSharedServerPatch,
-  findSharedSettingsMismatches,
   pickSharedServerSettings,
   splitSharedServerPatch,
 } from "./sharedSettings.ts";
@@ -84,19 +83,6 @@ describe("filterSharedServerPatch", () => {
       expect(filterSharedServerPatch(patch, restartCapabilities, settings, sourceSettings)).toEqual(
         availability === "enabled" ? patch : { sidebarAutoSettleAfterDays: 7 },
       );
-      const primarySettings = {
-        ...sourceSettings,
-        textGenerationModelSelection: selection,
-      };
-      expect(
-        findSharedSettingsMismatches({
-          primaryEnvironmentId: primaryId,
-          primarySettings,
-          environments: [
-            { environmentId: boxId, label: "Remote Box", syncEligible: true, settings },
-          ],
-        }),
-      ).toEqual(availability === "enabled" ? [{ environmentId: boxId, label: "Remote Box" }] : []);
     },
   );
 
@@ -114,151 +100,6 @@ describe("filterSharedServerPatch", () => {
       );
     },
   );
-});
-
-describe("findSharedSettingsMismatches", () => {
-  const primarySettings = { ...DEFAULT_SERVER_SETTINGS, sidebarAutoSettleAfterDays: 7 };
-
-  it.each([true, false])(
-    "detects remote restart continuation drift when the preference is %s",
-    (enabled) => {
-      const settings = { ...primarySettings, continueThreadsAfterServerUpdate: enabled };
-      const remoteSettings = { ...settings, continueThreadsAfterServerUpdate: !enabled };
-      const environment = {
-        environmentId: boxId,
-        label: "Remote Box",
-        syncEligible: true,
-        settings: remoteSettings,
-        capabilities: restartCapabilities,
-      };
-      expect(
-        findSharedSettingsMismatches({
-          primaryEnvironmentId: primaryId,
-          primarySettings: settings,
-          primaryCapabilities: restartCapabilities,
-          environments: [environment],
-        }),
-      ).toEqual([{ environmentId: boxId, label: "Remote Box" }]);
-      expect(
-        findSharedSettingsMismatches({
-          primaryEnvironmentId: primaryId,
-          primarySettings: settings,
-          primaryCapabilities: restartCapabilities,
-          environments: [
-            {
-              ...environment,
-              settings: Object.assign(
-                {},
-                remoteSettings,
-                pickSharedServerSettings(settings, restartCapabilities),
-              ),
-            },
-          ],
-        }),
-      ).toEqual([]);
-    },
-  );
-
-  it.each([
-    [undefined, restartCapabilities],
-    [restartCapabilities, undefined],
-    [undefined, undefined],
-  ])(
-    "ignores restart drift unless both servers support it (%j, %j)",
-    (primaryCapabilities, capabilities) => {
-      const environment = {
-        environmentId: boxId,
-        label: "Remote Box",
-        syncEligible: true,
-        capabilities,
-        settings: { ...primarySettings, continueThreadsAfterServerUpdate: true },
-      };
-      const input = {
-        primaryEnvironmentId: primaryId,
-        primarySettings,
-        primaryCapabilities,
-        environments: [environment],
-      };
-      expect(findSharedSettingsMismatches(input)).toEqual([]);
-      expect(
-        findSharedSettingsMismatches({
-          ...input,
-          environments: [
-            {
-              ...environment,
-              settings: { ...environment.settings, sidebarAutoSettleAfterDays: 14 },
-            },
-          ],
-        }),
-      ).toEqual([{ environmentId: boxId, label: "Remote Box" }]);
-    },
-  );
-
-  it("lists sync-eligible environments whose shared settings differ", () => {
-    const mismatches = findSharedSettingsMismatches({
-      primaryEnvironmentId: primaryId,
-      primarySettings,
-      environments: [
-        {
-          environmentId: primaryId,
-          label: "Desktop",
-          syncEligible: true,
-          settings: primarySettings,
-        },
-        {
-          environmentId: laptopId,
-          label: "Laptop",
-          syncEligible: true,
-          settings: primarySettings,
-        },
-        {
-          environmentId: boxId,
-          label: "Remote Box",
-          syncEligible: true,
-          settings: DEFAULT_SERVER_SETTINGS,
-        },
-      ],
-    });
-    expect(mismatches).toEqual([{ environmentId: boxId, label: "Remote Box" }]);
-  });
-
-  it("ignores machine-only differences", () => {
-    const mismatches = findSharedSettingsMismatches({
-      primaryEnvironmentId: primaryId,
-      primarySettings,
-      environments: [
-        {
-          environmentId: boxId,
-          label: "Remote Box",
-          syncEligible: true,
-          settings: {
-            ...primarySettings,
-            enableAgentBrowserAccess: false,
-            defaultThreadEnvMode:
-              primarySettings.defaultThreadEnvMode === "local" ? "worktree" : "local",
-          },
-        },
-      ],
-    });
-    expect(mismatches).toEqual([]);
-  });
-
-  it("skips ineligible environments and environments without a loaded config", () => {
-    const mismatches = findSharedSettingsMismatches({
-      primaryEnvironmentId: primaryId,
-      primarySettings,
-      environments: [
-        {
-          environmentId: laptopId,
-          label: "Laptop",
-          syncEligible: false,
-          settings: DEFAULT_SERVER_SETTINGS,
-        },
-        { environmentId: boxId, label: "Remote Box", syncEligible: true, settings: null },
-      ],
-    });
-    expect(mismatches).toEqual([]);
-  });
 });
 
 describe("active thread sort across clients", () => {

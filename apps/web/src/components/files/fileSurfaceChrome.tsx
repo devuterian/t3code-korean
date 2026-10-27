@@ -106,12 +106,13 @@ export function FileSurfaceAction(props: {
 }
 
 export function FileSurfaceNotice(props: { readonly children: ReactNode }) {
+  const t = useTranslate();
   return (
     <div
       role="status"
       className="shrink-0 border-b border-warning/20 bg-warning-surface px-3 py-1.5 text-2xs text-warning-foreground"
     >
-      {props.children}
+      {typeof props.children === "string" ? t(props.children) : props.children}
     </div>
   );
 }

@@ -5,7 +5,7 @@ import { RenderErrorBoundary, RenderFailureView } from "../../components/RenderE
 import { useTranslate } from "../../i18n/translate";
 import { NativeInspectorContent } from "../../native/NativeInspectorContent";
 
-export type ThreadInspectorMode = "route" | "git" | "files";
+export type ThreadInspectorMode = "route" | "git" | "files" | "preview";
 
 const INSPECTOR_PREWARM_DELAY_MS = 350;
 
@@ -48,6 +48,7 @@ function InspectorContentPane(props: {
 }
 
 export function ThreadInspectorContentStack(props: {
+  readonly renderPreview?: () => ReactNode;
   readonly renderFiles: () => ReactNode;
   readonly renderGit?: () => ReactNode;
   readonly mode: ThreadInspectorMode;
@@ -59,6 +60,7 @@ export function ThreadInspectorContentStack(props: {
   );
 
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect -- Keeps opened inspector views mounted so UIKit keeps their focus and scroll.
     setMountedModes((current) => {
       if (current.has(props.mode)) {
         return current;
@@ -66,13 +68,11 @@ export function ThreadInspectorContentStack(props: {
       return new Set([...current, props.mode]);
     });
 
-    if (props.mode === "route") {
+    if (props.mode === "route" || props.mode === "preview") {
       return;
     }
 
-    // The file tree is expensive to detach because UIKit rebuilds its focus
-    // graph. Keep both chat inspectors alive after the opening animation so a
-    // later Files/Git switch only changes visibility.
+    // Keep both inspectors alive after opening; detaching the file tree makes UIKit rebuild its expensive focus graph.
     const alternateMode = props.mode === "files" ? "git" : "files";
     const timeout = setTimeout(() => {
       setMountedModes((current) => {
@@ -88,6 +88,11 @@ export function ThreadInspectorContentStack(props: {
 
   return (
     <View className="flex-1">
+      {props.mode === "preview" && props.renderPreview ? (
+        <InspectorContentPane mounted resetKeys={props.resetKeys} visible>
+          <InspectorRenderer render={props.renderPreview} />
+        </InspectorContentPane>
+      ) : null}
       <InspectorContentPane
         mounted={mountedModes.has("files") || props.mode === "files"}
         resetKeys={props.resetKeys}

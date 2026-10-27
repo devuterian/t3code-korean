@@ -1,3 +1,4 @@
+import { NativeScrollView } from "../../native/NativeScrollViewMarker";
 import { SearchField } from "../../components/ui/SearchField";
 import { Toolbar } from "../../components/ui/Toolbar";
 import { ScreenScrollView as ScrollView } from "../../components/ui/ScreenScrollView";
@@ -42,7 +43,6 @@ function LicenseRow(props: {
   readonly entry: ThirdPartyLicenseEntry;
   readonly onPress: () => void;
 }) {
-  const t = useTranslate();
   return (
     <View className="border-b border-border">
       <ListRow
@@ -72,12 +72,8 @@ export function SettingsOpenSourceLicensesRouteScreen() {
       <LicenseRow
         entry={item}
         onPress={() =>
-          navigation.navigate("SettingsSheet", {
-            screen: "SettingsContent",
-            params: {
-              screen: "SettingsOpenSourceLicense",
-              params: { entryKey: thirdPartyLicenseEntryKey(item) },
-            },
+          navigation.navigate("SettingsOpenSourceLicense", {
+            entryKey: thirdPartyLicenseEntryKey(item),
           })
         }
       />
@@ -134,6 +130,7 @@ export function SettingsOpenSourceLicensesRouteScreen() {
       ) : null}
 
       <LegendList
+        renderScrollComponent={Platform.OS === "ios" ? NativeScrollView : undefined}
         className="flex-1"
         contentContainerStyle={{
           paddingBottom: usesNativeMailSearchToolbar

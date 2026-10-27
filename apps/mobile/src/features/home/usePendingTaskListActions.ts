@@ -1,5 +1,4 @@
 import * as Dialog from "../../components/ui/Dialog";
-import { useHomeThreadRouteSelection } from "./home-thread-navigation";
 import { useCallback } from "react";
 
 import { translate } from "../../i18n/translate";
@@ -15,14 +14,11 @@ import {
 import { withThreadDismissal } from "./thread-dismissal";
 
 export function usePendingTaskListActions(
-  selectRoute?: (params: ReactNavigation.RootParamList["Thread"]) => void,
+  selectThreadRoute: (params: ReactNavigation.RootParamList["Thread"]) => void,
 ): {
   readonly openPendingTask: (pendingTask: PendingNewTask) => void;
   readonly confirmDeletePendingTask: (pendingTask: PendingNewTask) => void;
 } {
-  const selectHomeRoute = useHomeThreadRouteSelection();
-  const selectThreadRoute = selectRoute ?? selectHomeRoute;
-
   const openPendingTask = useCallback(
     (pendingTask: PendingNewTask) => {
       selectThreadRoute(
@@ -80,11 +76,9 @@ export function usePendingTaskListActions(
           text: translate("Delete"),
           style: "destructive",
           onPress: () => {
-            // The row animates out before removal runs, so hold delivery from
-            // confirmation on: a reconnect must not send a task being deleted.
-            // The hold is shared with the editor, which could release it
-            // mid-animation, so a task open in the editor is removed at once
-            // and keeps its hold unless removal succeeds.
+            // Hold delivery from confirmation so reconnects cannot send a task during removal.
+            // The editor can release the shared hold mid-animation; remove edited tasks at once.
+            // Keep an editor's hold unless removal succeeds.
             const messageId = pendingTask.message.messageId;
             const heldByEditor = appAtomRegistry.get(editingQueuedMessageIdsAtom)[messageId];
             holdEditingQueuedMessage(messageId);

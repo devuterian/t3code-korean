@@ -26,6 +26,7 @@ import {
   resolveTerminalFontSizePreference,
   TYPOGRAPHY_ADVANCED_STORAGE_KEY,
 } from "../../appearanceFonts";
+import { AdvancedSettings } from "./AdvancedSettings";
 import { CodeFontPreview, PromptFontPreview, TerminalFontPreview } from "./SettingsFontPreviews";
 import { discoverInstalledFonts, FontFamilyPicker, useFontEnumeration } from "./FontFamilyPicker";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "../ui/select";
@@ -36,52 +37,24 @@ import {
   SettingsSection,
   useSettingsSearchTargetId,
 } from "./settingsLayout";
-import { searchableSetting } from "./settingsSearch";
+import {
+  isAdvancedTypographyTarget,
+  revealSettingsSearchTarget,
+  searchableSetting,
+} from "./settingsSearch";
 import { useTranslate } from "../../i18n/translate";
 
 function useFontDefaultFamilies() {
-  const t = useTranslate();
   const settings = useScopedSettings();
   const [defaults] = useState(() => ({
     sans: resolveDefaultFamilyLabel(DEFAULT_SANS_FONT_STACK) ?? "System default",
     code: resolveDefaultFamilyLabel(DEFAULT_CODE_FONT_STACK) ?? "System monospace",
   }));
   return {
-    sans: t(defaults.sans),
-    code: t(defaults.code),
-    interfaceFamily: settings.fontFamilySans.trim() || t(defaults.sans),
+    sans: defaults.sans,
+    code: defaults.code,
+    interfaceFamily: settings.fontFamilySans.trim() || defaults.sans,
   };
-}
-
-function InterfaceFontRow({ preview }: { preview?: ReactNode }) {
-  const settings = useScopedSettings();
-  const updateSettings = useUpdateScopedSettings();
-  const defaults = useFontDefaultFamilies();
-  return (
-    <FontFamilySettingsRow
-      {...searchableSetting("interface-font")}
-      description="Everything outside code blocks and the terminal."
-      defaultFamily={defaults.sans}
-      defaultValue={DEFAULT_UNIFIED_SETTINGS.fontFamilySans}
-      value={settings.fontFamilySans}
-      onValueChange={(fontFamilySans) => updateSettings({ fontFamilySans })}
-      onReset={() =>
-        updateSettings({
-          fontFamilySans: DEFAULT_UNIFIED_SETTINGS.fontFamilySans,
-          fontSizeInterface: DEFAULT_UNIFIED_SETTINGS.fontSizeInterface,
-        })
-      }
-      size={{
-        label: "Interface font size",
-        min: MIN_INTERFACE_FONT_SIZE,
-        max: MAX_INTERFACE_FONT_SIZE,
-        value: settings.fontSizeInterface,
-        defaultValue: DEFAULT_UNIFIED_SETTINGS.fontSizeInterface,
-        onChange: (fontSizeInterface) => updateSettings({ fontSizeInterface }),
-      }}
-      {...(preview !== undefined ? { preview } : {})}
-    />
-  );
 }
 
 /** Conversation text size; "Auto" (null) keeps it on the interface size. */
@@ -147,6 +120,37 @@ function ConversationFontSizeRow() {
           </SelectPopup>
         </Select>
       }
+    />
+  );
+}
+
+function InterfaceFontRow({ preview }: { preview?: ReactNode }) {
+  const settings = useScopedSettings();
+  const updateSettings = useUpdateScopedSettings();
+  const defaults = useFontDefaultFamilies();
+  return (
+    <FontFamilySettingsRow
+      {...searchableSetting("interface-font")}
+      description="Everything outside code blocks and the terminal."
+      defaultFamily={defaults.sans}
+      defaultValue={DEFAULT_UNIFIED_SETTINGS.fontFamilySans}
+      value={settings.fontFamilySans}
+      onValueChange={(fontFamilySans) => updateSettings({ fontFamilySans })}
+      onReset={() =>
+        updateSettings({
+          fontFamilySans: DEFAULT_UNIFIED_SETTINGS.fontFamilySans,
+          fontSizeInterface: DEFAULT_UNIFIED_SETTINGS.fontSizeInterface,
+        })
+      }
+      size={{
+        label: "Interface font size",
+        min: MIN_INTERFACE_FONT_SIZE,
+        max: MAX_INTERFACE_FONT_SIZE,
+        value: settings.fontSizeInterface,
+        defaultValue: DEFAULT_UNIFIED_SETTINGS.fontSizeInterface,
+        onChange: (fontSizeInterface) => updateSettings({ fontSizeInterface }),
+      }}
+      {...(preview !== undefined ? { preview } : {})}
     />
   );
 }
@@ -329,8 +333,30 @@ function FontSettingsGroup() {
       <PromptFontRow />
       <CodeFontRow />
       <TerminalFontRow />
-      <FontSmoothingRow />
     </>
+  );
+}
+
+function SeparateFontsRow({
+  checked,
+  onCheckedChange,
+}: {
+  readonly checked: boolean;
+  readonly onCheckedChange: (checked: boolean) => void;
+}) {
+  const t = useTranslate();
+  return (
+    <SettingsRow
+      {...searchableSetting("separate-fonts")}
+      description="Set the prompt, code, and terminal fonts separately instead of one monospace font."
+      control={
+        <Switch
+          checked={checked}
+          onCheckedChange={(next) => onCheckedChange(Boolean(next))}
+          aria-label={t("Separate fonts")}
+        />
+      }
+    />
   );
 }
 
@@ -365,48 +391,31 @@ function SimpleFontRows() {
   );
 }
 
-// Font smoothing only renders on macOS, so a search jump to it elsewhere
-// must not flip the section - the target would never mount to be scrolled to.
-const ADVANCED_TYPOGRAPHY_TARGET_IDS: ReadonlySet<string> = new Set([
-  "prompt-font",
-  "terminal-font",
-  ...(typeof navigator !== "undefined" && isMacPlatform(navigator.platform)
-    ? ["font-smoothing"]
-    : []),
-]);
-
 export function TypographySection() {
-  const t = useTranslate();
   const [advanced, setAdvanced] = useLocalStorage(
     TYPOGRAPHY_ADVANCED_STORAGE_KEY,
     false,
     Schema.Boolean,
   );
+  // A deep link or history step must persist the flag too: the terminal reads it, so advanced
+  // rows without it would make terminal font edits do nothing. The rows follow the target
+  // directly so its row mounts in the first commit; the target clears once handled.
   const searchTargetId = useSettingsSearchTargetId();
-  const lastExpandedTargetRef = useRef<string | null>(null);
   useEffect(() => {
-    if (searchTargetId === null || !ADVANCED_TYPOGRAPHY_TARGET_IDS.has(searchTargetId)) return;
-    if (lastExpandedTargetRef.current === searchTargetId) return;
-    lastExpandedTargetRef.current = searchTargetId;
-    setAdvanced(true);
-  }, [searchTargetId, setAdvanced]);
+    if (searchTargetId !== null) revealSettingsSearchTarget(searchTargetId);
+  }, [searchTargetId]);
+  const showAdvanced =
+    advanced || (searchTargetId !== null && isAdvancedTypographyTarget(searchTargetId));
   return (
-    <SettingsSection
-      id="typography"
-      title="Typography"
-      headerAction={
-        <label className="flex cursor-pointer items-center gap-2 text-xs font-medium text-muted-foreground">
-          {t("Advanced")}
-          <Switch
-            checked={advanced}
-            onCheckedChange={(checked) => setAdvanced(Boolean(checked))}
-            aria-label={t("Show advanced typography settings")}
-          />
-        </label>
-      }
-    >
-      {advanced ? <FontSettingsGroup /> : <SimpleFontRows />}
+    <SettingsSection id="typography" title="Typography">
+      {showAdvanced ? <FontSettingsGroup /> : <SimpleFontRows />}
       <WordWrapRow />
+      <AdvancedSettings
+        targetIds={[searchableSetting("separate-fonts").id, searchableSetting("font-smoothing").id]}
+      >
+        <SeparateFontsRow checked={showAdvanced} onCheckedChange={setAdvanced} />
+        <FontSmoothingRow />
+      </AdvancedSettings>
     </SettingsSection>
   );
 }
@@ -499,7 +508,7 @@ function FontFamilySettingsRow({
   const familyControl =
     fontEnumeration.status === "granted" ? (
       <FontFamilyPicker
-        ariaLabel={`${t(title)} ${t("family")}`}
+        ariaLabel={`${t(title)} family`}
         defaultFamily={defaultFamily}
         selectedFamily={trimmed}
         requireMonospace={requireMonospace}
@@ -509,7 +518,7 @@ function FontFamilySettingsRow({
     ) : (
       <Input
         size="sm"
-        aria-label={`${t(title)} ${t("family")}`}
+        aria-label={`${t(title)} family`}
         aria-invalid={draftPending || undefined}
         autoCapitalize="off"
         autoComplete="off"
@@ -586,7 +595,7 @@ function FontFamilySettingsRow({
   return (
     <SettingsRow
       {...(id !== undefined ? { id } : {})}
-      title={title}
+      title={t(title)}
       description={description}
       resetAction={resetAction}
       control={control}

@@ -1,4 +1,5 @@
 import { resolveDefaultBranchActionDialogCopy } from "@t3tools/client-runtime/state/vcs";
+import { sourceControlClients } from "@t3tools/client-runtime/source-control-clients";
 import { resolveAutoFeatureBranchName } from "@t3tools/shared/git";
 import * as Arr from "effect/Array";
 import * as Result from "effect/Result";
@@ -15,6 +16,7 @@ import { AppText as Text } from "../../../components/ui/AppText";
 import { translate, useTranslate } from "../../../i18n/translate";
 import { useSelectedThreadGitActions } from "../../../state/use-selected-thread-git-actions";
 import { useSelectedThreadGitState } from "../../../state/use-selected-thread-git-state";
+import { useThreadSelection } from "../../../state/use-thread-selection";
 import { SheetActionButton } from "./gitSheetComponents";
 
 const DEFAULT_BRANCH_DIALOG_SUFFIX =
@@ -30,6 +32,7 @@ function localizeDefaultBranchDialogCopy(
     readonly action: "push" | "create_pr" | "commit_push" | "commit_push_pr";
     readonly branchName: string;
     readonly includesCommit: boolean;
+    readonly terminology: Parameters<typeof resolveDefaultBranchActionDialogCopy>[0]["terminology"];
   },
 ) {
   const english = resolveDefaultBranchActionDialogCopy(input);
@@ -42,8 +45,8 @@ function localizeDefaultBranchDialogCopy(
       ? `This action will commit and push changes${DEFAULT_BRANCH_DIALOG_SUFFIX}`
       : `This action will push local commits${DEFAULT_BRANCH_DIALOG_SUFFIX}`
     : input.includesCommit
-      ? `This action will commit, push, and create a PR${DEFAULT_BRANCH_DIALOG_SUFFIX}`
-      : `This action will push local commits and create a PR${DEFAULT_BRANCH_DIALOG_SUFFIX}`;
+      ? `This action will commit, push, and create ${input.terminology.shortLabelWithArticle}${DEFAULT_BRANCH_DIALOG_SUFFIX}`
+      : `This action will push local commits and create ${input.terminology.shortLabelWithArticle}${DEFAULT_BRANCH_DIALOG_SUFFIX}`;
   const continueTemplate = pushes
     ? input.includesCommit
       ? "Commit & push to {branch}"
@@ -74,6 +77,10 @@ export function GitConfirmSheet(props: GitConfirmSheetProps) {
   const gitState = useSelectedThreadGitState();
   const gitActions = useSelectedThreadGitActions();
   const { canWriteSourceControl, canChangeThreadBranch } = gitActions;
+  const { selectedThreadProject } = useThreadSelection();
+  const terminology = sourceControlClients.get(
+    selectedThreadProject?.repositoryIdentity?.provider,
+  ).changeRequest;
 
   const params = props.route.params;
 
@@ -95,9 +102,10 @@ export function GitConfirmSheet(props: GitConfirmSheetProps) {
             action: confirmAction,
             branchName,
             includesCommit,
+            terminology,
           })
         : null,
-    [branchName, confirmAction, includesCommit, t],
+    [branchName, confirmAction, includesCommit, t, terminology],
   );
 
   const continuePendingAction = useCallback(async () => {

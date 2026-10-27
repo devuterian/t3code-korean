@@ -113,7 +113,7 @@ export function ProviderAuthenticationSection({
       (provider.driver === "acpRegistry" && auth?.methods?.length === 0));
   const accountDescription = active
     ? auth?.phase === "starting"
-      ? t("Starting sign-in…")
+      ? (auth.message ?? t("Starting sign-in…"))
       : auth?.phase === "verifying"
         ? t("Checking your account…")
         : interaction?.type === "terminal"
@@ -248,8 +248,7 @@ export function ProviderAuthenticationSection({
   async function openBrowser() {
     if (!url || readOnly) return;
     const requiresConsent = interaction?.type === "browser" && interaction.requiresConsent;
-    // Browsers block tabs opened after an await, so the web build reserves one
-    // while the environment records consent.
+    // Reserve tabs before awaiting consent; browsers block later opens.
     const pending = requiresConsent && !window.desktopBridge ? window.open("", "_blank") : null;
     if (pending) pending.opener = null;
     try {
@@ -455,8 +454,8 @@ export function ProviderAuthenticationSection({
                       variant="ghost-muted"
                       disabled={disabled}
                       onClick={() => {
-                        // Copy inside the click so the clipboard keeps the user
-                        // activation; the link only works once consent is recorded.
+                        // Copy during the click to retain clipboard activation; consent must still be
+                        // recorded before use.
                         const copied = writeTextToClipboard(url, "Provider sign-in link");
                         void (async () => {
                           await copied;

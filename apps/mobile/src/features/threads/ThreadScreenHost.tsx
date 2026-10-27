@@ -6,13 +6,13 @@ import {
   useSyncExternalStore,
   type ReactNode,
 } from "react";
-import { View } from "react-native";
+import { Platform, View } from "react-native";
 import { ThreadDetailScreen, type ThreadDetailScreenProps } from "./ThreadDetailScreen";
 import { ImageCiteProvider } from "../imageCite/ImageCiteProvider";
 
 type ThreadScreenContent =
   | { readonly props: ThreadDetailScreenProps }
-  | { readonly fallback: ReactNode };
+  | { readonly fallback: ReactNode; readonly header?: ReactNode };
 
 function createThreadScreenStore() {
   let current: ThreadScreenContent | null = null;
@@ -37,13 +37,18 @@ function ThreadScreenOutlet() {
   const store = useContext(ThreadScreenContext)!;
   const content = useSyncExternalStore(store.subscribe, store.getSnapshot);
   if (content === null) return null;
-  if (!("props" in content)) return content.fallback;
+  const body = "props" in content ? <ThreadDetailScreen {...content.props} /> : content.fallback;
   const screen = (
     <>
-      {content.props.header}
-      <ThreadDetailScreen {...content.props} />
+      {"props" in content ? content.props.header : content.header}
+      {Platform.OS === "android" ? (
+        <View className="flex-1 overflow-hidden rounded-t-[28px] bg-thread-canvas">{body}</View>
+      ) : (
+        body
+      )}
     </>
   );
+  if (!("props" in content)) return screen;
   // Image region citation targets a live thread's draft; draft screens have no thread yet.
   // The provider stays mounted across the draft-to-live switch so the screen is not remounted.
   return (
@@ -63,7 +68,7 @@ export function ThreadScreenHost({ children }: { readonly children: ReactNode })
   return (
     <ThreadScreenContext.Provider value={store}>
       {children}
-      <View className="flex-1 bg-screen android:overflow-hidden android:rounded-t-[28px] android:bg-thread-canvas">
+      <View className="flex-1 bg-screen android:bg-header">
         <ThreadScreenOutlet />
       </View>
     </ThreadScreenContext.Provider>
@@ -78,10 +83,16 @@ export function ThreadScreenBinding(props: ThreadDetailScreenProps) {
   return null;
 }
 
-export function ThreadScreenFallback({ children }: { readonly children: ReactNode }) {
+export function ThreadScreenFallback({
+  children,
+  header,
+}: {
+  readonly children: ReactNode;
+  readonly header?: ReactNode;
+}) {
   const store = useContext(ThreadScreenContext)!;
   useLayoutEffect(() => {
-    store.publish({ fallback: children });
+    store.publish({ fallback: children, header });
   });
   return null;
 }

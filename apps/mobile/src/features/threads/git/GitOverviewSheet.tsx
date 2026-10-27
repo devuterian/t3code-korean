@@ -8,6 +8,7 @@ import {
   requiresDefaultBranchConfirmation,
 } from "@t3tools/client-runtime/state/vcs";
 import { EnvironmentId, ThreadId } from "@t3tools/contracts";
+import { sourceControlClients } from "@t3tools/client-runtime/source-control-clients";
 import {
   CommonActions,
   StackActions,
@@ -136,14 +137,24 @@ function GitOverviewSheetContent(props: GitOverviewSheetProps) {
           }),
   }));
 
+  const { shortLabel, singular } = sourceControlClients.get(
+    gitStatus.data?.sourceControlProvider?.kind,
+  ).changeRequest;
+
   const openExistingPr = async () => {
     const prUrl = gitStatus.data?.pr?.state === "open" ? gitStatus.data.pr.url : null;
     if (!prUrl) {
-      Dialog.alert(t("No open PR"), t("This branch does not have an open pull request."));
+      Dialog.alert(
+        t("No open {label}", { label: t(shortLabel) }),
+        t("This branch does not have an open {singular}.", { singular: t(singular) }),
+      );
       return;
     }
     if (!(await openPullRequest(prUrl))) {
-      Dialog.alert(t("Unable to open PR"), t("The pull request could not be opened."));
+      Dialog.alert(
+        t("Unable to open {label}", { label: t(shortLabel) }),
+        t("The {singular} could not be opened.", { singular: t(singular) }),
+      );
     }
   };
 
@@ -220,15 +231,18 @@ function GitOverviewSheetContent(props: GitOverviewSheetProps) {
         : t("{count} commits ahead", { count: ahead });
     }
     if (item.kind === "open_pr" && status.pr?.number != null) {
-      return t(`PR #{number} ${status.pr.state ?? "open"}`, { number: status.pr.number });
+      return t("{label} #{number} {state}", {
+        label: t(shortLabel),
+        number: status.pr.number,
+        state: t(status.pr.state ?? "open"),
+      });
     }
     return undefined;
   };
 
   const behindCount = gitStatus.data?.behindCount ?? 0;
 
-  // Tying RefreshControl to the query's isPending flag left the spinner stuck
-  // (the status query reports pending during quiet background refreshes too).
+  // Background refreshes also report pending; using that query flag would stick the RefreshControl spinner.
   const [isRefreshing, setIsRefreshing] = useState(false);
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -314,15 +328,19 @@ function GitOverviewSheetContent(props: GitOverviewSheetProps) {
         {linkedPrActions.canLink ? (
           <ListRow
             icon="link"
-            label={t("Link pull request")}
-            description={t("Attach a pull request by URL or number")}
+            label={t("Link {singular}", { singular: t(linkedPrActions.terminology.singular) })}
+            description={t("Attach a {singular} by URL or number", {
+              singular: t(linkedPrActions.terminology.singular),
+            })}
             onPress={linkedPrActions.promptLink}
           />
         ) : null}
       </ListSection>
 
       {linkedPrLines.length > 0 ? (
-        <ListSection title={t("Linked pull requests")}>
+        <ListSection
+          title={t("Linked {plural}", { plural: t(linkedPrActions.terminology.plural) })}
+        >
           {linkedPrLines.map((line, index) => (
             <LinkedPullRequestRow
               key={linkedPullRequestKey(line)}

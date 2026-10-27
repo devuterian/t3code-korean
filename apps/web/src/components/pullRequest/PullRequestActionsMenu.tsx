@@ -1,4 +1,5 @@
 import { useAtomValue } from "@effect/atom-react";
+import type { ChangeRequestTerminology } from "@t3tools/client-runtime/source-control-clients";
 import type {
   EnvironmentId,
   PullRequestAction,
@@ -53,6 +54,7 @@ export function PullRequestActionsMenu({
   reference,
   pullRequestKey,
   detail,
+  terminology,
   linkThreadRef,
   onThreadPickerOpenChange,
   refreshing,
@@ -92,6 +94,7 @@ export function PullRequestActionsMenu({
   reference: PullRequestRef;
   pullRequestKey: string;
   detail: Pick<PullRequestDetail, "url" | "state" | "isDraft" | "headBranch">;
+  terminology: ChangeRequestTerminology;
   linkThreadRef: ScopedThreadRef | null;
   onThreadPickerOpenChange: (open: boolean) => void;
   refreshing: boolean;
@@ -140,7 +143,9 @@ export function PullRequestActionsMenu({
               render={
                 <Button
                   aria-label={
-                    refreshing ? t("Refreshing pull request") : t("More pull request actions")
+                    refreshing
+                      ? t(`Refreshing ${terminology.singular}`)
+                      : t(`More ${terminology.singular} actions`)
                   }
                   size="icon-xs"
                   variant="ghost-muted"
@@ -156,7 +161,9 @@ export function PullRequestActionsMenu({
           }
         />
         <TooltipPopup>
-          {refreshing ? t("Refreshing pull request") : t("More pull request actions")}
+          {refreshing
+            ? t(`Refreshing ${terminology.singular}`)
+            : t(`More ${terminology.singular} actions`)}
         </TooltipPopup>
       </Tooltip>
       <MenuPopup align="end" side="bottom">
@@ -178,15 +185,19 @@ export function PullRequestActionsMenu({
             <span>{handoff === "ask" ? t("Opening...") : t("Ask a question")}</span>
             <span className="text-xs text-muted-foreground">
               {attachesToComposer
-                ? t("Adds the pull request to this thread's composer.")
-                : t("Opens a thread that knows which pull request you mean.")}
+                ? t(`Adds the ${terminology.singular} to this thread's composer.`)
+                : t(`Opens a thread that knows which ${terminology.singular} you mean.`)}
             </span>
           </span>
         </MenuItem>
         <MenuItem disabled={handoff !== null} onClick={explainPullRequest}>
           <BookOpenIcon className="mt-1 size-3.5 shrink-0 self-start" />
           <span className="flex min-w-0 flex-col">
-            <span>{handoff === "explain" ? t("Opening...") : t("Explain this PR")}</span>
+            <span>
+              {handoff === "explain"
+                ? t("Opening...")
+                : t(`Explain this ${terminology.shortLabel}`)}
+            </span>
             <span className="text-xs text-muted-foreground">
               {t("A walk through the diff and what to read closely.")}
             </span>
@@ -302,16 +313,20 @@ export function PullRequestActionsMenu({
           <ArrowUpRightIcon className="size-3.5" />
           {openOnHostText}
         </MenuItem>
-        <MenuItem onClick={() => copyReference(detail.url, t("PR link"))}>
+        <MenuItem onClick={() => copyReference(detail.url, t(`${terminology.shortLabel} link`))}>
           <LinkIcon className="size-3.5" />
           {t("Copy link")}
           <MenuShortcut>
             {shortcutLabelForCommand(keybindings, "thread.copyReference")}
           </MenuShortcut>
         </MenuItem>
-        <MenuItem onClick={() => copyReference(`#${reference.number}`, t("PR number"))}>
+        <MenuItem
+          onClick={() =>
+            copyReference(`#${reference.number}`, t(`${terminology.shortLabel} number`))
+          }
+        >
           <CopyIcon className="size-3.5" />
-          {t("Copy PR number")}
+          {t(`Copy ${terminology.shortLabel} number`)}
           <MenuShortcut>
             {shortcutLabelForCommand(keybindings, "pullRequest.copyNumber")}
           </MenuShortcut>
@@ -322,14 +337,18 @@ export function PullRequestActionsMenu({
             <MenuItem
               closeOnClick={inlineConfirm.isArmed("close")}
               aria-label={
-                inlineConfirm.isArmed("close") ? t("Confirm close?") : t("Close pull request")
+                inlineConfirm.isArmed("close")
+                  ? t("Confirm close?")
+                  : t(`Close ${terminology.singular}`)
               }
               variant="destructive"
               disabled={actionPending}
               {...inlineConfirm.props("close", () => void perform("close"))}
             >
               <PullRequestGlyph.closed className="size-3.5" />
-              {inlineConfirm.isArmed("close") ? t("Confirm close?") : t("Close pull request")}
+              {inlineConfirm.isArmed("close")
+                ? t("Confirm close?")
+                : t(`Close ${terminology.singular}`)}
             </MenuItem>
           </>
         ) : detail.state === "closed" && can("reopen") ? (
@@ -337,7 +356,7 @@ export function PullRequestActionsMenu({
             <MenuSeparator />
             <MenuItem disabled={actionPending} onClick={() => void perform("reopen")}>
               <PullRequestGlyph.reopen className="size-3.5" />
-              {t("Reopen pull request")}
+              {t(`Reopen ${terminology.singular}`)}
             </MenuItem>
           </>
         ) : detail.state === "merged" && can("revert") ? (

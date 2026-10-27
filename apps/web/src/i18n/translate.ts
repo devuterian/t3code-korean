@@ -6,6 +6,7 @@ import { ZH_CN_DICTIONARY } from "./dictionary";
 import { KO_DICTIONARY } from "./dictionary.ko";
 import { KO_ACCOUNT_POOLS_PATTERNS } from "./ko/accountPools";
 import { KO_V2_CHAT_GENERIC_PATTERNS, KO_V2_CHAT_PATTERNS } from "./ko/chat";
+import { KO_MERGE_1027_E_PATTERNS } from "./ko/merge1027E";
 import { KO_V2_SETTINGS_PATTERNS } from "./ko/settings";
 
 type Listener = () => void;
@@ -105,6 +106,7 @@ const LANGUAGE_PACKS: Partial<Record<InterfaceLanguage, LanguagePack>> = {
       [/^Thread: Jump: (\d+)$/, (n) => `스레드: 이동: ${n}`],
       ...KO_ACCOUNT_POOLS_PATTERNS,
       ...KO_V2_SETTINGS_PATTERNS,
+      ...KO_MERGE_1027_E_PATTERNS,
       [/^Working \((\d+)\)$/, (n) => `작업 중 (${n})`],
       [/^An instance named '(.+)' already exists\.$/, (id) => `'${id}' 인스턴스가 이미 있습니다.`],
       [/^(\d+) archived threads?$/, (n) => `보관된 스레드 ${n}개`],
@@ -176,7 +178,7 @@ const LANGUAGE_PACKS: Partial<Record<InterfaceLanguage, LanguagePack>> = {
       ],
       [/^Open on (.+)$/, (host) => `${host}에서 열기`],
       [
-        /^(.+) is not authenticated\. Open Settings -> Source Control for setup guidance\.$/,
+        /^(.+) is not authenticated\. Open Settings -> Source [Cc]ontrol for setup guidance\.$/,
         (provider) =>
           `${provider} 인증이 필요합니다. 설정 안내는 설정 -> 소스 제어에서 확인하세요.`,
       ],

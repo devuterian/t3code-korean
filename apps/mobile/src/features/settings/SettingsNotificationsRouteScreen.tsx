@@ -121,6 +121,7 @@ function ConfiguredSettingsNotificationsRouteScreen() {
   };
 
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect -- Reads native notification permission on mount and on every foreground.
     void refreshNotifications();
     const subscription = AppState.addEventListener("change", (state) => {
       if (state === "active") void refreshNotifications();
@@ -130,6 +131,7 @@ function ConfiguredSettingsNotificationsRouteScreen() {
 
   useEffect(() => {
     if (!isLoaded) {
+      // oxlint-disable-next-line react/set-state-in-effect -- Live Activity status shows checking until stored preferences load.
       setLiveActivityStatus("checking");
       return;
     }
@@ -226,7 +228,7 @@ function ConfiguredSettingsNotificationsRouteScreen() {
         { text: translate("Cancel"), style: "cancel" },
         {
           text: translate("Continue"),
-          onPress: () => navigation.navigate("SettingsSheet", { screen: "SettingsAuth" }),
+          onPress: () => navigation.navigate("SettingsAuth"),
         },
       ],
     );
@@ -319,9 +321,7 @@ function ConfiguredSettingsNotificationsRouteScreen() {
     savePreferences({ liveActivitiesEnabled: true });
     refreshManagedRelayEnvironments();
     setLiveActivityStatus("enabled");
-    // The environment link can succeed while this device's own registration
-    // (the push-to-start token the relay needs) has not — don't claim Live
-    // Activities are live until the device is actually registered.
+    // Environment linking can precede device registration; only registered devices can receive Live Activities.
     if (getAgentAwarenessRegistrationStatus() === "registered") {
       Dialog.alert(
         Platform.OS === "android"

@@ -17,7 +17,9 @@ import {
   resolveQuickAction,
 } from "@t3tools/client-runtime/state/vcs";
 import { useNavigation } from "@react-navigation/native";
+import { sourceControlClients } from "@t3tools/client-runtime/source-control-clients";
 import { translate, useTranslate } from "../../i18n/translate";
+
 import { useEnvironmentScope } from "../../state/session";
 import { PullRequestGlyph } from "../pull-requests/pullRequestGlyphs";
 import {
@@ -63,7 +65,10 @@ function compactMenuStatus(gitStatus: VcsStatusResult | null): string {
     parts.push(translate("{count} behind", { count: gitStatus.behindCount }));
   }
   if (gitStatus.pr?.state === "open") {
-    parts.push(`PR #${gitStatus.pr.number}`);
+    const { shortLabel } = sourceControlClients.get(
+      gitStatus.sourceControlProvider?.kind,
+    ).changeRequest;
+    parts.push(`${translate(shortLabel)} #${gitStatus.pr.number}`);
   }
 
   return parts.join(" · ");
@@ -168,13 +173,22 @@ function useThreadGitControlModel(props: ThreadGitMenuProps) {
   })();
 
   const openExistingPr = async () => {
+    const { shortLabel, singular } = sourceControlClients.get(
+      gitStatus?.sourceControlProvider?.kind,
+    ).changeRequest;
     const prUrl = gitStatus?.pr?.state === "open" ? gitStatus.pr.url : null;
     if (!prUrl) {
-      Dialog.alert(t("No open PR"), t("This branch does not have an open pull request."));
+      Dialog.alert(
+        t("No open {label}", { label: t(shortLabel) }),
+        t("This branch does not have an open {singular}.", { singular: t(singular) }),
+      );
       return;
     }
     if (!(await openPullRequest(prUrl))) {
-      Dialog.alert(t("Unable to open PR"), t("The pull request could not be opened."));
+      Dialog.alert(
+        t("Unable to open {label}", { label: t(shortLabel) }),
+        t("The {singular} could not be opened.", { singular: t(singular) }),
+      );
     }
   };
 
@@ -515,11 +529,6 @@ export function ThreadGitControls(props: ThreadGitControlsProps) {
   );
 }
 
-/**
- * The standalone git actions menu (branch status, quick commit/push action,
- * review, more). Rendered inside a Toolbar by both the thread
- * chat header and the review screen's toolbar.
- */
 export function ThreadGitMenu(props: ThreadGitMenuProps) {
   const menu = useThreadGitMenuDefinition(props);
   return menu ? createNativeHeaderMenu(menu) : null;

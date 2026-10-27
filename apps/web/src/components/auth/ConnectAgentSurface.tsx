@@ -81,9 +81,7 @@ function readAuthorizationRequest(): AuthMcpAuthorizationRequest {
   return Object.fromEntries(new URL(window.location.href).searchParams);
 }
 
-/**
- * A session may only grant access whose scopes it holds itself.
- */
+/** Sessions can grant only scopes they hold. */
 function oneClickApproves(details: AuthMcpApprovalDetails, access: AuthMcpClientAccess) {
   return details.csrfToken !== undefined && (details.oneClickAccess ?? []).includes(access);
 }
@@ -176,7 +174,7 @@ export function ConnectAgentSurface() {
     "The name is chosen by the agent. Approval gives access to whoever runs {host}. Only approve a sign-in you just started there.",
   ).split("{host}");
   const [beforePairingCommand, afterPairingCommand = ""] = t(
-    "Create one in Settings → Connections, or run {command} on this machine.",
+    "Create one in Settings → Sharing & access, or run {command} on this machine.",
   ).split("{command}");
 
   return (

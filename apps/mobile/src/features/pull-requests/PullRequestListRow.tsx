@@ -1,3 +1,7 @@
+import {
+  capitalizeTerm,
+  sourceControlClients,
+} from "@t3tools/client-runtime/source-control-clients";
 import { memo } from "react";
 import { Pressable, View } from "react-native";
 import { AppText as Text } from "../../components/ui/AppText";
@@ -79,7 +83,12 @@ export const PullRequestListRow = memo(
             accessibilityRole="button"
             accessibilityState={{ selected: props.selected, busy: props.busy }}
             accessibilityLabel={[
-              t("Pull request {number}", { number: item.number }),
+              t(
+                `${capitalizeTerm(sourceControlClients.get(item.provider).changeRequest.singular)} {number}`,
+                {
+                  number: item.number,
+                },
+              ),
               item.title,
               status.label,
               ...(conflict ? [conflict.label.toLowerCase()] : []),

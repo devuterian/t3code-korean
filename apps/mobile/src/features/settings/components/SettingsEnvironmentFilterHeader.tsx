@@ -1,4 +1,3 @@
-import { useNavigation } from "@react-navigation/native";
 import type { NativeStackHeaderItem } from "@react-navigation/native-stack";
 import { resolveEnvironmentMachineKind } from "@t3tools/contracts";
 import { Platform, Pressable } from "react-native";
@@ -8,18 +7,13 @@ import { SymbolView } from "../../../components/ui/AppSymbol";
 import { ENVIRONMENT_MACHINE_SYMBOLS } from "../../../components/EnvironmentMachineSymbol";
 import { NativeStackScreenOptions } from "../../../native/StackHeader";
 import { withNativeGlassHeaderItem } from "../../layout/native-glass-header-items";
-import { useAdaptiveWorkspaceLayout } from "../../layout/AdaptiveWorkspaceLayout";
 import { useSettingsEnvironmentFilter } from "../settings-environment-filter";
 import { useTranslate } from "../../../i18n/translate";
 
 export function SettingsEnvironmentFilterHeader(props: {
-  readonly closeSettings?: boolean;
   readonly trailingItems?: readonly NativeStackHeaderItem[];
 }) {
   const t = useTranslate();
-  const navigation = useNavigation();
-  const { layout } = useAdaptiveWorkspaceLayout();
-  const closeSettings = props.closeSettings === true && !layout.usesSplitView;
   const {
     availableTargets,
     selectedTargets,
@@ -37,7 +31,6 @@ export function SettingsEnvironmentFilterHeader(props: {
       ? "line.3.horizontal.decrease"
       : "line.3.horizontal.decrease.circle.fill";
   const filterVersion = JSON.stringify({
-    closeSettings,
     selection: selectedIds === null ? null : [...selectedIds].sort(),
     targets: availableTargets.map((entry) => [
       entry.environmentId,
@@ -124,18 +117,6 @@ export function SettingsEnvironmentFilterHeader(props: {
             },
           }),
           ...(props.trailingItems ?? []),
-          ...(closeSettings
-            ? [
-                withNativeGlassHeaderItem({
-                  accessibilityLabel: t("Close settings"),
-                  icon: { name: "xmark", type: "sfSymbol" },
-                  identifier: "settings-close",
-                  label: "",
-                  onPress: () => navigation.goBack(),
-                  type: "button",
-                }),
-              ]
-            : []),
         ],
       }}
     />

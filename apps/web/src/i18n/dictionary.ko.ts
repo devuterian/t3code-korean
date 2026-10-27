@@ -20,6 +20,11 @@ import { KO_MERGE_1020_B } from "./ko/merge1020B";
 import { KO_MERGE_1024_C } from "./ko/merge1024C";
 import { KO_MERGE_1024_D } from "./ko/merge1024D";
 import { KO_MERGE_1024_E } from "./ko/merge1024E";
+import { KO_MERGE_1027_A } from "./ko/merge1027A";
+import { KO_MERGE_1027_B } from "./ko/merge1027B";
+import { KO_MERGE_1027_C } from "./ko/merge1027C";
+import { KO_MERGE_1027_D } from "./ko/merge1027D";
+import { KO_MERGE_1027_E } from "./ko/merge1027E";
 import { KO_MERGE_1020_C } from "./ko/merge1020C";
 import { KO_MERGE_1020_D } from "./ko/merge1020D";
 import { KO_MERGE_1020_E } from "./ko/merge1020E";
@@ -1422,6 +1427,11 @@ export const KO_DICTIONARY: Readonly<Record<string, string>> = {
   ...KO_MERGE_1024_C,
   ...KO_MERGE_1024_D,
   ...KO_MERGE_1024_E,
+  ...KO_MERGE_1027_A,
+  ...KO_MERGE_1027_B,
+  ...KO_MERGE_1027_C,
+  ...KO_MERGE_1027_D,
+  ...KO_MERGE_1027_E,
   ...KO_MERGE_1020_C,
   ...KO_MERGE_1020_D,
   ...KO_MERGE_1020_E,

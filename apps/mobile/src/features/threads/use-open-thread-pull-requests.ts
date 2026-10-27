@@ -3,6 +3,7 @@ import { useNavigation } from "@react-navigation/native";
 import { useCallback } from "react";
 
 import * as Dialog from "../../components/ui/Dialog";
+import { translate } from "../../i18n/translate";
 import { useNavigateToPullRequest } from "../../native/useOpenPullRequest";
 import {
   resolveThreadPrBadgeAction,
@@ -26,7 +27,13 @@ export function useOpenThreadPullRequests() {
         environmentId: String(thread.environmentId),
         projectId: String(thread.projectId),
       }).then((opened) => {
-        if (!opened) Dialog.alert("Unable to open PR", "The pull request could not be opened.");
+        if (!opened)
+          Dialog.alert(
+            translate("Unable to open {label}", { label: translate(pr.changeRequest.shortLabel) }),
+            translate("The {singular} could not be opened.", {
+              singular: translate(pr.changeRequest.singular),
+            }),
+          );
       });
     },
     [navigation, navigateToPullRequest],
