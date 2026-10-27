@@ -188,6 +188,19 @@ const TIMELINE_MAINTAIN_SCROLL_AT_END_SMOOTH = {
   animated: true,
 } as const satisfies MaintainScrollAtEndOptions;
 
+function observeDevicePixelRatio(onChange: () => void): () => void {
+  let query = window.matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`);
+  const handleChange = () => {
+    query.removeEventListener("change", handleChange);
+    // Resolution queries track only their initial ratio; re-arm after every change.
+    query = window.matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`);
+    query.addEventListener("change", handleChange);
+    onChange();
+  };
+  query.addEventListener("change", handleChange);
+  return () => query.removeEventListener("change", handleChange);
+}
+
 const CITED_HISTORY_LOADING: CitedHistory = { _tag: "loading" };
 
 export interface MessagesTimelineHistoryControls {
@@ -1113,6 +1126,24 @@ const ConversationTimeline = memo(function ConversationTimeline({
     </>
   );
 
+  const maintainScrollAtEnd =
+    citationPositioning ||
+    (restoringThreadPosition && rememberedPosition?.atEnd === false) ||
+    anchoredEndSpace ||
+    !liveFollowEnabled ||
+    fullscreenAppRowId !== null ||
+    disclosureToggleSettling
+      ? false
+      : isWorking && !prefersReducedMotion && settlingListIdentity === null
+        ? TIMELINE_MAINTAIN_SCROLL_AT_END_SMOOTH
+        : TIMELINE_MAINTAIN_SCROLL_AT_END;
+  // Chromium lands a smooth scroll that a zoom change interrupts at its target scaled by the
+  // zoom ratio. Zooming in leaves it far above the end, which reads as scrolling away, so
+  // pin the end before the animation's next frame; the write also cancels it.
+  const pinEndAcrossZoom = useStableCallback((scrollNode: HTMLElement) => {
+    if (maintainScrollAtEnd) scrollNode.scrollTop = scrollNode.scrollHeight;
+  });
+
   const canvas = useChatCanvas();
   const registerTimeline = canvas?.registerTimeline;
   const setTimelineList = (list: LegendListRef | null) => {
@@ -1122,6 +1153,9 @@ const ConversationTimeline = memo(function ConversationTimeline({
     const viewport = scrollNode ? attachTimelineViewport(scrollNode) : null;
     viewportRef.current = viewport;
     const detachViewport = viewport ? onViewportAttach?.(viewport) : undefined;
+    const stopObservingZoom = scrollNode
+      ? observeDevicePixelRatio(() => pinEndAcrossZoom(scrollNode))
+      : undefined;
     const stopRememberingRelease = viewport?.onFollowReleased(rememberReleasedPosition);
     let contentSizeFrame: number | null = null;
     // LegendList lays rows out from layout effects; the next frame sees them settled.
@@ -1145,6 +1179,7 @@ const ConversationTimeline = memo(function ConversationTimeline({
     scheduleContentSizeChanged();
     return () => {
       stopListeningToContentSize?.();
+      stopObservingZoom?.();
       stopRememberingRelease?.();
       onContentOverflowChange?.(false);
       if (contentSizeFrame !== null) cancelAnimationFrame(contentSizeFrame);
@@ -1298,18 +1333,7 @@ const ConversationTimeline = memo(function ConversationTimeline({
               onLoad={handleListLoad}
               {...(anchoredEndSpace ? { anchoredEndSpace } : {})}
               contentInsetEndAdjustment={anchoredEndSpace ? contentInsetEndAdjustment : 0}
-              maintainScrollAtEnd={
-                citationPositioning ||
-                (restoringThreadPosition && rememberedPosition?.atEnd === false) ||
-                anchoredEndSpace ||
-                !liveFollowEnabled ||
-                fullscreenAppRowId !== null ||
-                disclosureToggleSettling
-                  ? false
-                  : isWorking && !prefersReducedMotion && settlingListIdentity === null
-                    ? TIMELINE_MAINTAIN_SCROLL_AT_END_SMOOTH
-                    : TIMELINE_MAINTAIN_SCROLL_AT_END
-              }
+              maintainScrollAtEnd={maintainScrollAtEnd}
               maintainVisibleContentPosition={
                 findActive ||
                 citationPositioning ||
