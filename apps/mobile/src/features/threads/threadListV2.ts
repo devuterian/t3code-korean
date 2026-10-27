@@ -513,8 +513,9 @@ export function buildThreadListV2ListItems(input: {
   const snoozedEnd = settledShelfHeaderIndex ?? threadItems.length;
   const workingEnd = snoozedShelfHeaderIndex ?? snoozedEnd;
   const activeEnd = workingShelfHeaderIndex ?? workingEnd;
-  const result: ThreadListV2ListItem[] = [...pendingItems, ...threadItems.slice(0, activeEnd)];
+  const result: ThreadListV2ListItem[] = [...pendingItems];
   const shelfDisabled = input.shelfPreferencesLoading === true;
+  // Fork: the Working shelf leads the list, so a thread you just started stays in view.
   if (workingShelfHeaderIndex !== null && workingCount > 0) {
     result.push({
       type: "v2-working-shelf",
@@ -525,6 +526,7 @@ export function buildThreadListV2ListItems(input: {
     });
     result.push(...threadItems.slice(workingShelfHeaderIndex, workingEnd));
   }
+  result.push(...threadItems.slice(0, activeEnd));
   if (snoozedShelfHeaderIndex !== null && snoozedCount > 0) {
     result.push({
       type: "v2-snoozed-shelf",

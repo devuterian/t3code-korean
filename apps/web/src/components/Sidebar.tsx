@@ -428,9 +428,10 @@ function useSidebarThreads(input: {
     false,
     Schema.Boolean,
   );
+  // Fork: expanded until the user folds it.
   const [workingShelfExpanded, setWorkingShelfExpanded] = useLocalStorage(
     WORKING_SHELF_EXPANDED_KEY,
-    false,
+    true,
     Schema.Boolean,
   );
   const [settledTail, setSettledTail] = useState({

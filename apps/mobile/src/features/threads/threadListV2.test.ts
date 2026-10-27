@@ -1679,7 +1679,7 @@ describe("Working section beta", () => {
     expect(ids(layout).slice(1)).toEqual(["finished-early", "finished-late", "asks-approval"]);
   });
 
-  it("places the shelf after queued tasks and before snoozed and settled threads", () => {
+  it("places the shelf after queued tasks and ahead of active, snoozed and settled threads", () => {
     const layout = buildThreadListV2Items({
       threads: [
         makeThread({ id: ThreadId.make("active"), title: "active" }),
@@ -1727,9 +1727,9 @@ describe("Working section beta", () => {
       ),
     ).toEqual([
       "queued",
-      "active",
       "v2-working-shelf",
       "working",
+      "active",
       "v2-snoozed-shelf",
       "snoozed",
       "v2-settled-shelf",
