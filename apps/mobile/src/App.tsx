@@ -58,6 +58,7 @@ import {
 import { workspaceDetailLinkAction } from "./features/workspace/workspace-detail-selection";
 import { NativeLayoutMetricsProvider } from "./native/native-layout-metrics";
 import { attachRootNavigation, rootNavigationRef } from "./lib/rootNavigation";
+import { flushRootNavigationReady } from "./features/layout/root-navigation-ready";
 import { pruneNewTaskBranchCheckouts } from "./features/threads/NewTaskDraftRouteScreen";
 
 import "../global.css";
@@ -99,6 +100,7 @@ function handleNavigationStateChange(state: NavigationState | undefined): void {
 
 function handleNavigationReady(): void {
   handleNavigationStateChange(rootNavigationRef.getRootState());
+  flushRootNavigationReady();
 }
 
 declare const module: { readonly hot?: FoundationHotModule } | undefined;

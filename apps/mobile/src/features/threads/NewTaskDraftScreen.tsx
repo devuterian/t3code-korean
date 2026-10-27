@@ -151,6 +151,7 @@ export function NewTaskDraftScreen(props: {
   };
   readonly draftId?: string;
   readonly incomingShareId?: string;
+  readonly autoFocusComposer?: boolean;
 }) {
   const t = useTranslate();
   const [creationMetadata] = useState(makeTurnCommandMetadata);
@@ -1189,6 +1190,7 @@ export function NewTaskDraftScreen(props: {
             </View>
           ),
           editorRef: promptInputRef,
+          autoFocus: props.autoFocusComposer ?? false,
           sendBlockedReason: setupBlockReason,
           interactionLocked: isComposerInteractionLocked,
         }}

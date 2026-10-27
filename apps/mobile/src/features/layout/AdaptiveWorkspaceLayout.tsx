@@ -9,7 +9,7 @@ import type {
 } from "@t3tools/client-runtime/state/shell";
 import { EnvironmentId, ThreadId, type SidebarProjectGroupingMode } from "@t3tools/contracts";
 import { useAtomValue } from "@effect/atom-react";
-import { useFocusEffect } from "@react-navigation/native";
+import { StackActions, useFocusEffect } from "@react-navigation/native";
 import { NavigationContext, NavigationRouteContext, useNavigation } from "@react-navigation/native";
 import {
   use,
@@ -75,6 +75,8 @@ import { startOpeningDetail } from "../workspace/useSelectWorkspaceDetail";
 import { useWorkspaceTabs } from "../workspace/WorkspaceTabsContext";
 import { HomeListOptionsProvider } from "../home/home-list-options";
 import { newTaskDestination } from "../threads/new-task-project-selection";
+import { requestNewTaskComposerFocus } from "../threads/new-task-composer-focus";
+import { useNewTaskAppIntent } from "../shortcuts/useAppIntents";
 import { usePendingTaskListActions } from "../home/usePendingTaskListActions";
 import { ThreadNavigationSidebar } from "../threads/ThreadNavigationSidebar";
 import { useOpenThreadPullRequests } from "../threads/use-open-thread-pull-requests";
@@ -538,7 +540,7 @@ function AdaptiveWorkspaceLayoutContent(
   const compactAndroidSettings =
     Platform.OS === "android" && androidSettingsOpen && !layout.usesSplitView;
   // Reads the open page when pressed, so the layout context doesn't change on every navigation.
-  const handleStartNewTask = () => {
+  const openNewTask = (requestId: string) => {
     const state = rootStackState(navigation);
     const currentRoute = workspaceRoutesOf(
       state?.routes.slice(0, state.index + 1) ?? [],
@@ -566,13 +568,22 @@ function AdaptiveWorkspaceLayoutContent(
             project.environmentId === draftEnvironmentId && project.id === draftProjectId,
         );
     handleSelectThreadRoute(
-      newTaskDestination(layout.usesSplitView, projects, currentProject, uuidv4()),
+      newTaskDestination(layout.usesSplitView, projects, currentProject, requestId),
     );
   };
+  const handleStartNewTask = () => openNewTask(uuidv4());
 
   useHardwareKeyboardCommand("newTask", () => {
     handleStartNewTask();
     return true;
+  });
+
+  useNewTaskAppIntent(() => {
+    const requestId = uuidv4();
+    requestNewTaskComposerFocus(requestId);
+    navigation.dispatch(
+      StackActions.push("NewTaskProject", { startWithoutProject: true, requestId }),
+    );
   });
 
   // Create at root: the iOS sidebar renders in an independent navigation tree.

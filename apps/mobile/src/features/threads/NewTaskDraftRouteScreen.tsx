@@ -36,6 +36,7 @@ import { NativeStackScreenOptions } from "../../native/StackHeader";
 import { ThreadScreenFallback } from "./ThreadScreenHost";
 import { NewTaskDraftScreen } from "./NewTaskDraftScreen";
 import { translate, useTranslate } from "../../i18n/translate";
+import { isNewTaskComposerFocusRequested } from "./new-task-composer-focus";
 
 import type { NewTaskDraftRouteParams } from "./thread-route-state";
 export type { NewTaskDraftRouteParams } from "./thread-route-state";
@@ -222,6 +223,7 @@ export function NewTaskDraftRouteScreen({ route }: StaticScreenProps<NewTaskDraf
               : params.incomingShareId
           }
           draftId={draftId}
+          autoFocusComposer={isNewTaskComposerFocusRequested(params.requestId)}
         />
       )}
     </>
