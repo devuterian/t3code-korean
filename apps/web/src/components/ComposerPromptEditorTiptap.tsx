@@ -59,6 +59,7 @@ import {
   pastedPathQueryLength,
 } from "~/composer-logic";
 import { useStableCallback } from "~/hooks/useStableCallback";
+import { Kbd } from "~/components/ui/kbd";
 import { caretLineDirection, ComposerTextDirectionExtension } from "~/composer-text-direction";
 import {
   collectComposerPromptInlineTokens,
@@ -158,6 +159,8 @@ export interface ComposerPromptEditorProps {
   skills: ReadonlyArray<ServerProviderSkill>;
   disabled: boolean;
   placeholder: string;
+  /** A key the user can press to act on the placeholder, shown after it. */
+  placeholderHint?: string | undefined;
   ariaLabel?: string | undefined;
   suggestionListId?: string | undefined;
   activeSuggestionId?: string | undefined;
@@ -939,6 +942,7 @@ function ComposerPromptEditorTiptapInner(
     skills,
     disabled,
     placeholder,
+    placeholderHint,
     ariaLabel,
     suggestionListId,
     activeSuggestionId,
@@ -1821,6 +1825,9 @@ function ComposerPromptEditorTiptapInner(
                 )}
               >
                 {placeholder}
+                {placeholderHint ? (
+                  <Kbd className="ml-2 align-middle">{placeholderHint}</Kbd>
+                ) : null}
               </div>
             ) : null}
           </div>

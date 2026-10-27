@@ -289,6 +289,7 @@ import {
 } from "./preparingComposerImages";
 import { ComposerControlsBar } from "./ComposerControlsBar";
 import { composerCommandKeyHandler } from "./composerCommandKey";
+import { useNextPromptSuggestion } from "./useNextPromptSuggestion";
 
 function consumePasteAsTextShortcut(deadline: { current: number }): boolean {
   const armed = Date.now() <= deadline.current;
@@ -2236,6 +2237,25 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
   };
   const expandMobileComposerStable = useStableCallback(expandMobileComposer);
 
+  const nextPrompt = useNextPromptSuggestion({
+    environmentId: activeThread?.environmentId,
+    threadId: activeThread?.id ?? null,
+    enabled: settings.nextPromptSuggestionsEnabled && activeThread !== undefined,
+    phase,
+    messages: promptHistoryMessages,
+  });
+  const promptSuggestion =
+    nextPrompt.suggestion !== null &&
+    prompt === "" &&
+    !isComposerApprovalState &&
+    activePendingProgress === null &&
+    !showPlanFollowUpPrompt &&
+    !projectSelectionRequired &&
+    !showProviderUnavailable &&
+    !isConnecting
+      ? { text: nextPrompt.suggestion, dismiss: nextPrompt.dismiss }
+      : null;
+
   const onComposerCommandKey = (key: string, event: KeyboardEvent, isTaskItem?: boolean) =>
     composerCommandKeyHandler({
       keybindings,
@@ -2250,6 +2270,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
       pendingUserInputs,
       promptHistoryMessages,
       promptHistoryPositionRef,
+      promptSuggestion,
       composerDraftTarget,
       promptRef,
       composerImagesRef,
@@ -3803,26 +3824,29 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
                     onCitationSubmitAndSend={submitCitationAndSendStable}
                     onCitationDraftSave={saveCitationDraftToPromptStable}
                     onPaste={onComposerPasteStable}
+                    placeholderHint={promptSuggestion ? "Tab" : undefined}
                     placeholder={
-                      isComposerApprovalState
-                        ? activePendingApproval?.supportsFeedback
-                          ? t("Send feedback to decline this request")
-                          : t("Send a message to decline and redirect the agent")
-                        : activePendingProgress
-                          ? isChoiceOnlyPendingQuestion
-                            ? t("Choose an option above")
-                            : t(
-                                "Type your own answer, or leave this blank to use the selected option",
-                              )
-                          : showPlanFollowUpPrompt && activeProposedPlan
-                            ? t(
-                                "Add feedback to refine the plan, or leave this blank to implement it",
-                              )
-                            : projectSelectionRequired
-                              ? t("Choose a project above to start a thread")
-                              : showProviderUnavailable
-                                ? t("Enable a provider in Settings to send a message")
-                                : t(DEFAULT_COMPOSER_PLACEHOLDER)
+                      promptSuggestion
+                        ? promptSuggestion.text
+                        : isComposerApprovalState
+                          ? activePendingApproval?.supportsFeedback
+                            ? t("Send feedback to decline this request")
+                            : t("Send a message to decline and redirect the agent")
+                          : activePendingProgress
+                            ? isChoiceOnlyPendingQuestion
+                              ? t("Choose an option above")
+                              : t(
+                                  "Type your own answer, or leave this blank to use the selected option",
+                                )
+                            : showPlanFollowUpPrompt && activeProposedPlan
+                              ? t(
+                                  "Add feedback to refine the plan, or leave this blank to implement it",
+                                )
+                              : projectSelectionRequired
+                                ? t("Choose a project above to start a thread")
+                                : showProviderUnavailable
+                                  ? t("Enable a provider in Settings to send a message")
+                                  : t(DEFAULT_COMPOSER_PLACEHOLDER)
                     }
                     disabled={
                       isConnecting ||
