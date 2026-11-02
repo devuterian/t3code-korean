@@ -142,7 +142,6 @@ import { useNowMinute } from "../hooks/useNowMinute";
 import {
   useEnvironmentIdentities,
   useConnectedEnvironmentIds,
-  useEnvironmentConnectionSummaries,
   useEnvironmentMachines,
   usePrimaryEnvironmentId,
 } from "../state/environments";
@@ -154,7 +153,7 @@ import {
   useServerConfigs,
   useQuietThreadShells,
 } from "../state/entities";
-import { environmentPresentations } from "../state/presentation";
+import { environmentPresentations, environmentSummaries } from "../state/presentation";
 import { primaryServerKeybindingsAtom } from "../state/server";
 import { environmentProjects } from "../state/projects";
 import { threadEnvironment } from "../state/threads";
@@ -370,6 +369,30 @@ function scrollSidebarToTop(content: HTMLElement | null) {
   content?.closest("[data-slot=scroll-area-viewport]")?.scrollTo({ top: 0 });
 }
 
+let previousDisconnectedEnvironmentIds: ReadonlySet<EnvironmentId> = new Set();
+const disconnectedEnvironmentIdsAtom = Atom.make((get) => {
+  const liveShellEnvironmentIds = get(liveShellEnvironmentIdsAtom);
+  const next = new Set(
+    get(environmentSummaries.environmentsAtom)
+      .filter((environment) =>
+        isSidebarEnvironmentDisconnected(
+          environment.connectionState,
+          liveShellEnvironmentIds.has(environment.environmentId),
+          previousDisconnectedEnvironmentIds.has(environment.environmentId),
+        ),
+      )
+      .map((environment) => environment.environmentId),
+  );
+  if (
+    next.size === previousDisconnectedEnvironmentIds.size &&
+    [...next].every((environmentId) => previousDisconnectedEnvironmentIds.has(environmentId))
+  ) {
+    return previousDisconnectedEnvironmentIds;
+  }
+  previousDisconnectedEnvironmentIds = next;
+  return next;
+}).pipe(Atom.withLabel("web-sidebar-disconnected-environment-ids"));
+
 function threadShellKey(thread: Pick<SidebarThreadSummary, "environmentId" | "id">): string {
   return scopedThreadKey(scopeThreadRef(thread.environmentId, thread.id));
 }
@@ -470,18 +493,7 @@ function useSidebarThreads(input: {
   // order. Either way the inbox is time-ordered: threads can be dropped into it
   // but not arranged inside it.
   const activeTimeOrdered = workingShelfEnabled || activeThreadSortOrder === "last_message";
-  const environmentConnections = useEnvironmentConnectionSummaries();
-  const liveShellEnvironmentIds = useAtomValue(liveShellEnvironmentIdsAtom);
-  const disconnectedEnvironmentIds = new Set(
-    environmentConnections
-      .filter((environment) =>
-        isSidebarEnvironmentDisconnected(
-          environment.connectionState,
-          liveShellEnvironmentIds.has(environment.environmentId),
-        ),
-      )
-      .map((environment) => environment.environmentId),
-  );
+  const disconnectedEnvironmentIds = useAtomValue(disconnectedEnvironmentIdsAtom);
   const inboxReturnsVersion = useSyncExternalStore(
     inboxReturns.subscribe,
     inboxReturns.getSnapshot,
