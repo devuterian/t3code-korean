@@ -98,7 +98,7 @@ Mac (signing material in `~/.config/marierie/codesign.env`, keychain
 repo root and gitignored):
 
 ```sh
-bash scripts/korean-release-mac.sh "$VERSION" 2>&1 | tee /tmp/t3k-mac-build.log
+bash scripts/korean-release-mac.sh "$VERSION" "$PWD/release-$VERSION" 2>&1 | tee /tmp/t3k-mac-build.log
 ```
 
 Smoke test the built app without touching the live install: unzip the
@@ -113,10 +113,11 @@ Windows (no push needed yet; ship the commits as a bundle):
 git bundle create /tmp/t3k.bundle "origin/$(git branch --show-current)..HEAD"   # or <last pushed tag>..HEAD
 scp /tmp/t3k.bundle DESKTOP-BCUC43S:C:/Users/marie/src/t3k.bundle
 ssh DESKTOP-BCUC43S 'cd C:\Users\marie\src\t3code-korean-v3; git fetch ..\t3k.bundle <branch>:<branch>-new; git checkout <branch>-new'
-ssh DESKTOP-BCUC43S 'cd C:\Users\marie\src\t3code-korean-v3; $env:PATH="$PWD\node_modules\.bin;$env:USERPROFILE\.cargo\bin;$env:PATH"; $env:CI="true"; vp i; powershell -ExecutionPolicy Bypass -File scripts\korean-release-win.ps1 <VERSION>'
-scp "DESKTOP-BCUC43S:C:/Users/marie/src/t3code-korean-v3/release-ko<n>/*" <local dir>
+ssh DESKTOP-BCUC43S 'cd C:\Users\marie\src\t3code-korean-v3; $env:PATH="$PWD\node_modules\.bin;$env:USERPROFILE\.cargo\bin;$env:PATH"; $env:CI="true"; vp i; powershell -ExecutionPolicy Bypass -File scripts\korean-release-win.ps1 <VERSION> release-<VERSION>-win'
+scp "DESKTOP-BCUC43S:C:/Users/marie/src/t3code-korean-v3/release-<VERSION>-win/<file>" <local dir>   # one file per scp
 ```
 
+Always pass the `release-<VERSION>` output dirs: the scripts' default `release-ko<n>` dirs collide with older versions that had the same `-ko.<n>`.
 Check the copied `.exe` sha512 matches `latest.yml`.
 
 Android (main Mac; Android SDK in `/opt/homebrew/share/android-commandlinetools`,
@@ -124,10 +125,10 @@ JDK 17 is Liberica, `google-services.json` in `~/.config/t3code-korean/`):
 
 ```sh
 export JAVA_HOME=/Library/Java/JavaVirtualMachines/liberica-jdk-17-full.jdk/Contents/Home
-bash scripts/korean-release-android.sh "$VERSION" > /tmp/t3k-android-build.log 2>&1
+bash scripts/korean-release-android.sh "$VERSION" "$PWD/release-$VERSION" > /tmp/t3k-android-build.log 2>&1
 ```
 
-It writes `release-ko<n>/T3-Code-Korean-$VERSION-android-arm64.apk`, signed with
+It writes `release-$VERSION/T3-Code-Korean-$VERSION-android-arm64.apk`, signed with
 the pinned key that installed phones accept. Mac, Windows and Android can build
 at the same time (Windows runs on the other PC).
 
