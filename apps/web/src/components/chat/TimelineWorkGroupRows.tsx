@@ -3,6 +3,7 @@ import { WorkLogButton, WorkLogList, WorkLogRow } from "./WorkLog";
 import type { WorktreeSetupSnapshot } from "@t3tools/contracts";
 import { type ToolActivityIcon } from "@t3tools/contracts";
 import { liveThoughtLine } from "@t3tools/client-runtime/work-log/presentation";
+import { getQuestionTextPreview } from "@t3tools/client-runtime/work-log/user-input";
 import { resolveWorkGroupScrollAnchor } from "@t3tools/client-runtime/work-log/scroll-anchor";
 import { observeResize } from "~/lib/observeResize";
 import { tickTextContent } from "~/lib/tickTextContent";
@@ -48,10 +49,7 @@ import {
   SimpleWorkEntryRow,
   reasoningPreviewPlugins,
 } from "./TimelineWorkEntryRow";
-import {
-  toolGroupSummaryIconName,
-  workEntryIconName,
-} from "./TimelineWorkEntryRow.logic";
+import { toolGroupSummaryIconName, workEntryIconName } from "./TimelineWorkEntryRow.logic";
 import { formatWorkingTimerNow } from "./TimelineWorkGroupRows.logic";
 import { useTranslate } from "~/i18n/translate";
 
@@ -576,7 +574,9 @@ export function LiveWorkEntryTimelineRow({
               text={row.entry.detail ?? label}
               cwd={ctx.markdownCwd}
               parseRawHtml={false}
-              extraRemarkPlugins={reasoningPreviewPlugins(row.active ? t("Thinking") : t("Thought"))}
+              extraRemarkPlugins={reasoningPreviewPlugins(
+                row.active ? t("Thinking") : t("Thought"),
+              )}
             />
           ) : threadLabel ? (
             <ThreadReadLabel

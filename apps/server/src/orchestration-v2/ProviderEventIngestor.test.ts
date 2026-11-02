@@ -258,6 +258,7 @@ it.effect("refreshes the failing instance snapshot after a committed usage_limit
           generatePrContent: () => Effect.die("unused"),
           generateThreadTitle: () => Effect.die("unused"),
           generateReviewGuide: () => Effect.die("unused"),
+          generateNextPrompt: () => Effect.die("unused"),
         },
         snapshot: {
           refreshUsage: Deferred.succeed(refreshed, undefined).pipe(Effect.asVoid),
@@ -265,6 +266,7 @@ it.effect("refreshes the failing instance snapshot after a committed usage_limit
           refresh: Effect.die("unused"),
           resolveMaintenance: () => Effect.die("unused"),
           applyUsageLimits: () => Effect.die("unused"),
+          markLimited: () => Effect.die("unused"),
           streamChanges: Stream.empty,
         },
       };

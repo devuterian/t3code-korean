@@ -28,6 +28,9 @@ import { KO_MERGE_1020_F } from "./ko/merge1020F";
 import { KO_MERGE_1020_G } from "./ko/merge1020G";
 import { KO_ANDROID_KOREAN } from "./ko/androidKorean";
 import { KO_ACCOUNT_POOLS } from "./ko/accountPools";
+import { KO_MERGE_NIGHTLY_1102_C1 } from "./ko/mergeNightly1102C1";
+import { KO_MERGE_NIGHTLY_1102_C2 } from "./ko/mergeNightly1102C2";
+import { KO_MERGE_NIGHTLY_1102_C3 } from "./ko/mergeNightly1102C3";
 import { KO_MERGE_1027_C } from "./ko/merge1027c";
 import { KO_MERGE_1027_D } from "./ko/merge1027d";
 
@@ -59,4 +62,7 @@ export const KO_DICTIONARY: Readonly<Record<string, string>> = {
   ...KO_MERGE_1020_G,
   ...KO_ANDROID_KOREAN,
   ...KO_ACCOUNT_POOLS,
+  ...KO_MERGE_NIGHTLY_1102_C1,
+  ...KO_MERGE_NIGHTLY_1102_C2,
+  ...KO_MERGE_NIGHTLY_1102_C3,
 };

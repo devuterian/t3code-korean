@@ -1,8 +1,4 @@
-import {
-  ComposerControl,
-  ComposerControlChevron,
-  ComposerSelectControl,
-} from "./chat/ComposerControl";
+import { ComposerControl, ComposerSelectControl } from "./chat/ComposerControl";
 import { ComposerContextLabel } from "./ComposerContextLabel";
 import { FolderGit2Icon, FolderGitIcon, FolderIcon } from "lucide-react";
 import { memo, type MouseEvent as ReactMouseEvent } from "react";
@@ -97,7 +93,6 @@ export const BranchToolbarEnvModeSelector = memo(function BranchToolbarEnvModeSe
         <ComposerContextLabel>
           {resolveLockedWorkspaceLabel(activeWorktreePath, effectiveEnvMode)}
         </ComposerContextLabel>
-        <ComposerControlChevron size="xs" />
       </MoveToLocalCheckoutMenu>
     );
   }

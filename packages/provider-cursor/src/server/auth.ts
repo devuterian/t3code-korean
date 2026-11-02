@@ -316,7 +316,7 @@ export const makeCursorAuth = Effect.fn("makeCursorAuth")(function* (options: Cu
     },
     isChangingCredentials: Effect.sync(() => operation !== "idle"),
     exportStaticCredential: configuredKey
-      ? Effect.succeed(Option.none())
+      ? Effect.succeedNone
       : readApiKey.pipe(
           Effect.map((apiKey) =>
             apiKey === undefined

@@ -157,6 +157,7 @@ describe("searchSettings", () => {
       localEnvironmentDisabled: true,
       isWslSettingsRowVisible: false,
       hasThreadAutoSettlement: false,
+      hasProviderPools: false,
     };
     const results = (hasPeerLinkHost: boolean) =>
       searchSettings(

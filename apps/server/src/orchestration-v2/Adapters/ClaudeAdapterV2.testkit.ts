@@ -36,7 +36,14 @@ import {
 import * as ClaudeAdapterV2 from "./ClaudeAdapterV2.ts";
 import { claudeTaskOutputRoot } from "./ClaudeTaskOutputTail.ts";
 import * as IdAllocator from "@t3tools/provider-core/server/IdAllocator";
-import { ProviderAdapterDriverCreateError } from "@t3tools/provider-core/server/adapterDriver";
+import {
+  ProviderAdapterDriverCreateError,
+  type ProviderAdapterDriverCreateInput,
+} from "@t3tools/provider-core/server/adapterDriver";
+import {
+  mergeClaudeProcessEnvironment,
+  resolveClaudeRuntime,
+} from "../../provider/Drivers/ClaudeHome.ts";
 import * as ProviderAdapterRegistry from "../ProviderAdapterRegistry.ts";
 import { randomUuidV4 } from "@t3tools/provider-core/server/randomUuid";
 import {
@@ -44,6 +51,24 @@ import {
   type OrchestratorV2ProviderReplayHarness,
 } from "../testkit/ProviderReplayHarness.ts";
 import type { ProviderReplayGate } from "@t3tools/provider-testing/replayGate";
+
+/** Resolves the fork's Claude runtime from a driver create input, as `ClaudeDriver` does. */
+export const createClaudeAdapterV2FromInput = Effect.fn("createClaudeAdapterV2FromInput")(
+  function* (input: ProviderAdapterDriverCreateInput<ClaudeSettings>) {
+    const { stateDir } = yield* ServerConfig.ServerConfig;
+    const runtime = yield* resolveClaudeRuntime({
+      instanceId: input.instanceId,
+      config: { ...input.config, enabled: input.enabled },
+      environment: yield* mergeClaudeProcessEnvironment(
+        input.config,
+        input.environment,
+        yield* HostProcess.Environment,
+      ),
+      stateDir,
+    });
+    return yield* ClaudeAdapterV2.createClaudeAdapterV2(input, runtime, {});
+  },
+);
 
 export const CLAUDE_AGENT_SDK_REPLAY_PROTOCOL = "claude-agent-sdk.query" as const;
 export const claudeBackgroundWakeResultLabel = (wakeNumber: number) =>
@@ -1029,16 +1054,13 @@ function layerClaudeProviderAdapterRegistryReplay(
       Effect.orDie,
       Effect.map((tmpRoot) =>
         ProviderAdapterRegistry.layerFromAdaptersEffect(
-          ClaudeAdapterV2.createClaudeAdapterV2(
-            {
-              instanceId: ClaudeAdapterV2.CLAUDE_DEFAULT_INSTANCE_ID,
-              displayName: undefined,
-              environment: [{ name: "CLAUDE_CODE_TMPDIR", value: tmpRoot, sensitive: false }],
-              enabled: true,
-              config: DEFAULT_CLAUDE_SETTINGS,
-            },
-            {},
-          ).pipe(Effect.map((adapter) => [adapter])),
+          createClaudeAdapterV2FromInput({
+            instanceId: ClaudeAdapterV2.CLAUDE_DEFAULT_INSTANCE_ID,
+            displayName: undefined,
+            environment: [{ name: "CLAUDE_CODE_TMPDIR", value: tmpRoot, sensitive: false }],
+            enabled: true,
+            config: DEFAULT_CLAUDE_SETTINGS,
+          }).pipe(Effect.map((adapter) => [adapter])),
         ),
       ),
       Effect.provide(NodeServices.layer),

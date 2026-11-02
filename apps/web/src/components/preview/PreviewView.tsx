@@ -265,12 +265,12 @@ export function PreviewView({
     } catch (error) {
       toastManager.add({
         type: "error",
-        title: "Could not open this address",
+        title: translate("Could not open this address"),
         description: isPreviewUrlNormalizationError(error)
-          ? "Enter an http or https URL."
+          ? translate("Enter an http or https URL.")
           : error instanceof Error
             ? error.message
-            : "An error occurred.",
+            : translate("An error occurred."),
       });
     }
   };
@@ -287,12 +287,12 @@ export function PreviewView({
     } catch (error) {
       toastManager.add({
         type: "error",
-        title: "Could not open this address",
+        title: translate("Could not open this address"),
         description: isPreviewUrlNormalizationError(error)
-          ? "Enter an http or https URL."
+          ? translate("Enter an http or https URL.")
           : error instanceof Error
             ? error.message
-            : "An error occurred.",
+            : translate("An error occurred."),
       });
     }
   };

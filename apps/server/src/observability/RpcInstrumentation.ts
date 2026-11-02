@@ -46,7 +46,6 @@ const RPC_AGGREGATES = {
   [WS_METHODS.chatGptHandoffSubscribe]: "provider",
   [WS_METHODS.providerAccountExport]: "provider",
   [WS_METHODS.providerAccountImport]: "provider",
-  [WS_METHODS.codexAuthCallbackSubscribe]: "provider",
   [WS_METHODS.providerAuthRespond]: "provider",
   [WS_METHODS.providerAuthCancel]: "provider",
   [WS_METHODS.providerAuthLogout]: "provider",

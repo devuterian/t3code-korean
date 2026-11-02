@@ -429,6 +429,8 @@ const claudeQueryOptions = (model: Model, device = true) => {
   const input: Parameters<typeof makeClaudeQueryOptions>[0] & {
     readonly deviceToolsAvailable?: boolean;
   } = {
+    // oxlint-disable-next-line t3code/no-global-process-runtime -- evals run Claude on this host.
+    platform: process.platform,
     modelSelection: { instanceId: ProviderInstanceId.make(CLAUDE_PROVIDER), model },
     nativeThreadId: "mcp-tool-use-eval",
     resume: false,

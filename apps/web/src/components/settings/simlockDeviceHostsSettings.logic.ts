@@ -6,6 +6,8 @@ import {
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 
+import { translate } from "../../i18n/translate";
+
 const parseSimlockDeviceHostDraft = Schema.decodeUnknownOption(SimlockDeviceHostConfig);
 
 export const newSimlockDeviceHost = (id: string): SimlockDeviceHostConfigType => ({
@@ -34,18 +36,22 @@ export function updateSimlockDeviceHosts(
 export function simlockDeviceHostProblem(host: SimlockDeviceHostConfigType): string | null {
   const withToken = { ...host, agentToken: "token" };
   if (Option.isSome(parseSimlockDeviceHostDraft(withToken))) return null;
-  if (!host.label.trim()) return "Give the host a label.";
+  if (!host.label.trim()) return translate("Give the host a label.");
   // With in-range limits, a draft that still fails has a bad gateway URL.
   return Option.isNone(
     parseSimlockDeviceHostDraft({ ...withToken, maxLeases: 1, maxLeaseMinutes: 60 }),
   )
-    ? "Enter the gateway's origin, such as https://gateway.example.ts.net:4700."
-    : "Keep the limits within the ranges shown.";
+    ? translate("Enter the gateway's origin, such as https://gateway.example.ts.net:4700.")
+    : translate("Keep the limits within the ranges shown.");
 }
 
 export function simlockLeaseLimits(host: SimlockDeviceHostConfigType) {
-  const devices = host.maxLeases === 1 ? "1 device" : `${host.maxLeases} devices`;
-  return `Up to ${devices} at once, each released after ${host.maxLeaseMinutes} min`;
+  const devices = (
+    host.maxLeases === 1 ? translate("1 device") : translate("{count} devices")
+  ).replace("{count}", () => String(host.maxLeases));
+  return translate("Up to {devices} at once, each released after {minutes} min")
+    .replace("{devices}", () => devices)
+    .replace("{minutes}", () => String(host.maxLeaseMinutes));
 }
 
 export interface SimlockHostEnvironment {

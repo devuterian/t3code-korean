@@ -96,7 +96,10 @@ import type * as ProviderContinuationRequests from "@t3tools/provider-core/serve
 import { makeProviderFailure } from "@t3tools/provider-core/server/failure";
 import * as ClaudeAdapterV2 from "./ClaudeAdapterV2.ts";
 import * as IdAllocator from "@t3tools/provider-core/server/IdAllocator";
-import { ClaudeOrchestratorReplayHarness } from "./ClaudeAdapterV2.testkit.ts";
+import {
+  ClaudeOrchestratorReplayHarness,
+  createClaudeAdapterV2FromInput,
+} from "./ClaudeAdapterV2.testkit.ts";
 import { provideDeterministicTestRuntime } from "../testkit/DeterministicRuntime.ts";
 import { runOrchestratorV2Scenario } from "../testkit/OrchestratorScenario.ts";
 import { layerProviderReplay } from "../testkit/ProviderReplayHarness.ts";
@@ -241,6 +244,7 @@ describe("ClaudeAdapterV2 runtime query policy", () => {
     "--thinking-display summarized -- --thinking-display omitted",
   ])("does not treat operands after -- as SDK flags: %s", (launchArgs) => {
     const options = ClaudeAdapterV2.makeClaudeQueryOptions({
+      platform: "linux",
       modelSelection: CLAUDE_TEST_MODEL_SELECTION,
       nativeThreadId: "thinking-thread",
       resume: false,
@@ -272,6 +276,7 @@ describe("ClaudeAdapterV2 runtime query policy", () => {
 
   it("passes every --add-dir launch directory to Claude", () => {
     const options = ClaudeAdapterV2.makeClaudeQueryOptions({
+      platform: "linux",
       modelSelection: CLAUDE_TEST_MODEL_SELECTION,
       nativeThreadId: "native-add-dir",
       resume: false,
@@ -653,6 +658,7 @@ describe("ClaudeAdapterV2 native protocol logging", () => {
 
   it("logs --settings key names without their values", () => {
     const options = ClaudeAdapterV2.makeClaudeQueryOptions({
+      platform: "linux",
       modelSelection: CLAUDE_TEST_MODEL_SELECTION,
       nativeThreadId: "native-thread-claude-settings-log",
       resume: false,
@@ -668,6 +674,7 @@ describe("ClaudeAdapterV2 native protocol logging", () => {
 describe("ClaudeAdapterV2 device instructions", () => {
   const options = (input: { readonly mcp: boolean; readonly deviceToolsAvailable: boolean }) =>
     ClaudeAdapterV2.makeClaudeQueryOptions({
+      platform: "linux",
       modelSelection: {
         instanceId: ProviderInstanceId.make("claudeAgent"),
         model: "claude-opus-5-5",
@@ -1299,7 +1306,7 @@ const captureSdkExecutablePaths = Effect.fn("captureSdkExecutablePaths")(functio
 ) {
   const executablePaths: Array<string | undefined> = [];
   const taskToolEnvironment: Array<string | undefined> = [];
-  const adapter = yield* ClaudeAdapterV2.ClaudeAdapterV2Driver.create({
+  const adapter = yield* createClaudeAdapterV2FromInput({
     instanceId: ClaudeAdapterV2.CLAUDE_DEFAULT_INSTANCE_ID,
     displayName: undefined,
     environment,

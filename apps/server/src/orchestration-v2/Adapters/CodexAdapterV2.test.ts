@@ -1424,6 +1424,7 @@ describe("CodexAdapterV2 post-settle continuation", () => {
                     sandboxPolicy: { type: "dangerFullAccess" },
                     summary: "detailed",
                     ...(setupMode === "existing" ? { serviceTier: "priority" } : {}),
+                    collaborationMode: { mode: "default", settings: { model: "gpt-5.4" } },
                   },
                 },
               }
@@ -6942,9 +6943,6 @@ describe("CodexAdapterV2 post-settle continuation", () => {
                 yield* Deferred.await(release);
               }
             }),
-          undefined,
-          undefined,
-          { modelProvider: configured },
         );
         yield* harness.runtime.startTurn(
           makeCodexTestTurnInput({
@@ -7917,6 +7915,9 @@ describe("CodexAdapterV2 post-settle continuation", () => {
               outbound.push(method);
               if (method === "thread/fork") forkThreadEnvs.push(threadEnvOf(params));
             }),
+          undefined,
+          undefined,
+          { modelProvider: configured },
         );
         const now = yield* DateTime.now;
         const firstTurn = codexReplaySourceTurn({

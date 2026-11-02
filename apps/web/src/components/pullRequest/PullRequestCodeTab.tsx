@@ -1323,7 +1323,7 @@ function PullRequestCodeTab({
             <TooltipTrigger
               render={
                 <Toggle
-                  aria-label="Hide test files"
+                  aria-label={t("Hide test files")}
                   variant="ghost"
                   size="sm"
                   pressed={hideTestFiles}
@@ -1334,7 +1334,7 @@ function PullRequestCodeTab({
               <FlaskConicalOffIcon className="size-3.5" />
             </TooltipTrigger>
             <TooltipPopup side="top">
-              {hideTestFiles ? "Show test files" : "Hide test files"}
+              {hideTestFiles ? t("Show test files") : t("Hide test files")}
             </TooltipPopup>
           </Tooltip>
         ) : null}
@@ -1538,7 +1538,7 @@ function PullRequestCodeTab({
             defaultWidth={320}
             defaultWidthFraction={0.4}
             minWidth={192}
-            resizeLabel="Resize PR Code files"
+            resizeLabel={t("Resize PR Code files")}
           >
             <DiffFileTree
               ariaLabel={t(`${capitalizeTerm(term)} #{number} files`).replace(

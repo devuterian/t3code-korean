@@ -70,7 +70,7 @@ export function ModelRowContent(
               className="min-w-0 shrink text-base font-t3-medium text-foreground"
               numberOfLines={props.labelNumberOfLines}
             >
-              {props.option.shortLabel}
+              {props.option.shortName ?? props.option.label}
             </Text>
             {props.option.isDefault ? (
               <View className="rounded-md bg-subtle-strong px-1.5 py-0.5">

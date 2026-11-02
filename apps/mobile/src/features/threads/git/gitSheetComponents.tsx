@@ -39,7 +39,7 @@ export function statusSummary(
   } | null,
 ): string {
   if (!gitStatus) {
-    return translate("Loading branch status\u2026");
+    return translate("Loading branch status…");
   }
 
   if (!gitStatus.isRepo) {

@@ -80,7 +80,6 @@ vi.mock("../../state/use-remote-environment-registry", () => ({
       : [],
   }),
 }));
-vi.mock("../prompt-links/usePromptLinkResolver", () => ({ usePromptLinkResolver: () => {} }));
 vi.mock("../sharing/IncomingShareProvider", () => ({ useIncomingShare: () => ({}) }));
 vi.mock("./new-task-flow-provider", () => ({
   useNewTaskFlow: () => ({

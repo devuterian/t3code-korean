@@ -1,5 +1,5 @@
 import * as Schema from "effect/Schema";
-import { useCallback, type CSSProperties } from "react";
+import { type CSSProperties } from "react";
 
 import { useLocalStorage } from "./useLocalStorage";
 
@@ -7,7 +7,7 @@ export const THREAD_WIDTH_STORAGE_KEY = "t3code:thread-width-expansion";
 export const THREAD_WIDTH_STEP = 5;
 
 /** Normalize stored input to a bounded expansion in five-percent steps. */
-export function normalizeThreadWidth(value: unknown): number {
+function normalizeThreadWidth(value: unknown): number {
   return typeof value === "number" && Number.isFinite(value)
     ? Math.min(100, Math.max(0, Math.round(value / THREAD_WIDTH_STEP) * THREAD_WIDTH_STEP))
     : 0;
@@ -35,10 +35,7 @@ export function useThreadWidth() {
     0,
     Schema.Unknown,
   );
-  const setExpansion = useCallback(
-    (value: number) => setStored(normalizeThreadWidth(value)),
-    [setStored],
-  );
+  const setExpansion = (value: number) => setStored(normalizeThreadWidth(value));
   return [normalizeThreadWidth(stored), setExpansion] as const;
 }
 
@@ -51,6 +48,6 @@ export function useFitTables() {
     false,
     Schema.Unknown,
   );
-  const setFitTables = useCallback((value: boolean) => setStored(value), [setStored]);
+  const setFitTables = (value: boolean) => setStored(value);
   return [typeof stored === "boolean" ? stored : false, setFitTables] as const;
 }

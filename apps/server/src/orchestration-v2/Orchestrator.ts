@@ -3248,7 +3248,7 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
             selection: command.modelSelection,
             current: {
               instanceId: thread.providerInstanceId,
-              busy: (yield* loadProjectionForCommand(command, ["runs"])).runs.some(isBlockingRun),
+              busy: (yield* loadProjectionForCommand(command, ["runs"])).runs.some(isActiveRun),
             },
             threadId: command.threadId,
             projectId: thread.projectId,
@@ -5252,6 +5252,7 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
       rootNodeId: nextRootNodeId,
       providerThread: restartProviderThread,
       sessionTransition: restartSessionTransition,
+      contextHandoff: restartHandoff,
     };
   });
 
@@ -5599,6 +5600,7 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
     const nextRootNodeId = replaced.rootNodeId;
     const restartProviderThread = replaced.providerThread;
     const restartSessionTransition = replaced.sessionTransition;
+    const restartHandoff = replaced.contextHandoff;
     yield* appendSteeringMessage({
       runId: targetRun.id,
       nodeId: nextRootNodeId,
@@ -6004,7 +6006,7 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
       selection: command.modelSelection ?? projection.thread.modelSelection,
       current: {
         instanceId: projection.thread.providerInstanceId,
-        busy: projection.runs.some(isBlockingRun),
+        busy: projection.runs.some(isActiveRun),
       },
       threadId: command.threadId,
       projectId: projection.thread.projectId,

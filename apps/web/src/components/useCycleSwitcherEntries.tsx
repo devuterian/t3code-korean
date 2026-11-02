@@ -1,5 +1,10 @@
 import { scopeProjectRef, scopeThreadRef } from "@t3tools/client-runtime/environment";
+import {
+  getProjectOrderKey,
+  selectProjectGroupingSettings,
+} from "@t3tools/client-runtime/state/project-grouping";
 import { effectiveSnoozed } from "@t3tools/client-runtime/state/thread-settled";
+import { sortThreads } from "@t3tools/client-runtime/state/thread-sort";
 import { useNavigate } from "@tanstack/react-router";
 import { MessageSquareIcon } from "lucide-react";
 import type { ReactNode } from "react";
@@ -7,8 +12,6 @@ import type { ReactNode } from "react";
 import { useHandleNewThread } from "../hooks/useHandleNewThread";
 import { useClientSettings } from "../hooks/useSettings";
 import { resolveThreadActionProjectRef } from "../lib/chatThreadActions";
-import { sortThreads } from "../lib/threadSort";
-import { getProjectOrderKey, selectProjectGroupingSettings } from "../logicalProject";
 import {
   buildSidebarProjectPickerEntries,
   buildSidebarProjectSnapshots,
@@ -97,9 +100,10 @@ export function useCycleSwitcherEntries(
       isCurrent: isPreferred,
       commit: () => {
         const uiState = useUiStateStore.getState();
-        uiState.setSidebarProjectScopeKey(
-          uiState.sidebarProjectScopeKey === group.projectKey ? null : group.projectKey,
-        );
+        const scopedToGroup =
+          uiState.sidebarProjectScopeKeys.length === 1 &&
+          uiState.sidebarProjectScopeKeys[0] === group.projectKey;
+        uiState.setSidebarProjectScopeKeys(scopedToGroup ? [] : [group.projectKey]);
         uiState.setProjectExpanded(group.projectKey, true);
 
         const groupKeys = new Set(
@@ -147,6 +151,7 @@ export function useCycleSwitcherEntries(
     group.memberProjectRefs.map((ref) => `${ref.environmentId}:${ref.projectId}`),
   );
   const activeKey = activeThread ? `${activeThread.environmentId}:${activeThread.id}` : null;
+  // oxlint-disable-next-line react/purity -- snooze state is judged at the moment the switcher renders.
   const now = new Date().toISOString();
   const visibleThreads = threads.filter((thread) => {
     if (

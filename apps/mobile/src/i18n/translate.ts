@@ -27,6 +27,11 @@ function subscribe(listener: Listener): () => void {
   };
 }
 
+/** Lets non-React modules react when the active language changes. */
+export function subscribeInterfaceLanguage(listener: () => void): () => void {
+  return subscribe(listener);
+}
+
 function getSnapshot(): MobileInterfaceLanguage {
   return currentLanguage;
 }
@@ -86,7 +91,7 @@ const LANGUAGE_PACKS: Partial<Record<MobileInterfaceLanguage, LanguagePack>> = {
       [
         /^Update (?:the )?(.+) to (v\S+) or newer to use (.+)\.$/,
         (provider, version, names) =>
-          `${names.replace(/,? and /g, ", ")} 모델을 쓰려면 ${provider} 버전을 ${version} 이상으로 업데이트해야 합니다.`,
+          `${names.replace(/,? and /g, ", ")} 모델을 쓰려면 ${provider} 버전을 ${version} 이상으로 업데이트해야 해요.`,
       ],
     ],
   },

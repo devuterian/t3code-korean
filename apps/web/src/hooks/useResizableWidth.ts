@@ -70,16 +70,6 @@ export function useResizableWidth(options: UseResizableWidthOptions): {
     }
   };
 
-  const commitWidth = (nextStorageKey: string, nextWidth: number) => {
-    // Resizing remains usable for this session when browser storage is unavailable.
-    setWidthState({ storageKey: nextStorageKey, width: nextWidth });
-    try {
-      setLocalStorageItem(nextStorageKey, nextWidth, WidthSchema);
-    } catch (error) {
-      console.error("Could not persist panel width.", error);
-    }
-  };
-
   const drag = useResizeDrag<HTMLElement>((event) => {
     const host = event.currentTarget.parentElement;
     // Disable drag transitions through transition-property; the host renders transition-duration.

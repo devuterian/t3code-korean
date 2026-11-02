@@ -14,7 +14,7 @@ export const MAC_PERMISSION_ORDER: readonly MacPermissionId[] = [
   "full-disk-access",
 ];
 
-export function grantedPermissions(statuses: MacPermissionStatuses): MacPermissionId[] {
+function grantedPermissions(statuses: MacPermissionStatuses): MacPermissionId[] {
   return MAC_PERMISSION_ORDER.filter((id) => statuses[id] === "granted");
 }
 

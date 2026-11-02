@@ -88,7 +88,7 @@ export function GitBranchesSheet(_props: GitBranchesSheetProps) {
       ) : (
         <SheetHeader
           presentation="native"
-          title="Branches & worktrees"
+          title={t("Branches & worktrees")}
           onClose={() => navigation.goBack()}
         />
       )}

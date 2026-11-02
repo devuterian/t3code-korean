@@ -908,13 +908,15 @@ describe("synchronized mobile model visibility", () => {
 
     it("leaves drivers the policy does not allow out of the picker", () => {
       expect(
-        buildModelOptions(config, null, undefined, null).map((option) => option.providerKey),
+        buildModelOptions(config, null, undefined, null, "composer").map(
+          (option) => option.providerKey,
+        ),
       ).toEqual(["codex"]);
     });
 
     it("marks a thread's selection on a disallowed driver unavailable with the policy reason", () => {
       expect(
-        buildModelOptions(config, disallowed, undefined, null).find(
+        buildModelOptions(config, disallowed, undefined, null, "composer").find(
           (option) => option.providerKey === "claudeAgent",
         )?.isUnavailable,
       ).toBe(true);

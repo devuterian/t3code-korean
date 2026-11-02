@@ -16,9 +16,9 @@ export const KO_COMMON: Readonly<Record<string, string>> = {
   Device: "기기 설정",
   "Interface language": "인터페이스 언어",
   "Follow device": "기기 설정 따르기",
-  "Thread order not saved": "스레드 순서가 저장되지 않음",
+  "Thread order not saved": "스레드 순서를 저장하지 못했어요",
   "Could not save to all environments. Try again.":
-    "일부 환경에 저장하지 못했습니다. 다시 시도하세요.",
+    "일부 환경에 저장하지 못했어요. 다시 시도하세요.",
   "Sort active threads": "활성 스레드 정렬",
   "Configured order": "지정한 순서",
   "Last message": "마지막 메시지",

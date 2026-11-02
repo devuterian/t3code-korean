@@ -891,9 +891,9 @@ export function collectProviderUsageLimits(
 }
 
 /** Quota left at or below this reads as a warning beside the send button. */
-export const COMPOSER_USAGE_WARN_REMAINING_PERCENT = 20;
+const COMPOSER_USAGE_WARN_REMAINING_PERCENT = 20;
 /** Quota left at or below this reads as danger. */
-export const COMPOSER_USAGE_DANGER_REMAINING_PERCENT = 5;
+const COMPOSER_USAGE_DANGER_REMAINING_PERCENT = 5;
 
 export type ComposerUsageTone = "normal" | "warn" | "danger";
 

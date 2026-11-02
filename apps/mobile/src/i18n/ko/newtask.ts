@@ -7,15 +7,15 @@ export const KO_NEWTASK: Readonly<Record<string, string>> = {
   "Ask anything…": "무엇이든 물어보세요…",
   "What should we build": "무엇을 만들까요",
   "in {project}?": "{project}에서?",
-  "Opens the project picker": "프로젝트 선택기를 엽니다",
+  "Opens the project picker": "프로젝트 선택기를 열어요",
   Environment: "환경",
   "Environment: {environment}": "환경: {environment}",
   "on {environment}": "{environment}에서",
   "Current checkout": "현재 체크아웃",
   "Current worktree": "현재 워크트리",
   "New worktree": "새 워크트리",
-  "Switches to a new worktree": "새 워크트리로 전환합니다",
-  "Switches to the current checkout": "현재 체크아웃으로 전환합니다",
+  "Switches to a new worktree": "새 워크트리로 전환해요",
+  "Switches to the current checkout": "현재 체크아웃으로 전환해요",
   Branch: "브랜치",
   "Base branch": "기준 브랜치",
   "Branch: {branch}": "브랜치: {branch}",
@@ -23,13 +23,13 @@ export const KO_NEWTASK: Readonly<Record<string, string>> = {
   "Choose branch": "브랜치 선택",
   "From {ref}": "{ref}에서 시작",
   "Loading branches…": "브랜치 불러오는 중…",
-  "Model unavailable. Open model settings.": "모델을 사용할 수 없습니다. 모델 설정을 여세요.",
-  "Model and reasoning settings": "모델 및 추론 설정",
+  "Model unavailable. Open model settings.": "모델을 사용할 수 없어요. 모델 설정을 여세요.",
+  "Model and reasoning settings": "모델과 추론 설정",
   "Choose model": "모델 선택",
   Plan: "계획",
   Build: "빌드",
-  "Switches to Build mode": "빌드 모드로 전환합니다",
-  "Switches to Plan mode": "계획 모드로 전환합니다",
+  "Switches to Build mode": "빌드 모드로 전환해요",
+  "Switches to Plan mode": "계획 모드로 전환해요",
   "Interaction mode: {mode}": "상호작용 모드: {mode}",
   "Cloning repository": "저장소 클론 중",
   "Repository not cloned": "저장소가 클론되지 않음",
@@ -39,34 +39,32 @@ export const KO_NEWTASK: Readonly<Record<string, string>> = {
   "Start task": "작업 시작",
   "Queue task": "작업 대기열에 추가",
   "Cancel new task": "새 작업 취소",
-  "An error occurred.": "오류가 발생했습니다.",
+  "An error occurred.": "처리하지 못했어요. 다시 시도하세요.",
   "Failed to remove project": "프로젝트를 제거하지 못함",
   "Failed to cancel clone": "클론을 취소하지 못함",
   "Failed to retry clone": "클론을 다시 시도하지 못함",
   "Shared content unavailable": "공유된 콘텐츠를 사용할 수 없음",
   "The shared content is no longer in the inbox. You can continue editing this task draft.":
-    "공유된 콘텐츠가 더 이상 받은 편지함에 없습니다. 이 작업 초안은 계속 편집할 수 있습니다.",
+    "공유한 콘텐츠가 더 이상 공유 수신함에 없어요. 이 작업 초안은 계속 편집할 수 있어요.",
   "Server attachment support is still loading.":
-    "서버의 첨부 파일 지원 정보를 아직 불러오는 중입니다.",
+    "서버의 첨부 파일 지원 정보를 아직 불러오는 중이에요.",
   "1 shared file was skipped because this draft reached the attachment limit.":
-    "이 초안이 첨부 파일 한도에 도달해 공유된 파일 1개를 건너뛰었습니다.",
+    "이 초안이 첨부 파일 한도에 도달해서 공유한 파일 1개를 건너뛰었어요.",
   "{count} shared files were skipped because this draft reached the attachment limit.":
-    "이 초안이 첨부 파일 한도에 도달해 공유된 파일 {count}개를 건너뛰었습니다.",
+    "이 초안이 첨부 파일 한도에 도달해서 공유한 파일 {count}개를 건너뛰었어요.",
   "Some shared content was skipped": "일부 공유 콘텐츠를 건너뜀",
   "Could not import shared content": "공유된 콘텐츠를 가져올 수 없음",
-  "The shared content could not be saved.": "공유된 콘텐츠를 저장할 수 없습니다.",
+  "The shared content could not be saved.": "공유된 콘텐츠를 저장하지 못했어요.",
   "Cancel import": "가져오기 취소",
   "Could not cancel import": "가져오기를 취소할 수 없음",
-  "The shared content could not be restored safely.":
-    "공유된 콘텐츠를 안전하게 복원할 수 없습니다.",
+  "The shared content could not be restored safely.": "공유된 콘텐츠를 안전하게 복원하지 못했어요.",
   "Retry import": "가져오기 다시 시도",
   "Retry cancel": "취소 다시 시도",
   "You can attach up to {count} attachments per message.":
-    "메시지당 최대 {count}개까지 첨부할 수 있습니다.",
+    "메시지당 최대 {count}개까지 첨부할 수 있어요.",
   "You can attach up to {count} files per message.":
-    "메시지당 파일을 최대 {count}개까지 첨부할 수 있습니다.",
-  "File attachments are not available on this server.":
-    "이 서버에서는 파일 첨부를 사용할 수 없습니다.",
+    "메시지당 파일을 최대 {count}개까지 첨부할 수 있어요.",
+  "File attachments are not available on this server.": "이 서버에서는 파일을 첨부할 수 없어요.",
   "Could not attach file": "파일을 첨부할 수 없음",
   "Could not attach pasted text": "붙여넣은 텍스트를 첨부할 수 없음",
   "Try again.": "다시 시도하세요.",
@@ -75,22 +73,21 @@ export const KO_NEWTASK: Readonly<Record<string, string>> = {
     "웹이나 데스크톱에서 Antigravity를 설정하거나 다른 모델을 선택하세요.",
   "Usage limits": "사용량 한도",
   "Send /usage-limits inside a thread, or open Settings → Usage → Limits.":
-    "스레드 안에서 /usage-limits를 보내거나 설정 → 사용량 → 한도를 여세요.",
+    "스레드에서 /usage-limits를 보내거나 설정 → 사용량 → 한도를 여세요.",
   "Too many attachments": "첨부 파일이 너무 많음",
-  "Remove attachments until there are at most {count}.":
-    "첨부 파일이 {count}개 이하가 되도록 제거하세요.",
+  "Remove attachments until there are at most {count}.": "첨부 파일을 {count}개 이하로 줄이세요.",
   "Too much context": "컨텍스트가 너무 많음",
   "Could not queue task": "작업을 대기열에 추가할 수 없음",
-  "The task could not be saved to the outbox.": "작업을 보낼 편지함에 저장할 수 없습니다.",
+  "The task could not be saved to the outbox.": "작업을 전송 대기열에 저장하지 못했어요.",
   "Unknown project": "알 수 없는 프로젝트",
   "Switching branch...": "브랜치 전환 중...",
   "Could not switch branch": "브랜치를 전환할 수 없음",
-  "The branch could not be checked out.": "브랜치를 체크아웃할 수 없습니다.",
+  "The branch could not be checked out.": "브랜치를 체크아웃하지 못했어요.",
   "The selected project is unavailable. Reconnect and try again.":
-    "선택한 프로젝트를 사용할 수 없습니다. 다시 연결한 후 다시 시도하세요.",
-  "Enter a task before starting the thread.": "스레드를 시작하기 전에 작업을 입력하세요.",
+    "선택한 프로젝트를 사용할 수 없어요. 다시 연결한 다음 시도하세요.",
+  "Enter a task before starting the thread.": "스레드를 시작하려면 작업을 입력해야 해요.",
   "Select a base branch before creating a worktree.":
-    "워크트리를 만들기 전에 기준 브랜치를 선택하세요.",
+    "워크트리를 만들려면 기준 브랜치를 선택해야 해요.",
 
   // Project picker
   "Go back": "뒤로",
@@ -106,24 +103,23 @@ export const KO_NEWTASK: Readonly<Record<string, string>> = {
   "Choose project": "프로젝트 선택",
   "Could not change project": "프로젝트를 변경할 수 없음",
   "The shared content reservation could not be updated.":
-    "공유된 콘텐츠 예약을 업데이트할 수 없습니다.",
+    "공유된 콘텐츠 예약을 업데이트하지 못했어요.",
   "Loading environments": "환경 불러오는 중",
-  "Checking saved environments on this device.": "이 기기에 저장된 환경을 확인하고 있습니다.",
+  "Checking saved environments on this device.": "이 기기에 저장된 환경을 확인하고 있어요.",
   "No environments connected": "연결된 환경 없음",
-  "Add an environment before creating a task.": "작업을 만들기 전에 환경을 추가하세요.",
+  "Add an environment before creating a task.": "작업을 만들려면 환경을 먼저 추가해야 해요.",
   "Environment unavailable": "환경을 사용할 수 없음",
   "The saved environment is offline. Check the URL or start the environment, then retry.":
-    "저장된 환경이 오프라인입니다. URL을 확인하거나 환경을 시작한 후 다시 시도하세요.",
+    "저장된 환경이 오프라인이에요. URL을 확인하거나 환경을 시작한 다음 다시 시도하세요.",
   "Connecting to environment": "환경에 연결 중",
-  "Loading projects from the saved environment.": "저장된 환경에서 프로젝트를 불러오고 있습니다.",
+  "Loading projects from the saved environment.": "저장된 환경에서 프로젝트를 불러오고 있어요.",
   "No projects found": "프로젝트 없음",
-  "The connected environment did not report any projects.":
-    "연결된 환경에서 보고된 프로젝트가 없습니다.",
+  "The connected environment did not report any projects.": "연결된 환경에 프로젝트가 없어요.",
   "Add new project": "새 프로젝트 추가",
   "Add environment": "환경 추가",
   "No matching projects": "일치하는 프로젝트 없음",
   "Try a different project name or workspace path.":
-    "다른 프로젝트 이름이나 작업 공간 경로로 시도하세요.",
+    "다른 프로젝트 이름이나 작업 공간 경로를 입력해 보세요.",
   "{count} workspaces": "작업 공간 {count}개",
 
   // Branch picker
@@ -151,7 +147,7 @@ export const KO_NEWTASK: Readonly<Record<string, string>> = {
   "Legacy models": "레거시 모델",
   "Show legacy models": "레거시 모델 표시",
   "Could not refresh models": "모델을 새로 고칠 수 없음",
-  "Provider discovery failed.": "프로바이더 검색에 실패했습니다.",
+  "Provider discovery failed.": "프로바이더를 검색하지 못했어요.",
   "No favorite models": "즐겨찾는 모델 없음",
   "No matching models": "일치하는 모델 없음",
   "No available models": "사용 가능한 모델 없음",
@@ -171,12 +167,12 @@ export const KO_NEWTASK: Readonly<Record<string, string>> = {
   "Auto-accept edits": "편집 자동 수락",
   Auto: "자동",
   "Full access": "전체 액세스",
-  "Ask before commands and file changes.": "명령 실행 및 파일 변경 전에 묻습니다.",
+  "Ask before commands and file changes.": "명령 실행과 파일 변경 전에 물어봐요.",
   "Auto-approve edits, ask before other actions.":
-    "편집은 자동 승인하고, 다른 작업은 먼저 묻습니다.",
+    "편집은 자동으로 승인하고, 다른 작업은 먼저 물어봐요.",
   "Supported providers approve routine actions; others still ask.":
-    "지원되는 프로바이더는 일상적인 작업을 승인하고, 나머지는 계속 묻습니다.",
-  "Allow commands and edits without prompts.": "확인 없이 명령 실행과 편집을 허용합니다.",
+    "지원하는 프로바이더는 일상적인 작업을 승인하고, 나머지는 계속 물어봐요.",
+  "Allow commands and edits without prompts.": "확인 없이 명령 실행과 편집을 허용해요.",
   // Provider option descriptor labels (server-provided); effort level names stay English.
   Reasoning: "추론",
   Effort: "추론 강도",
@@ -188,12 +184,12 @@ export const KO_NEWTASK: Readonly<Record<string, string>> = {
 
   // Add project
   "Start or reconnect an environment before adding a project.":
-    "프로젝트를 추가하기 전에 환경을 시작하거나 다시 연결하세요.",
+    "프로젝트를 추가하려면 환경을 시작하거나 다시 연결하세요.",
   "{provider} repository": "{provider} 저장소",
   "Clone from a remote URL": "원격 URL에서 클론",
   "Clone {provider} {hint}": "{provider} {hint} 클론",
   "Provider status unavailable. Open Source Control settings and rescan.":
-    "프로바이더 상태를 사용할 수 없습니다. 소스 제어 설정을 열고 다시 검색하세요.",
+    "프로바이더 상태를 확인할 수 없어요. 소스 제어 설정을 열어 다시 검색하세요.",
   Environments: "환경",
   "Local folder": "로컬 폴더",
   "Browse a folder on disk": "디스크의 폴더 찾아보기",
@@ -204,10 +200,10 @@ export const KO_NEWTASK: Readonly<Record<string, string>> = {
   "Clone destination": "클론 위치",
   "Clone project": "프로젝트 클론",
   "The project was created but has not reached this device yet. It will appear in the project list once the connection catches up.":
-    "프로젝트가 생성되었지만 아직 이 기기에 도착하지 않았습니다. 연결이 따라잡으면 프로젝트 목록에 나타납니다.",
-  "Enter a project path.": "프로젝트 경로를 입력하세요.",
+    "프로젝트를 만들었지만 아직 이 기기에 반영되지 않았어요. 연결이 최신 상태가 되면 프로젝트 목록에 나타나요.",
+  "Enter a project path.": "프로젝트 경로를 입력해야 해요.",
   "Windows-style paths are only supported on Windows environments.":
-    "Windows 스타일 경로는 Windows 환경에서만 지원됩니다.",
+    "Windows 스타일 경로는 Windows 환경에서만 쓸 수 있어요.",
   "Relative paths require an active project in this environment.":
-    "상대 경로를 사용하려면 이 환경에 활성 프로젝트가 있어야 합니다.",
+    "상대 경로를 쓰려면 이 환경에 활성 프로젝트가 있어야 해요.",
 };

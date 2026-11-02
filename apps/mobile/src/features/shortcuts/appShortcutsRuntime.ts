@@ -9,6 +9,7 @@ import {
   saveRecentThreadShortcuts,
   type RecentThreadShortcut,
 } from "../../persistence/imperative";
+import { subscribeInterfaceLanguage } from "../../i18n/translate";
 import { appAtomRegistry } from "../../state/atom-registry";
 import { environmentThreadShells } from "../../state/threads";
 import {
@@ -37,6 +38,12 @@ export function createRecentThreadShortcuts(dependencies: RecentThreadShortcutsD
   // Serialize saves so older lists cannot overwrite newer ones.
   let saveQueue: Promise<unknown> = Promise.resolve();
 
+  const publish = (next: ReadonlyArray<RecentThreadShortcut>) => {
+    void dependencies.publish(next).catch((error: unknown) => {
+      console.warn("[app-shortcuts] failed to update launcher shortcuts", error);
+    });
+  };
+
   const commit = (next: ReadonlyArray<RecentThreadShortcut>) => {
     recents = next;
     if (persistable) {
@@ -48,9 +55,7 @@ export function createRecentThreadShortcuts(dependencies: RecentThreadShortcutsD
         () => undefined,
       );
     }
-    void dependencies.publish(next).catch((error: unknown) => {
-      console.warn("[app-shortcuts] failed to update launcher shortcuts", error);
-    });
+    publish(next);
   };
 
   const withActive = (list: ReadonlyArray<RecentThreadShortcut>) => {
@@ -73,6 +78,10 @@ export function createRecentThreadShortcuts(dependencies: RecentThreadShortcutsD
 
   return {
     loaded,
+    /** Re-publishes the launcher shortcuts, whose titles are localized, after a language change. */
+    republish(): void {
+      if (recents !== null) publish(recents);
+    },
     /** Resolves once every save issued so far has finished. */
     saved: () => saveQueue,
     recordActiveThread(next: RecentThreadShortcut | null): void {
@@ -142,8 +151,10 @@ export function installAppShortcuts(navigate: (href: string) => void): () => voi
     (active) => recents.recordActiveThread(active),
     { immediate: true },
   );
+  const stopLanguageSync = subscribeInterfaceLanguage(() => recents.republish());
   return () => {
     subscription.remove();
     unsubscribe();
+    stopLanguageSync();
   };
 }

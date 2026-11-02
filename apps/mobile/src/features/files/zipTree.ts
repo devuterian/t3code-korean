@@ -1,3 +1,5 @@
+import { translate } from "../../i18n/translate";
+
 export interface ZipEntry {
   readonly path: string;
   readonly name: string;
@@ -134,6 +136,8 @@ export function zipDownloadTimeLeft(input: {
     ((input.totalBytes - input.receivedBytes) * input.elapsedMs) / input.receivedBytes / 1000,
   );
   return seconds < 60
-    ? `About ${seconds} ${seconds === 1 ? "second" : "seconds"} left`
-    : `About ${Math.ceil(seconds / 60)} minutes left`;
+    ? translate(seconds === 1 ? "About {count} second left" : "About {count} seconds left", {
+        count: seconds,
+      })
+    : translate("About {count} minutes left", { count: Math.ceil(seconds / 60) });
 }

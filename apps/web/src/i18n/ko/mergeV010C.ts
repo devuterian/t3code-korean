@@ -3,12 +3,12 @@ export const KO_MERGE_V010_C: Readonly<Record<string, string>> = {
   "Open approval": "승인 요청 열기",
   "Open question": "질문 열기",
   "Still bringing attached context into this message.":
-    "아직 첨부한 컨텍스트를 이 메시지에 가져오는 중입니다.",
+    "첨부한 컨텍스트를 이 메시지에 가져오는 중이에요.",
   "Unable to read the dropped thread": "놓은 스레드를 읽을 수 없음",
   "This thread exceeds the attachment size limit. Try a shorter thread.":
-    "이 스레드가 첨부 크기 제한을 초과합니다. 더 짧은 스레드를 사용하십시오.",
+    "이 스레드는 첨부 크기 제한을 넘었어요. 더 짧은 스레드를 선택하세요.",
   "Check that its environment is connected and up to date, then try again.":
-    "해당 환경이 연결되어 있고 최신 상태인지 확인한 다음 다시 시도하십시오.",
+    "환경이 연결돼 있고 최신 상태인지 확인한 다음 다시 시도하세요.",
   "Create private repository": "비공개 저장소 만들기",
   "Create private repository on GitLab": "GitLab에 비공개 저장소 만들기",
   "Create private repository on Forgejo": "Forgejo에 비공개 저장소 만들기",
@@ -21,7 +21,7 @@ export const KO_MERGE_V010_C: Readonly<Record<string, string>> = {
   "Android beta APK": "Android 베타 APK",
   "Android beta APK link": "Android 베타 APK 링크",
   "Scan with your phone, then download and install the APK.":
-    "휴대폰으로 스캔한 다음 APK를 다운로드해 설치합니다.",
+    "휴대폰으로 스캔한 다음 APK를 내려받아 설치하세요.",
   "Open full screen": "전체 화면으로 열기",
   "Copy prompt link": "프롬프트 링크 복사",
   "Context handoff pending": "컨텍스트 인계 대기 중",

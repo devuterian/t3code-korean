@@ -26,7 +26,7 @@ export function macNotificationSettingsUrl(bundle: string | undefined): string {
   return bundleId ? `${base}?id=${encodeURIComponent(bundleId)}` : base;
 }
 
-export function mediaStatus(
+function mediaStatus(
   status: ReturnType<typeof Electron.systemPreferences.getMediaAccessStatus>,
 ): MacPermissionStatus {
   if (status === "restricted") return "denied";

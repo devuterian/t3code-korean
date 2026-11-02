@@ -124,7 +124,7 @@ export function RightPanelSurfaceContent(props: {
       if (!pullRequest.supported) {
         return (
           <PullRequestsUnavailableState
-            title="Pull requests unavailable"
+            title={t("Pull requests unavailable")}
             error={t("Update this environment's T3 Code server to browse pull requests.")}
           />
         );

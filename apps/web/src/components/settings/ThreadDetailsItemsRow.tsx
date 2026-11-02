@@ -1,6 +1,7 @@
 import { ChevronDownIcon } from "lucide-react";
 
 import { updateClientSettings, useClientSettings } from "../../hooks/useSettings";
+import { useTranslate } from "../../i18n/translate";
 import { ThreadDetailsItemsMenuItems } from "../chat/ThreadDetailsItemsMenu";
 import {
   isDefaultThreadDetailsVisibility,
@@ -14,8 +15,12 @@ import { SettingResetButton, SettingsRow } from "./settingsLayout";
 import { searchableSetting } from "./settingsSearch";
 
 export function ThreadDetailsItemsRow() {
+  const t = useTranslate();
   const visibility = useClientSettings(resolveThreadDetailsVisibility);
   const enabled = THREAD_DETAILS_ITEMS.filter((item) => visibility[item.id]).length;
+  const countLabel = t("{enabled} of {total} on")
+    .replace("{enabled}", () => String(enabled))
+    .replace("{total}", () => String(THREAD_DETAILS_ITEMS.length));
   return (
     <SettingsRow
       {...searchableSetting("thread-details-items")}
@@ -36,11 +41,11 @@ export function ThreadDetailsItemsRow() {
                 variant="outline"
                 size="sm"
                 className="w-full justify-between sm:w-40"
-                aria-label={`Thread details: ${enabled} of ${THREAD_DETAILS_ITEMS.length} on`}
+                aria-label={`${t("Thread details")}: ${countLabel}`}
               />
             }
           >
-            {enabled} of {THREAD_DETAILS_ITEMS.length} on
+            {countLabel}
             <ChevronDownIcon aria-hidden />
           </MenuTrigger>
           <MenuPopup align="end">

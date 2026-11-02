@@ -1,4 +1,4 @@
-import { useCallback, useSyncExternalStore } from "react";
+import { useSyncExternalStore } from "react";
 
 import { DEFAULT_INTERFACE_LANGUAGE, type InterfaceLanguage } from "@t3tools/contracts/settings";
 
@@ -12,7 +12,6 @@ import { KO_V2_SETTINGS_PATTERNS } from "./ko/settings";
 type Listener = () => void;
 
 let currentLanguage: InterfaceLanguage = DEFAULT_INTERFACE_LANGUAGE;
-let languageConfigured = false;
 const listeners = new Set<Listener>();
 
 function emitChange() {
@@ -45,12 +44,7 @@ export function setInterfaceLanguage(language: InterfaceLanguage): void {
 
 /** Mark the language store as configured so React can skip the default flash. */
 export function markInterfaceLanguageConfigured(): void {
-  languageConfigured = true;
   emitChange();
-}
-
-export function isInterfaceLanguageConfigured(): boolean {
-  return languageConfigured;
 }
 
 /** Read the active language from non-React formatting and state modules. */
@@ -59,7 +53,7 @@ export function getInterfaceLanguage(): InterfaceLanguage {
 }
 
 /** React hook returning the active interface language. */
-export function useInterfaceLanguage(): InterfaceLanguage {
+function useInterfaceLanguage(): InterfaceLanguage {
   return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }
 
@@ -108,7 +102,7 @@ const LANGUAGE_PACKS: Partial<Record<InterfaceLanguage, LanguagePack>> = {
       ...KO_V2_SETTINGS_PATTERNS,
       ...KO_MERGE_1027_E_PATTERNS,
       [/^Working \((\d+)\)$/, (n) => `작업 중 (${n})`],
-      [/^An instance named '(.+)' already exists\.$/, (id) => `'${id}' 인스턴스가 이미 있습니다.`],
+      [/^An instance named '(.+)' already exists\.$/, (id) => `'${id}' 인스턴스가 이미 있어요.`],
       [/^(\d+) archived threads?$/, (n) => `보관된 스레드 ${n}개`],
       [/^Archived thread actions for (.+)$/, (project) => `${project}의 보관된 스레드 작업`],
       [
@@ -147,40 +141,39 @@ const LANGUAGE_PACKS: Partial<Record<InterfaceLanguage, LanguagePack>> = {
           const term = (name: string) => terms[name] ?? name;
           let action = what ?? "";
           let m: RegExpExecArray | null;
-          if (action === "commit and push changes") action = "변경사항을 커밋하고 푸시합니다";
-          else if (action === "push local commits") action = "로컬 커밋을 푸시합니다";
+          if (action === "commit and push changes") action = "변경 사항을 커밋하고 푸시해요";
+          else if (action === "push local commits") action = "로컬 커밋을 푸시해요";
           else if ((m = /^commit, push, and create an? (.+)$/.exec(action)))
-            action = `커밋하고 푸시한 뒤 ${term(m[1]!)} 생성합니다`;
+            action = `커밋하고 푸시한 뒤 ${term(m[1]!)} 만들어요`;
           else if ((m = /^push local commits and create an? (.+)$/.exec(action)))
-            action = `로컬 커밋을 푸시하고 ${term(m[1]!)} 생성합니다`;
-          return `이 작업은 "${branch}"에서 ${action}. 이 ref에서 계속하거나 기능 ref를 만들어 같은 작업을 그곳에서 실행할 수 있습니다.`;
+            action = `로컬 커밋을 푸시하고 ${term(m[1]!)} 만들어요`;
+          return `이 작업은 "${branch}"에서 ${action}. 이 ref에서 계속하거나 기능 ref를 만들어 같은 작업을 그곳에서 실행할 수 있어요.`;
         },
       ],
       [
         /^(Updated .+ from .+)$/,
         (text) => {
           const [, ref, upstream] = /^Updated (.+) from (.+)$/.exec(text) ?? [];
-          return `${upstream}에서 ${ref}을(를) 업데이트했습니다`;
+          return `${ref}: ${upstream}에서 업데이트했어요`;
         },
       ],
-      [/^(.+) is already synchronized\.$/, (ref) => `${ref}은(는) 이미 동기화되어 있습니다.`],
+      [/^(.+) is already synchronized\.$/, (ref) => `${ref}: 이미 동기화돼 있어요.`],
       [/^Publishing repository to (.+)\.\.\.$/, (host) => `${host}에 저장소 게시 중...`],
       [
         /^(.+ is now live on .+\.)$/,
         (text) => {
           const [, branch, host] = /^(.+) is now live on (.+)\.$/.exec(text) ?? [];
-          return `${branch}이(가) 이제 ${host}에 게시되었습니다.`;
+          return `${branch}: 이제 ${host}에 게시됐어요.`;
         },
       ],
       [
         /^Remote "(.+)" is set up\. Make a commit and push it to share your code\.$/,
-        (remote) => `"${remote}" 원격이 설정되었습니다. 커밋하고 푸시해 코드를 공유하세요.`,
+        (remote) => `"${remote}" 원격을 설정했어요. 커밋하고 푸시하면 코드를 공유할 수 있어요.`,
       ],
       [/^Open on (.+)$/, (host) => `${host}에서 열기`],
       [
         /^(.+) is not authenticated\. Open Settings -> Source [Cc]ontrol for setup guidance\.$/,
-        (provider) =>
-          `${provider} 인증이 필요합니다. 설정 안내는 설정 -> 소스 제어에서 확인하세요.`,
+        (provider) => `${provider} 인증이 필요해요. 설정 안내는 설정 -> 소스 제어에서 확인하세요.`,
       ],
       [
         /^(\(\d+ of \d+\))$/,
@@ -227,8 +220,8 @@ const LANGUAGE_PACKS: Partial<Record<InterfaceLanguage, LanguagePack>> = {
         /^(.+) is not connected\.$/,
         (e) =>
           e === "The selected environment"
-            ? "선택한 환경이 연결되어 있지 않습니다."
-            : `${e}: 연결되어 있지 않습니다.`,
+            ? "선택한 환경이 연결되지 않았어요."
+            : `${e}: 연결되지 않았어요.`,
       ],
       [/^For (light|dark) mode$/, (m) => (m === "light" ? "라이트 모드용" : "다크 모드용")],
       [
@@ -248,13 +241,13 @@ const LANGUAGE_PACKS: Partial<Record<InterfaceLanguage, LanguagePack>> = {
       ],
       [
         /^Hold (.+) or press twice to quit$/,
-        (k) => `종료하려면 ${k}를 길게 누르거나 두 번 누르세요`,
+        (k) => `종료하려면 ${k} 키를 길게 누르거나 두 번 누르세요`,
       ],
-      [/^Press (.+) again to quit$/, (k) => `종료하려면 ${k}를 한 번 더 누르세요`],
+      [/^Press (.+) again to quit$/, (k) => `종료하려면 ${k} 키를 한 번 더 누르세요`],
       [
         /^Update (.+) ready to download$/,
         (v) =>
-          v === "available" ? "업데이트를 다운로드할 수 있습니다" : `업데이트 ${v} 다운로드 가능`,
+          v === "available" ? "업데이트를 다운로드할 수 있어요" : `업데이트 ${v} 다운로드 가능`,
       ],
       [/^Downloading update \((\d+)%\)$/, (n) => `업데이트 다운로드 중 (${n}%)`],
       [/^Downloading update$/, () => "업데이트 다운로드 중"],
@@ -262,42 +255,41 @@ const LANGUAGE_PACKS: Partial<Record<InterfaceLanguage, LanguagePack>> = {
         /^Update (.+) downloaded\. Click to restart and install\.$/,
         (v) =>
           v === "ready"
-            ? "업데이트를 다운로드했습니다. 클릭하면 다시 시작해 설치합니다."
-            : `업데이트 ${v}을(를) 다운로드했습니다. 클릭하면 다시 시작해 설치합니다.`,
+            ? "업데이트 다운로드 완료. 누르면 다시 시작해서 설치해요."
+            : `업데이트 ${v} 다운로드 완료. 누르면 다시 시작해서 설치해요.`,
       ],
       [
         /^Download failed for (.+)\. Click to retry\.$/,
-        (v) => `${v} 다운로드에 실패했습니다. 클릭해 다시 시도하세요.`,
+        (v) => `${v} 다운로드 실패. 눌러서 다시 시도하세요.`,
       ],
       [
         /^Install failed for (.+)\. Click to retry\.$/,
-        (v) => `${v} 설치에 실패했습니다. 클릭해 다시 시도하세요.`,
+        (v) => `${v} 설치 실패. 눌러서 다시 시도하세요.`,
       ],
       [
         /^Install update(.*) and restart T3 Code\?\n\nAny running tasks will be interrupted\. Make sure you're ready before continuing\.$/,
         (v) =>
-          `업데이트${v}을(를) 설치하고 T3 Code를 다시 시작할까요?\n\n실행 중인 작업은 모두 중단됩니다. 준비가 되었는지 확인한 뒤 계속하세요.`,
+          `업데이트${v} 설치와 함께 T3 Code를 다시 시작할까요?\n\n실행 중인 작업은 모두 중단돼요. 준비가 됐는지 확인하고 계속하세요.`,
       ],
       [
         /^Migrating ([\d,.]+) threads? from the previous version\. You can keep working while this finishes\.$/,
-        (n) =>
-          `이전 버전에서 스레드 ${n}개를 옮기는 중입니다. 완료될 때까지 계속 작업할 수 있습니다.`,
+        (n) => `이전 버전에서 스레드 ${n}개를 옮기는 중이에요. 끝날 때까지 계속 작업할 수 있어요.`,
       ],
       [
         /^(\d+ requests? waiting longer than \d+s\.)$/,
         (s) => {
           const [, n, sec] = /^(\d+) requests? waiting longer than (\d+)s\.$/.exec(s) ?? [];
-          return `요청 ${n}개가 ${sec}초 넘게 대기 중입니다.`;
+          return `요청 ${n}개가 ${sec}초 넘게 대기 중이에요.`;
         },
       ],
       [
         /^(.+) can be updated from provider settings\.$/,
-        (l) => `${l.replace(/,? and /g, ", ")}: 프로바이더 설정에서 업데이트할 수 있습니다.`,
+        (l) => `${l.replace(/,? and /g, ", ")}: 프로바이더 설정에서 업데이트할 수 있어요.`,
       ],
       [
         /^(.+) still appears? outdated\. (?:Check|Review) provider settings for details\.$/,
         (l) =>
-          `${l.replace(/,? and /g, ", ")}: 아직 오래된 버전입니다. 자세한 내용은 프로바이더 설정을 확인하세요.`,
+          `${l.replace(/,? and /g, ", ")}: 아직 오래된 버전이에요. 자세한 내용은 프로바이더 설정을 확인하세요.`,
       ],
       [/^(\d+) providers updated$/, (n) => `프로바이더 ${n}개 업데이트됨`],
       [
@@ -310,40 +302,37 @@ const LANGUAGE_PACKS: Partial<Record<InterfaceLanguage, LanguagePack>> = {
       [/^(\d+) provider updates failed$/, (n) => `프로바이더 업데이트 ${n}개 실패`],
       [
         /^(\d+) providers still need updates$/,
-        (n) => `프로바이더 ${n}개에 아직 업데이트가 필요합니다`,
+        (n) => `프로바이더 ${n}개에 아직 업데이트가 필요해요`,
       ],
       [/^Updates Available: (\d+) providers$/, (n) => `업데이트 가능: 프로바이더 ${n}개`],
       [/^Updating (\d+) providers$/, (n) => `프로바이더 ${n}개 업데이트 중`],
-      [/^(.+) update in progress\.$/, (l) => `${l} 업데이트 진행 중입니다.`],
+      [/^(.+) update in progress\.$/, (l) => `${l} 업데이트 중이에요.`],
       [
         /^(.+) updates are in progress\.$/,
-        (l) => `${l.replace(/,? and /g, ", ")} 업데이트 진행 중입니다.`,
+        (l) => `${l.replace(/,? and /g, ", ")} 업데이트 중이에요.`,
       ],
       [
         /^(.+) failed to update\. Check provider settings for details\.$/,
         (l) =>
-          `${l.replace(/,? and /g, ", ")} 업데이트에 실패했습니다. 자세한 내용은 프로바이더 설정을 확인하세요.`,
+          `${l.replace(/,? and /g, ", ")} 업데이트하지 못했어요. 자세한 내용은 프로바이더 설정을 확인하세요.`,
       ],
-      [
-        /^Desktop app relaunched on (.+)\.$/,
-        (v) => `데스크톱 앱이 ${v} 버전으로 다시 실행되었습니다.`,
-      ],
-      [/^Reconnected on (t3@.+)\.$/, (v) => `${v}로 다시 연결되었습니다.`],
+      [/^Desktop app relaunched on (.+)\.$/, (v) => `데스크톱 앱을 ${v} 버전으로 다시 실행했어요.`],
+      [/^Reconnected on (t3@.+)\.$/, (v) => `${v}에 다시 연결했어요.`],
       [
         /^Update the T3 Code desktop apps on (.+)\? They will close and relaunch on those machines\.$/,
         (l) =>
-          `${l}의 T3 Code 데스크톱 앱을 업데이트할까요? 해당 기기에서 앱이 닫혔다가 다시 실행됩니다.`,
+          `${l}의 T3 Code 데스크톱 앱을 업데이트할까요? 해당 기기에서 앱이 닫혔다가 다시 실행돼요.`,
       ],
       [
         /^Update the T3 Code desktop app that runs the (.+)\? It will close and relaunch on that machine\.$/,
         (s) =>
-          `${s}을(를) 실행하는 T3 Code 데스크톱 앱을 업데이트할까요? 해당 기기에서 앱이 닫혔다가 다시 실행됩니다.`,
+          `${s} 실행에 쓰는 T3 Code 데스크톱 앱을 업데이트할까요? 해당 기기에서 앱이 닫혔다가 다시 실행돼요.`,
       ],
       [
         /^(Run `[^`]+` on .+ to update it\.)$/,
         (s) => {
           const [, c, h] = /^Run `([^`]+)` on (.+) to update it\.$/.exec(s) ?? [];
-          return `${h}에서 \`${c}\`을(를) 실행해 업데이트하세요.`;
+          return `${h}에서 \`${c}\` 명령을 실행해 업데이트하세요.`;
         },
       ],
       [
@@ -355,11 +344,11 @@ const LANGUAGE_PACKS: Partial<Record<InterfaceLanguage, LanguagePack>> = {
         },
       ],
       [/^Cancelled cloning (.+)$/, (n) => `${n} 복제 취소됨`],
-      [/^Failed to clone (.+)$/, (n) => `${n}을(를) 복제하지 못했습니다`],
+      [/^Failed to clone (.+)$/, (n) => `${n} 복제하지 못했어요`],
       [/^Cloning (.+)$/, (n) => `${n} 복제 중`],
       [/^Cloned (.+)$/, (n) => `${n} 복제 완료`],
       [/^Searching every host for “([\s\S]*)”$/, (q) => `모든 호스트에서 “${q}” 검색 중`],
-      [/^Nothing matches “([\s\S]*)”$/, (q) => `“${q}”와(과) 일치하는 항목 없음`],
+      [/^Nothing matches “([\s\S]*)”$/, (q) => `일치하는 항목 없음: “${q}”`],
       [/^(\d+) merges loaded$/, (n) => `불러온 머지 ${n}개`],
       [/^(\d+) selected$/, (n) => `${n}개 선택됨`],
       [/^Conflicts with (.+)$/, (branch) => `${branch} 브랜치와 충돌`],
@@ -367,7 +356,7 @@ const LANGUAGE_PACKS: Partial<Record<InterfaceLanguage, LanguagePack>> = {
       [
         /^The checkout is ready on `(.+)`\. Point a thread at it from the branch picker, then ask again\.$/,
         (branch) =>
-          `체크아웃이 \`${branch}\`에 준비되었습니다. 브랜치 선택기에서 스레드가 이 브랜치를 가리키게 한 뒤 다시 질문하세요.`,
+          `체크아웃이 \`${branch}\`에 준비됐어요. 브랜치 선택기에서 스레드가 이 브랜치를 가리키게 한 뒤 다시 질문하세요.`,
       ],
       [
         /^(\d+ of \d+) failing$/,
@@ -404,8 +393,8 @@ const LANGUAGE_PACKS: Partial<Record<InterfaceLanguage, LanguagePack>> = {
         (v) => {
           const m = /^(.+) by ([\d,]+) commits?$/.exec(v);
           return m
-            ? `이 브랜치는 ${m[1]}보다 커밋 ${m[2]}개 뒤처져 있습니다.`
-            : `이 브랜치는 ${v}보다 오래되었습니다.`;
+            ? `이 브랜치는 ${m[1]}보다 커밋 ${m[2]}개 뒤처져 있어요.`
+            : `이 브랜치는 ${v}보다 오래됐어요.`;
         },
       ],
       [/^Open (.+) repository$/, (repo) => `${repo} 저장소 열기`],
@@ -420,32 +409,32 @@ const LANGUAGE_PACKS: Partial<Record<InterfaceLanguage, LanguagePack>> = {
         /^This merges (#\d+ using \S+) as soon as the host considers it ready, which may be immediately\.$/,
         (v) => {
           const [n, m] = v.split(" using ");
-          return `호스트가 준비되었다고 판단하는 즉시 ${n} 풀 리퀘스트를 ${m} 방식으로 머지합니다. 바로 머지될 수도 있습니다.`;
+          return `호스트가 준비됐다고 판단하는 즉시 ${n} 풀 리퀘스트를 ${m} 방식으로 머지해요. 바로 머지될 수도 있어요.`;
         },
       ],
       [
         /^This merges (#\d+ using \S+)\.$/,
         (v) => {
           const [n, m] = v.split(" using ");
-          return `${n} 풀 리퀘스트를 ${m} 방식으로 머지합니다.`;
+          return `${n} 풀 리퀘스트를 ${m} 방식으로 머지해요.`;
         },
       ],
       [
         /^This opens a new pull request that reverses the changes merged by #(\d+)\.$/,
-        (n) => `#${n}에서 머지된 변경사항을 되돌리는 새 풀 리퀘스트를 엽니다.`,
+        (n) => `#${n}에서 머지된 변경 사항을 되돌리는 새 풀 리퀘스트를 열어요.`,
       ],
       [
         /^This allows (\d+ workflows? from #\d+) to run\. Review the code and workflow changes first\.$/,
         (v) => {
           const m = /^(\d+) workflows? from (#\d+)$/.exec(v);
           return m
-            ? `${m[2]}의 워크플로 ${m[1]}개 실행을 허용합니다. 먼저 코드와 워크플로 변경사항을 검토하세요.`
+            ? `${m[2]}의 워크플로 ${m[1]}개 실행을 허용해요. 먼저 코드와 워크플로 변경 사항을 검토하세요.`
             : v;
         },
       ],
       [
         /^This closes #(\d+) without merging it\.$/,
-        (n) => `#${n} 풀 리퀘스트를 머지하지 않고 닫습니다.`,
+        (n) => `#${n} 풀 리퀘스트를 머지하지 않고 닫아요.`,
       ],
       [/^(\d+ of \d+) awaiting action$/, (v) => `${v.replace(" of ", "/")} 조치 대기 중`],
       [/^Commit ([0-9a-f]{7,})$/, (oid) => `커밋 ${oid}`],
@@ -456,19 +445,19 @@ const LANGUAGE_PACKS: Partial<Record<InterfaceLanguage, LanguagePack>> = {
       [/^Review \((\d+)\)$/, (n) => `리뷰 (${n})`],
       [
         /^Could not take back the review request to (.+)$/,
-        (login) => `${login}에게 보낸 리뷰 요청을 취소하지 못했습니다`,
+        (login) => `${login}에게 보낸 리뷰 요청을 취소하지 못했어요`,
       ],
-      [/^Could not ask (.+) for a review$/, (login) => `${login}에게 리뷰를 요청하지 못했습니다`],
+      [/^Could not ask (.+) for a review$/, (login) => `${login}에게 리뷰를 요청하지 못했어요`],
       [
         /^Review request to (.+) taken back$/,
-        (login) => `${login}에게 보낸 리뷰 요청을 취소했습니다`,
+        (login) => `${login}에게 보낸 리뷰 요청을 취소했어요`,
       ],
-      [/^Review requested from (.+)$/, (login) => `${login}에게 리뷰를 요청했습니다`],
-      [/^Could not take (.+) off$/, (label) => `${label} 라벨을 떼지 못했습니다`],
-      [/^Could not put (.+) on$/, (label) => `${label} 라벨을 붙이지 못했습니다`],
+      [/^Review requested from (.+)$/, (login) => `${login}에게 리뷰를 요청했어요`],
+      [/^Could not take (.+) off$/, (label) => `${label} 라벨을 떼지 못했어요`],
+      [/^Could not put (.+) on$/, (label) => `${label} 라벨을 붙이지 못했어요`],
       [
         /^No project in this environment can read (.+)\.$/,
-        (repo) => `이 환경에는 ${repo}을(를) 읽을 수 있는 프로젝트가 없습니다.`,
+        (repo) => `${repo} 저장소를 읽을 수 있는 프로젝트가 이 환경에 없어요.`,
       ],
       [/^Stack #(\d+)$/, (n) => `스택 #${n}`],
       [
@@ -493,21 +482,21 @@ const LANGUAGE_PACKS: Partial<Record<InterfaceLanguage, LanguagePack>> = {
           return r ? `#${r[1]}까지의 스택을 ${r[2]}에 머지 (풀 리퀘스트 ${r[3]}개)` : m;
         },
       ],
-      [/^Merge (\d+) pull requests\?$/, (n) => `풀 리퀘스트 ${n}개를 머지하시겠습니까?`],
-      [/^Rebase (\d+) pull requests\?$/, (n) => `풀 리퀘스트 ${n}개를 리베이스하시겠습니까?`],
+      [/^Merge (\d+) pull requests\?$/, (n) => `풀 리퀘스트 ${n}개를 머지할까요?`],
+      [/^Rebase (\d+) pull requests\?$/, (n) => `풀 리퀘스트 ${n}개를 리베이스할까요?`],
       [
         /^Merge #(\d+ and its unmerged layers below into .+ using .+)\. GitHub checks their rules before merging or queueing them and rebases the remaining stack after merging\.$/,
         (m) => {
           const r = /^(\d+) and its unmerged layers below into (.+) using (.+)$/.exec(m);
           return r
-            ? `#${r[1]}과(와) 그 아래의 머지되지 않은 레이어를 ${r[3]} 방식으로 ${r[2]}에 머지합니다. GitHub가 머지하거나 대기열에 넣기 전에 규칙을 확인하고, 머지 후 남은 스택을 리베이스합니다.`
+            ? `#${r[1]} 풀 리퀘스트와 그 아래의 머지되지 않은 레이어를 ${r[3]} 방식으로 ${r[2]}에 머지해요. GitHub가 머지하거나 대기열에 넣기 전에 규칙을 확인하고, 머지한 뒤 남은 스택을 리베이스해요.`
             : m;
         },
       ],
       [
         /^Rebase the remote branches from bottom to top onto (.+)\. This rewrites branch history and may restart checks\. If a layer fails, earlier updates remain\.$/,
         (base) =>
-          `원격 브랜치를 아래에서 위로 ${base}에 리베이스합니다. 브랜치 기록이 다시 쓰이고 체크가 다시 시작될 수 있습니다. 레이어 하나가 실패해도 앞선 업데이트는 그대로 남습니다.`,
+          `원격 브랜치를 아래에서 위로 ${base}에 리베이스해요. 브랜치 기록이 다시 쓰이고 체크가 다시 시작될 수 있어요. 레이어 하나가 실패해도 앞선 업데이트는 그대로 남아요.`,
       ],
       [/^Linked from (\d+) threads?$/, (n) => `스레드 ${n}개에서 연결됨`],
       [/^([\d,]+) authors?$/, (n) => `작성자 ${n}명`],
@@ -522,11 +511,11 @@ const LANGUAGE_PACKS: Partial<Record<InterfaceLanguage, LanguagePack>> = {
       [/^Show only (\d+) recent comments$/, (n) => `최근 코멘트 ${n}개만 보기`],
       [/^Comments \((\d+)\)$/, (n) => `코멘트 (${n})`],
       [/^(\d+) bot comments?$/, (n) => `봇 코멘트 ${n}개`],
-      [/^(\d+) resolved or dismissed comments?$/, (n) => `해결되었거나 기각된 코멘트 ${n}개`],
+      [/^(\d+) resolved or dismissed comments?$/, (n) => `해결됐거나 기각된 코멘트 ${n}개`],
       [
         /^This conversation is longer than this page reads in one go\. The most recent (\d+) are here; open it on the host to read the rest\.$/,
         (n) =>
-          `이 대화는 한 번에 읽어 올 수 있는 길이보다 깁니다. 최근 ${n}개만 표시되며, 나머지는 호스트에서 열어 확인하세요.`,
+          `이 대화는 한 번에 불러올 수 있는 길이보다 길어요. 최근 ${n}개만 표시했어요. 나머지는 호스트에서 열어 확인하세요.`,
       ],
       [/^Show more \((\d+) left\)$/, (n) => `더 보기 (${n}개 남음)`],
       [/^viewed in (.+)$/, (app) => `${app}에서 확인함`],
@@ -539,10 +528,10 @@ const LANGUAGE_PACKS: Partial<Record<InterfaceLanguage, LanguagePack>> = {
       [/^Pinned \((\d+)\)$/, (n) => `고정됨 (${n})`],
       [/^Active \((\d+)\)$/, (n) => `활성 (${n})`],
       [/^Show (\d+) more$/, (n) => `${n}개 더 보기`],
-      [/^No threads in (.+) yet$/, (project) => `${project}에 아직 스레드가 없습니다`],
+      [/^No threads in (.+) yet$/, (project) => `${project}에 아직 스레드가 없어요`],
       [/^Project settings for (.+)$/, (project) => `${project} 프로젝트 설정`],
       [/^Archive \((\d+)\)$/, (n) => `보관 (${n})`],
-      [/^Failed to snooze (\d+) threads?$/, (n) => `스레드 ${n}개를 미루지 못했습니다`],
+      [/^Failed to snooze (\d+) threads?$/, (n) => `스레드 ${n}개를 미루지 못했어요`],
       [/^Delete (\d+) threads?\?$/, (n) => `스레드 ${n}개를 삭제할까요?`],
       [/^Archive thread "(.*)"\?$/, (title) => `"${title}" 스레드를 보관할까요?`],
       [/^Delete thread "(.*)"\?$/, (title) => `"${title}" 스레드를 삭제할까요?`],
@@ -552,12 +541,12 @@ const LANGUAGE_PACKS: Partial<Record<InterfaceLanguage, LanguagePack>> = {
           const [, action, n] = /^(\w+) (\d+) threads?$/.exec(text) ?? [];
           const verb =
             action === "Settled"
-              ? "정리함"
+              ? "정리됨"
               : action === "Snoozed"
-                ? "미룸"
+                ? "미뤄 둠"
                 : action === "Unpinned"
-                  ? "고정 해제함"
-                  : "보관함";
+                  ? "고정 해제됨"
+                  : "보관됨";
           return `스레드 ${n}개 ${verb}`;
         },
       ],
@@ -570,24 +559,21 @@ const LANGUAGE_PACKS: Partial<Record<InterfaceLanguage, LanguagePack>> = {
         },
       ],
       [/^and (\d+) more linked$/, (n) => `외 ${n}개 연결됨`],
-      [/^(\d+) more changes? on GitHub$/, (n) => `GitHub에서 변경사항 ${n}개 더 보기`],
-      [/^Changes in (.+)$/, (version) => `${version} 변경사항`],
+      [/^(\d+) more changes? on GitHub$/, (n) => `GitHub에서 변경 사항 ${n}개 더 보기`],
+      [/^Changes in (.+)$/, (version) => `${version} 변경 사항`],
       [/^(\d+) older releases? on GitHub$/, (n) => `GitHub에서 이전 릴리스 ${n}개 보기`],
       [/^([\d,]+) sessions?$/, (n) => `세션 ${n}개`],
       [
         /^API estimate excludes (\S+) unpriced records\.$/,
-        (p) => `API 추정치에서 가격 미정 기록 ${p}는 제외됩니다.`,
+        (p) => `API 추정치에서 가격 미정 기록 ${p}개는 제외돼요.`,
       ],
       [/^([<\d.,]+%) of cost$/, (p) => `비용의 ${p}`],
       [/^([<\d.,]+%) of tokens$/, (p) => `토큰의 ${p}`],
       [/^([\d.,]+[KMBT]?) tokens$/, (n) => `토큰 ${n}개`],
-      [
-        /^([\d.,]+[KMBT]?) tokens have no known price$/,
-        (n) => `토큰 ${n}개의 가격 정보가 없습니다`,
-      ],
-      [/^Enable Cursor usage from (.+)$/, (env) => `${env}에서 Cursor 사용량 활성화`],
-      [/^Enable on (.+)$/, (env) => `${env}에서 사용`],
-      [/^(.+) could not report usage\.$/, (env) => `${env}에서 사용량을 보고하지 못했습니다.`],
+      [/^([\d.,]+[KMBT]?) tokens have no known price$/, (n) => `토큰 ${n}개의 가격 정보가 없어요`],
+      [/^Enable Cursor usage from (.+)$/, (env) => `${env}에서 Cursor 사용량 켜기`],
+      [/^Enable on (.+)$/, (env) => `${env}에서 켜기`],
+      [/^(.+) could not report usage\.$/, (env) => `${env}에서 사용량을 보고하지 못했어요.`],
       [/^(\d+) environments$/, (n) => `환경 ${n}개`],
       [/^(\d+) environments? still scanning$/, (n) => `환경 ${n}개 스캔 중`],
       [/^(\d+)% left$/, (n) => `${n}% 남음`],
@@ -601,7 +587,7 @@ const LANGUAGE_PACKS: Partial<Record<InterfaceLanguage, LanguagePack>> = {
         /^((?:Input|Output) is required on .+)\.$/,
         (text) => {
           const [, field, env] = /^(Input|Output) is required on (.+)$/.exec(text) ?? [];
-          return `${env}에서 ${field === "Input" ? "입력" : "출력"} 가격은 필수입니다.`;
+          return `${env}: ${field === "Input" ? "입력" : "출력"} 가격을 입력해야 해요.`;
         },
       ],
       [
@@ -661,5 +647,5 @@ export function translate(source: string, language: InterfaceLanguage = currentL
 /** React hook translating an English source string. */
 export function useTranslate() {
   const language = useInterfaceLanguage();
-  return useCallback((source: string) => translate(source, language), [language]);
+  return (source: string) => translate(source, language);
 }

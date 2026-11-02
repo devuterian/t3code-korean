@@ -2232,7 +2232,9 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
     threadId: activeThread?.id ?? null,
     enabled: settings.nextPromptSuggestionsEnabled && activeThread !== undefined,
     phase,
-    messages: promptHistoryEntries.flatMap((entry) => (entry.kind === "message" ? [entry.message] : [])),
+    messages: promptHistoryEntries.flatMap((entry) =>
+      entry.kind === "message" ? [entry.message] : [],
+    ),
   });
   const promptSuggestion =
     nextPrompt.suggestion !== null &&
@@ -2459,6 +2461,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
     projectSelectionRequired;
   // Live refusal state, for a citation whose crop finishes preparing after the composer changed.
   const composerRefusesTextRef = useRef(composerRefusesText);
+  // oxlint-disable-next-line react/refs -- a citation crop that finishes later reads the latest value.
   composerRefusesTextRef.current = composerRefusesText;
   const insertComposerText = (
     text: string,
@@ -2930,6 +2933,8 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
             localEnvironmentDisabled: isLocalEnvironmentDisabled(),
             environmentId,
             primaryEnvironmentId,
+            connection: readPreparedConnection(environmentId),
+            isDesktopRenderer: window.desktopBridge !== undefined,
           }) === "local";
         const toAttach: File[] = [];
         let insertedPath = false;
@@ -3670,7 +3675,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
                     usageLimitsProviders={providerStatuses}
                     usageLimitsInstanceId={selectedInstanceId}
                     usageLimitsDisplay={settings.composerUsageLimitsDisplay}
-                    usageLimitsCompact={isComposerResting || isComposerFooterCompact}
+                    usageLimitsCompact={isComposerPrimaryActionsCompact}
                     onOpenUsageLimits={props.onToggleUsageLimits}
                     activeThreadModelDisplayName={activeThreadModelDisplayName}
                     pendingAction={pendingPrimaryAction}

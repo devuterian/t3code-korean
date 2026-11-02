@@ -60,8 +60,8 @@ export const KO_MERGE_NIGHTLY_1102_C2: Readonly<Record<string, string>> = {
   "Could not switch machine": "머신을 전환할 수 없어요",
   "The folder for threads without a project could not be created.":
     "프로젝트 없는 스레드용 폴더를 만들 수 없어요.",
-  "Collapses the snoozed threads.": "다시 알림으로 설정한 스레드를 접어요.",
-  "Expands the snoozed threads.": "다시 알림으로 설정한 스레드를 펼쳐요.",
+  "Collapses the snoozed threads.": "미뤄 둔 스레드를 접어요.",
+  "Expands the snoozed threads.": "미뤄 둔 스레드를 펼쳐요.",
   "Collapses the settled threads.": "정리한 스레드를 접어요.",
   "Expands the settled threads.": "정리한 스레드를 펼쳐요.",
   "Could not load older threads. Retry": "이전 스레드를 불러오지 못했어요. 다시 시도",
@@ -70,12 +70,12 @@ export const KO_MERGE_NIGHTLY_1102_C2: Readonly<Record<string, string>> = {
   "Sends when the environment reconnects. Opens the task for editing. Swipe left to {action}.":
     "환경이 다시 연결되면 보내요. 작업을 열어 편집할 수 있어요. 왼쪽으로 밀면 {action} 작업을 할 수 있어요.",
   "That snooze time has passed. Choose another time.":
-    "이 다시 알림 시간은 이미 지났어요. 다른 시간을 선택하세요.",
+    "미루기 시간이 이미 지났어요. 다른 시간을 선택하세요.",
   "Opens the thread": "스레드를 열어요",
   "Opens the thread. Swipe left to {action}.":
     "스레드를 열어요. 왼쪽으로 밀면 {action} 작업을 할 수 있어요.",
   "Opens the thread. Swipe left for {action} and snooze actions.":
-    "스레드를 열어요. 왼쪽으로 밀면 {action}, 다시 알림 작업을 할 수 있어요.",
+    "스레드를 열어요. 왼쪽으로 밀면 {action}, 미루기 작업을 할 수 있어요.",
   "Opens this agent's thread": "이 에이전트의 스레드를 열어요",
   "Usage limit reached. Retry after {time}.":
     "사용량 한도에 도달했어요. {time} 이후에 다시 시도하세요.",

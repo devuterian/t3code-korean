@@ -195,7 +195,7 @@ export function DeviceToolsPanel(props: {
             <>
               <Row label="Liquid Glass">
                 <ToggleGroup
-                  aria-label="Liquid Glass"
+                  aria-label={t("Liquid Glass")}
                   value={settings?.liquidGlass ? [settings.liquidGlass] : []}
                   disabled={disabled || settings?.liquidGlass === undefined}
                   onValueChange={(value) => {

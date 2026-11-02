@@ -1,9 +1,9 @@
 /** Korean strings for upstream text that merged without conflicts on 2026-10-09 (mobile pass). */
 export const KO_MERGE_1009_B: Readonly<Record<string, string>> = {
   // Permission notice
-  "Permissions have changed for {name}": "{name}의 권한이 변경되었습니다",
+  "Permissions have changed for {name}": "{name} 권한 변경됨",
   "This connection still uses the old permissions, so some actions may no longer be available. Pair again using a new link with the permissions you need.":
-    "이 연결은 아직 이전 권한을 사용하고 있어 일부 작업을 더 이상 사용할 수 없을 수 있습니다. 필요한 권한이 담긴 새 링크로 다시 페어링하세요.",
+    "이 연결은 아직 이전 권한을 쓰고 있어서 일부 작업을 할 수 없을 수 있어요. 필요한 권한이 담긴 새 링크로 다시 페어링하세요.",
   "Got it": "확인",
 
   // Browser preview
@@ -14,7 +14,7 @@ export const KO_MERGE_1009_B: Readonly<Record<string, string>> = {
   Tabs: "탭",
   "Close browser": "브라우저 닫기",
   "Could not open this address": "이 주소를 열 수 없음",
-  "Enter an http or https URL.": "http 또는 https URL을 입력하세요.",
+  "Enter an http or https URL.": "http 또는 https URL을 입력해야 해요.",
   Forward: "앞으로",
   "Enter a URL": "URL 입력",
   "Reload page": "페이지 새로고침",
@@ -41,57 +41,57 @@ export const KO_MERGE_1009_B: Readonly<Record<string, string>> = {
   "Connecting to browser...": "브라우저에 연결 중...",
   "Could not send the files to the page": "페이지에 파일을 보낼 수 없음",
   "Browser viewer could not start. Reconnect to try again.":
-    "브라우저 뷰어를 시작할 수 없습니다. 다시 연결해 재시도하세요.",
+    "브라우저 뷰어를 시작하지 못했어요. 다시 연결한 다음 시도하세요.",
   "Browser viewer stopped. Reconnect to try again.":
-    "브라우저 뷰어가 멈췄습니다. 다시 연결해 재시도하세요.",
+    "브라우저 뷰어가 멈췄어요. 다시 연결한 다음 시도하세요.",
   "Browser viewer could not load. Reconnect to try again.":
-    "브라우저 뷰어를 불러올 수 없습니다. 다시 연결해 재시도하세요.",
+    "브라우저 뷰어를 불러오지 못했어요. 다시 연결한 다음 시도하세요.",
   "This session can't open the browser stream. Reconnect to try again.":
-    "이 세션은 브라우저 스트림을 열 수 없습니다. 다시 연결해 재시도하세요.",
-  "This tab was closed.": "이 탭은 닫혔습니다.",
-  "Browser stream failed.": "브라우저 스트림에 실패했습니다.",
+    "이 세션은 브라우저 스트림을 열 수 없어요. 다시 연결한 다음 시도하세요.",
+  "This tab was closed.": "이 탭은 닫혔어요.",
+  "Browser stream failed.": "브라우저 스트림을 처리하지 못했어요.",
   "Read-only": "읽기 전용",
   "You have control": "내가 제어 중",
   "Agent has control": "에이전트가 제어 중",
   "Another viewer has control": "다른 뷰어가 제어 중",
   "This server's host blocks the sandbox its browser runs in. Run this once on the host, then try again:":
-    "이 서버의 호스트가 브라우저 실행용 샌드박스를 차단하고 있습니다. 호스트에서 다음을 한 번 실행한 뒤 다시 시도하세요:",
+    "이 서버의 호스트가 브라우저 실행용 샌드박스를 차단하고 있어요. 호스트에서 다음을 한 번 실행한 다음 다시 시도하세요:",
   "This server's host is missing libraries its browser needs. Run this once on the host, then try again:":
-    "이 서버의 호스트에 브라우저에 필요한 라이브러리가 없습니다. 호스트에서 다음을 한 번 실행한 뒤 다시 시도하세요:",
+    "이 서버의 호스트에 브라우저에 필요한 라이브러리가 없어요. 호스트에서 다음을 한 번 실행한 다음 다시 시도하세요:",
   "Release control": "제어 해제",
   "Take control": "제어하기",
-  "The page asks for files.": "페이지에서 파일을 요청합니다.",
-  "The page asks for a file.": "페이지에서 파일 하나를 요청합니다.",
+  "The page asks for files.": "페이지에서 파일을 요청해요.",
+  "The page asks for a file.": "페이지에서 파일 하나를 요청해요.",
   "Choose files": "파일 선택",
   "Choose file": "파일 선택",
   "Dialog response": "대화상자 응답",
   Accept: "수락",
-  "Take control to respond.": "응답하려면 제어하세요.",
+  "Take control to respond.": "제어하면 응답할 수 있어요.",
   "Copy {command}": "{command} 복사",
   "Open browser, {title}": "브라우저 열기, {title}",
-  "Opens the browser tab full screen": "브라우저 탭을 전체 화면으로 엽니다",
+  "Opens the browser tab full screen": "브라우저 탭을 전체 화면으로 열어요",
   "Close floating preview": "플로팅 미리보기 닫기",
   "View browser": "브라우저 보기",
   "View {count} browser tabs": "브라우저 탭 {count}개 보기",
   "Watch and control browser tabs open in this thread":
-    "이 스레드에서 열린 브라우저 탭을 보고 제어합니다",
+    "이 스레드에서 열린 브라우저 탭을 보고 제어해요",
   "One tab open": "탭 1개 열림",
   "{count} tabs open": "탭 {count}개 열림",
 
   // Files
   "Loading {name}": "{name} 불러오는 중",
-  "This connection cannot read host files.": "이 연결은 호스트 파일을 읽을 수 없습니다.",
+  "This connection cannot read host files.": "이 연결은 호스트 파일을 읽을 수 없어요.",
 
   // Environment routes
-  "Remove {name}?": "{name}을(를) 제거할까요?",
+  "Remove {name}?": "{name} 제거할까요?",
   Routes: "경로",
   "Your permissions": "내 권한",
   "Applies to the route marked In use. Other routes may have different permissions and have not been checked.":
-    "사용 중으로 표시된 경로에 적용됩니다. 다른 경로는 권한이 다를 수 있으며 확인되지 않았습니다.",
+    "사용 중으로 표시된 경로에 적용돼요. 다른 경로는 권한이 다를 수 있고, 확인하지 않았어요.",
   Allowed: "허용됨",
   "Not granted": "허용 안 됨",
   "Permissions not checked. Connect to this environment to view this session’s permissions.":
-    "권한을 확인하지 않았습니다. 이 세션의 권한을 보려면 이 환경에 연결하세요.",
+    "권한을 확인하지 않았어요. 이 세션의 권한을 보려면 이 환경에 연결하세요.",
   "Add route": "경로 추가",
   "Remove {name} route": "{name} 경로 제거",
   "Found automatically": "자동으로 찾음",
@@ -104,10 +104,10 @@ export const KO_MERGE_1009_B: Readonly<Record<string, string>> = {
   "View environment": "환경 보기",
   "Operate tasks": "작업 실행",
   "Change environment settings": "환경 설정 변경",
-  "Manage providers": "제공자 관리",
+  "Manage providers": "프로바이더 관리",
   "Maintain environment": "환경 유지 관리",
   "Control previews": "미리보기 제어",
-  "View diagnostics and usage": "진단 및 사용량 보기",
+  "View diagnostics and usage": "진단과 사용량 보기",
   "View terminals": "터미널 보기",
   "Use terminals": "터미널 사용",
   "Change source control": "소스 제어 변경",
@@ -122,7 +122,7 @@ export const KO_MERGE_1009_B: Readonly<Record<string, string>> = {
   Beta: "베타",
   "Working section": "작업 중 섹션",
   "Fold working and monitoring threads into a Working section. They return to the top of the list when they need you. While this is on, active threads are ordered by time and cannot be moved.":
-    "작업 중이거나 모니터링 중인 스레드를 작업 중 섹션으로 접습니다. 내 응답이 필요하면 목록 맨 위로 돌아옵니다. 이 옵션이 켜져 있는 동안 활성 스레드는 시간순으로 정렬되며 옮길 수 없습니다.",
+    "작업 중이거나 모니터링 중인 스레드를 작업 중 섹션으로 접어요. 응답이 필요하면 목록 맨 위로 돌아와요. 이 옵션을 켜 두면 활성 스레드가 시간순으로 정렬되고 옮길 수 없어요.",
 
   // Thread
   "Dismiss error": "오류 닫기",
@@ -130,40 +130,41 @@ export const KO_MERGE_1009_B: Readonly<Record<string, string>> = {
   "Page unavailable": "페이지를 사용할 수 없음",
   "Open {title}": "{title} 열기",
   "Exit full screen": "전체 화면 종료",
-  "This app cannot be shown.": "이 앱을 표시할 수 없습니다.",
-  "This connection cannot respond to approvals.": "이 연결은 승인 요청에 응답할 수 없습니다.",
-  "This connection cannot submit answers.": "이 연결은 답변을 제출할 수 없습니다.",
+  "This app cannot be shown.": "이 앱을 표시할 수 없어요.",
+  "This connection cannot respond to approvals.": "이 연결은 승인 요청에 응답할 수 없어요.",
+  "This connection cannot submit answers.": "이 연결은 답변을 제출할 수 없어요.",
   "This connection cannot control this task. You can still edit your draft.":
-    "이 연결은 이 작업을 제어할 수 없습니다. 초안은 계속 편집할 수 있습니다.",
+    "이 연결은 이 작업을 제어할 수 없어요. 초안은 계속 편집할 수 있어요.",
   "Save securely": "안전하게 저장",
-  "Stored securely, never shown to the agent": "안전하게 저장되며 에이전트에게 표시되지 않습니다",
+  "Stored securely, never shown to the agent": "안전하게 저장되고 에이전트에게 표시되지 않아요",
   "Paste the secret": "시크릿 붙여넣기",
   "Saved securely and kept private": "안전하게 저장되어 비공개로 유지됨",
   Declined: "거절됨",
   "Request ended": "요청 종료됨",
   "Waiting for an answer in the original thread": "원래 스레드에서 답변을 기다리는 중",
-  "Could not answer the request. Try again.": "요청에 응답할 수 없습니다. 다시 시도하세요.",
+  "Could not answer the request. Try again.": "요청에 응답하지 못했어요. 다시 시도하세요.",
   Allow: "허용",
   Open: "열기",
-  "Allow {server} to run {tool}?": "{server}에서 {tool}을(를) 실행하도록 허용할까요?",
+  "Allow {server} to run {tool}?": "{server}의 {tool} 실행을 허용할까요?",
   "Open a link from {server}?": "{server}의 링크를 열까요?",
   "Send this message from {server}?": "{server}의 이 메시지를 보낼까요?",
   "Save a file from {server}?": "{server}의 파일을 저장할까요?",
-  "The {server} app was closed": "{server} 앱이 닫혔습니다",
+  "The {server} app was closed": "{server} 앱이 닫혔어요",
   "Show app": "앱 표시",
   "Unable to load the {server} app": "{server} 앱을 불러올 수 없음",
 
   // Usage
-  "This connection cannot manage provider accounts.": "이 연결은 제공자 계정을 관리할 수 없습니다.",
+  "This connection cannot manage provider accounts.":
+    "이 연결은 프로바이더 계정을 관리할 수 없어요.",
 
   // Voice input
   "{status}, dictating into {label}": "{status}, {label}에 받아쓰는 중",
-  "Shows dictation controls": "받아쓰기 컨트롤을 표시합니다",
-  "Hides dictation controls": "받아쓰기 컨트롤을 숨깁니다",
+  "Shows dictation controls": "받아쓰기 컨트롤을 표시해요",
+  "Hides dictation controls": "받아쓰기 컨트롤을 숨겨요",
   "Retry dictation": "받아쓰기 다시 시도",
   "Drag a region or tap a point": "영역을 드래그하거나 지점을 탭하세요",
   "Image. Drag over a part or tap a point to cite.":
     "이미지. 인용할 부분을 드래그하거나 지점을 탭하세요.",
   "The image is too large to attach. Select a region instead.":
-    "이미지가 너무 커서 첨부할 수 없습니다. 대신 영역을 선택하세요.",
+    "이미지가 너무 커서 첨부할 수 없어요. 대신 영역을 선택하세요.",
 };

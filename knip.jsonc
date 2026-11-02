@@ -27,6 +27,9 @@
       "entry": [
         // These fixture scripts are injected into a browser page by path.
         "fixtures/*/*.js",
+        // Korean fork: electron-builder loads the signer by path; the dictionary check runs with Bun.
+        "sign-macos-korean.ts",
+        "korean-i18n-missing.mjs",
         "knip-schemas.ts",
         "mobile-behavior/run.ts",
         "mobile-native-client.ts",
@@ -76,6 +79,8 @@
         "src/electron/WindowsForegroundFocusWorker.ts!",
         "src/snapShot/GlobalShiftShortcutWorker.ts!",
         "src/snapShot/RegionSnapShotWorker.ts!",
+        // Korean fork: build-desktop-artifact.ts runs this by path.
+        "scripts/build-permission-flow.mjs",
         "src/snapShot/SnapShotAccessibilityWorker.ts!",
         "src/boot.ts!",
         "src/compileCache.ts!",

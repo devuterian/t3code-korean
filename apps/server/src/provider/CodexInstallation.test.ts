@@ -122,6 +122,8 @@ const makeHarness = Effect.fn("test.makeCodexInstallation")(function* (
               fingerprint: token,
             });
       },
+      saved: () => Effect.succeedNone,
+      fingerprint: (_host, token) => Effect.succeed(token),
       invalidate: () => Effect.sync(() => credentialInvalidations++).pipe(Effect.asVoid),
     }),
     Effect.provideService(
@@ -479,7 +481,7 @@ it.effect.each(["interrupted body", "HTTP 404"] as const)(
               ),
             },
       );
-      yield* h.installation.start;
+      yield* h.installation.start();
       expect(yield* terminalState(h.installation)).toMatchObject({
         phase: "failed",
         message:
@@ -501,7 +503,7 @@ it.effect(
       const baseDir = `${directory}/not-a-directory`;
       yield* fs.writeFileString(baseDir, "existing file");
       const h = yield* makeHarness({ baseDir });
-      yield* h.installation.start;
+      yield* h.installation.start();
       expect(yield* terminalState(h.installation)).toMatchObject({
         phase: "failed",
         message: "Could not install Codex. Check disk space and directory access, then try again.",
@@ -518,7 +520,7 @@ it.effect("reports a download timeout and cleans the staging directory", () =>
     const h = yield* makeHarness({
       body: Stream.concat(Stream.succeed(archive.subarray(0, 10)), Stream.fromEffect(stall)),
     });
-    yield* h.installation.start;
+    yield* h.installation.start();
     yield* Deferred.await(started);
     yield* TestClock.adjust("45 minutes");
     expect(yield* terminalState(h.installation)).toMatchObject({
