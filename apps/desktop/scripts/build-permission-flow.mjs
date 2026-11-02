@@ -47,3 +47,13 @@ NodeFS.cpSync(
   NodePath.join(output, "PermissionFlow_PermissionFlow.bundle"),
   { recursive: true },
 );
+// SwiftPM copies resources from its read-only checkout (0444). Squirrel's ShipIt
+// can't strip quarantine from read-only files, which aborts the auto-update.
+const makeWritable = (path) => {
+  const stat = NodeFS.statSync(path);
+  NodeFS.chmodSync(path, stat.mode | 0o200);
+  if (stat.isDirectory()) {
+    for (const entry of NodeFS.readdirSync(path)) makeWritable(NodePath.join(path, entry));
+  }
+};
+makeWritable(NodePath.join(output, "PermissionFlow_PermissionFlow.bundle"));
