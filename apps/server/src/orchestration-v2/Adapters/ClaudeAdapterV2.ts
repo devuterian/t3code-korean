@@ -163,7 +163,6 @@ import {
   claudeSignedOutMessage,
   claudeAccountSettings,
   resolveClaudeHomePath,
-  resolveClaudeRuntime,
   type ClaudeRuntime,
 } from "../../provider/Drivers/ClaudeHome.ts";
 import {
@@ -506,7 +505,10 @@ export interface ClaudeAgentSdkQuerySession {
   readonly backgroundTasks: (
     toolUseId: string,
   ) => Effect.Effect<boolean, ClaudeAgentSdkQueryRunnerError>;
-  readonly interrupt: Effect.Effect<void, ClaudeAgentSdkQueryRunnerError>;
+  readonly interrupt: Effect.Effect<
+    { readonly stillQueued: ReadonlyArray<string> } | void,
+    ClaudeAgentSdkQueryRunnerError
+  >;
   readonly close: Effect.Effect<void, ClaudeAgentSdkQueryRunnerError>;
 }
 
@@ -1208,7 +1210,10 @@ export const layerQueryRunner: Layer.Layer<
                 ),
               ),
             interrupt: Effect.tryPromise({
-              try: () => queryRuntime.interrupt(),
+              try: () =>
+                queryRuntime
+                  .interrupt()
+                  .then((receipt) => ({ stillQueued: receipt?.still_queued ?? [] })),
               catch: (cause) => queryRunnerError(cause, "interrupt"),
             }).pipe(
               Effect.tap(() =>
@@ -2231,6 +2236,16 @@ const reserveClaudePdfBudget = (
         budget.pending.bytes -= reservation.bytes;
       }).pipe(Effect.andThen(persist)),
   );
+
+type ClaudeUserContentBlocks = Exclude<SDKUserMessage["message"]["content"], string>;
+
+const claudeUserContentBlocks = (
+  content: SDKUserMessage["message"]["content"],
+): ClaudeUserContentBlocks =>
+  typeof content === "string" ? [{ type: "text", text: content }] : content;
+
+const CLAUDE_UNREAD_STEERS_NOTE =
+  "[I sent the messages below while your previous turn was running. It was stopped before you read them, so they never reached you. Treat them as part of this message.]";
 
 const makeClaudeUserMessageWithAttachments = Effect.fnUntraced(function* (input: {
   readonly text: string;
@@ -4803,6 +4818,12 @@ export const makeClaudeAdapterV2 = Effect.fn("makeClaudeAdapterV2")(function* (
         });
         const openedNativeThreads = yield* Ref.make(new Set<string>());
         const pdfBudgets = new Map<string, ReturnType<typeof makeClaudeAttachmentBudget>>();
+        // Closing the query on Stop drops steers the CLI had not read yet; the next prompt carries them.
+        const sentSteers = new Map<
+          string,
+          { readonly nativeThreadId: string; readonly content: ClaudeUserContentBlocks }
+        >();
+        const unreadSteers = new Map<string, Array<ClaudeUserContentBlocks>>();
         const latestPlanByKind = yield* Ref.make(new Map<string, OrchestrationV2PlanArtifact>());
         // Claude 5 task tools edit one list per native session, across turns.
         const taskListsByNativeThread = yield* Ref.make(
@@ -10552,7 +10573,7 @@ export const makeClaudeAdapterV2 = Effect.fn("makeClaudeAdapterV2")(function* (
               pdfBudgets.get(nativeThreadId)!,
               persistAttachmentBudget(nativeThreadId),
             );
-            const userMessage =
+            const builtUserMessage =
               promptUuid === null
                 ? null
                 : yield* makeClaudeUserMessageWithAttachments({
@@ -10570,6 +10591,27 @@ export const makeClaudeAdapterV2 = Effect.fn("makeClaudeAdapterV2")(function* (
                     Effect.provideService(ChildProcessSpawner.ChildProcessSpawner, spawner),
                     Effect.provideService(Path.Path, path),
                   );
+            for (const [uuid, steer] of sentSteers) {
+              if (steer.nativeThreadId === nativeThreadId) sentSteers.delete(uuid);
+            }
+            const carriedSteers = unreadSteers.get(nativeThreadId);
+            const userMessage =
+              builtUserMessage === null ||
+              carriedSteers === undefined ||
+              turnInput.message.text.trimStart().startsWith("/")
+                ? builtUserMessage
+                : {
+                    ...builtUserMessage,
+                    message: {
+                      ...builtUserMessage.message,
+                      content: [
+                        ...claudeUserContentBlocks(builtUserMessage.message.content),
+                        { type: "text" as const, text: CLAUDE_UNREAD_STEERS_NOTE },
+                        ...carriedSteers.flat(),
+                      ],
+                    },
+                  };
+            if (userMessage !== builtUserMessage) unreadSteers.delete(nativeThreadId);
             const querySession = yield* openQuery(turnInput, nativeThreadId);
             const context: ActiveClaudeTurnContext = {
               input: turnInput,
@@ -10872,7 +10914,22 @@ export const makeClaudeAdapterV2 = Effect.fn("makeClaudeAdapterV2")(function* (
               next.add(turnInput.providerTurnId);
               return next;
             });
-            yield* existing.query.interrupt.pipe(Effect.timeoutOption("10 seconds"));
+            const receipt = yield* existing.query.interrupt.pipe(
+              Effect.timeoutOption("10 seconds"),
+            );
+            const stillQueued = new Set(
+              Option.isSome(receipt) && receipt.value !== undefined
+                ? receipt.value.stillQueued
+                : [],
+            );
+            for (const [uuid, steer] of sentSteers) {
+              if (steer.nativeThreadId !== existing.nativeThreadId) continue;
+              sentSteers.delete(uuid);
+              if (!stillQueued.has(uuid)) continue;
+              const unread = unreadSteers.get(steer.nativeThreadId) ?? [];
+              unread.push(steer.content);
+              unreadSteers.set(steer.nativeThreadId, unread);
+            }
             yield* existing.query.close.pipe(Effect.ignore);
             const closed = yield* Deferred.await(existing.closed).pipe(
               Effect.timeoutOption(CLAUDE_STOP_CONFIRM_TIMEOUT_MS),
@@ -11001,6 +11058,17 @@ export const makeClaudeAdapterV2 = Effect.fn("makeClaudeAdapterV2")(function* (
                 }),
               persistAttachmentBudget(existing.nativeThreadId),
             );
+            const steerUuid = yield* crypto.randomUUIDv4().pipe(
+              Effect.filterOrFail(isClaudePromptUuid),
+              Effect.mapError(
+                (cause) =>
+                  new ProviderAdapter.ProviderAdapterProtocolError({
+                    driver: CLAUDE_PROVIDER,
+                    detail: "Failed to allocate a Claude steer uuid.",
+                    payload: cause,
+                  }),
+              ),
+            );
             const userMessage = yield* makeClaudeUserMessageWithAttachments({
               text: applyClaudePromptEffortPrefix(
                 turnInput.message.text,
@@ -11008,6 +11076,7 @@ export const makeClaudeAdapterV2 = Effect.fn("makeClaudeAdapterV2")(function* (
               ),
               attachments: turnInput.message.attachments,
               priority: "now",
+              uuid: steerUuid,
               attachmentsDir,
               fileSystem,
               pdfReservation,
@@ -11043,6 +11112,10 @@ export const makeClaudeAdapterV2 = Effect.fn("makeClaudeAdapterV2")(function* (
                 Effect.tap(() =>
                   Effect.sync(() => {
                     pdfReservation.commit();
+                    sentSteers.set(steerUuid, {
+                      nativeThreadId: existing.nativeThreadId,
+                      content: claudeUserContentBlocks(userMessage.message.content),
+                    });
                   }),
                 ),
               ),

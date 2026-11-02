@@ -2967,7 +2967,7 @@ describe("ClaudeAdapterV2 background wake turns", () => {
 
   const makeWakeHarnessWithOptions = (options?: {
     readonly close?: (sdkMessages: Queue.Queue<SDKMessage>) => Effect.Effect<void>;
-    readonly interrupt?: Effect.Effect<void>;
+    readonly interrupt?: ClaudeAdapterV2.ClaudeAgentSdkQuerySession["interrupt"];
     readonly setPermissionMode?: ClaudeAdapterV2.ClaudeAgentSdkQuerySession["setPermissionMode"];
     readonly applyFlagSettings?: ClaudeAdapterV2.ClaudeAgentSdkQuerySession["applyFlagSettings"];
     readonly stopTask?: (
@@ -9029,6 +9029,81 @@ describe("ClaudeAdapterV2 background wake turns", () => {
     ),
   );
 
+  it.effect("carries a steer that Stop left unread into the next prompt", () =>
+    Effect.scoped(
+      Effect.gen(function* () {
+        let acknowledge = Effect.void;
+        let stillQueued: ReadonlyArray<string> = [];
+        const harness = yield* makeWakeHarnessWithOptions({
+          freshQueueOnReopen: true,
+          interrupt: Effect.suspend(() => acknowledge.pipe(Effect.as({ stillQueued }))),
+          close: (messages) => Queue.shutdown(messages),
+        });
+        const input = makeClaudeTestTurnInput({
+          threadId: harness.threadId,
+          providerThread: harness.providerThread,
+          now: yield* DateTime.now,
+          attemptId: RunAttemptId.make("stop-unread-steer"),
+          text: "Reboot the phone and wait",
+          attachments: [],
+        });
+        yield* harness.runtime.startTurn(input);
+        const idAllocator = yield* IdAllocator.IdAllocatorV2;
+        const providerTurnId = idAllocator.derive.providerTurn({
+          driver: ClaudeAdapterV2.CLAUDE_PROVIDER,
+          nativeTurnId: `turn:${input.attemptId}`,
+        });
+        yield* harness.runtime.steerTurn({
+          threadId: harness.threadId,
+          runId: input.runId,
+          providerThread: harness.providerThread,
+          providerTurnId,
+          message: {
+            createdBy: "user",
+            creationSource: "web",
+            messageId: MessageId.make("stop-unread-steer"),
+            text: "The phone is unlocked now",
+            attachments: [],
+          },
+        });
+        stillQueued = [harness.promptUuid(1)];
+        acknowledge = harness.offerAndWait(
+          makeResultFrame({
+            uuid: "00000000-0000-4000-8000-000000000630",
+            result: "",
+            subtype: "error_during_execution",
+            errors: ["Error: Request was aborted."],
+            terminalReason: "aborted_streaming",
+          }),
+        );
+        yield* harness.runtime.interruptTurn({
+          providerThread: harness.providerThread,
+          providerTurnId,
+          requestRuntimeRestart: true,
+        });
+        assert.equal((yield* Queue.take(harness.terminalReceipts)).status, "interrupted");
+
+        yield* harness.runtime.startTurn(
+          makeClaudeTestTurnInput({
+            threadId: harness.threadId,
+            providerThread: harness.providerThread,
+            now: yield* DateTime.now,
+            attemptId: RunAttemptId.make("stop-unread-steer-resume"),
+            text: "Continue where you left off.",
+            attachments: [],
+          }),
+        );
+        const resumed = JSON.stringify(harness.offeredMessages.at(-1)?.message.content);
+        assert.include(resumed, "Continue where you left off.");
+        assert.include(resumed, "The phone is unlocked now");
+      }).pipe(
+        Effect.provide(
+          Layer.mergeAll(IdAllocator.layer, McpProviderSessions.layer, NodeServices.layer),
+        ),
+      ),
+    ),
+  );
+
   it.effect("bounds an unacknowledged native Stop and settles its turn once", () =>
     Effect.scoped(
       Effect.gen(function* () {
@@ -10986,7 +11061,7 @@ describe("ClaudeAdapterV2 background wake turns", () => {
             close: (sdkMessages) =>
               Deferred.await(closeGate).pipe(Effect.andThen(Queue.shutdown(sdkMessages))),
             stopTask: () => Effect.void,
-            interrupt: Deferred.succeed(interruptStarted, undefined),
+            interrupt: Deferred.succeed(interruptStarted, undefined).pipe(Effect.asVoid),
           });
           const idAllocator = yield* IdAllocator.IdAllocatorV2;
           const now = yield* DateTime.now;
