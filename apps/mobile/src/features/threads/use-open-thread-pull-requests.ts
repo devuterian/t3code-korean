@@ -1,6 +1,5 @@
 import type { EnvironmentThreadShell } from "@t3tools/client-runtime/state/shell";
 import { useNavigation } from "@react-navigation/native";
-import { useCallback } from "react";
 
 import * as Dialog from "../../components/ui/Dialog";
 import { translate } from "../../i18n/translate";
@@ -14,28 +13,25 @@ import {
 export function useOpenThreadPullRequests() {
   const navigation = useNavigation();
   const navigateToPullRequest = useNavigateToPullRequest();
-  return useCallback(
-    (thread: EnvironmentThreadShell, pr: ThreadPrPresentation) => {
-      if (resolveThreadPrBadgeAction(pr).kind === "list") {
-        navigation.navigate("ThreadPullRequests", {
-          environmentId: String(thread.environmentId),
-          threadId: String(thread.id),
-        });
-        return;
-      }
-      void navigateToPullRequest(pr.url, {
+  return (thread: EnvironmentThreadShell, pr: ThreadPrPresentation) => {
+    if (resolveThreadPrBadgeAction(pr).kind === "list") {
+      navigation.navigate("ThreadPullRequests", {
         environmentId: String(thread.environmentId),
-        projectId: String(thread.projectId),
-      }).then((opened) => {
-        if (!opened)
-          Dialog.alert(
-            translate("Unable to open {label}", { label: translate(pr.changeRequest.shortLabel) }),
-            translate("The {singular} could not be opened.", {
-              singular: translate(pr.changeRequest.singular),
-            }),
-          );
+        threadId: String(thread.id),
       });
-    },
-    [navigation, navigateToPullRequest],
-  );
+      return;
+    }
+    void navigateToPullRequest(pr.url, {
+      environmentId: String(thread.environmentId),
+      projectId: String(thread.projectId),
+    }).then((opened) => {
+      if (!opened)
+        Dialog.alert(
+          translate("Unable to open {label}", { label: translate(pr.changeRequest.shortLabel) }),
+          translate("The {singular} could not be opened.", {
+            singular: translate(pr.changeRequest.singular),
+          }),
+        );
+    });
+  };
 }

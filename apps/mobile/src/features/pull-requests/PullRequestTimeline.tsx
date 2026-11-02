@@ -15,6 +15,8 @@ import { PullRequestAvatar } from "./PullRequestPresentation";
 import { PullRequestMarkdown } from "./PullRequestMarkdown";
 import { PullRequestCommentFooter } from "./PullRequestReactions";
 import { pullRequestDescriptionContent } from "./pullRequestDescriptionContent";
+import { discussionCommentCountLabel } from "./pullRequestDiffComments";
+import { normalizedReviewState } from "./pullRequestStatus";
 import type { PullRequestParams } from "./usePullRequestDiff";
 
 function TimelineEvent(props: {
@@ -82,8 +84,9 @@ function TimelineComment({
     [comment.body],
   );
   const preview = content.preview;
-  const approved = comment.reviewState === "APPROVED";
-  const changes = comment.reviewState === "CHANGES_REQUESTED";
+  const state = normalizedReviewState(comment.reviewState);
+  const approved = state === "APPROVED";
+  const changes = state === "CHANGES_REQUESTED";
   return (
     <TimelineEvent
       icon={approved ? "checkmark" : changes ? "doc.text" : "text.bubble"}
@@ -256,9 +259,7 @@ export function pullRequestTimelineRows(
             <Text className="text-xs text-foreground-muted">
               {thread.isResolved ? translate("Resolved") : translate("Unresolved")}
               {thread.isOutdated ? ` · ${translate("Outdated")}` : ""} ·{" "}
-              {translate("{count} comments", {
-                count: thread.commentCount ?? thread.comments.length,
-              })}
+              {discussionCommentCountLabel(thread.commentCount ?? thread.comments.length)}
             </Text>
           </Pressable>
         </TimelineEvent>

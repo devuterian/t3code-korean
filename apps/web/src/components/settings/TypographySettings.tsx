@@ -305,7 +305,7 @@ function WordWrapRow() {
   return (
     <SettingsRow
       {...searchableSetting("word-wrap")}
-      description="Wrap long lines in code blocks, tables, diffs, and file previews by default."
+      description="Wrap long lines in code blocks, diffs, and file previews by default."
       resetAction={
         settings.wordWrap !== DEFAULT_UNIFIED_SETTINGS.wordWrap ? (
           <SettingResetButton
@@ -318,7 +318,7 @@ function WordWrapRow() {
         <Switch
           checked={settings.wordWrap}
           onCheckedChange={(checked) => updateSettings({ wordWrap: Boolean(checked) })}
-          aria-label={t("Wrap code, tables, diffs, and file previews by default")}
+          aria-label={t("Wrap code, diffs, and file previews by default")}
         />
       }
     />
@@ -401,6 +401,7 @@ export function TypographySection() {
   // rows without it would make terminal font edits do nothing. The rows follow the target
   // directly so its row mounts in the first commit; the target clears once handled.
   const searchTargetId = useSettingsSearchTargetId();
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- writes the advanced typography flag to localStorage when a search target needs it
   useEffect(() => {
     if (searchTargetId !== null) revealSettingsSearchTarget(searchTargetId);
   }, [searchTargetId]);
@@ -472,6 +473,7 @@ function FontFamilySettingsRow({
     setDraftSettled(true);
   }
   const readAdoptedGeneration = useEffectEvent(() => adopted.generation);
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- clears the pending commit timer on unmount
   useEffect(
     () => () => {
       if (commitTimerRef.current !== null) window.clearTimeout(commitTimerRef.current.id);

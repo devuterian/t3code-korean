@@ -5,6 +5,7 @@ import { useSelectWorkspaceDetail } from "../workspace/useSelectWorkspaceDetail"
 import { AppText as Text } from "../../components/ui/AppText";
 import { useTranslate } from "../../i18n/translate";
 import { PullRequestCardGroup, PullRequestCardRow } from "./PullRequestControls";
+import { pullRequestLayerParams } from "./pullRequestStack";
 import { pullRequestStatus } from "./pullRequestStatus";
 import type { PullRequestParams } from "./usePullRequestDiff";
 import type { PullRequestStackState } from "./usePullRequestStack";
@@ -73,7 +74,7 @@ export function PullRequestStackCard(props: {
                     selected
                       ? undefined
                       : () => {
-                          const params = { ...props.params, number: layer.number };
+                          const params = pullRequestLayerParams(props.params, layer.number);
                           if (Platform.OS === "android")
                             selectDetail({ name: "PullRequest", params });
                           else navigation.dispatch(StackActions.push("PullRequest", params));

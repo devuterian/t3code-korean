@@ -1,3 +1,4 @@
+import { TimelinePendingApprovalRow } from "./TimelinePendingApprovalRow";
 import { WorkLogDetails, WorkLogRow } from "./WorkLog";
 import {
   getQuestionAnswerPreview,
@@ -15,6 +16,7 @@ import { Link } from "@tanstack/react-router";
 import { notificationChildThreadId } from "@t3tools/client-runtime/state/thread-execution";
 import {
   resolveViewedImageAsset,
+  toolGroupAction,
   workEntryViewedImagePath,
 } from "@t3tools/client-runtime/work-log/presentation";
 import {
@@ -38,7 +40,6 @@ import {
   threadReadLabelPrefix,
   threadReadTargetId,
   threadReadTargetTitle,
-  toolGroupAction,
   workEntryDisplayLabel,
   workEntryReadOutput,
 } from "./MessagesTimeline.logic";
@@ -66,6 +67,18 @@ import {
   remarkThoughtPreview,
 } from "./TimelineWorkEntryRow.logic";
 import { useTranslate } from "~/i18n/translate";
+import type { PluggableList } from "unified";
+
+const reasoningPreviewPluginsByLabel = new Map<string, PluggableList>();
+/** One plugin list per translated label, so markdown does not re-parse on every render. */
+export function reasoningPreviewPlugins(label: string): PluggableList {
+  let plugins = reasoningPreviewPluginsByLabel.get(label);
+  if (plugins === undefined) {
+    plugins = [[remarkThoughtPreview, label]];
+    reasoningPreviewPluginsByLabel.set(label, plugins);
+  }
+  return plugins;
+}
 
 export function useThreadReadTarget(entry: TimelineWorkEntry, environmentId: EnvironmentId) {
   const rawThreadId = threadReadTargetId(entry);
@@ -161,6 +174,7 @@ export const SimpleWorkEntryRow = memo(function SimpleWorkEntryRow(props: WorkEn
     <SubagentNotificationLink
       parentRef={scopeThreadRef(ctx.activeThreadEnvironmentId, item.threadId)}
       childThreadId={childThreadId}
+      taskIds={item.source.kind === "delegated_task" ? item.source.taskIds : undefined}
       outcome={item.outcome}
       createdAt={props.workEntry.createdAt}
       timestampFormat={ctx.timestampFormat}
@@ -201,6 +215,11 @@ function WorkEntryLogRow(props: WorkEntryRowProps) {
     setExpanded(next);
   };
   const failureItem = workEntry.projectedItem?.item;
+  const pendingApproval =
+    failureItem?.type === "approval_request"
+      ? ctx.pendingApprovals.get(failureItem.requestId)
+      : undefined;
+  if (pendingApproval) return <TimelinePendingApprovalRow approval={pendingApproval} />;
   if (failureItem?.type === "error" && failureItem.status === "failed") {
     const warning = failureItem.failure.class === "usage_limit";
     const resetAt = failureItem.failure.resetAt;
@@ -421,12 +440,9 @@ function WorkEntryLogRow(props: WorkEntryRowProps) {
                   text={workEntry.detail ?? displayPreviewText}
                   cwd={ctx.markdownCwd}
                   parseRawHtml={false}
-                  extraRemarkPlugins={[
-                    [
-                      remarkThoughtPreview,
-                      workEntry.toolLifecycleStatus === "inProgress" ? t("Thinking") : t("Thought"),
-                    ],
-                  ]}
+                  extraRemarkPlugins={reasoningPreviewPlugins(
+                    workEntry.toolLifecycleStatus === "inProgress" ? t("Thinking") : t("Thought"),
+                  )}
                 />
               ) : threadLabel ? (
                 <ThreadReadLabel
@@ -537,9 +553,7 @@ function WorkEntryLogRow(props: WorkEntryRowProps) {
               environmentId={ctx.activeThreadEnvironmentId}
               cwd={ctx.markdownCwd}
               workspaceRoot={workspaceRoot}
-              onOpenThread={ctx.onOpenThread}
-              onOpenTurnDiff={ctx.onOpenTurnDiff}
-              onRollbackCheckpoint={ctx.onRollbackCheckpoint}
+              onOpenToolDiff={ctx.onOpenToolDiff}
               onImageExpand={ctx.onImageExpand}
               source={ctx.turnItemSource}
             />

@@ -46,7 +46,7 @@ export function ThreadPullRequestsSheet(
     project: selectedThreadProject,
     runtime: selectedEnvironmentRuntime,
   });
-  const rowInputs = useMemo(() => ({ lines, actions }), [lines, actions]);
+  const rowInputs = { lines, actions };
   const singular = t(actions.terminology.singular);
   const plural = t(actions.terminology.plural);
   const title = t("Linked {terms}", { terms: plural });

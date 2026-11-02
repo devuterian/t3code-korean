@@ -41,7 +41,7 @@ import {
   pullRequestDiffInitialPosition,
 } from "./pullRequestDiffDebug";
 import { usePullRequestDiffHighlightFiles } from "./usePullRequestDiffHighlightFiles";
-import { isPullRequestTestFile } from "./pullRequestFileFilters";
+import { isTestChangedFile } from "@t3tools/shared/changedFileKind";
 import { useFocusEffect, useNavigation, type StaticScreenProps } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RegistryContext, useAtomRefresh, useAtomValue } from "@effect/atom-react";
@@ -74,7 +74,7 @@ import { useAndroidWorkspaceBack } from "../workspace/useAndroidWorkspaceNavigat
 import { EmptyState } from "../../components/ui/EmptyState";
 import { SegmentedControl } from "../../components/ui/SegmentedControl";
 import { SymbolView } from "../../components/ui/AppSymbol";
-import { relativeTime } from "../../lib/time";
+import { RelativeTime } from "../../components/RelativeTime";
 import { useTranslate } from "../../i18n/translate";
 import { NativeStackScreenOptions } from "../../native/StackHeader";
 import { usePullRequestConnected } from "./usePullRequestConnected";
@@ -83,6 +83,7 @@ import { pullRequestLabelColor } from "./pullRequestList";
 import { PullRequestReactions } from "./PullRequestReactions";
 import { composerPullRequests } from "../../state/pull-requests";
 import { useEnvironmentQuery } from "../../state/query";
+import { SourceControlAppAccessNotice } from "./SourceControlAppAccessNotice";
 import { usePullToRefresh } from "../../state/use-pull-to-refresh";
 import {
   resolveNativeReviewDiffView,
@@ -111,6 +112,7 @@ import {
   PullRequestReadStatus,
 } from "./PullRequestPresentation";
 import { usePullRequestFilesSection } from "./PullRequestFiles";
+import { usePullRequestMaintainerEdits } from "./usePullRequestMaintainerEdits";
 import { PullRequestDescription } from "./PullRequestDescription";
 import { PullRequestMediaVisibleContext } from "./PullRequestMedia";
 import { PullRequestMarkdownRepository } from "./PullRequestMarkdown";
@@ -178,6 +180,19 @@ function usePullRequestActivityRows(params: PullRequestParams, filter: ActivityF
   };
 }
 
+// `RelativeTime` is a component, so the translated sentence is split around the time placeholder.
+function UpdatedAgo(props: { readonly timestamp: string }) {
+  const t = useTranslate();
+  const [before = "", after = ""] = t("Updated {time} ago", { time: "{time}" }).split("{time}");
+  return (
+    <>
+      {before}
+      <RelativeTime timestamp={props.timestamp} />
+      {after}
+    </>
+  );
+}
+
 function PullRequestIdentity(props: {
   readonly pr: PullRequestDetail | PullRequestListEntry;
   readonly params: PullRequestParams;
@@ -216,7 +231,7 @@ function PullRequestIdentity(props: {
           {pr.author?.login ?? t("Unknown author")}
         </Text>
         <Text className="shrink text-right text-2xs text-foreground-muted" numberOfLines={1}>
-          {t("Updated {time} ago", { time: relativeTime(pr.updatedAt) })}
+          <UpdatedAgo timestamp={pr.updatedAt} />
         </Text>
       </View>
       <View className="flex-row items-start gap-1.5">
@@ -348,6 +363,8 @@ export function PullRequestRouteScreen({ route }: StaticScreenProps<PullRequestP
   const t = useTranslate();
   const insets = useSafeAreaInsets();
   const [toolbarHeight, setToolbarHeight] = usePullRequestToolbarHeight(insets.bottom);
+  // Only iOS lists run under the bars; Android lists start below the header.
+  const barInsets = Platform.OS === "ios" ? insets : { top: 0, bottom: 0 };
   const params = route.params;
   usePullRequestEnvironmentFallback(params);
   const connected = usePullRequestConnected(params.environmentId);
@@ -369,7 +386,7 @@ export function PullRequestRouteScreen({ route }: StaticScreenProps<PullRequestP
   // has its own offset, which only its next scroll would record here.
   const currentScrollOffset = useRef<{ tab: typeof section; offset: number }>({
     tab: "overview",
-    offset: -insets.top,
+    offset: -barInsets.top,
   });
   const bodyY = useRef(0);
   const [headerHeight, setHeaderHeight] = useState(0);
@@ -393,14 +410,15 @@ export function PullRequestRouteScreen({ route }: StaticScreenProps<PullRequestP
     const current =
       currentScrollOffset.current.tab === from
         ? currentScrollOffset.current.offset
-        : (scrollOffsets.current[from] ?? -insets.top);
+        : (scrollOffsets.current[from] ?? -barInsets.top);
     scrollOffsets.current[section] = current;
-    const headerEnd = Math.max(-insets.top, bodyY.current - insets.top);
+    const headerEnd = Math.max(-barInsets.top, bodyY.current - barInsets.top);
     const offset = pullRequestTabOffset(current, scrollOffsets.current[next], headerEnd);
     requestedSection.current = next;
     scrollOffsets.current[next] = offset;
     currentScrollOffset.current = { tab: next, offset };
-    scrollViews.current[next]?.scrollToOffset({ offset, animated: false });
+    // LegendList clamps to its measured rows, which leave out the short-tab minHeight below.
+    scrollViews.current[next]?.getNativeScrollRef().scrollTo({ y: offset, animated: false });
     setSection(next);
   };
   const tabContent = activityContent;
@@ -419,6 +437,11 @@ export function PullRequestRouteScreen({ route }: StaticScreenProps<PullRequestP
   const terminology = sourceControlClients.get(identity?.provider).changeRequest;
   const permissions = usePullRequestPermissions(params, pr);
   const action = usePullRequestAction(params, pr);
+  const maintainerEdits = usePullRequestMaintainerEdits(
+    params,
+    pr,
+    permissions.canEditMaintainerEdits,
+  );
   const showsDeleteBranch = pr !== null && canPerformPullRequestAction(pr, "delete-branch");
   const confirmDeleteBranch = () =>
     pr &&
@@ -451,7 +474,7 @@ export function PullRequestRouteScreen({ route }: StaticScreenProps<PullRequestP
     });
   const jumpToFiles = () => {
     scrollViews.current.overview?.scrollToOffset({
-      offset: bodyY.current + filesY.current - insets.top,
+      offset: bodyY.current + filesY.current - barInsets.top,
       animated: true,
     });
     pendingFilesJump.current = false;
@@ -520,6 +543,19 @@ export function PullRequestRouteScreen({ route }: StaticScreenProps<PullRequestP
                       overflowOnly: true,
                       onPress: () =>
                         navigation.navigate("PullRequestEdit", { ...params, field: "body" }),
+                    },
+                  ]
+                : []),
+              ...(maintainerEdits.visible
+                ? [
+                    {
+                      accessibilityLabel: t("Allow edits from maintainers"),
+                      icon: "pencil" as const,
+                      selected: maintainerEdits.value,
+                      disabled: maintainerEdits.saving,
+                      subtitle: maintainerEdits.subtitle,
+                      overflowOnly: true,
+                      onPress: maintainerEdits.toggle,
                     },
                   ]
                 : []),
@@ -601,6 +637,17 @@ export function PullRequestRouteScreen({ route }: StaticScreenProps<PullRequestP
                 onPress={() => navigation.navigate("PullRequestEdit", { ...params, field: "body" })}
               >
                 <Toolbar.Label>{t("Edit description")}</Toolbar.Label>
+              </Toolbar.MenuAction>
+            ) : null}
+            {maintainerEdits.visible ? (
+              <Toolbar.MenuAction
+                icon="pencil"
+                isOn={maintainerEdits.value}
+                disabled={maintainerEdits.saving}
+                subtitle={maintainerEdits.subtitle}
+                onPress={maintainerEdits.toggle}
+              >
+                <Toolbar.Label>{t("Allow edits from maintainers")}</Toolbar.Label>
               </Toolbar.MenuAction>
             ) : null}
             {identity ? (
@@ -685,7 +732,9 @@ export function PullRequestRouteScreen({ route }: StaticScreenProps<PullRequestP
                   // UIKit owns the bar's inset, so a minimizing bar and a resized column
                   // move the list in the same frame as the bar.
                   contentInsetAdjustmentBehavior="automatic"
-                  contentInsetStartAdjustment={Platform.OS === "ios" ? insets.top : 0}
+                  contentInsetStartAdjustment={barInsets.top}
+                  // RN scrollTo clamps against raw insets and ignores the automatic bar inset.
+                  scrollToOverflowEnabled
                   refreshControl={
                     <RefreshControl
                       refreshing={section === tab && pullRefresh.refreshing}
@@ -704,7 +753,7 @@ export function PullRequestRouteScreen({ route }: StaticScreenProps<PullRequestP
                     pendingDescriptionJump.current = false;
                     // Collapse changes the scroll range; restore the heading after that layout commits.
                     scrollViews.current.overview?.scrollToOffset({
-                      offset: bodyY.current + descriptionY.current - insets.top,
+                      offset: bodyY.current + descriptionY.current - barInsets.top,
                       animated: false,
                     });
                   }}
@@ -715,7 +764,7 @@ export function PullRequestRouteScreen({ route }: StaticScreenProps<PullRequestP
                     // Short tabs must still be tall enough to preserve the collapsed header.
                     minHeight: Math.max(
                       0,
-                      viewportHeight + headerHeight - insets.top - insets.bottom,
+                      viewportHeight + headerHeight - barInsets.top - barInsets.bottom,
                     ),
                   }}
                   data={[
@@ -725,6 +774,12 @@ export function PullRequestRouteScreen({ route }: StaticScreenProps<PullRequestP
                         <View>
                           {tab === "overview" && identity ? (
                             <View>
+                              <SourceControlAppAccessNotice
+                                environmentId={params.environmentId}
+                                provider={identity.provider}
+                                host={params.host}
+                                repository={params.repository}
+                              />
                               {pr ? (
                                 <PullRequestOverview
                                   pr={pr}
@@ -762,7 +817,12 @@ export function PullRequestRouteScreen({ route }: StaticScreenProps<PullRequestP
                               </View>
                             </View>
                           ) : null}
-                          {tab === "guide" ? <PullRequestGuideContent params={params} /> : null}
+                          {tab === "guide" ? (
+                            <PullRequestGuideContent
+                              params={params}
+                              visible={section === "guide"}
+                            />
+                          ) : null}
                           {tab === "activity" ? (
                             <PullRequestActivityFilters
                               value={activityFilter}
@@ -836,19 +896,25 @@ export function PullRequestRouteScreen({ route }: StaticScreenProps<PullRequestP
                           }}
                         >
                           <PullRequestIdentity pr={identity} params={params} />
-                          <SegmentedControl
-                            options={[
-                              { value: "overview", label: t("Overview") },
-                              ...(guidesEnabled
-                                ? [{ value: "guide" as const, label: t("Guide") }]
-                                : []),
-                              { value: "activity", label: t("Activity") },
-                            ]}
-                            selected={section}
-                            onSelect={selectSection}
-                            role="tab"
-                            size="compact"
-                          />
+                          {/* UIKit draws the tapped control's glass lens outside the hidden
+                              tab's opacity, so only the visible tab mounts the control. */}
+                          {Platform.OS !== "ios" || section === tab ? (
+                            <SegmentedControl
+                              options={[
+                                { value: "overview", label: t("Overview") },
+                                ...(guidesEnabled
+                                  ? [{ value: "guide" as const, label: t("Guide") }]
+                                  : []),
+                                { value: "activity", label: t("Activity") },
+                              ]}
+                              selected={section}
+                              onSelect={selectSection}
+                              role="tab"
+                              size="compact"
+                            />
+                          ) : (
+                            <View style={{ height: 32 }} />
+                          )}
                         </View>
                       ) : null}
                     </>
@@ -1005,7 +1071,7 @@ function PullRequestFileRouteContent({ route }: PullRequestFileRouteProps) {
   const jumpedUnder = useRef<boolean | null>(filter.hideTestFiles);
   const hasTestFiles =
     result.parsed.kind === "files" &&
-    result.parsed.files.some((file) => isPullRequestTestFile(file.path));
+    result.parsed.files.some((file) => isTestChangedFile(file.path));
   const jumpStarted = () =>
     jumpedUnder.current !== null && (!hasTestFiles || jumpedUnder.current === filter.hideTestFiles);
   const scrollToFile = (fileId: string) => {
@@ -1027,6 +1093,7 @@ function PullRequestFileRouteContent({ route }: PullRequestFileRouteProps) {
   });
   // Subscribed for the whole screen, so a pick made while the diff is still loading is kept for
   // the first draw.
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- subscribes to pull request file jump requests for the screen's lifetime
   useEffect(() => subscribePullRequestFileJump(jumpScope, (path) => jumpToFile(path)), [jumpScope]);
   const { nativeReviewDiffStyle } = useAppearanceCodeSurface();
   const { themeAppearance, appearance, setCodeWordBreak } = useAppearancePreferences();
@@ -1041,6 +1108,7 @@ function PullRequestFileRouteContent({ route }: PullRequestFileRouteProps) {
     canHighlight: true,
   });
   const [NativeDiffView] = useState(() => resolveNativeReviewDiffView());
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- requests the next page of the paged diff query until the jump target file has loaded
   useEffect(() => {
     if (!targetFile) loadMore();
   }, [targetFile, loadMore]);

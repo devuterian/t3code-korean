@@ -2,7 +2,6 @@ import { useActiveThreadSort } from "../threads/use-active-thread-sort";
 import { ACTIVE_THREAD_SORT_OPTIONS } from "@t3tools/client-runtime/state/shared-settings";
 import type { MenuAction } from "@react-native-menu/menu";
 import { useTranslate } from "../../i18n/translate";
-import { useCallback, useMemo } from "react";
 import { NativeStackScreenOptions } from "../../native/StackHeader";
 import { ThreadListToolbar } from "./ThreadListToolbar";
 import type { HomeHeaderProps } from "./HomeHeader.types";
@@ -20,109 +19,95 @@ export function HomeHeader(props: HomeHeaderProps) {
   const { order, setOrder, available } = useActiveThreadSort();
   const hasCustomListOptions =
     props.selectedEnvironmentId !== null || props.selectedProjectKey !== null || order !== "manual";
-  const menuActions = useMemo<MenuAction[]>(
-    () => [
-      ...(available
-        ? [
-            {
-              id: "active-sort",
-              title: t("Sort active threads"),
-              subactions: ACTIVE_THREAD_SORT_OPTIONS.map((option) => ({
-                id: `active-sort:${option.value}`,
-                title: t(option.label),
-                state: checkedMenuState(order === option.value),
-              })),
-            },
-          ]
-        : []),
-      {
-        id: "environment",
-        title: t("Environment"),
-        subactions: [
+  const menuActions: MenuAction[] = [
+    ...(available
+      ? [
           {
-            id: "environment:all",
-            title: t("All environments"),
-            state: checkedMenuState(props.selectedEnvironmentId === null),
+            id: "active-sort",
+            title: t("Sort active threads"),
+            subactions: ACTIVE_THREAD_SORT_OPTIONS.map((option) => ({
+              id: `active-sort:${option.value}`,
+              title: t(option.label),
+              state: checkedMenuState(order === option.value),
+            })),
           },
-          ...props.environments.map((environment) => ({
-            id: `environment:${environment.environmentId}`,
-            title: environment.label,
-            state: checkedMenuState(props.selectedEnvironmentId === environment.environmentId),
-          })),
-        ],
-      },
-      ...(props.projects.length === 0
-        ? []
-        : ([
-            {
-              id: "project",
-              title: t("Project"),
-              subactions: [
-                {
-                  id: "project:all",
-                  title: t("All projects"),
-                  state: checkedMenuState(props.selectedProjectKey === null),
-                },
-                ...props.projects.map((project) => ({
-                  id: `project:${project.key}`,
-                  title: project.label,
-                  state: checkedMenuState(props.selectedProjectKey === project.key),
-                })),
-              ],
-            },
-          ] satisfies MenuAction[])),
-    ],
-    [
-      t,
-      order,
-      available,
-      props.environments,
-      props.projects,
-      props.selectedEnvironmentId,
-      props.selectedProjectKey,
-    ],
-  );
-  const handleMenuAction = useCallback(
-    (event: { nativeEvent: { event: string } }) => {
-      const id = event.nativeEvent.event;
-      const activeSort = ACTIVE_THREAD_SORT_OPTIONS.find(
-        (option) => id === `active-sort:${option.value}`,
-      );
-      if (available && activeSort) {
-        setOrder(activeSort.value);
-        return;
-      }
-      if (id === "environment:all") {
-        props.onEnvironmentChange(null);
-        return;
-      }
-
-      if (id.startsWith("environment:")) {
-        const environmentId = id.slice("environment:".length);
-        const environment = props.environments.find(
-          (candidate) => candidate.environmentId === environmentId,
-        );
-        if (environment) {
-          props.onEnvironmentChange(environment.environmentId);
-        }
-        return;
-      }
-
-      if (id === "project:all") {
-        props.onProjectChange(null);
-        return;
-      }
-
-      if (id.startsWith("project:")) {
-        const projectKey = id.slice("project:".length);
-        if (props.projects.some((project) => project.key === projectKey)) {
-          props.onProjectChange(projectKey);
-        }
-        return;
-      }
+        ]
+      : []),
+    {
+      id: "environment",
+      title: t("Environment"),
+      subactions: [
+        {
+          id: "environment:all",
+          title: t("All environments"),
+          state: checkedMenuState(props.selectedEnvironmentId === null),
+        },
+        ...props.environments.map((environment) => ({
+          id: `environment:${environment.environmentId}`,
+          title: environment.label,
+          state: checkedMenuState(props.selectedEnvironmentId === environment.environmentId),
+        })),
+      ],
     },
-    [props, available, setOrder],
-  );
+    ...(props.projects.length === 0
+      ? []
+      : ([
+          {
+            id: "project",
+            title: t("Project"),
+            subactions: [
+              {
+                id: "project:all",
+                title: t("All projects"),
+                state: checkedMenuState(props.selectedProjectKey === null),
+              },
+              ...props.projects.map((project) => ({
+                id: `project:${project.key}`,
+                title: project.label,
+                state: checkedMenuState(props.selectedProjectKey === project.key),
+              })),
+            ],
+          },
+        ] satisfies MenuAction[])),
+  ];
+  const handleMenuAction = (event: { nativeEvent: { event: string } }) => {
+    const id = event.nativeEvent.event;
+    const activeSort = ACTIVE_THREAD_SORT_OPTIONS.find(
+      (option) => id === `active-sort:${option.value}`,
+    );
+    if (available && activeSort) {
+      setOrder(activeSort.value);
+      return;
+    }
+    if (id === "environment:all") {
+      props.onEnvironmentChange(null);
+      return;
+    }
+
+    if (id.startsWith("environment:")) {
+      const environmentId = id.slice("environment:".length);
+      const environment = props.environments.find(
+        (candidate) => candidate.environmentId === environmentId,
+      );
+      if (environment) {
+        props.onEnvironmentChange(environment.environmentId);
+      }
+      return;
+    }
+
+    if (id === "project:all") {
+      props.onProjectChange(null);
+      return;
+    }
+
+    if (id.startsWith("project:")) {
+      const projectKey = id.slice("project:".length);
+      if (props.projects.some((project) => project.key === projectKey)) {
+        props.onProjectChange(projectKey);
+      }
+      return;
+    }
+  };
 
   return (
     <>

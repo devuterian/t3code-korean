@@ -6,11 +6,7 @@ import * as Order from "effect/Order";
 
 import { translate } from "../../i18n/translate";
 
-export {
-  getTerminalLabel,
-  nextTerminalId,
-  resolveTerminalSessionLabel,
-} from "@t3tools/shared/terminalLabels";
+export { resolveTerminalSessionLabel } from "@t3tools/shared/terminalLabels";
 
 export interface TerminalMenuSession {
   readonly terminalId: string;

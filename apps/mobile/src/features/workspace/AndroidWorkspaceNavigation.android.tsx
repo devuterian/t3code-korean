@@ -14,6 +14,7 @@ import { useKeyboardState } from "react-native-keyboard-controller";
 
 import { useAndroidControlSizing } from "../../components/ui/useAndroidControlSizing";
 import { useToolbarLayout } from "../../components/ui/useToolbarLayout";
+import { rootNavigationRef } from "../../lib/rootNavigation";
 import { useWorkspaceConnectionState } from "../../state/workspace";
 import { androidWorkspaceNavigationColors } from "./android-workspace-navigation-colors";
 import {
@@ -85,13 +86,6 @@ export function AndroidWorkspaceNavigation(props: {
   const rail = Boolean(props.rail);
   const floating = !rail && Boolean(props.floating);
   const tabs = [...visibleNavigationTabs(order, hidden, rail ? 5 : 4), "settings"];
-  const metrics = floatingTabsMetrics(
-    tabs.length,
-    scale,
-    fabSize,
-    props.paneWidth ?? window.width,
-    props.fillWidth,
-  );
   const { containerColor, indicatorColor, selectedColor, unselectedColor } =
     androidWorkspaceNavigationColors(colors, rail, floating);
   const selectedTab = selectedNavigationTab(
@@ -101,6 +95,11 @@ export function AndroidWorkspaceNavigation(props: {
     hidden,
     rail ? 5 : 4,
   );
+  // FloatingWorkspaceTabs starts the bar at the left inset, so a cutout narrows the room.
+  const barWidth =
+    props.paneWidth ??
+    window.width - (Math.max(insets.left, FLOATING_TABS.edge) - FLOATING_TABS.edge);
+  const metrics = floatingTabsMetrics(tabs.length, scale, fabSize, barWidth, props.fillWidth);
   if (!rail && keyboardVisible) return null;
 
   return (
@@ -137,9 +136,12 @@ export function AndroidWorkspaceNavigation(props: {
           const tab = event.nativeEvent.tab;
           if (tab !== "settings") workspace.dispatch({ type: "select", tab });
           // Reset the root stack even when a nested settings navigator has focus.
-          if (root) {
+          // The provider renders inside the root stack's layout, so the container's root state is
+          // that stack's current state.
+          const rootState = rootNavigationRef.getRootState();
+          if (root && rootState) {
             navigation.dispatch({
-              ...CommonActions.reset(androidWorkspaceTabNavigationState(root.getState(), tab)),
+              ...CommonActions.reset(androidWorkspaceTabNavigationState(rootState, tab, rail)),
               target: root.key,
             });
           }

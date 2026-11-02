@@ -1,5 +1,8 @@
+import { Discovery } from "@t3tools/client-runtime/relay";
+import type { EnvironmentId } from "@t3tools/contracts";
 import { useState } from "react";
 
+import { useRelayEnvironmentDiscovery } from "../../state/environments";
 import {
   AlertDialog,
   AlertDialogClose,
@@ -15,20 +18,46 @@ import { useT3ConnectAccountPage } from "./T3ConnectAccountPages";
 
 export function RemoveT3ConnectEnvironmentDialog({
   environmentLabel,
+  environmentId,
   onCancel,
   onConfirm,
 }: {
   readonly environmentLabel: string | null;
+  readonly environmentId: EnvironmentId | null;
   readonly onCancel: () => void;
   readonly onConfirm: () => void;
 }) {
   const t = useTranslate();
   const accountPage = useT3ConnectAccountPage();
-  const [shownLabel, setShownLabel] = useState(environmentLabel);
-  if (environmentLabel !== null && environmentLabel !== shownLabel) setShownLabel(environmentLabel);
+  const discovery = useRelayEnvironmentDiscovery();
+  const registration = environmentId
+    ? Discovery.relayEnvironmentRegistration(discovery, environmentId)
+    : "unknown";
+  const [shown, setShown] = useState({ label: environmentLabel, registration });
+  if (
+    environmentLabel !== null &&
+    (environmentLabel !== shown.label || registration !== shown.registration)
+  ) {
+    setShown({ label: environmentLabel, registration });
+  }
   const openAccountPage = accountPage.open;
+  const accountPageLink = openAccountPage ? (
+    <InlineButton
+      onClick={() => {
+        onCancel();
+        openAccountPage();
+      }}
+    >
+      {t("T3 Connect settings")}
+    </InlineButton>
+  ) : (
+    t("T3 Connect settings")
+  );
   const [deregisterBefore, deregisterAfter] = t(
     "It stays on your T3 Connect account and keeps its host space. Deregister it in {link} to free it.",
+  ).split("{link}");
+  const [unregisteredBefore, unregisteredAfter] = t(
+    "This doesn't change your T3 Connect account. To deregister it there, use {link}.",
   ).split("{link}");
 
   return (
@@ -42,26 +71,27 @@ export function RemoveT3ConnectEnvironmentDialog({
         <AlertDialogPopup>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {t("Remove {name} from this device?").replace("{name}", () => shownLabel ?? "")}
+              {t("Remove {name} from this device?").replace("{name}", () => shown.label ?? "")}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {t("This forgets its pairing, credentials, and cached threads here.")}
             </AlertDialogDescription>
             <AlertDialogDescription>
-              {deregisterBefore}
-              {openAccountPage ? (
-                <InlineButton
-                  onClick={() => {
-                    onCancel();
-                    openAccountPage();
-                  }}
-                >
-                  {t("T3 Connect settings")}
-                </InlineButton>
+              {shown.registration === "registered" ? (
+                <>
+                  {deregisterBefore}
+                  {accountPageLink}
+                  {deregisterAfter}
+                </>
+              ) : shown.registration === "unregistered" ? (
+                t("It's no longer on your T3 Connect account.")
               ) : (
-                t("T3 Connect settings")
+                <>
+                  {unregisteredBefore}
+                  {accountPageLink}
+                  {unregisteredAfter}
+                </>
               )}
-              {deregisterAfter}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

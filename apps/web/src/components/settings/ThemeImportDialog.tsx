@@ -14,9 +14,8 @@ import {
 } from "../../themePalette";
 import {
   humanizeThemeName,
-  isVsCodeThemeFile,
   pairVsCodeThemes,
-  parseVsCodeThemeFile,
+  parseThemeImport,
   resolveThemeLabelCollisions,
 } from "../../vscodeThemeImport";
 import { Alert } from "../ui/alert";
@@ -260,10 +259,9 @@ function ThemeImportBody({
         continue;
       }
       try {
-        const value: unknown = JSON.parse(await file.text());
         parsed.push({
           sourceName: file.name,
-          theme: isVsCodeThemeFile(value) ? parseVsCodeThemeFile(value) : parseThemeFile(value),
+          theme: parseThemeImport(await file.text()),
         });
       } catch (cause) {
         failures.push(
@@ -288,11 +286,10 @@ function ThemeImportBody({
       }
     }
     if (installed.length > 0) onImportedMany(installed, { updated: false });
-    if (failures.length > 0) {
-      setError(failures.join("; "));
-    } else if (conflicting.length > 0) {
+    setError(failures.length > 0 ? failures.join("; ") : null);
+    if (conflicting.length > 0) {
       setConflicts(conflicting);
-    } else if (installed.length > 0) {
+    } else if (installed.length > 0 && failures.length === 0) {
       onClose();
     }
   };
@@ -305,7 +302,7 @@ function ThemeImportBody({
 
   const openFilePicker = () => {
     const bridge = window.desktopBridge;
-    if (bridge?.pickThemeFiles) {
+    if (bridge) {
       void bridge.pickThemeFiles().then((picked) => {
         if (!picked || picked.length === 0) return;
         readThemeFiles(
@@ -391,8 +388,8 @@ function ThemeImportBody({
     }
     if (resolved.length > 0) onImportedMany(resolved, { updated: mode === "update" });
     setConflicts(null);
-    if (failures.length > 0) setError(failures.join("; "));
-    else onClose();
+    if (failures.length > 0) setError([error, ...failures].filter(Boolean).join("; "));
+    else if (!error) onClose();
   };
 
   const handleSubmit = () => {
@@ -402,10 +399,7 @@ function ThemeImportBody({
       return;
     }
     try {
-      const parsed: unknown = JSON.parse(json);
-      const theme = isVsCodeThemeFile(parsed)
-        ? parseVsCodeThemeFile(parsed)
-        : parseThemeFile(parsed);
+      const theme = parseThemeImport(json);
       if (getCustomThemes().some((existing) => existing.id === theme.id)) {
         setError(null);
         setConflicts([theme]);

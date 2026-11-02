@@ -2,7 +2,8 @@ import {
   formatProviderSubagentStatus,
   type ProviderSubagentStatus,
 } from "@t3tools/client-runtime/state/thread-execution";
-import { isOrchestrationV2WorkActive } from "@t3tools/contracts";
+import { isOrchestrationV2WorkActive, type EnvironmentId, type ThreadId } from "@t3tools/contracts";
+import { useState } from "react";
 import { View } from "react-native";
 
 import { AppText as Text } from "../../components/ui/AppText";
@@ -10,6 +11,7 @@ import { ProviderIcon } from "../../components/ProviderIcon";
 import { Button } from "../../components/ui/Button";
 import { useTranslate } from "../../i18n/translate";
 import { localizeDurationUnits } from "../../lib/threadActivity";
+import { NativeChildWorkSheet } from "./NativeChildWorkSheet";
 import { useVisibleSecondClock } from "./use-visible-second-clock";
 
 /** Shared status text ("Working 1m 5s", "Completed in 3s") in the active language. */
@@ -31,7 +33,10 @@ export function ProviderSubagentBar(props: {
   readonly effortLabel: string | null;
   readonly status: ProviderSubagentStatus | null;
   readonly onOpenParent: (() => void) | null;
+  /** Set for providers whose children T3 reads on demand instead of streaming. */
+  readonly inspect: { readonly environmentId: EnvironmentId; readonly threadId: ThreadId } | null;
 }) {
+  const [inspecting, setInspecting] = useState(false);
   const live = props.status !== null && isOrchestrationV2WorkActive(props.status.status);
   const nowMs = useVisibleSecondClock(live);
   const t = useTranslate();
@@ -78,8 +83,14 @@ export function ProviderSubagentBar(props: {
           {t("{status} · Runs on its own", { status: statusLabel })}
         </Text>
       </View>
+      {props.inspect ? (
+        <Button label={t("Work")} tone="secondary" onPress={() => setInspecting(true)} />
+      ) : null}
       {props.onOpenParent ? (
         <Button label={t("Open parent")} tone="secondary" onPress={props.onOpenParent} />
+      ) : null}
+      {props.inspect && inspecting ? (
+        <NativeChildWorkSheet {...props.inspect} onClose={() => setInspecting(false)} />
       ) : null}
     </View>
   );

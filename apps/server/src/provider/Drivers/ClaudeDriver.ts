@@ -44,7 +44,6 @@ import {
   type ProviderInstance,
 } from "@t3tools/provider-core/server/driver";
 import { withInstanceIdentity } from "@t3tools/provider-core/server/instanceIdentity";
-import { mergeProviderInstanceEnvironment } from "@t3tools/provider-core/server/instanceEnvironment";
 import {
   enrichProviderSnapshotWithVersionAdvisory,
   makeCachedProviderMaintenanceResolution,
@@ -60,6 +59,7 @@ import {
 import {
   makeClaudeCapabilitiesCacheKey,
   makeClaudeContinuationGroupKey,
+  mergeClaudeProcessEnvironment,
   resolveClaudeRuntime,
 } from "./ClaudeHome.ts";
 import * as HostProcess from "@t3tools/shared/HostProcess";
@@ -147,7 +147,7 @@ export const ClaudeDriver: ProviderDriver<
         enabled,
         binaryPath: expandHomePath(config.binaryPath, yield* HostProcess.HomeDirectory),
       },
-      environment: yield* mergeProviderInstanceEnvironment(environment),
+      environment: yield* mergeClaudeProcessEnvironment(config, environment, process.env),
       stateDir,
     });
     const { config: effectiveConfig, environment: processEnv, configDir } = runtime;
@@ -328,6 +328,7 @@ export const ClaudeDriver: ProviderDriver<
           Effect.map(stampSnapshot),
         ),
       checkProvider,
+      invalidateUsageCache: Cache.invalidateAll(capabilitiesProbeCache),
       enrichSnapshot: ({ settings, snapshot, publishSnapshot }) =>
         resolveMaintenance().pipe(
           Effect.flatMap((maintenanceCapabilities) =>

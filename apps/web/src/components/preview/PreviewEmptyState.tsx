@@ -43,7 +43,7 @@ export function PreviewEmptyState({
         <EmptyTitle>{t("No preview yet")}</EmptyTitle>
         <EmptyDescription>
           {t(
-            "Type a URL above, or run a dev script. Browser-ready localhost servers will show up here automatically.",
+            "Type a URL above, or run a dev script. Local servers this thread starts will show up here automatically.",
           )}
         </EmptyDescription>
       </Empty>

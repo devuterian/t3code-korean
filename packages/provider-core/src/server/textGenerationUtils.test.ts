@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import { sanitizeCommitSubject, sanitizeNextPrompt } from "./textGenerationUtils.ts";
+import {
+  sanitizeCommitSubject,
+  sanitizeNextPrompt,
+  sanitizeThreadTitle,
+} from "./textGenerationUtils.ts";
 
 describe("sanitizeCommitSubject", () => {
   // regression: #19181 truncation split grapheme clusters at the subject limit
@@ -28,5 +32,18 @@ describe("sanitizeNextPrompt", () => {
     const result = sanitizeNextPrompt("a".repeat(400));
     expect(result).toHaveLength(280);
     expect(result?.endsWith("...")).toBe(true);
+  });
+});
+
+describe("sanitizeThreadTitle", () => {
+  it.each([
+    { name: "a split surrogate pair", prefixLength: 116, character: "🚀", retained: "" },
+    { name: "a complete surrogate pair", prefixLength: 115, character: "🚀", retained: "🚀" },
+    { name: "a BMP character", prefixLength: 116, character: "界", retained: "界" },
+  ])("truncates without splitting $name", ({ prefixLength, character, retained }) => {
+    const prefix = "a".repeat(prefixLength);
+    const title = `${prefix}${character} more`;
+
+    expect(sanitizeThreadTitle(title)).toBe(`${prefix}${retained}...`);
   });
 });

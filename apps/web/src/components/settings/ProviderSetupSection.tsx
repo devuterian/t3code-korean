@@ -145,21 +145,23 @@ function ProviderSetupActions({
   const queryError = authQuery.error ?? installQuery.error;
   const actionsDisabled = pendingLabel !== null || queryError !== null;
   const installationStatusMessage =
-    installation?.phase === "downloading"
-      ? `${t("Downloading")} ${(installation.downloadedBytes / 1_000_000).toFixed(1)} MB${installation.totalBytes === null ? "" : ` ${t("of")} ${(installation.totalBytes / 1_000_000).toFixed(1)} MB`}.`
-      : installation?.phase === "extracting"
-        ? t("Extracting Antigravity.")
-        : installation?.phase === "verifying"
-          ? t("Checking the downloaded runtime.")
-          : installed
-            ? t("Installed.")
-            : usesCustomBinary
-              ? enabled
-                ? t("The configured Antigravity runtime is unavailable.")
-                : t("The configured Antigravity runtime has not been checked.")
-              : installation?.totalBytes
-                ? `${Math.ceil(installation.totalBytes / 1_000_000)} MB ${t("download.")}`
-                : t("Not installed.");
+    installation === null
+      ? t("Checking the Antigravity runtime.")
+      : installation?.phase === "downloading"
+        ? `${t("Downloading")} ${(installation.downloadedBytes / 1_000_000).toFixed(1)} MB${installation.totalBytes === null ? "" : ` ${t("of")} ${(installation.totalBytes / 1_000_000).toFixed(1)} MB`}.`
+        : installation?.phase === "extracting"
+          ? t("Extracting Antigravity.")
+          : installation?.phase === "verifying"
+            ? t("Checking the downloaded runtime.")
+            : installed
+              ? t("Installed.")
+              : usesCustomBinary
+                ? enabled
+                  ? t("The configured Antigravity runtime is unavailable.")
+                  : t("The configured Antigravity runtime has not been checked.")
+                : installation?.totalBytes
+                  ? `${Math.ceil(installation.totalBytes / 1_000_000)} MB ${t("download.")}`
+                  : t("Not installed.");
 
   async function runCommand<A, E>(
     label: string,
@@ -272,9 +274,7 @@ function ProviderSetupActions({
                   <Button
                     size="sm"
                     variant="outline"
-                    disabled={
-                      actionsDisabled || !canStartInstall || installation === null || authActive
-                    }
+                    disabled={actionsDisabled || !canStartInstall || authActive}
                     onClick={() =>
                       void runCommand(t("Starting installation"), () => startInstall(target))
                     }

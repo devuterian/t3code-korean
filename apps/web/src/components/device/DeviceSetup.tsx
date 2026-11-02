@@ -20,9 +20,9 @@ import { translate, useTranslate } from "~/i18n/translate";
 
 const platformName = (platform: DevicePlatform) => (platform === "ios" ? "iOS" : "Android");
 
-export const deviceHubDescription =
+const deviceHubDescription =
   "Enable this environment to open simulators and emulators, whether they run here or on a remote device host.";
-export const agentDeviceDescription =
+const agentDeviceDescription =
   "Allow new agent sessions in this environment to start and control local and remote devices, with required tools set up automatically.";
 
 export const isAndroidDiscoveryUncertain = (state: DeviceServiceState) =>
@@ -58,7 +58,7 @@ function deviceHostDiagnostics(
   });
 }
 
-export function DeviceHostDiagnostics(props: {
+function DeviceHostDiagnostics(props: {
   readonly hosts: ReadonlyArray<Pick<DeviceServiceState["hosts"][number], "id" | "label">>;
   readonly hostStatuses: DeviceServiceState["hostStatuses"];
   readonly className?: string;
@@ -137,10 +137,11 @@ export function platformSetupStatus(state: DeviceServiceState, platform: DeviceP
     ready: true,
     message:
       remoteHost?.kind === "eas"
-        ? translate("{host} starts iOS Simulators in the cloud with EAS Simulator.").replace(
-            "{host}",
-            () => remoteHost.label,
-          )
+        ? translate(
+            platform === "ios"
+              ? "{host} starts iOS Simulators in the cloud with EAS Simulator."
+              : "{host} starts Android emulators in the cloud with EAS Simulator.",
+          ).replace("{host}", () => remoteHost.label)
         : availableMessage.replace("{host}", () => remoteHost?.label ?? ""),
   };
 }
@@ -385,7 +386,7 @@ export function AgentDeviceSetupStatus(props: {
   return null;
 }
 
-export function PlatformStatus(props: {
+function PlatformStatus(props: {
   readonly platform: string;
   readonly status: { readonly ready: boolean; readonly message: string };
   readonly compact?: boolean;

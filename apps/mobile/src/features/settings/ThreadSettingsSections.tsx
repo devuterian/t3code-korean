@@ -2,6 +2,7 @@ import { Button } from "../../components/ui/Button";
 import {
   AuthSettingsWriteScope,
   type ComposerUsageLimitsDisplay,
+  isManagedSettingPath,
   type ServerSettingsPatch,
 } from "@t3tools/contracts";
 import { useEnvironmentsWithScope } from "../../state/session";
@@ -15,14 +16,21 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { DEFAULT_SERVER_SETTINGS, PROVIDER_SESSION_IDLE_TIMEOUT_PRESETS } from "@t3tools/contracts";
 import { supportsSharedSettingsSync } from "@t3tools/client-runtime/state/shared-settings";
 import { AppText as Text } from "../../components/ui/AppText";
+import { useEnvironments } from "../../state/environments";
 import { mobilePreferencesAtom, updateMobilePreferencesAtom } from "../../state/preferences";
-import { SettingsChoiceRow } from "./components/SettingsChoiceRow";
+import { ListChoiceRow as SettingsChoiceRow } from "../../components/ui/ListChoiceRow";
+import { serverEnvironment } from "../../state/server";
+import { useAtomCommand } from "../../state/use-atom-command";
 import { SettingsSection } from "./components/SettingsSection";
 import { SettingsSwitchRow } from "./components/SettingsSwitchRow";
 import { SettingsScreen } from "./components/SettingsScreen";
 import { planAutoSettleSettingsSync, type AutoSettleSettings } from "./autoSettleSettingsSync";
 import { useSettingsEnvironmentFilter } from "./settings-environment-filter";
-import { resolveMobileSettingsTargets, uniformMobileSetting } from "./settings-scoped-server";
+import {
+  managedSettingReason,
+  resolveMobileSettingsTargets,
+  uniformMobileSetting,
+} from "./settings-scoped-server";
 import { useTranslate } from "../../i18n/translate";
 
 export function SettingsLabsRouteScreen() {
@@ -38,6 +46,7 @@ export function SettingsLabsRouteScreen() {
         contentContainerClassName="gap-6 px-5 pt-4"
         contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 18) + 18 }}
       >
+        <BetaSettingsSection />
         <LegacySettingsSection />
       </ScrollView>
     </SettingsScreen>
@@ -102,12 +111,9 @@ export function AutoSettleSettingsRows(props: {
     })),
   );
 
-  const supportsProjectOverrides = displayTargets.every(
-    (target) =>
-      target.environment.serverConfig.environment.capabilities.projectSettingsOverrides === true,
-  );
-  const disabled =
-    !canWriteSettings || props.pending || (projectSelected && !supportsProjectOverrides);
+  const disabled = !canWriteSettings || props.pending;
+  const disabledFor = (...keys: string[]) =>
+    disabled || managedSettingReason(displayTargets, ...keys) !== undefined;
   const afterDays = referenceSettings.sidebarAutoSettleAfterDays;
 
   return (
@@ -117,15 +123,21 @@ export function AutoSettleSettingsRows(props: {
           <SettingsSwitchRow
             icon="clock"
             label={t("Resume after usage limits")}
+            subtitle={t(
+              "Automatically resume threads when their usage limits reset. You can cancel auto-resume in each thread.",
+            )}
             value={uniformMobileSetting(displayTargets, "autoResumeLimitedThreads")}
-            disabled={disabled}
+            disabled={disabledFor("autoResumeLimitedThreads")}
             onValueChange={(value) => writeToAll({ autoResumeLimitedThreads: value })}
           />
           <SettingsSwitchRow
             icon="clock"
             label={t("Snooze until limits reset")}
+            subtitle={t(
+              "Snooze threads until their usage limits reset. Enable auto-resume to continue the agent after the reset.",
+            )}
             value={uniformMobileSetting(displayTargets, "snoozeLimitedThreads")}
-            disabled={disabled}
+            disabled={disabledFor("snoozeLimitedThreads")}
             onValueChange={(value) => writeToAll({ snoozeLimitedThreads: value })}
           />
         </SettingsSection>
@@ -161,14 +173,14 @@ export function AutoSettleSettingsRows(props: {
           icon="arrow.triangle.branch"
           label={t("Auto-settle merged threads")}
           value={referenceSettings.sidebarAutoSettleOnMerge}
-          disabled={disabled}
+          disabled={disabledFor("sidebarAutoSettleOnMerge")}
           onValueChange={(value) => writeToAll({ sidebarAutoSettleOnMerge: value })}
         />
         <SettingsSwitchRow
           icon="clock"
           label={t("Auto-settle inactive threads")}
           value={afterDays !== null}
-          disabled={disabled}
+          disabled={disabledFor("sidebarAutoSettleAfterDays")}
           onValueChange={(value) =>
             writeToAll({ sidebarAutoSettleAfterDays: value ? AUTO_SETTLE_DEFAULT_DAYS : null })
           }
@@ -181,7 +193,7 @@ export function AutoSettleSettingsRows(props: {
             </Text>
             <AutoSettleDaysField
               value={afterDays}
-              disabled={disabled}
+              disabled={disabledFor("sidebarAutoSettleAfterDays")}
               onValueChange={(value) => writeToAll({ sidebarAutoSettleAfterDays: value })}
             />
           </View>
@@ -197,7 +209,7 @@ export function AutoSettleSettingsRows(props: {
             <Button
               label={t("Apply auto-settle defaults")}
               tone="secondary"
-              disabled={disabled}
+              disabled={disabledFor("sidebarAutoSettleOnMerge", "sidebarAutoSettleAfterDays")}
               onPress={() => writeToAll(autoSettlePatch)}
             />
           </View>
@@ -282,6 +294,76 @@ export function ComposerUsageLimitsSection() {
       <Text className="px-2 text-sm text-foreground-muted">
         {t(
           "Session and weekly limits for the selected provider appear next to the send button. Tap them for details.",
+        )}
+      </Text>
+    </View>
+  );
+}
+
+export function NewThreadSettingsSection() {
+  const t = useTranslate();
+  const savePreferences = useAtomSet(updateMobilePreferencesAtom);
+  const preferences = useAtomValue(mobilePreferencesAtom);
+  const useLastProject =
+    AsyncResult.isSuccess(preferences) && preferences.value.useLastProjectForNewThreads !== false;
+
+  return (
+    <SettingsSection title={t("New threads")}>
+      <SettingsSwitchRow
+        icon="square.and.pencil"
+        label={t("Use last project")}
+        subtitle={t("Start new threads in the last project you used on this device.")}
+        value={useLastProject}
+        onValueChange={(value) => savePreferences({ useLastProjectForNewThreads: value })}
+      />
+    </SettingsSection>
+  );
+}
+
+/** Per machine, since each machine's own setting decides whether it links and answers links. */
+function BetaSettingsSection() {
+  const t = useTranslate();
+  const { environments } = useEnvironments();
+  const supported = environments.filter(
+    (environment) =>
+      environment.connection.phase === "connected" &&
+      environment.serverConfig?.environment.capabilities.peerLinks === true,
+  );
+  const writable = useEnvironmentsWithScope(supported, AuthSettingsWriteScope);
+  const updateSettings = useAtomCommand(serverEnvironment.updateSettings, {
+    label: "linked environments beta update",
+    reportFailure: true,
+  });
+  if (supported.length === 0) return null;
+  return (
+    <View className="gap-3">
+      <SettingsSection title={t("Beta: Linked environments")}>
+        {supported.map((environment) => {
+          const policy = environment.serverConfig?.managedPolicy;
+          const managed = isManagedSettingPath(policy, "linkedEnvironmentsEnabled");
+          return (
+            <SettingsSwitchRow
+              key={environment.environmentId}
+              icon="link"
+              label={environment.label}
+              {...(managed
+                ? { subtitle: t("Managed by {organization}.", { organization: policy?.organization ?? "" }) }
+                : {})}
+              value={environment.serverConfig?.settings.linkedEnvironmentsEnabled === true}
+              disabled={managed || !writable.has(environment.environmentId)}
+              onValueChange={(value) =>
+                void updateSettings({
+                  environmentId: environment.environmentId,
+                  input: { patch: { linkedEnvironmentsEnabled: value } },
+                })
+              }
+            />
+          );
+        })}
+      </SettingsSection>
+      <Text className="px-2 text-sm text-foreground-muted">
+        {t(
+          "Let agents on a machine work on your other machines, and theirs on it. Turn it on for each machine. While it is off, nothing new starts over a link; tasks already running finish.",
         )}
       </Text>
     </View>

@@ -3,6 +3,7 @@ import type { EnvironmentId, ThreadId } from "@t3tools/contracts";
 import { useTranslate } from "../../i18n/translate";
 import { resolveMobileMarkdownMediaSource } from "../../lib/markdownMediaSource";
 import { getBrowseDirectoryPath } from "@t3tools/client-runtime/state/projects";
+import { maskMarkdownFrontmatter } from "@t3tools/shared/markdownFrontmatter";
 import { useState } from "react";
 import { StackActions, useNavigation } from "@react-navigation/native";
 import { RefreshControl, ScrollView, View } from "react-native";
@@ -237,7 +238,7 @@ export function FileMarkdownPreview(props: {
     >
       <View className="mx-auto w-full max-w-[760px]">
         <SelectableMarkdownText
-          markdown={props.markdown}
+          markdown={maskMarkdownFrontmatter(props.markdown)}
           fileEmbedLabel={(href) =>
             markdownFileEmbedLabel(
               href,

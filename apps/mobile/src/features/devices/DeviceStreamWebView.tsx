@@ -46,6 +46,7 @@ export function DeviceStreamWebView({
     access: props.access,
     platform: props.platform,
     deviceId: props.deviceId,
+    ...(props.serveSimOnly ? { serveSimOnly: true } : {}),
     colors: props.colors,
   });
   return (
@@ -120,6 +121,7 @@ function DeviceStreamDocumentView({
   );
   const resetInput = useEffectEvent(() => void onInputConnected(false));
   // The stream lives exactly as long as this view.
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- starts the bootstrap timeout and stops the WebView device stream when this view unmounts
   useLayoutEffect(() => {
     active.current = true;
     resetInput();

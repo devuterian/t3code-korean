@@ -72,7 +72,7 @@ export function ComposerModelControl(props: {
           />
         )
       }
-      label={props.modelOption?.shortLabel ?? label}
+      label={props.modelOption?.shortName ?? label}
       iconOnly={props.iconOnly}
       suffix={
         summary ? (

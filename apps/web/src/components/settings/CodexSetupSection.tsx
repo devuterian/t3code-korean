@@ -1,6 +1,6 @@
 import { useAtomValue } from "@effect/atom-react";
 import { compareSemverVersions } from "@t3tools/shared/semver";
-import { AuthProvidersManageScope } from "@t3tools/contracts";
+import { AuthProvidersManageScope, ProviderDriverKind } from "@t3tools/contracts";
 import { readPreparedConnection, useEnvironmentScope } from "../../state/session";
 import {
   isAtomCommandInterrupted,
@@ -30,6 +30,8 @@ import {
 
 import { translate, useTranslate } from "../../i18n/translate";
 import { ensureLocalApi } from "../../localApi";
+import { managedInstanceLocks, useManagedPolicy } from "../../state/managedPolicy";
+import { ManagedControl } from "../ManagedPolicy";
 import { useEnvironmentHttpBaseUrl } from "../../state/environments";
 import { environmentPresentations } from "../../state/presentation";
 import { primaryEnvironmentIdAtom } from "../../state/primaryEnvironment";
@@ -61,8 +63,7 @@ const isLoopbackUrl = (url: string | null) => url !== null && isLoopbackHost(new
 
 // A loopback server can receive the provider's callback itself, unless the
 // desktop shell offers to catch it on the client.
-const prefersClientCallback = (local: boolean) =>
-  !local || window.desktopBridge?.receiveProviderAuthCallback !== undefined;
+const prefersClientCallback = (local: boolean) => !local || window.desktopBridge !== undefined;
 
 /**
  * How a sign-in started now reaches the provider. Read at use time, because a
@@ -84,7 +85,7 @@ function readSignInRouting(environmentId: EnvironmentId) {
       : null;
   return {
     clientCallback,
-    remoteWeb: clientCallback && !window.desktopBridge?.receiveProviderAuthCallback,
+    remoteWeb: clientCallback && !window.desktopBridge,
     primaryAuthEnvironmentId,
   };
 }
@@ -107,6 +108,12 @@ interface CodexSetupSectionProps {
 export function CodexSetupSection(props: CodexSetupSectionProps) {
   const t = useTranslate();
   const [requested, setRequested] = useState(false);
+  // A policy that owns Codex's launch settings also rules out ChatGPT's own runtime.
+  const codexLocks = managedInstanceLocks(
+    useManagedPolicy(props.environmentId),
+    ProviderDriverKind.make("codex"),
+  );
+  const chatGptDenial = codexLocks?.configKeys.has("setupMode") ? codexLocks.reason : undefined;
   const existingState = getOnboardingProviderState(props.provider);
   const existingReady = props.enabled && existingState === "ready";
   const existingAuthenticated = props.provider?.auth.status === "authenticated";
@@ -152,16 +159,18 @@ export function CodexSetupSection(props: CodexSetupSectionProps) {
           ) : existingAuthenticated ? (
             <span className="text-xs text-muted-foreground">{existingSummary.headline}</span>
           ) : (
-            <ChatGptConnectionButton
-              size="sm"
-              disabled={props.readOnly}
-              onClick={() => {
-                setRequested(true);
-                props.onModeChange("managed");
-              }}
-            >
-              {t("Continue with ChatGPT")}
-            </ChatGptConnectionButton>
+            <ManagedControl reason={chatGptDenial}>
+              <ChatGptConnectionButton
+                size="sm"
+                disabled={props.readOnly}
+                onClick={() => {
+                  setRequested(true);
+                  props.onModeChange("managed");
+                }}
+              >
+                {t("Continue with ChatGPT")}
+              </ChatGptConnectionButton>
+            </ManagedControl>
           )
         }
         secondaryControl={
@@ -297,7 +306,7 @@ function ManagedCodexSetup({
   const reconnectProfile = useAtomCommand(serverEnvironment.chatGptReconnectProfile, options);
   const importProfile = useAtomCommand(serverEnvironment.chatGptImportProfile, options);
   const clientCallback = !handoff && prefersClientCallback(local);
-  const remoteWeb = clientCallback && !window.desktopBridge?.receiveProviderAuthCallback;
+  const remoteWeb = clientCallback && !window.desktopBridge;
   const returnUrl = new URL(window.location.href);
   if (returnUrl.pathname === "/welcome") returnUrl.hash = `agents:${environmentId}`;
   if (returnUrl.pathname === "/settings/providers")
@@ -323,6 +332,7 @@ function ManagedCodexSetup({
   };
   const abortOperation = () => operation.current?.abort();
   // Once the card unmounts, nothing may start a sign-in or open a page on its behalf.
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- aborts the in-flight setup or sign-in AbortController on unmount
   useEffect(() => () => operation.current?.abort(), []);
   const [autoStartHandled, setAutoStartHandled] = useState(false);
   const installed = installation?.installedVersion != null;
@@ -344,6 +354,7 @@ function ManagedCodexSetup({
   }
   // The server does not refresh the provider snapshot when a sign-in flow
   // succeeds, and the flow can finish elsewhere (callback, pasted redirect URL).
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- asks the server to refresh the provider snapshot once the sign-in flow succeeds
   useEffect(() => {
     if (awaitingProvider && auth?.phase === "succeeded") {
       void refreshProviders({ environmentId, input: { instanceId } });
@@ -424,6 +435,7 @@ function ManagedCodexSetup({
   const transferFinishedProfile = useEffectEvent((profile: ChatGptTransferredProfile) =>
     transferProfile(profile),
   );
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- imports the finished handoff profile to the server once per attempt when the handoff query completes
   useEffect(() => {
     if (!handoff || handoffQuery.data?.phase !== "finished") return;
     const attemptId = handoff.input.attemptId;
@@ -593,16 +605,18 @@ function ManagedCodexSetup({
     onAutoStartConsumed();
     void setup();
   });
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- dispatches the automatic setup server command after the auto-start flag commits
   useEffect(() => {
     // oxlint-disable-next-line react/set-state-in-effect -- Starting setup dispatches a server command, which marks itself pending before it awaits.
     if (autoStartHandled) startAutomatically();
   }, [autoStartHandled]);
 
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- cancels the desktop bridge provider auth callback when the URL changes or the card unmounts
   useEffect(() => {
-    if (!clientCallback || !url || !window.desktopBridge?.cancelProviderAuthCallback) return;
+    if (!clientCallback || !url || !window.desktopBridge) return;
     return () => {
       if (receivingCallback.current === url) receivingCallback.current = null;
-      void window.desktopBridge?.cancelProviderAuthCallback?.(url).catch(() => undefined);
+      void window.desktopBridge?.cancelProviderAuthCallback(url).catch(() => undefined);
     };
   }, [clientCallback, url]);
 
@@ -934,7 +948,7 @@ function ManagedCodexSetup({
         title="ChatGPT account"
         description={accountDescription}
         control={
-          <div className="flex flex-wrap items-center justify-end gap-2">
+          <div className="flex max-w-88 flex-wrap items-center justify-end gap-2">
             {authActive ? (
               <>
                 {waitingControl}
@@ -1019,6 +1033,16 @@ function ManagedCodexSetup({
                     onClick={() => void setup("chatgpt-change-account")}
                   >
                     {t("Use a different account")}
+                  </Button>
+                ) : null}
+                {allowExistingCli ? (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    disabled={readOnly || busy}
+                    onClick={() => onModeChange("existing")}
+                  >
+                    {t("Use existing CLI")}
                   </Button>
                 ) : null}
               </>

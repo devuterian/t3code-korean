@@ -2,14 +2,14 @@ import type { ContextMenuItem } from "@t3tools/contracts";
 
 import { translate } from "~/i18n/translate";
 
-export type ExternalLinkContextMenuAction =
+type ExternalLinkContextMenuAction =
   | "open-in-preview"
   | "open-external"
   | "copy-link"
   | "link-to-thread"
   | "unlink-from-thread";
 
-export type ExternalLinkContextMenuFailureOperation =
+type ExternalLinkContextMenuFailureOperation =
   | "show-link-context-menu"
   | "open-link-in-preview"
   | "open-link-external"

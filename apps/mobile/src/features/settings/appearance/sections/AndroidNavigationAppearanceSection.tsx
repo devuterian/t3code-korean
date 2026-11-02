@@ -1,6 +1,6 @@
 import { View } from "react-native";
 
-import { SettingsChoiceRow } from "../../components/SettingsChoiceRow";
+import { ListChoiceRow as SettingsChoiceRow } from "../../../../components/ui/ListChoiceRow";
 import { SettingsSection } from "../../components/SettingsSection";
 import { useTranslate } from "../../../../i18n/translate";
 import { useAppearancePreferences } from "../AppearancePreferencesProvider";

@@ -1,12 +1,19 @@
 import type { ServerUpdateState } from "@t3tools/client-runtime/state/server";
-import type { EnvironmentId, ServerConfig } from "@t3tools/contracts";
-import { cliReleaseChannelOf } from "@t3tools/shared/cliRelease";
+import {
+  type DesktopUpdateChannel,
+  type EnvironmentId,
+  managedNightlyDeniedMessage,
+  managedUpdatesDenial,
+  type ServerConfig,
+  type ServerSelfUpdateCapability,
+} from "@t3tools/contracts";
+import { cliReleaseChannelOf, desktopUpdateChannelOf } from "@t3tools/shared/cliRelease";
+import { compareSemverVersions } from "@t3tools/shared/semver";
 
 import {
   resolveServerSelfUpdateCapability,
   resolveVersionMismatch,
   supportsDesktopAppUpdate,
-  supportsServerUpdateThreadContinuation,
 } from "~/versionSkew";
 import { getInterfaceLanguage, translate } from "../../i18n/translate";
 import type { ServerUpdateOutcome, ServerUpdateTarget } from "../ServerUpdateAction";
@@ -17,6 +24,7 @@ export interface UpdateEverythingMachine {
   readonly serverConfig: {
     readonly environment: ServerConfig["environment"];
     readonly settings: Pick<ServerConfig["settings"], "continueThreadsAfterServerUpdate">;
+    readonly managedPolicy?: ServerConfig["managedPolicy"];
   } | null;
   readonly connected: boolean;
   readonly hostedByThisApp: boolean;
@@ -47,9 +55,7 @@ export function collectRestartingMachines(
     return [
       {
         environmentId: machine.environmentId,
-        continuesThreads:
-          config.environment.capabilities.threadRestartContinuation === true &&
-          config.settings.continueThreadsAfterServerUpdate === true,
+        continuesThreads: config.settings.continueThreadsAfterServerUpdate === true,
       },
     ];
   });
@@ -62,11 +68,15 @@ export interface SkippedMachine {
 }
 
 /** Skip current and app-hosted servers; the latter update with the app and would relaunch mid-run.
- * Desktop-managed servers use their own feed. */
+ * Desktop-managed servers use their own feed. Each server's updater checks that it can install the
+ * release before it restarts, so no registry precheck runs here. */
 export function collectServerUpdateTargets(
   machines: ReadonlyArray<UpdateEverythingMachine>,
   targetVersion: string,
-): { readonly targets: ServerUpdateTarget[]; readonly skipped: SkippedMachine[] } {
+): {
+  readonly targets: ServerUpdateTarget[];
+  readonly skipped: SkippedMachine[];
+} {
   const targets: ServerUpdateTarget[] = [];
   const skipped: SkippedMachine[] = [];
   for (const machine of machines) {
@@ -80,19 +90,20 @@ export function collectServerUpdateTargets(
     }
     const skip = (reason: string) =>
       skipped.push({ environmentId: machine.environmentId, label: machine.label, reason });
-    if (config === null || !machine.connected) {
-      skip(translate("not connected"));
-      continue;
-    }
-    if (!machine.canMaintain) {
-      skip(translate("no permission"));
-      continue;
-    }
-    if (machine.updateState.status === "running") {
-      skip(translate("already updating"));
+    const unavailable = unavailableReason(machine);
+    if (config === null || unavailable !== null) {
+      skip(unavailable ?? translate("not connected"));
       continue;
     }
     const selfUpdate = resolveServerSelfUpdateCapability(config);
+    const managedDenial = managedMachineUpdateDenial(
+      config,
+      selfUpdate === "desktop-managed" ? undefined : targetVersion,
+    );
+    if (managedDenial !== undefined) {
+      skip(managedDenial);
+      continue;
+    }
     const desktopAppUpdate = supportsDesktopAppUpdate(config);
     if (selfUpdate === null) {
       skip(translate("needs a manual update"));
@@ -114,18 +125,244 @@ export function collectServerUpdateTargets(
       );
       continue;
     }
-    targets.push({
+    const target: ServerUpdateTarget = {
       environmentId: machine.environmentId,
       serverLabel: machine.label,
       selfUpdate,
       installation: config.environment.capabilities.serverInstallation,
       desktopAppUpdate,
-      threadContinuation: supportsServerUpdateThreadContinuation(config),
-      continueThreadsAfterServerUpdate: config.settings.continueThreadsAfterServerUpdate ?? false,
       targetVersion,
-    });
+    };
+    targets.push(target);
   }
   return { targets, skipped };
+}
+
+function unavailableReason(machine: UpdateEverythingMachine): string | null {
+  if (machine.serverConfig === null || !machine.connected) return translate("not connected");
+  if (!machine.canMaintain) return translate("no permission");
+  if (machine.updateState.status === "running") return translate("already updating");
+  return null;
+}
+
+/** The latest release on the track a fleet switches to, as npm reports it. */
+export interface ChannelSwitchRelease {
+  readonly channel: DesktopUpdateChannel;
+  readonly version: string;
+  readonly databaseMigration: number | undefined;
+}
+
+export const channelSwitchLabel = (channel: DesktopUpdateChannel) =>
+  channel === "nightly" ? translate("Nightly") : translate("Stable");
+
+/** Stable and Nightly each build their own commits, so either can hold migrations the other lacks.
+ * Crossing tracks needs proof that the target release knows every migration the database holds. */
+const crossesTrack = (fromVersion: string, release: ChannelSwitchRelease) =>
+  desktopUpdateChannelOf(fromVersion) !== release.channel;
+
+function channelSwitchBlockReason(
+  fromVersion: string,
+  release: ChannelSwitchRelease,
+  currentMigration: number | undefined,
+): string | null {
+  if (!crossesTrack(fromVersion, release)) return null;
+  const from = channelSwitchLabel(desktopUpdateChannelOf(fromVersion));
+  // Servers and releases from before this check report no migration number.
+  if (currentMigration === undefined) {
+    return translate("its server predates database checks; update it on {track} first").replace(
+      "{track}",
+      () => from,
+    );
+  }
+  if (release.databaseMigration === undefined) {
+    return translate(
+      "{version} predates database checks; wait for a newer {track} release",
+    )
+      .replace("{version}", () => release.version)
+      .replace("{track}", () => channelSwitchLabel(release.channel));
+  }
+  return currentMigration > release.databaseMigration
+    ? translate(
+        "its database has changes {version} does not support yet; stay on {from} until {track} has them",
+      )
+        .replace("{version}", () => release.version)
+        .replace("{from}", () => from)
+        .replace("{track}", () => channelSwitchLabel(release.channel))
+    : null;
+}
+
+/** This app's reinstall restarts every server it hosts, so each of their databases must allow the
+ * switch. `backendCount` is the desktop's own inventory: a backend still starting has no client
+ * entry yet. A cached config can outlive its connection, so only a connected server's head counts. */
+export function localSwitchBlockReason(
+  appVersion: string,
+  release: ChannelSwitchRelease,
+  hosted: ReadonlyArray<{
+    readonly connected: boolean;
+    readonly databaseMigration: number | undefined;
+  }>,
+  backendCount: number,
+): string | null {
+  if (!crossesTrack(appVersion, release)) return null;
+  if (
+    hosted.length === 0 ||
+    hosted.length < backendCount ||
+    hosted.some((server) => !server.connected)
+  ) {
+    return translate("its server is not connected, so its database cannot be checked");
+  }
+  return (
+    hosted
+      .map((server) => channelSwitchBlockReason(appVersion, release, server.databaseMigration))
+      .find((reason) => reason !== null) ?? null
+  );
+}
+
+/**
+ * The server refuses these with the same message; say so before the run instead of after.
+ * `targetVersion` is undefined when the server picks its own version, as desktop apps do.
+ */
+function managedMachineUpdateDenial(
+  config: NonNullable<UpdateEverythingMachine["serverConfig"]>,
+  targetVersion: string | undefined,
+): string | undefined {
+  const policy = config.managedPolicy;
+  return (
+    managedUpdatesDenial(policy) ??
+    (policy !== undefined &&
+    policy.limits?.updates?.allowNightly === false &&
+    targetVersion !== undefined &&
+    cliReleaseChannelOf(targetVersion) !== "stable"
+      ? managedNightlyDeniedMessage(policy.organization)
+      : undefined)
+  );
+}
+
+/** Servers move to the release; desktop-managed hosts reinstall their app on its track. A desktop
+ * host already current gets a track-only request, since its saved track may still differ. */
+export function collectChannelSwitchTargets(
+  machines: ReadonlyArray<UpdateEverythingMachine>,
+  release: ChannelSwitchRelease,
+): { readonly targets: ServerUpdateTarget[]; readonly skipped: SkippedMachine[] } {
+  const targets: ServerUpdateTarget[] = [];
+  const skipped: SkippedMachine[] = [];
+  for (const machine of machines) {
+    const config = machine.serverConfig;
+    if (machine.hostedByThisApp) continue;
+    const skip = (reason: string) =>
+      skipped.push({ environmentId: machine.environmentId, label: machine.label, reason });
+    const target = (
+      selfUpdate: ServerSelfUpdateCapability,
+      targetVersion: string,
+    ): ServerUpdateTarget => ({
+      environmentId: machine.environmentId,
+      serverLabel: machine.label,
+      selfUpdate,
+      installation: config?.environment.capabilities.serverInstallation,
+      desktopAppUpdate: config !== null && supportsDesktopAppUpdate(config),
+      targetVersion,
+      ...(selfUpdate === "desktop-managed" ? { channel: release.channel } : {}),
+      ...(release.databaseMigration === undefined
+        ? {}
+        : { targetDatabaseMigration: release.databaseMigration }),
+    });
+    const serverVersion = config?.environment.serverVersion;
+    const sameTrack = serverVersion !== undefined && isOnTrack(serverVersion, release.channel);
+    if (
+      config !== null &&
+      sameTrack &&
+      resolveVersionMismatch(serverVersion, release.version) === null
+    ) {
+      const move = trackSwitchMove(config, true);
+      if (
+        !("skip" in move) &&
+        move.selfUpdate === "desktop-managed" &&
+        unavailableReason(machine) === null &&
+        managedMachineUpdateDenial(config, release.version) === undefined
+      ) {
+        targets.push({ ...target(move.selfUpdate, serverVersion), trackOnly: true });
+      }
+      continue;
+    }
+    const unavailable = unavailableReason(machine);
+    if (config === null || serverVersion === undefined || unavailable !== null) {
+      skip(unavailable ?? translate("not connected"));
+      continue;
+    }
+    const managedDenial = managedMachineUpdateDenial(config, release.version);
+    if (managedDenial !== undefined) {
+      skip(managedDenial);
+      continue;
+    }
+    const move = trackSwitchMove(config, sameTrack);
+    if ("skip" in move) {
+      skip(move.skip);
+      continue;
+    }
+    const blocked = channelSwitchBlockReason(
+      serverVersion,
+      release,
+      config.environment.databaseMigration,
+    );
+    if (blocked !== null) {
+      skip(blocked);
+      continue;
+    }
+    // Service launchers only accept newer versions, so leaving for an older release is manual.
+    if (
+      move.selfUpdate === "boot-service" &&
+      compareSemverVersions(release.version, serverVersion) <= 0
+    ) {
+      skip(
+        translate("run `t3 update --channel {channel} --allow-downgrade` there").replace(
+          "{channel}",
+          () => (release.channel === "nightly" ? "nightly" : "stable"),
+        ),
+      );
+      continue;
+    }
+    targets.push(target(move.selfUpdate, release.version));
+  }
+  return { targets, skipped };
+}
+
+/** A remote host on the other track that a switch can still move, for retrying a partial switch. */
+export function awaitsTrackSwitch(
+  machine: Pick<UpdateEverythingMachine, "serverConfig" | "hostedByThisApp">,
+  channel: DesktopUpdateChannel,
+): boolean {
+  const config = machine.serverConfig;
+  return (
+    !machine.hostedByThisApp &&
+    config !== null &&
+    !isOnTrack(config.environment.serverVersion, channel) &&
+    !("skip" in trackSwitchMove(config, false))
+  );
+}
+
+function isOnTrack(version: string, channel: DesktopUpdateChannel): boolean {
+  return cliReleaseChannelOf(version) !== "preview" && desktopUpdateChannelOf(version) === channel;
+}
+
+/** How a switch moves a host, or why it never can from here, whatever the release. */
+function trackSwitchMove(
+  config: NonNullable<UpdateEverythingMachine["serverConfig"]>,
+  sameTrack: boolean,
+): { readonly selfUpdate: ServerSelfUpdateCapability } | { readonly skip: string } {
+  if (cliReleaseChannelOf(config.environment.serverVersion) === "preview") {
+    return { skip: translate("runs a preview build") };
+  }
+  const selfUpdate = resolveServerSelfUpdateCapability(config);
+  if (selfUpdate === null) return { skip: translate("needs a manual update") };
+  if (selfUpdate !== "desktop-managed") return { selfUpdate };
+  if (config.environment.capabilities.desktopAppChannelSwitch !== true) {
+    return { skip: translate("needs a newer desktop app") };
+  }
+  // Squirrel.Mac renames the bundle for the new track and then cannot relaunch it.
+  if (!sameTrack && config.environment.platform.os === "darwin") {
+    return { skip: translate("switch the Mac app on that Mac") };
+  }
+  return { selfUpdate };
 }
 
 export interface UpdateEverythingSteps<Providers, Servers> {
@@ -173,6 +410,8 @@ export interface UpdateRunMachine {
 }
 
 export interface UpdateEverythingRun {
+  /** Track switches retry through their planner, which re-checks each database. */
+  readonly trackSwitch?: boolean;
   readonly localVersion: string | null;
   readonly phase: "providers" | "servers" | "countdown" | "installing";
   readonly restartAt: number | null;
@@ -286,7 +525,10 @@ export function describeUpdateCapsule(
       label: translate(failed.length === 1 ? "{label} failed" : "{count} failed")
         .replace("{label}", () => failed[0]!.machine.label)
         .replace("{count}", () => String(failed.length)),
-      action: failed.some(({ machine }) => machine.server !== null) ? "retry" : "dismiss",
+      action:
+        !run.trackSwitch && failed.some(({ machine }) => machine.server !== null)
+          ? "retry"
+          : "dismiss",
     };
   }
   return { tone: "default", label: updatedCountLabel(done, machines.length), action: null };
@@ -384,6 +626,11 @@ export function getUpdateEverythingToastView(
 
 export interface UpdateEverythingPlan {
   readonly localVersion: string | null;
+  /** Machines whose servers this app hosts; this app's update restarts them. */
+  readonly localMachines: ReadonlyArray<{
+    readonly environmentId: EnvironmentId;
+    readonly label: string;
+  }>;
   readonly servers: ReadonlyArray<
     Pick<ServerUpdateTarget, "environmentId" | "serverLabel" | "selfUpdate" | "targetVersion">
   >;
@@ -392,6 +639,15 @@ export interface UpdateEverythingPlan {
     readonly label: string;
     readonly providers: ReadonlyArray<string>;
   }>;
+  readonly skipped: ReadonlyArray<SkippedMachine>;
+}
+
+export interface UpdateEverythingRow {
+  readonly environmentId: EnvironmentId | null;
+  readonly label: string;
+  readonly app: "this-app" | "server" | "desktop-app" | null;
+  readonly skipped: string | null;
+  readonly providers: ReadonlyArray<string>;
 }
 
 function countLabel(count: number, singular: string, plural: string): string | null {
@@ -409,9 +665,12 @@ function updatedTitle(parts: ReadonlyArray<string>): string {
   return translate("Updated {items}").replace("{items}", () => joinList(parts));
 }
 
+/** One row per machine: this app's machines first, then servers, provider-only, and skipped. */
 export function describeUpdateEverything(plan: UpdateEverythingPlan): {
   readonly summary: string;
-  readonly lines: ReadonlyArray<string>;
+  readonly version: string | null;
+  readonly providerCount: number;
+  readonly rows: ReadonlyArray<UpdateEverythingRow>;
 } {
   const providerCount = plan.providerMachines.reduce(
     (count, machine) => count + machine.providers.length,
@@ -427,37 +686,46 @@ export function describeUpdateEverything(plan: UpdateEverythingPlan): {
     ),
   );
 
-  const machines = new Map<EnvironmentId, { label: string; items: string[] }>();
-  const itemsFor = (environmentId: EnvironmentId, label: string) => {
-    const existing = machines.get(environmentId);
-    if (existing) return existing.items;
-    const items: string[] = [];
-    machines.set(environmentId, { label, items });
-    return items;
+  const rows = new Map<EnvironmentId | null, UpdateEverythingRow>();
+  const update = (
+    environmentId: EnvironmentId | null,
+    label: string,
+    change: Partial<UpdateEverythingRow>,
+  ) => {
+    const row = rows.get(environmentId) ?? {
+      environmentId,
+      label,
+      app: null,
+      skipped: null,
+      providers: [],
+    };
+    rows.set(environmentId, { ...row, ...change });
   };
+  if (plan.localVersion) {
+    if (plan.localMachines.length === 0) update(null, translate("This app"), { app: "this-app" });
+    for (const machine of plan.localMachines) {
+      update(machine.environmentId, machine.label, { app: "this-app" });
+    }
+  }
   for (const server of plan.servers) {
-    itemsFor(server.environmentId, server.serverLabel).push(
-      server.selfUpdate === "desktop-managed"
-        ? translate("desktop app update")
-        : translate("server to {version}").replace("{version}", () => server.targetVersion),
-    );
+    update(server.environmentId, server.serverLabel, {
+      app: server.selfUpdate === "desktop-managed" ? "desktop-app" : "server",
+    });
   }
   for (const machine of plan.providerMachines) {
-    itemsFor(machine.environmentId, machine.label).push(...machine.providers);
+    update(machine.environmentId, machine.label, { providers: machine.providers });
+  }
+  for (const machine of plan.skipped) {
+    update(machine.environmentId, machine.label, { skipped: machine.reason });
   }
 
   return {
     summary,
-    lines: [
-      ...(plan.localVersion
-        ? [
-            translate("This app: {version}, restarts last").replace(
-              "{version}",
-              () => plan.localVersion ?? "",
-            ),
-          ]
-        : []),
-      ...Array.from(machines.values(), ({ label, items }) => `${label}: ${items.join(", ")}`),
-    ],
+    version:
+      plan.localVersion ??
+      plan.servers.find((server) => server.selfUpdate !== "desktop-managed")?.targetVersion ??
+      null,
+    providerCount,
+    rows: Array.from(rows.values()),
   };
 }

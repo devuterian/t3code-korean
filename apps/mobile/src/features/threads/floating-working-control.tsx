@@ -16,6 +16,7 @@ import Animated, {
   ReduceMotion,
   type SharedValue,
   useAnimatedStyle,
+  useReducedMotion,
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
@@ -82,11 +83,14 @@ export function FloatingWorkingControl(props: {
 }) {
   const t = useTranslate();
   const { width: windowWidth } = useWindowDimensions();
+  const reducedMotion = useReducedMotion();
   const [overlayWidth, setOverlayWidth] = useState(windowWidth);
   const [queueWidth, setQueueWidth] = useState(0);
   const [actionWidth, setActionWidth] = useState(0);
   const action =
-    props.status?.kind === "background" || props.status?.kind === "lifecycle"
+    props.status?.kind === "background" ||
+    props.status?.kind === "lifecycle" ||
+    props.status?.kind === "stop"
       ? props.status.action
       : null;
   const [agentsWidth, setAgentsWidth] = useState(0);
@@ -107,6 +111,7 @@ export function FloatingWorkingControl(props: {
   );
   const separationProgress = useSharedValue(props.showScrollToEnd ? 1 : 0);
 
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- animates the Reanimated separation value when scroll-to-end visibility changes
   useEffect(() => {
     separationProgress.set(withTiming(props.showScrollToEnd ? 1 : 0, CONTROL_TIMING));
   }, [props.showScrollToEnd, separationProgress]);
@@ -136,6 +141,7 @@ export function FloatingWorkingControl(props: {
   };
   const hasStatus = props.status !== null;
   const hasCapsule = hasStatus || hasQueue || hasAgents || hasPreview;
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- clears the Reanimated capsule width value and measured width when the status goes away
   useEffect(() => {
     if (!hasStatus) {
       measuredWidthRef.current = null;
@@ -250,7 +256,7 @@ export function FloatingWorkingControl(props: {
               ? t("Open queue, {count} message", { count: props.queuedCount })
               : t("Open queue, {count} messages", { count: props.queuedCount })
           }
-          accessibilityHint={t("Opens queued messages for reordering, steering, or removal")}
+          accessibilityHint={t("Opens queued messages to send now, edit, or remove")}
           onPress={props.onOpenQueue}
           onLayout={(event) => setQueueWidth(settleWidth(event.nativeEvent.layout.width))}
           style={{ maxWidth: Math.min(overlayWidth, windowWidth) * 0.45 }}
@@ -274,8 +280,8 @@ export function FloatingWorkingControl(props: {
       className="absolute left-0 right-0 z-20 items-center"
       style={[{ top: -CONTROL_OVERLAY_OFFSET }, liftStyle]}
       onLayout={(event) => setOverlayWidth(event.nativeEvent.layout.width)}
-      entering={NATIVE_LIQUID_GLASS_SUPPORTED ? undefined : CONTROL_ENTERING}
-      exiting={NATIVE_LIQUID_GLASS_SUPPORTED ? undefined : CONTROL_EXITING}
+      entering={NATIVE_LIQUID_GLASS_SUPPORTED || reducedMotion ? undefined : CONTROL_ENTERING}
+      exiting={NATIVE_LIQUID_GLASS_SUPPORTED || reducedMotion ? undefined : CONTROL_EXITING}
     >
       {hasCapsule && NATIVE_LIQUID_GLASS_SUPPORTED ? (
         <UniwindGlassContainer
@@ -481,6 +487,30 @@ function FloatingStatusLabel(props: {
       </StatusLabelRow>
     );
   }
+  if (props.status.kind === "stop") {
+    return (
+      <StatusLabelRow
+        key="stop"
+        accessibilityLabel={props.status.label}
+        className="gap-2"
+        onLayout={props.onLayout}
+      >
+        {props.status.unresponsive ? (
+          <SymbolView
+            name="exclamationmark.triangle"
+            size={13}
+            tintColorClassName="accent-warning-foreground"
+            type="monochrome"
+          />
+        ) : (
+          <AppActivityIndicator size="small" colorClassName="accent-icon-muted" />
+        )}
+        <Text className="shrink font-t3-medium text-xs text-foreground" numberOfLines={1}>
+          {props.status.label}
+        </Text>
+      </StatusLabelRow>
+    );
+  }
   if (props.status.kind === "goal") {
     return (
       <StatusLabelRow
@@ -535,12 +565,13 @@ function StatusLabelRow(props: {
   readonly onLayout: (event: LayoutChangeEvent) => void;
   readonly onPress?: () => void;
 }) {
+  const reducedMotion = useReducedMotion();
   const rowClassName = `h-11 flex-row items-center px-4 ${props.className ?? ""}`;
   return (
     <Animated.View
       className="absolute max-w-full"
-      entering={LABEL_ENTERING}
-      exiting={LABEL_EXITING}
+      entering={reducedMotion ? undefined : LABEL_ENTERING}
+      exiting={reducedMotion ? undefined : LABEL_EXITING}
       onLayout={props.onLayout}
     >
       {props.onPress ? (
@@ -572,7 +603,7 @@ function WorkingDuration(props: {
   );
 }
 
-export function WorkingTimer(props: { readonly startedAt: string }) {
+function WorkingTimer(props: { readonly startedAt: string }) {
   const t = useTranslate();
   const nowMs = useVisibleSecondClock(true);
   return (

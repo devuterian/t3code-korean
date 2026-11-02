@@ -19,6 +19,9 @@ export function reviewPosition(row: NativeReviewDiffRow): PullRequestReviewPosit
     };
   return null;
 }
+export function discussionCommentCountLabel(count: number) {
+  return translate(count === 1 ? "{count} comment" : "{count} comments", { count });
+}
 export function reviewPositionLabel(position: PullRequestReviewPosition) {
   const oldSide =
     position.kind === "deleted" || (position.kind === "context" && position.side === "left");
@@ -80,7 +83,7 @@ export function annotatePullRequestDiff(
     attach(
       anchor,
       `discussion:${thread.id}`,
-      `${first?.author?.login ?? translate("Discussion")}${thread.isResolved ? ` · ${translate("Resolved")}` : ""}\n${first?.body ?? ""}\n${translate("{count} comments · Tap to open", { count: thread.commentCount ?? thread.comments.length })}`,
+      `${first?.author?.login ?? translate("Discussion")}${thread.isResolved ? ` · ${translate("Resolved")}` : ""}\n${first?.body ?? ""}\n${discussionCommentCountLabel(thread.commentCount ?? thread.comments.length)} · ${translate("Tap to open")}`,
       thread.line === null ? "file" : String(thread.line),
     );
   }
