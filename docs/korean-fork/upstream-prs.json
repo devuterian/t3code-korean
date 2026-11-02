@@ -2,41 +2,49 @@
   "28727": {
     "title": "feat(worktrees): optionally create worktrees with git-worktree-fast on macOS",
     "asked": "2026-11-02",
-    "decision": "pending"
+    "decision": "yes",
+    "answered": "2026-11-02"
   },
   "28909": {
     "title": "fix(web): alt-tabbing back no longer flashes Working threads into the sidebar list",
     "asked": "2026-11-02",
-    "decision": "pending"
+    "decision": "yes",
+    "answered": "2026-11-02"
   },
   "29047": {
     "title": "fix(desktop): restore macOS scroll bounce",
     "asked": "2026-11-02",
-    "decision": "pending"
+    "decision": "yes",
+    "answered": "2026-11-02"
   },
   "28687": {
     "title": "feat(web): unassign default keyboard shortcuts",
     "asked": "2026-11-02",
-    "decision": "pending"
+    "decision": "no",
+    "answered": "2026-11-02"
   },
   "28625": {
     "title": "fix(mobile): Android app no longer stays offline after reopening",
     "asked": "2026-11-02",
-    "decision": "pending"
+    "decision": "yes",
+    "answered": "2026-11-02"
   },
   "28893": {
     "title": "fix(mobile): reduce Android cold-start wait for synced threads",
     "asked": "2026-11-02",
-    "decision": "pending"
+    "decision": "yes",
+    "answered": "2026-11-02"
   },
   "28683": {
     "title": "fix(mcp): answer MCP 2026-07-28 discovery instead of a 400",
     "asked": "2026-11-02",
-    "decision": "pending"
+    "decision": "no",
+    "answered": "2026-11-02"
   },
   "28979": {
     "title": "feat(web): steal Codex's one good sidebar move (drag to close and open)",
     "asked": "2026-11-02",
-    "decision": "pending"
+    "decision": "no",
+    "answered": "2026-11-02"
   }
 }
