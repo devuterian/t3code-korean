@@ -119,6 +119,13 @@ if ! grep -q "repo: ${UPDATE_REPOSITORY#*/}" "$APP/Contents/Resources/app-update
   echo "error: app-update.yml does not point at $UPDATE_REPOSITORY." >&2
   exit 1
 fi
+# ShipIt aborts the update when it can't strip quarantine from a read-only file.
+READ_ONLY="$(find "$APP" ! -type l ! -perm -u+w)"
+if [[ -n "$READ_ONLY" ]]; then
+  echo "error: read-only files in the app break auto-update:" >&2
+  echo "$READ_ONLY" >&2
+  exit 1
+fi
 mv "$CHECK_DIR" "$HOME/.Trash/$(basename "$CHECK_DIR")"
 
 echo
