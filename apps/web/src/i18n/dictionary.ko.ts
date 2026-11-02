@@ -1222,7 +1222,7 @@ const KO_BASE_DICTIONARY: Readonly<Record<string, string>> = {
   "Remove from favorites": "즐겨찾기에서 제거",
   Select: "선택",
   "Shown in picker": "모델 선택기에 표시",
-  Thinking: "Thinking",
+  Thinking: "생각 중",
   custom: "사용자 지정",
   favorite: "개 즐겨찾기",
   favorites: "개 즐겨찾기",

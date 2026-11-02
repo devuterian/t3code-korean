@@ -40,6 +40,18 @@ export function useAvailableSettingsSearchItems(scopeSearch: SettingsScopeSearch
           hasServerConfig: true,
         }),
     ) === true;
+  const worktreeFastScope = environments.filter(
+    (environment) =>
+      (scopeSearch.machine === undefined || environment.environmentId === scopeSearch.machine) &&
+      environment.connection.phase === "connected",
+  );
+  // Matches WorktreeFastRow, which hides unless every machine in scope reports the capability.
+  const hasWorktreeFastEnvironment =
+    (worktreeFastScope.length > 0 &&
+      worktreeFastScope.every(
+        (environment) =>
+          environment.serverConfig?.environment.capabilities.worktreeFast !== undefined,
+      )) === true;
   const hasThreadAutoSettlement =
     getThreadAutoSettlementSearchAvailability(environments).eligibleEnvironmentIds.length > 0;
   const hasProviderPools = hasProviderPoolsEnvironment(environments);
@@ -72,5 +84,6 @@ export function useAvailableSettingsSearchItems(scopeSearch: SettingsScopeSearch
     hasProviderPools,
     managedTunnelActive,
     hasPeerLinkHost,
+    hasWorktreeFastEnvironment,
   });
 }

@@ -784,7 +784,7 @@ export const KO_V2_CHAT: Readonly<Record<string, string>> = {
   "This thread is snoozed": "이 스레드는 미뤄 둔 상태예요",
   "This thread's branch has no pull request yet.":
     "이 스레드의 브랜치에 아직 풀 리퀘스트가 없어요.",
-  Thought: "Thought",
+  Thought: "생각함",
   "Thread details": "스레드 세부 정보",
   "Thread ID copied": "스레드 ID 복사됨",
   "Thread no longer available": "더 이상 사용할 수 없는 스레드",
@@ -1102,7 +1102,7 @@ export const KO_V2_CHAT_PATTERNS: ReadonlyArray<Pattern> = [
     (n) => `코멘트는 최대 ${n}자까지 입력할 수 있어요.`,
   ],
   [/^Completed in (\d.*)$/, (time) => `${time} 만에 완료됨`],
-  [/^Thought \(×(\d+)\)$/, (n) => `Thought (×${n})`],
+  [/^Thought \(×(\d+)\)$/, (n) => `생각함 (×${n})`],
   [
     // Tool-group summaries from client-runtime summarizeToolGroup, e.g.
     // "Read 3 files, ran 2 commands, and performed 1 other action".

@@ -205,4 +205,14 @@ export const KO_MERGE_1102_F: Readonly<Record<string, string>> = {
   "fallback model": "대체 모델",
   "project name": "프로젝트 이름",
   "compact idle threads": "유휴 스레드 압축",
+  "Use git-worktree-fast": "git-worktree-fast 사용",
+  "Clones commits you prepared with git-worktree-fast from its APFS cache instead of checking them out. Prepare one by running this in a T3 Code terminal:":
+    "git-worktree-fast로 미리 준비한 커밋은 체크아웃하지 않고 APFS 캐시에서 바로 복제해요. T3 Code 터미널에서 이 명령으로 준비할 수 있어요:",
+  "Other commits, and a failed fast clone that left nothing behind, use Git’s normal checkout.":
+    "준비하지 않은 커밋이나 빠른 복제에 실패한 경우에는 Git의 일반 체크아웃을 써요.",
+  "Install git-worktree-fast to use this, then reload:":
+    "git-worktree-fast를 설치한 다음 새로고침하면 쓸 수 있어요:",
+  "Install git-worktree-fast on {machines} to use this, then reload:":
+    "{machines}에 git-worktree-fast를 설치한 다음 새로고침하면 쓸 수 있어요:",
+  "Create worktrees with git-worktree-fast": "git-worktree-fast로 워크트리 만들기",
 };
