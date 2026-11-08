@@ -64,7 +64,7 @@ function subscriptionUsageProps(
       .map((driver) => {
         const pool = pools.find((candidate) => candidate.driver === driver);
         const name = driver === "codex" ? "Codex" : "Claude";
-        if (!pool)
+        if (!pool || pool.windows.length === 0)
           return {
             name,
             detail: "No limits available",
@@ -95,15 +95,25 @@ function subscriptionUsageProps(
           name,
           detail: !fresh
             ? "Open T3 to refresh"
-            : pool.accounts.length > 1
-              ? `${pool.accounts.length} accounts · pooled`
-              : "Subscription remaining",
+            : pool.accounts.some(
+                  (account) =>
+                    account.limits.windows.length > 0 &&
+                    account.limits.unavailable?.reason === "probeFailed",
+                )
+              ? "Last known limits"
+              : pool.accounts.length > 1
+                ? "Available subscription limits"
+                : "Subscription remaining",
           expiresAt: fresh ? expiresAt : 0,
           totalWindows: fresh ? pool.windows.length : 0,
           windows: fresh
             ? selectedWindows.map((window) => ({
                 kind: window.kind,
-                label: window.label,
+                label: window.members.some(
+                  (member) => member.account.limits.unavailable?.reason === "probeFailed",
+                )
+                  ? `Stale · ${window.label}`
+                  : window.label,
                 remaining: Math.round(window.remainingPercent),
                 reset: window.resets[0]
                   ? `Next reset ${new Date(window.resets[0].at).toLocaleString(undefined, {
