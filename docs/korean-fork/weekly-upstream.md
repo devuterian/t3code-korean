@@ -18,7 +18,9 @@ In zsh, write `"${TAG}:path"`, never `$TAG:path` (`:a`, `:r` are modifiers).
   and report.
 - `ssh -o ConnectTimeout=10 DESKTOP-BCUC43S 'echo ok'`. If Windows is off,
   finish steps 1-6, skip the release, and report that Windows was offline.
-- Track progress: `ID=$(eta start "T3 Code 한국어판 주간 업스트림" --steps "업스트림 머지,충돌 해결,설치·검사,번역,맥 빌드,윈도우 빌드,안드로이드 빌드,GitHub 릴리즈,PR 후보")`,
+- `ssh -o ConnectTimeout=10 instance-20260703-0538 'echo ok'` (Linux arm64
+  build host, OCI). If it is down, release without the Linux archive and say so.
+- Track progress: `ID=$(eta start "T3 Code 한국어판 주간 업스트림" --steps "업스트림 머지,충돌 해결,설치·검사,번역,맥 빌드,윈도우 빌드,안드로이드 빌드,리눅스 arm64 빌드,GitHub 릴리즈,PR 후보")`,
   `eta step $ID N`, and always `eta done`/`eta fail` at the end.
 
 ## 1. Find the new upstream nightly
@@ -129,21 +131,39 @@ bash scripts/korean-release-android.sh "$VERSION" "$PWD/release-$VERSION" > /tmp
 ```
 
 It writes `release-$VERSION/T3-Code-Korean-$VERSION-android-arm64.apk`, signed with
-the pinned key that installed phones accept. Mac, Windows and Android can build
-at the same time (Windows runs on the other PC).
+the pinned key that installed phones accept.
+
+Linux arm64 CLI archive (the server 마리리's Galaxy Z Flip5 runs under Termux
+proot Debian; built on the OCI arm64 host in an Ubuntu 24.04 container, because
+Linux arm64 single executables cannot be cross-built):
+
+```sh
+bash scripts/korean-release-linux-arm64.sh "$VERSION" "$PWD/release-$VERSION-linux" 2>&1 | tee /tmp/t3k-linux-build.log
+```
+
+It needs a clean, committed tree, smoke-tests the archive on the host, and writes
+`t3-$VERSION-linux-arm64.tar.gz` plus `SHA256SUMS`. The host keeps its tools and
+checkout under `~/build` between runs; do not touch the other services there.
+
+Mac, Windows, Android and Linux can build at the same time (Windows and Linux
+run on other machines). Give each build its own output dir: the Mac script
+refuses a non-empty one.
 
 ## 8. Release
 
 Push the branch and tag `v$VERSION` to `origin` (never to `upstream`). Create
 the release as a draft on `devuterian/t3code-korean`, upload all files (mac:
 dmg, dmg.blockmap, zip, zip.blockmap, latest-mac.yml; Windows: exe,
-exe.blockmap, latest.yml; Android: the arm64 APK), then publish it as the latest release (not a
+exe.blockmap, latest.yml; Android: the arm64 APK; Linux: the arm64 tar.gz and
+`SHA256SUMS`), then publish it as the latest release (not a
 pre-release). Notes in Korean 해요체: what changed for users (from upstream's
 release notes and our changes), install notes per platform, source branch and
 commit. Afterwards download `releases/latest/download/latest-mac.yml` and
 `latest.yml` and check they name `$VERSION`.
 
-Phones follow the newest release that has an APK. If the Android build fails,
+Phones follow the newest release that has an APK. Put the Linux archive name and
+its SHA-256 in the release notes and the report: the Z Flip5 server installs it
+by hand into `<T3 home>/runtime/versions/<version>`. If the Android build fails,
 release Mac and Windows anyway and say so in the report.
 
 ## 9. Upstream PR candidates
