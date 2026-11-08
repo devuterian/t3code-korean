@@ -501,7 +501,7 @@ export function UsageLimitsSection({
                     <Text className="min-w-0 flex-1 text-sm font-t3-medium text-foreground">
                       {accountName(account)}
                     </Text>
-                    <Text className="text-xs text-foreground-muted">Limits unavailable</Text>
+                    <Text className="text-xs text-foreground-muted">{t("Limits unavailable")}</Text>
                   </View>
                 ))}
               {windows.map((window) => {

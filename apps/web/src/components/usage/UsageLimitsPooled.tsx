@@ -622,7 +622,7 @@ function PoolSection({ pool, now }: { readonly pool: LimitPool; readonly now: nu
         .map((account) => (
           <div key={account.key} className="flex items-center gap-3 rounded-xl border p-4">
             <AccountName account={account} className="min-w-0 flex-1 text-sm font-medium" />
-            <span className="text-xs text-muted-foreground">Limits unavailable</span>
+            <span className="text-xs text-muted-foreground">{t("Limits unavailable")}</span>
           </div>
         ))}
       {windows.map((window) => {

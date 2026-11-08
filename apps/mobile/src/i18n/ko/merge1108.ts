@@ -98,4 +98,5 @@ export const KO_MERGE_1108: Readonly<Record<string, string>> = {
   "Usage limit reached. {reset}": "사용 한도에 도달했어요. {reset}",
   "Usage limit reached. The provider did not report a reset time. Retry manually when your limit is available.":
     "사용 한도에 도달했어요. 프로바이더가 초기화 시간을 알려주지 않았어요. 한도가 풀리면 직접 다시 시도하세요.",
+  "Limits unavailable": "한도 정보 없음",
 };

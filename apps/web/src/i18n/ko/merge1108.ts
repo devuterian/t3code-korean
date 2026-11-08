@@ -28,4 +28,10 @@ export const KO_MERGE_1108: Readonly<Record<string, string>> = {
     "위 폴더 아래 github.com/owner/repo 경로로 클론돼요. ghq와 같은 방식이에요.",
   "Signed in, but the token saved below is used while it can be read.":
     "로그인은 되어 있지만, 아래에 저장한 토큰을 읽을 수 있는 동안에는 그 토큰을 써요.",
+  "Limits unavailable": "한도 정보 없음",
+  "Typing with text selected": "텍스트를 선택한 채 입력",
+  "Choose what typing or pasting does while Cite is available.":
+    "인용할 수 있는 상태에서 입력하거나 붙여넣을 때 어떻게 할지 정해요.",
+  "Goes to the composer": "입력창에 입력",
+  "Cites the selection": "선택한 텍스트를 인용",
 };
