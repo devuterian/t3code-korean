@@ -20,7 +20,7 @@ In zsh, write `"${TAG}:path"`, never `$TAG:path` (`:a`, `:r` are modifiers).
   finish steps 1-6, skip the release, and report that Windows was offline.
 - `ssh -o ConnectTimeout=10 instance-20260703-0538 'echo ok'` (Linux arm64
   build host, OCI). If it is down, release without the Linux archive and say so.
-- Track progress: `ID=$(eta start "T3 Code 한국어판 주간 업스트림" --steps "업스트림 머지,충돌 해결,설치·검사,번역,맥 빌드,윈도우 빌드,안드로이드 빌드,리눅스 arm64 빌드,GitHub 릴리즈,PR 후보")`,
+- Track progress: `ID=$(eta start "T3 Code 한국어판 주간 업스트림" --steps "업스트림 머지,충돌 해결,설치·검사,번역,맥 빌드,윈도우 빌드,안드로이드 빌드,리눅스 arm64 빌드,GitHub 릴리즈,폰 서버 교체,PR 후보")`,
   `eta step $ID N`, and always `eta done`/`eta fail` at the end.
 
 ## 1. Find the new upstream nightly
@@ -34,7 +34,7 @@ TAG=$(gh release list -R pingdotgg/t3code --limit 20 --json tagName,isPrerelease
 PREV=$(git tag -l 'v*-nightly.*' --merged HEAD | sort -V | tail -1)
 ```
 
-If `TAG == PREV`, there is nothing new: skip to step 9 (PR candidates).
+If `TAG == PREV`, there is nothing new: skip to step 10 (PR candidates).
 Otherwise `git fetch upstream "refs/tags/${TAG}:refs/tags/${TAG}" --no-tags`.
 
 ## 2. Merge
@@ -167,7 +167,47 @@ its SHA-256 in the release notes and the report: the Z Flip5 server installs it
 by hand into `<T3 home>/runtime/versions/<version>`. If the Android build fails,
 release Mac and Windows anyway and say so in the report.
 
-## 9. Upstream PR candidates
+## 9. Replace the Z Flip5 server
+
+마리리's Galaxy Z Flip5 runs the Linux arm64 archive as a T3 server (Termux,
+proot Debian, `t3 serve --lan`), reached by the Mac app at
+`z-flip5.tailbda46.ts.net:3773`. Move it to the release you just published.
+`ssh z-flip5` (port 8022, the alias sits above the fleet block in
+`~/.ssh/config`) lands in Termux, not in Debian. The Debian root is
+`$R=/data/data/com.termux/files/usr/var/lib/proot-distro/containers/debian/rootfs`.
+
+1. `ssh -o ConnectTimeout=10 z-flip5 true`. If it fails, skip this step and
+   report "폰 꺼짐/오프라인".
+2. On the Mac, download the archive and checksums with gh (github.com's direct
+   release URLs returned 504 on 2026-11-08, so the phone does not curl them):
+   `gh release download "v$VERSION" -R devuterian/t3code-korean -p "t3-$VERSION-linux-arm64.tar.gz" -p SHA256SUMS -D <tmp>`,
+   then `(cd <tmp> && shasum -a 256 -c SHA256SUMS)`.
+3. Note the old version (`readlink $R/root/.local/bin/t3`), then
+   `scp` both files to `z-flip5:$R/root/t3dl/` (`/root/t3dl` inside Debian).
+4. On the phone: `pkill -f "[.]local/bin/t3 serve"`, then in
+   `proot-distro login debian -- bash -c '...'`:
+   - `cd /root/t3dl && sha256sum -c SHA256SUMS`
+   - `cp -a /root/.t3/userdata /root/.t3/userdata.bak-<old>-<YYYYMMDD>`
+   - unpack into `/root/.t3/runtime/versions/$VERSION` (the archive's top
+     folder `t3-$VERSION-linux-arm64` renamed to `$VERSION`)
+   - `ln -sfn /root/.t3/runtime/versions/$VERSION/t3 /root/.local/bin/t3` and
+     check `t3 --version`
+
+   Then restart with `sh ~/start-t3.sh` in Termux. Never edit that script: it
+   carries the hostname shim (`LD_PRELOAD`) and `PATH` the server needs.
+
+5. After 30 seconds,
+   `curl -s http://z-flip5.tailbda46.ts.net:3773/.well-known/t3/environment`
+   must show `"label":"z-flip5"` and `"serverVersion":"$VERSION"`. If not,
+   point the link back at the old version, restart, and report the failure.
+6. Clean up on the phone with Debian's trash-cli, never `rm` (`trash-list`
+   and `trash-rm` print /proc permission errors but still do the work):
+   trash the files in `/root/t3dl`, keep only the current and the previous
+   version under `runtime/versions`, and keep only the two newest
+   `userdata.bak-*` copies.
+7. Report one line: `폰 서버: <old> → $VERSION`.
+
+## 10. Upstream PR candidates
 
 ```sh
 gh pr list -R pingdotgg/t3code --state open --limit 300 \
@@ -191,11 +231,12 @@ features). Ask in Korean, numbered, with one line each on what it does and
 Record every asked PR in `upstream-prs.json` with `"decision": "pending"` and
 commit it. When 마리리 answers, set `yes`/`no`; for `yes`, fetch
 `pull/<n>/head` from upstream, cherry-pick or merge the PR's commits, translate
-its strings (step 4), and ship it as the next `-ko.<n>` (steps 5-8). A `pending`
+its strings (step 4), and ship it as the next `-ko.<n>` (steps 5-9). A `pending`
 PR that was answered `c` is asked again next week; `no` is never asked again.
 
-## 10. Report
+## 11. Report
 
-Korean, short: upstream tag merged, version released (link), what changed for
+Korean, short: upstream tag merged, version released (link), the phone server line
+from step 9, what changed for
 users, what was translated, anything skipped or failed, the PR question. Leave
 the repo clean, move temporary files to Trash, and `eta done`.
