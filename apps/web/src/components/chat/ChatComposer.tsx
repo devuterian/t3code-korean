@@ -1808,7 +1808,8 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
       isLiteralPendingAnswer,
     );
     if (options?.citationComment) {
-      composerEditorRef.current?.requestCitationComment({
+      if (!composerEditorRef.current) return false;
+      composerEditorRef.current.requestCitationComment({
         previousValue: currentText,
         value: next.text,
         citationStart: options.citationComment.start,
@@ -2587,6 +2588,12 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
     ) {
       return false;
     }
+    if (
+      options?.citationCommentAnchor?.commentInput &&
+      !composerEditorRef.current?.canInsertCitation()
+    ) {
+      return false;
+    }
     if (options?.clipboardData) {
       text = importPastedComposerText(options.clipboardData, importContextFragment);
     }
@@ -3100,6 +3107,8 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
         return true;
       },
       citeAssistantText: (citation, sourceAnchor) =>
+        // Literal answers can't host a comment editor; let typed input fall back to the composer.
+        !(isLiteralPendingAnswer && sourceAnchor.commentInput) &&
         insertComposerTextStable(
           formatAssistantCitationForComposer(citation, citation.comment),
           "cursor",

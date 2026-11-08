@@ -260,6 +260,44 @@ export function AppearanceSettingsPanel() {
         />
 
         <SettingsRow
+          {...searchableSetting("typing-with-selection")}
+          description="Choose what typing or pasting does while Cite is available."
+          resetAction={
+            settings.typingWithSelection !== DEFAULT_UNIFIED_SETTINGS.typingWithSelection ? (
+              <SettingResetButton
+                label="typing with text selected"
+                onClick={() =>
+                  updateSettings({
+                    typingWithSelection: DEFAULT_UNIFIED_SETTINGS.typingWithSelection,
+                  })
+                }
+              />
+            ) : null
+          }
+          control={
+            <Select
+              value={settings.typingWithSelection}
+              onValueChange={(value) => {
+                if (value === "composer" || value === "cite")
+                  updateSettings({ typingWithSelection: value });
+              }}
+            >
+              <SelectTrigger size="sm" aria-label={t("Typing with text selected")}>
+                <SelectValue>
+                  {settings.typingWithSelection === "cite"
+                    ? t("Cites the selection")
+                    : t("Goes to the composer")}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectPopup>
+                <SelectItem value="composer">{t("Goes to the composer")}</SelectItem>
+                <SelectItem value="cite">{t("Cites the selection")}</SelectItem>
+              </SelectPopup>
+            </Select>
+          }
+        />
+
+        <SettingsRow
           {...searchableSetting("chat-width")}
           description="Set how wide messages and the composer can grow on large screens."
           resetAction={
@@ -314,7 +352,11 @@ export function AppearanceSettingsPanel() {
                     updateSettings({ effortDisplay: value });
                 }}
               >
-                <SelectTrigger size="sm" className="w-full min-w-0" aria-label={t("Effort display")}>
+                <SelectTrigger
+                  size="sm"
+                  className="w-full min-w-0"
+                  aria-label={t("Effort display")}
+                >
                   <SelectValue>{t(EFFORT_DISPLAY_LABELS[settings.effortDisplay])}</SelectValue>
                 </SelectTrigger>
                 <SelectPopup align="end" alignItemWithTrigger={false}>

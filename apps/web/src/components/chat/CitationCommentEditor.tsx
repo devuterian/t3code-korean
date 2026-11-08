@@ -1,7 +1,16 @@
 import { ASSISTANT_CITATION_MAX_COMMENT_LENGTH, type EnvironmentId } from "@t3tools/contracts";
-import { use, useEffect, useRef, useState, type RefObject } from "react";
+import {
+  use,
+  useEffect,
+  useEffectEvent,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type RefObject,
+} from "react";
 
 import { TextFieldSpeechControls, useTextFieldSpeech } from "~/speech/useTextFieldSpeech";
+import type { AssistantCitationSourceAnchor } from "~/lib/assistantTextSelection";
 import { textDirection } from "~/textDirection";
 
 import { ComposerContextActionsContext } from "../composerContextActions";
@@ -11,6 +20,8 @@ import { usePrimaryEnvironmentId } from "~/state/environments";
 
 type CitationCommentEditorProps = {
   initialComment?: string;
+  /** Input typed before the editor mounted, handed over until the textarea takes focus. */
+  commentInput?: AssistantCitationSourceAnchor["commentInput"];
   label: string;
   description: string;
   submitLabel: string;
@@ -45,6 +56,7 @@ function CitationCommentFields({
   environmentId,
   speechOwnerKey,
   initialComment = "",
+  commentInput,
   label,
   description,
   submitLabel,
@@ -57,7 +69,7 @@ function CitationCommentFields({
   onVoiceSetupOpenChange,
 }: CitationCommentFieldsProps) {
   const t = useTranslate();
-  const [comment, setComment] = useState(initialComment);
+  const [comment, setComment] = useState(commentInput?.text ?? initialComment);
   const localInputRef = useRef<HTMLTextAreaElement | null>(null);
   const textareaRef = inputRef ?? localInputRef;
   const { projectId } = use(ComposerContextActionsContext);
@@ -65,6 +77,14 @@ function CitationCommentFields({
     setComment(text);
     onDraftChange?.(text);
   };
+  const receiveCommentInput = useEffectEvent((text: string) => {
+    if (commentInput?.cancelled) onCancel();
+    else updateComment(text);
+  });
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- transfers input buffered while the citation popover was mounting into its editor
+  useLayoutEffect(() => {
+    return commentInput?.subscribe(receiveCommentInput);
+  }, [commentInput]);
   const speech = useTextFieldSpeech({
     environmentId,
     projectId,
@@ -108,6 +128,9 @@ function CitationCommentFields({
     >
       <textarea
         ref={textareaRef}
+        onFocus={() => {
+          commentInput?.release();
+        }}
         readOnly={speech.freezesEditor}
         aria-label={label}
         aria-description={description}
