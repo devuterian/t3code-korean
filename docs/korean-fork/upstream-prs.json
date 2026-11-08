@@ -50,41 +50,49 @@
   "32608": {
     "title": "fix(desktop): reconnect environments after the computer wakes",
     "asked": "2026-11-08",
-    "decision": "pending"
+    "decision": "yes",
+    "answered": "2026-11-08"
   },
   "32812": {
     "title": "fix(mobile): SVG markers with orient=\"auto-start-reverse\" no longer crash Android",
     "asked": "2026-11-08",
-    "decision": "pending"
+    "decision": "yes",
+    "answered": "2026-11-08"
   },
   "32768": {
     "title": "fix(web): an IME Escape no longer clears a typed font family",
     "asked": "2026-11-08",
-    "decision": "pending"
+    "decision": "yes",
+    "answered": "2026-11-08"
   },
   "32803": {
     "title": "fix(usage): keep hub accounts visible through quota failures",
     "asked": "2026-11-08",
-    "decision": "pending"
+    "decision": "yes",
+    "answered": "2026-11-08"
   },
   "32600": {
     "title": "feat(web): optionally cite selected text by typing",
     "asked": "2026-11-08",
-    "decision": "pending"
+    "decision": "yes",
+    "answered": "2026-11-08"
   },
   "32728": {
     "title": "fix(web): typing a draft in one tab no longer erases drafts written in another tab",
     "asked": "2026-11-08",
-    "decision": "pending"
+    "decision": "yes",
+    "answered": "2026-11-08"
   },
   "32646": {
     "title": "fix(shared): login-shell environment probe ignores DEBUG trap output",
     "asked": "2026-11-08",
-    "decision": "pending"
+    "decision": "yes",
+    "answered": "2026-11-08"
   },
   "32826": {
     "title": "fix(web): chat stays pinned when the terminal drawer opens during a turn",
     "asked": "2026-11-08",
-    "decision": "pending"
+    "decision": "yes",
+    "answered": "2026-11-08"
   }
 }
