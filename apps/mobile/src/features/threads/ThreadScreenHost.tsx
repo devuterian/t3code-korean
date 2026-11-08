@@ -6,7 +6,9 @@ import {
   useSyncExternalStore,
   type ReactNode,
 } from "react";
-import { Platform, View } from "react-native";
+import { View } from "react-native";
+
+import { ScreenContent } from "../../components/ui/ScreenContent";
 import { ThreadDetailScreen, type ThreadDetailScreenProps } from "./ThreadDetailScreen";
 import { ImageCiteProvider } from "../imageCite/ImageCiteProvider";
 
@@ -41,11 +43,7 @@ function ThreadScreenOutlet() {
   const screen = (
     <>
       {"props" in content ? content.props.header : content.header}
-      {Platform.OS === "android" ? (
-        <View className="flex-1 overflow-hidden rounded-t-[28px] bg-thread-canvas">{body}</View>
-      ) : (
-        body
-      )}
+      <ScreenContent surface="canvas">{body}</ScreenContent>
     </>
   );
   if (!("props" in content)) return screen;

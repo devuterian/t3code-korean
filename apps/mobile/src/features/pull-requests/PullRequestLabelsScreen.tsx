@@ -79,7 +79,6 @@ export function PullRequestLabelsScreen({ route }: StaticScreenProps<PullRequest
       placeholder={t("Search labels")}
       closeAccessibilityLabel={t("Close labels")}
       clearAccessibilityLabel={t("Clear label search")}
-      searchTextChangeId="pr-label-search"
       query={query}
       onQueryChange={setQuery}
     >

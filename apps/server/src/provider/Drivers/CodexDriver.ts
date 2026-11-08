@@ -1,5 +1,7 @@
 import { CodexSettings, ProviderDriverKind, TextGenerationError } from "@t3tools/contracts";
-import * as Crypto from "effect/Crypto";
+import * as Digest from "effect/crypto/Digest";
+import * as SecureRandom from "effect/crypto/SecureRandom";
+import type * as Signature from "effect/crypto/Signature";
 import { resolveCommandPath } from "@t3tools/shared/shell";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
@@ -119,7 +121,9 @@ export type CodexDriverEnv =
   | ProviderHost.ProviderHost
   | ChildProcessSpawner.ChildProcessSpawner
   | ResetCreditCoordinator.ResetCreditCoordinator
-  | Crypto.Crypto
+  | Digest.Digest
+  | SecureRandom.SecureRandom
+  | Signature.Signature
   | FileSystem.FileSystem
   | HttpClient.HttpClient
   | ProviderLatestVersions.ProviderLatestVersions
@@ -426,6 +430,11 @@ export const CodexDriver: ProviderDriver<
             protect("generateReviewGuide", nativeGeneration.generateReviewGuide(input)),
           generateNextPrompt: (input) =>
             protect("generateNextPrompt", nativeGeneration.generateNextPrompt(input)),
+          generateTranscriptionPostProcessing: (input) =>
+            protect(
+              "generateTranscriptionPostProcessing",
+              nativeGeneration.generateTranscriptionPostProcessing(input),
+            ),
         }
       : nativeGeneration;
     const snapshotForCwd = (cwd: string) =>

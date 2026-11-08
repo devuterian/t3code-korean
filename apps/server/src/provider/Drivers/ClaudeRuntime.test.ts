@@ -86,7 +86,7 @@ it.effect.each(["adapter", "probe"] as const)(
       if (consumer === "probe")
         expect(options.settingSources).toEqual(["user", "project", "local"]);
       expect(options.extraArgs?.settings).toBeUndefined();
-      const observed = yield* Effect.tryPromise(
+      const observed = yield* Effect.promise(
         () =>
           new Promise<string>((resolve, reject) => {
             const child = options.spawnClaudeCodeProcess!({

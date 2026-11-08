@@ -206,7 +206,7 @@ export function DeviceToolsPanel(props: {
                   }}
                 >
                   <Toggle value="clear">Clear</Toggle>
-                  <Toggle value="tinted">Tinted</Toggle>
+                  <Toggle value="tinted">{t("Tinted")}</Toggle>
                 </ToggleGroup>
               </Row>
               <Row label="Color filter">

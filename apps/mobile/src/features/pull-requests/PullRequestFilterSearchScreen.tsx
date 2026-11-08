@@ -123,7 +123,6 @@ export function PullRequestFilterSearchScreen({
       clearAccessibilityLabel={
         kind === "labels" ? t("Clear label search") : t("Clear author search")
       }
-      searchTextChangeId="pr-filter-option-search"
       query={query}
       onQueryChange={setQuery}
     >

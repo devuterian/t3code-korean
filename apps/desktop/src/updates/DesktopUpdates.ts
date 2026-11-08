@@ -25,6 +25,7 @@ import * as Scope from "effect/Scope";
 import * as Semaphore from "effect/Semaphore";
 import * as Stream from "effect/Stream";
 
+import * as DesktopBackendManager from "../backend/DesktopBackendManager.ts";
 import * as DesktopBackendPool from "../backend/DesktopBackendPool.ts";
 import * as DesktopConfig from "../app/DesktopConfig.ts";
 import * as DesktopEnvironment from "../app/DesktopEnvironment.ts";
@@ -662,11 +663,9 @@ export const make = Effect.gen(function* () {
     );
   }).pipe(Effect.withSpan("desktop.updates.downloadAvailableUpdate"));
 
-  // Korean fork builds download in the background. electron-updater's own
-  // autoDownload re-runs Squirrel's download on every check once a version is
-  // cached and drops download failures, so the download goes through the same
-  // path as the Download button instead. It waits for the check or channel
-  // change that reported the update to finish first.
+  // Korean fork: download in the background through the Download button path, because
+  // electron-updater autoDownload re-downloads on every check and drops failures. It waits for
+  // the check or channel change that reported the update.
   const autoDownloadAvailableUpdate = Effect.scoped(
     Effect.gen(function* () {
       const actionCompletions = yield* PubSub.subscribe(finishedUpdateActions);
@@ -862,7 +861,8 @@ export const make = Effect.gen(function* () {
           yield* Ref.set(installRunningBackendsRef, runningInstances);
           yield* Effect.forEach(
             instances,
-            (instance) => instance.stop({ timeout: Duration.seconds(5) }),
+            (instance) =>
+              instance.stop({ timeout: DesktopBackendManager.BACKEND_QUIT_STOP_TIMEOUT }),
             { concurrency: "unbounded" },
           );
           yield* electronUpdater.quitAndInstall({

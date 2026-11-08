@@ -1,12 +1,49 @@
-import { ASSISTANT_CITATION_MAX_COMMENT_LENGTH } from "@t3tools/contracts";
-import { useState, type Ref } from "react";
+import { ASSISTANT_CITATION_MAX_COMMENT_LENGTH, type EnvironmentId } from "@t3tools/contracts";
+import { use, useEffect, useRef, useState, type RefObject } from "react";
+
+import { TextFieldSpeechControls, useTextFieldSpeech } from "~/speech/useTextFieldSpeech";
 import { textDirection } from "~/textDirection";
 
+import { ComposerContextActionsContext } from "../composerContextActions";
 import { Button } from "../ui/button";
 import { useTranslate } from "~/i18n/translate";
+import { usePrimaryEnvironmentId } from "~/state/environments";
+
+type CitationCommentEditorProps = {
+  initialComment?: string;
+  label: string;
+  description: string;
+  submitLabel: string;
+  /** Holds submission while the owner finishes the previous one. */
+  submitDisabled?: boolean;
+  inputRef?: RefObject<HTMLTextAreaElement | null>;
+  /** Names the dictation target when the surrounding composer context has no environment. */
+  speechEnvironmentId?: EnvironmentId | null;
+  /** Separates this field's dictation state from other citation comments. */
+  speechOwnerKey?: string;
+  onSubmit: (comment: string) => boolean | void;
+  onSubmitAndSend?: (comment: string) => boolean | void;
+  onCancel: () => void;
+  onDraftChange?: (comment: string) => void;
+  onVoiceSetupOpenChange?: (open: boolean) => void;
+};
+
+type CitationCommentFieldsProps = Omit<CitationCommentEditorProps, "speechEnvironmentId"> & {
+  environmentId: EnvironmentId;
+};
 
 /** The comment field shared by text and image citations. Enter submits; Escape cancels. */
-export function CitationCommentEditor({
+export function CitationCommentEditor(props: CitationCommentEditorProps) {
+  const { environmentId: contextEnvironmentId } = use(ComposerContextActionsContext);
+  const primaryEnvironmentId = usePrimaryEnvironmentId();
+  const environmentId = contextEnvironmentId ?? props.speechEnvironmentId ?? primaryEnvironmentId;
+  if (environmentId === null) return null;
+  return <CitationCommentFields {...props} environmentId={environmentId} />;
+}
+
+function CitationCommentFields({
+  environmentId,
+  speechOwnerKey,
   initialComment = "",
   label,
   description,
@@ -17,33 +54,43 @@ export function CitationCommentEditor({
   onSubmitAndSend,
   onCancel,
   onDraftChange,
-}: {
-  initialComment?: string;
-  label: string;
-  description: string;
-  submitLabel: string;
-  /** Holds submission while the owner finishes the previous one. */
-  submitDisabled?: boolean;
-  inputRef?: Ref<HTMLTextAreaElement>;
-  onSubmit: (comment: string) => void;
-  onSubmitAndSend?: (comment: string) => void;
-  onCancel: () => void;
-  onDraftChange?: (comment: string) => void;
-}) {
+  onVoiceSetupOpenChange,
+}: CitationCommentFieldsProps) {
   const t = useTranslate();
   const [comment, setComment] = useState(initialComment);
+  const localInputRef = useRef<HTMLTextAreaElement | null>(null);
+  const textareaRef = inputRef ?? localInputRef;
+  const { projectId } = use(ComposerContextActionsContext);
+  const updateComment = (text: string) => {
+    setComment(text);
+    onDraftChange?.(text);
+  };
+  const speech = useTextFieldSpeech({
+    environmentId,
+    projectId,
+    ownerKey: speechOwnerKey ?? JSON.stringify(["citation-comment", label]),
+    text: comment,
+    textareaRef,
+    onTextChange: updateComment,
+  });
+  const setupOpen = speech.setup.open;
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- keeps the citation popover open while the voice setup dialog owns focus
+  useEffect(() => {
+    onVoiceSetupOpenChange?.(setupOpen);
+    return () => onVoiceSetupOpenChange?.(false);
+  }, [onVoiceSetupOpenChange, setupOpen]);
   const commentTooLong = comment.length > ASSISTANT_CITATION_MAX_COMMENT_LENGTH;
-  const blocked = commentTooLong || submitDisabled;
   const submit = () => {
-    if (!blocked) onSubmit(comment);
+    speech.submitAfterDictation((text) => {
+      if (!submitDisabled && text.length <= ASSISTANT_CITATION_MAX_COMMENT_LENGTH) onSubmit(text);
+    });
   };
   const submitAndSend = () => {
-    if (blocked) return;
-    if (onSubmitAndSend) {
-      onSubmitAndSend(comment);
-    } else {
-      onSubmit(comment);
-    }
+    speech.submitAfterDictation((text) => {
+      if (!submitDisabled && text.length <= ASSISTANT_CITATION_MAX_COMMENT_LENGTH) {
+        (onSubmitAndSend ?? onSubmit)(text);
+      }
+    });
   };
 
   return (
@@ -54,12 +101,14 @@ export function CitationCommentEditor({
         if (event.nativeEvent.isComposing || event.keyCode === 229) return;
         if (event.key === "Escape") {
           event.preventDefault();
-          onCancel();
+          if (speech.state.phase !== "idle") speech.cancel();
+          else onCancel();
         }
       }}
     >
       <textarea
-        ref={inputRef}
+        ref={textareaRef}
+        readOnly={speech.freezesEditor}
         aria-label={label}
         aria-description={description}
         aria-invalid={commentTooLong || undefined}
@@ -68,10 +117,7 @@ export function CitationCommentEditor({
         dir={textDirection(comment)}
         className="field-sizing-content block max-h-40 min-h-16 w-full resize-none bg-transparent px-1 py-1.5 text-base outline-none placeholder:text-muted-foreground sm:text-sm"
         value={comment}
-        onChange={(event) => {
-          setComment(event.currentTarget.value);
-          onDraftChange?.(event.currentTarget.value);
-        }}
+        onChange={(event) => updateComment(event.currentTarget.value)}
         onKeyDown={(event) => {
           if (
             event.key === "Enter" &&
@@ -95,7 +141,16 @@ export function CitationCommentEditor({
           )}
         </p>
       ) : null}
-      <div className="mt-2 flex items-center justify-end gap-2">
+      <div className="mt-2 flex flex-wrap items-center justify-end gap-2">
+        <div
+          className={
+            speech.state.phase === "idle"
+              ? "contents"
+              : "flex basis-full flex-wrap gap-2 *:min-w-0 *:grow **:data-[slot=voice-input-pill]:w-full"
+          }
+        >
+          <TextFieldSpeechControls speech={speech} />
+        </div>
         <Button
           variant="outline"
           size="xs"
@@ -106,7 +161,9 @@ export function CitationCommentEditor({
         </Button>
         <Button
           size="xs"
-          disabled={blocked}
+          disabled={
+            speech.preparing || submitDisabled || (commentTooLong && !speech.blocksSubmission)
+          }
           onPointerDown={(event) => event.preventDefault()}
           onClick={submit}
         >

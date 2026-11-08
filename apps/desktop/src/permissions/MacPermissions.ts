@@ -4,6 +4,7 @@ import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
 import * as Path from "effect/Path";
+import * as Schema from "effect/Schema";
 import * as Electron from "electron";
 import * as DesktopEnvironment from "../app/DesktopEnvironment.ts";
 import {
@@ -45,6 +46,15 @@ const defaultGrantCheck = (permission: MacPermission) => () => {
 const openUrl = (url: string) =>
   Effect.promise(() => Electron.shell.openExternal(url).catch(() => undefined));
 
+class MacPermissionHelperError extends Schema.TaggedError<MacPermissionHelperError>()(
+  "MacPermissionHelperError",
+  { cause: Schema.Defect() },
+) {
+  override get message(): string {
+    return "Could not show the permission helper.";
+  }
+}
+
 export const layer = Layer.effect(
   MacPermissions,
   Effect.gen(function* () {
@@ -77,17 +87,21 @@ export const layer = Layer.effect(
       isGranted?: () => boolean | Promise<boolean>,
     ) {
       if (environment.platform !== "darwin" || !environment.isPackaged) return;
-      yield* Effect.tryPromise(() =>
-        native
-          ? native.show(permission, owner, isGranted ?? defaultGrantCheck(permission))
-          : helper.show(
-              permission,
-              path.join(environment.dirname, "mac-permission-preload.cjs"),
-              owner,
-              environment.resolveResourcePathCandidates("icon.png"),
-              isGranted,
-            ),
-      ).pipe(Effect.catch((cause) => Effect.logWarning("Could not show permission helper", cause)));
+      yield* Effect.tryPromise({
+        try: () =>
+          native
+            ? native.show(permission, owner, isGranted ?? defaultGrantCheck(permission))
+            : helper.show(
+                permission,
+                path.join(environment.dirname, "mac-permission-preload.cjs"),
+                owner,
+                environment.resolveResourcePathCandidates("icon.png"),
+                isGranted,
+              ),
+        catch: (cause) => new MacPermissionHelperError({ cause }),
+      }).pipe(
+        Effect.catch((cause) => Effect.logWarning("Could not show permission helper", cause)),
+      );
     });
 
     const openPaneWithHelper = Effect.fn("MacPermissions.openPaneWithHelper")(function* (

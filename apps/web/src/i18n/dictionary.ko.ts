@@ -36,6 +36,7 @@ import { KO_MERGE_1102_C } from "./ko/merge1102C";
 import { KO_MERGE_1102_D } from "./ko/merge1102D";
 import { KO_MERGE_1102_E } from "./ko/merge1102E";
 import { KO_MERGE_1102_F } from "./ko/merge1102F";
+import { KO_MERGE_1108 } from "./ko/merge1108";
 
 /**
  * Korean dictionary. Keys are the exact English source strings rendered by
@@ -1444,4 +1445,5 @@ export const KO_DICTIONARY: Readonly<Record<string, string>> = {
   ...KO_MERGE_1102_D,
   ...KO_MERGE_1102_E,
   ...KO_MERGE_1102_F,
+  ...KO_MERGE_1108,
 };

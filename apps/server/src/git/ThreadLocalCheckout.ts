@@ -9,7 +9,7 @@ import {
 } from "@t3tools/contracts";
 import * as HostProcess from "@t3tools/shared/HostProcess";
 import * as Cause from "effect/Cause";
-import * as Crypto from "effect/Crypto";
+import * as SecureRandom from "effect/crypto/SecureRandom";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Option from "effect/Option";
@@ -288,7 +288,7 @@ const performMove = Effect.fn("ThreadLocalCheckout.performMove")(function* (
   const vcsStatus = yield* VcsStatusBroadcaster.VcsStatusBroadcaster;
   const fileSystem = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
-  const crypto = yield* Crypto.Crypto;
+  const random = yield* SecureRandom.SecureRandom;
 
   const run = (operation: string, cwd: string, args: ReadonlyArray<string>) =>
     git.execute({ operation: `ThreadLocalCheckout.${operation}`, cwd, args });
@@ -577,7 +577,7 @@ const performMove = Effect.fn("ThreadLocalCheckout.performMove")(function* (
       "rev-parse",
       "--git-common-dir",
     ])).stdout.replace(/\r?\n$/, "");
-    const id = yield* crypto.randomUUIDv4().pipe(Effect.orDie);
+    const id = yield* random.uuidV4();
     recoveryDirectory = path.join(path.resolve(localPath, common), "t3-move-to-local", id);
     return recoveryDirectory;
   });
@@ -1405,7 +1405,7 @@ const performMove = Effect.fn("ThreadLocalCheckout.performMove")(function* (
     );
   }
 
-  const uuid = yield* crypto.randomUUIDv4().pipe(Effect.orDie);
+  const uuid = yield* random.uuidV4();
   yield* step(
     "Pointing the thread at the local checkout",
     threadManagement.dispatch({

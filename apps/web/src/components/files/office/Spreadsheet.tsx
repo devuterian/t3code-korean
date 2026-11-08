@@ -1,3 +1,4 @@
+import * as Schema from "effect/Schema";
 import { observeResize } from "~/lib/observeResize";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -33,6 +34,8 @@ import {
 } from "./sheet-paint";
 import { externalUrl } from "./links";
 import { useTranslate } from "~/i18n/translate";
+
+const isSupersededError = Schema.is(SupersededError);
 
 type Client = ReturnType<typeof createWorkerClient<SheetMethods>>;
 type Opened = {
@@ -267,7 +270,7 @@ function SpreadsheetGrid(props: {
             schedule();
           })
           .catch((cause: unknown) => {
-            if (!(cause instanceof SupersededError) && !controller.signal.aborted)
+            if (!isSupersededError(cause) && !controller.signal.aborted)
               setNotice("These cells could not be drawn.");
           });
       }

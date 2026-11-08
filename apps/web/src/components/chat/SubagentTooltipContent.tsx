@@ -52,18 +52,18 @@ export function SubagentTooltipContent(props: {
   progress?: string | null | undefined;
 }) {
   const t = useTranslate();
-  const { modelLabel: rawModelLabel, workspace: metadata } = resolveSubagentMetadata(props);
-  // "Not reported" comes from the shared resolver in English.
-  const modelLabel = t(rawModelLabel);
-  const preview = subagentDetailPreview(props);
-  const model = props.model?.trim();
-  const modelSlug = props.provider
-    ? resolveSelectableModel(props.provider.driver, model, props.provider.models)
-    : model;
-  const providerModel = props.provider?.models.find((candidate) => candidate.slug === modelSlug);
   const childSelection =
     props.modelSelection ??
     (props.origin === "app_owned" ? props.childThread?.modelSelection : undefined);
+  const {
+    modelLabel: rawModelLabel,
+    modelSlug,
+    workspace: metadata,
+  } = resolveSubagentMetadata({ ...props, modelSelection: childSelection });
+  // "Not reported" comes from the shared resolver in English.
+  const modelLabel = t(rawModelLabel);
+  const preview = subagentDetailPreview(props);
+  const providerModel = props.provider?.models.find((candidate) => candidate.slug === modelSlug);
   const childModel = props.provider
     ? (resolveSelectableModel(
         props.provider.driver,
@@ -73,7 +73,7 @@ export function SubagentTooltipContent(props: {
     : childSelection?.model.trim();
   const provider = props.provider;
   const matchingSelection =
-    childModel === (modelSlug ?? model) && childSelection?.instanceId === props.providerInstanceId
+    childModel === modelSlug && childSelection?.instanceId === props.providerInstanceId
       ? childSelection
       : undefined;
   const effort = REASONING_EFFORT_OPTION_IDS.map((id) =>

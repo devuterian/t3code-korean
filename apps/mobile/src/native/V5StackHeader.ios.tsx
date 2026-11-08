@@ -9,7 +9,7 @@ import { KeyboardController, useKeyboardState } from "react-native-keyboard-cont
 import { isDuoDevice } from "../lib/device-type";
 import { translate } from "../i18n/translate";
 import { useMobileNavigationTheme } from "../lib/useMobileNavigationTheme";
-import { useDeviceType, useNativeLayoutMetrics } from "../native/native-layout-metrics";
+import { useDeviceType, useNativeLayoutMetrics } from "./native-layout-metrics";
 import { HeaderItemsWidthContext } from "./header-items-width";
 import {
   SearchBar,

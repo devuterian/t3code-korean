@@ -24,20 +24,18 @@ export interface ProviderAuthController {
     stopSessions: Effect.Effect<void, ProviderSetupError>,
   ) => Effect.Effect<ProviderAuthState, ProviderSetupError>;
   readonly isChangingCredentials?: Effect.Effect<boolean>;
-  /**
-   * A sign-in that is a static secret T3 owns and that never rotates, described as the
-   * environment variable that reproduces it on another machine (Cursor's named API key as
-   * CURSOR_API_KEY). Never implement it for anything that rotates on refresh (Codex ChatGPT) or
-   * that the provider's own tooling owns (CLI homes, keychains, Antigravity OAuth tokens): those
-   * machines sign in for themselves. None when signed out, expired, or already configured through
-   * that variable, which then travels on its own.
-   */
+  /** A never-rotating static secret T3 owns, as the env var that reproduces it elsewhere (Cursor
+   * CURSOR_API_KEY). Not for refreshing tokens or provider-owned logins (CLI homes, keychains).
+   * None when signed out, expired, or already set through that variable. */
   readonly exportStaticCredential?: Effect.Effect<
     Option.Option<{ readonly name: string; readonly value: string }>,
     ProviderSetupError
   >;
   readonly invalidate?: Effect.Effect<void>;
   readonly refreshMethods?: Effect.Effect<void>;
+  readonly removeMethod?: (
+    methodId: string,
+  ) => Effect.Effect<ProviderAuthState, ProviderSetupError>;
   readonly withAccess?: <A, E, R>(
     task: Effect.Effect<A, E, R>,
   ) => Effect.Effect<A, E | ProviderSetupError, R | Scope.Scope>;

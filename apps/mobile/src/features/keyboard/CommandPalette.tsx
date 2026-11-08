@@ -72,8 +72,8 @@ import { threadJumpIndex } from "./threadKeyboardShortcuts";
 import { PullRequestGlyph } from "../pull-requests/pullRequestGlyphs";
 import { useTranslate } from "../../i18n/translate";
 import { openSettings } from "../settings/settings-navigation";
-import { useSelectWorkspaceTab } from "../workspace/useSelectWorkspaceTab";
-import { useSelectWorkspaceDetail } from "../workspace/useSelectWorkspaceDetail";
+import { useSelectWorkspaceTab } from "../layout/workspace/useSelectWorkspaceTab";
+import { useSelectWorkspaceDetail } from "../layout/workspace/useSelectWorkspaceDetail";
 
 const PALETTE_COMMANDS: ReadonlyArray<HardwareKeyboardCommand> = [
   "commandPalette",
@@ -356,8 +356,7 @@ export function CommandPalette(props: {
         title: "Triage an issue",
         // Mobile has no triage hero, so name the machine before it starts.
         detail: t("On {machine}", {
-          machine:
-            savedConnectionsById[triageEnvironmentId]?.environmentLabel ?? t("this machine"),
+          machine: savedConnectionsById[triageEnvironmentId]?.environmentLabel ?? t("this machine"),
         }),
         searchTerms: ["triage", "bug", "issue", "report", "broken", "debug", "help", "support"],
         run: () => void startTriage(triageEnvironmentId),

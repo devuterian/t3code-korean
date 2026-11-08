@@ -288,6 +288,7 @@ export const ExpandedImageDialog = memo(function ExpandedImageDialog({
 
   // Closing the comment box removes the focused field, dropping focus to the page. The dialog
   // keeps its keys (C, arrows) without focusing the media, whose tooltip shows the file path.
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- moves DOM focus back to the dialog after the comment field unmounts.
   useEffect(() => {
     if (pendingRegion === null && document.activeElement === document.body) {
       popupRef.current?.focus({ preventScroll: true });
@@ -327,6 +328,7 @@ export const ExpandedImageDialog = memo(function ExpandedImageDialog({
     navigateImage(1);
   };
 
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- window Escape listener held while the dialog is open.
   useEffect(() => {
     const onEscape = (event: globalThis.KeyboardEvent) => {
       if (event.key !== "Escape" || event.isComposing || isContextMenuOpen()) return;
@@ -418,7 +420,7 @@ export const ExpandedImageDialog = memo(function ExpandedImageDialog({
             <ChevronLeftIcon className="size-5" />
           </Button>
         )}
-        <MediaActions source={actionsSource}>
+        <MediaActions source={actionsSource} showTooltip={false}>
           <div className="relative isolate z-10 flex max-h-full max-w-[var(--media-width)] flex-col items-center">
             {item.type === "video" ? (
               <>

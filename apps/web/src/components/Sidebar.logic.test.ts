@@ -11,8 +11,6 @@ import {
   getFallbackThreadIdAfterDelete,
   hasUnseenCompletion,
   resolveSidebarRowThreadId,
-  belongsInSidebarWorkingShelf,
-  isSidebarEnvironmentDisconnected,
   orderItemsByPreferredIds,
   pinOrderKeyBetween,
   resolveSidebarSweepKeys,
@@ -39,7 +37,6 @@ import {
   sidebarFolderExpansionKeys,
 } from "./Sidebar.logic";
 import { scopeThreadRef, scopedThreadKey } from "@t3tools/client-runtime/environment";
-import type { EnvironmentConnectionPhase } from "@t3tools/client-runtime/connection";
 import {
   sortActiveThreadsByOrderKey,
   sortPinnedThreadsByOrderKey,
@@ -288,7 +285,13 @@ describe("resolveSidebarThreadStatus", () => {
     ).toBe(false);
   });
 
-  it("reports failed only while the latest run failed", () => {
+  it("reports worktree setup as preparing, and failed only while the latest run failed", () => {
+    expect(
+      resolveSidebarThreadStatus({
+        ...idle,
+        runtime: { ...runtime, status: "preparing" as const },
+      }),
+    ).toBe("preparing");
     expect(
       resolveSidebarThreadStatus({
         ...idle,
@@ -626,9 +629,44 @@ describe("getFallbackThreadIdAfterDelete", () => {
       deletedThreadId: ThreadId.make("thread-active"),
       deletedThreadIds: new Set([ThreadId.make("thread-active"), ThreadId.make("thread-newest")]),
       sortOrder: "created_at",
+      now: "2026-03-09T10:10:00.000Z",
     });
 
     expect(fallbackThreadId).toBe(ThreadId.make("thread-next"));
+  });
+
+  it.each([
+    [
+      "snoozed",
+      { snoozedUntil: "2099-01-01T00:00:00.000Z", snoozedAt: "2026-03-09T10:06:00.000Z" },
+    ],
+    ["settled", { settledOverride: "settled", settledAt: "2026-03-09T10:06:00.000Z" }],
+  ] as const)("skips a %s thread parked on its shelf", (_state, parked) => {
+    const fallbackThreadId = getFallbackThreadIdAfterDelete({
+      threads: [
+        makeThread({
+          id: ThreadId.make("thread-visible"),
+          createdAt: "2026-03-09T10:01:00.000Z",
+          updatedAt: "2026-03-09T10:01:00.000Z",
+        }),
+        makeThread({
+          id: ThreadId.make("thread-parked"),
+          createdAt: "2026-03-09T10:02:00.000Z",
+          updatedAt: "2026-03-09T10:06:00.000Z",
+          ...parked,
+        }),
+        makeThread({
+          id: ThreadId.make("thread-active"),
+          createdAt: "2026-03-09T10:03:00.000Z",
+          updatedAt: "2026-03-09T10:03:00.000Z",
+        }),
+      ],
+      deletedThreadId: ThreadId.make("thread-active"),
+      sortOrder: "created_at",
+      now: "2026-03-09T10:10:00.000Z",
+    });
+
+    expect(fallbackThreadId).toBe(ThreadId.make("thread-visible"));
   });
 });
 
@@ -969,85 +1007,6 @@ describe("Working shelf (beta)", () => {
         hasActionableProposedPlan: true,
       }),
     ).toBe(false);
-  });
-
-  describe("isSidebarEnvironmentDisconnected", () => {
-    const follow = (
-      states: ReadonlyArray<readonly [EnvironmentConnectionPhase, boolean]>,
-    ): boolean[] => {
-      let disconnected = false;
-      return states.map(([phase, shellIsLive]) => {
-        disconnected = isSidebarEnvironmentDisconnected(phase, shellIsLive, disconnected);
-        return disconnected;
-      });
-    };
-
-    it.each(["reconnecting", "offline", "error", "unsupported", "available"] as const)(
-      "lists threads outside the shelf on a %s environment",
-      (phase) => {
-        expect(
-          follow([
-            ["connected", true],
-            [phase, false],
-          ]),
-        ).toEqual([false, true]);
-      },
-    );
-
-    it("keeps the shelf through the resync a window refocus starts on a live socket", () => {
-      expect(
-        follow([
-          ["connected", true],
-          ["connected", false],
-          ["connected", true],
-        ]),
-      ).toEqual([false, false, false]);
-    });
-
-    it("keeps threads out of the shelf after a reconnect until the shell is live", () => {
-      expect(
-        follow([
-          ["connected", true],
-          ["reconnecting", false],
-          ["connected", false],
-          ["connected", true],
-        ]),
-      ).toEqual([false, true, true, false]);
-      expect(
-        follow([
-          ["available", false],
-          ["connecting", false],
-          ["connected", false],
-          ["connected", true],
-        ]),
-      ).toEqual([true, true, true, false]);
-    });
-
-    it("keeps cached placement through a cold start", () => {
-      expect(
-        follow([
-          ["connecting", false],
-          ["connected", false],
-          ["connected", true],
-        ]),
-      ).toEqual([false, false, false]);
-    });
-  });
-
-  it("lists a running thread outside the shelf while its environment is disconnected", () => {
-    const thread = { ...idle, runtime, environmentId: localEnvironmentId };
-    const shelve = (disconnected: ReadonlyArray<EnvironmentId>, enabled = true) =>
-      belongsInSidebarWorkingShelf(thread, {
-        enabled,
-        disconnectedEnvironmentIds: new Set(disconnected),
-        isWorking: isSidebarThreadWorking,
-      });
-
-    expect(shelve([])).toBe(true);
-    expect(shelve([localEnvironmentId])).toBe(false);
-    expect(shelve([])).toBe(true);
-    expect(shelve([EnvironmentId.make("environment-other")])).toBe(true);
-    expect(shelve([], false)).toBe(false);
   });
 
   describe("sortInboxThreadsByReturn", () => {

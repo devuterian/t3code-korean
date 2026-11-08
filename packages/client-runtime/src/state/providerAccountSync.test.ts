@@ -19,7 +19,7 @@ import * as References from "effect/References";
 import * as SubscriptionRef from "effect/SubscriptionRef";
 import { Atom, AtomRegistry, AsyncResult } from "effect/reactivity";
 
-import { AVAILABLE_CONNECTION_STATE } from "../connection/model.ts";
+import { AVAILABLE_CONNECTION_STATE, PrimaryConnectionTarget } from "../connection/model.ts";
 import * as EnvironmentRegistry from "../connection/registry.ts";
 import * as EnvironmentSupervisor from "../connection/supervisor.ts";
 import type { RpcSession } from "../rpc/session.ts";
@@ -115,7 +115,12 @@ const makeHarness = Effect.fn("makeProviderAccountSyncHarness")(function* (
     supervisors.set(
       environmentId,
       EnvironmentSupervisor.EnvironmentSupervisor.of({
-        target: { environmentId },
+        target: new PrimaryConnectionTarget({
+          environmentId,
+          label: "Test environment",
+          httpBaseUrl: "https://environment.example.test",
+          wsBaseUrl: "wss://environment.example.test",
+        }),
         session: yield* SubscriptionRef.make(
           environment.connected === false
             ? Option.none()

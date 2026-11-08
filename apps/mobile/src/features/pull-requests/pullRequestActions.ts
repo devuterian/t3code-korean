@@ -118,8 +118,6 @@ export function canPerformPullRequestAction(pr: ActionDetail, action: PullReques
   }
 }
 
-export const MERGE_CONFLICT_REASON = "Resolve the branch conflicts before merging.";
-
 export function mergeUnavailableReason(
   pr: ActionDetail,
   connectionAllowsWrites: boolean,
@@ -134,7 +132,8 @@ export function mergeUnavailableReason(
   if (!pr.viewerPermissions.actions.includes("merge"))
     return translate(`Your account cannot merge this ${terminology.singular}.`);
   if (pr.isDraft) return translate("Mark this draft ready for review before merging.");
-  if (pr.mergeability === "conflicting") return translate(MERGE_CONFLICT_REASON);
+  if (pr.mergeability === "conflicting")
+    return translate("Resolve the branch conflicts before merging.");
   if (!allowedMergeMethods(pr).length)
     return translate("This repository has no available merge methods.");
   return null;
