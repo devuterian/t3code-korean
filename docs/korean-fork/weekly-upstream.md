@@ -141,7 +141,8 @@ Linux arm64 single executables cannot be cross-built):
 bash scripts/korean-release-linux-arm64.sh "$VERSION" "$PWD/release-$VERSION-linux" 2>&1 | tee /tmp/t3k-linux-build.log
 ```
 
-It needs a clean, committed tree, smoke-tests the archive on the host, and writes
+It needs a clean, committed tree (start it before the Mac and Android builds,
+which briefly edit tracked files), smoke-tests the archive on the host, and writes
 `t3-$VERSION-linux-arm64.tar.gz` plus `SHA256SUMS`. The host keeps its tools and
 checkout under `~/build` between runs; do not touch the other services there.
 
