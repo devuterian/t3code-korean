@@ -317,7 +317,9 @@ export const unlinkEnvironmentFromCloud: (input: {
       .pipe(
         Effect.mapError(
           decodedRelayClientError(
-            "Disconnected locally, but T3 Connect did not confirm it removed this environment",
+            translate(
+              "Disconnected locally, but T3 Connect did not confirm it removed this environment",
+            ),
           ),
         ),
       );

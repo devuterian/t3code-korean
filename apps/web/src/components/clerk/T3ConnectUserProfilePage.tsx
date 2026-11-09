@@ -129,7 +129,9 @@ function T3ConnectTunnelUsage() {
   const t = useTranslate();
   const usage = useManagedTunnelUsage();
   const t3Chat = useT3ChatLink();
-  const [confirmBefore, confirmAfter] = t("Confirm on {link}, then select Refresh.").split("{link}");
+  const [confirmBefore, confirmAfter] = t("Confirm on {link}, then select Refresh.").split(
+    "{link}",
+  );
   if (usage.used === null || usage.limit === null) return null;
   return (
     <div className="border-t py-4">

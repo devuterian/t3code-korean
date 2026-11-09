@@ -205,6 +205,7 @@ export function ScheduledTaskThreadPickerRouteScreen() {
   const currentLabel = useScheduledTaskDestinationLabel(environmentId, threadId);
   const shells = useVisibleThreadShells();
   const [query, setQuery] = useState("");
+  const t = useTranslate();
   // Mounts older settled threads matching the query, which shells may leave out.
   useThreadSearch(
     environmentId !== null && projectId !== null ? [environmentId] : [],
@@ -216,7 +217,9 @@ export function ScheduledTaskThreadPickerRouteScreen() {
 
   const search = query.trim().toLocaleLowerCase();
   const rows = [
-    ...(search ? [] : [{ key: "new-thread", title: NEW_THREAD_DESTINATION_LABEL, thread: null }]),
+    ...(search
+      ? []
+      : [{ key: "new-thread", title: t(NEW_THREAD_DESTINATION_LABEL), thread: null }]),
     ...(threadId !== null && currentLabel.toLocaleLowerCase().includes(search)
       ? [{ key: threadId, title: currentLabel, thread: null }]
       : []),
@@ -233,7 +236,7 @@ export function ScheduledTaskThreadPickerRouteScreen() {
       .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
       .map((thread) => ({
         key: thread.id,
-        title: thread.title.trim() || "Untitled thread",
+        title: thread.title.trim() || t("Untitled thread"),
         thread,
       })),
   ];
@@ -248,7 +251,7 @@ export function ScheduledTaskThreadPickerRouteScreen() {
               ? () => [
                   createNativeMailSearchToolbarItem({
                     onSearchTextChange: setQuery,
-                    placeholder: THREAD_SEARCH_PLACEHOLDER,
+                    placeholder: t(THREAD_SEARCH_PLACEHOLDER),
                     searchTextChangeId: "scheduled-task-thread-search-text",
                     showsSearchDismissButton: true,
                   }),
@@ -264,7 +267,7 @@ export function ScheduledTaskThreadPickerRouteScreen() {
                   obscureBackground: false,
                   onCancelButtonPress: () => setQuery(""),
                   onChangeText: (event) => setQuery(event.nativeEvent.text),
-                  placeholder: THREAD_SEARCH_PLACEHOLDER,
+                  placeholder: t(THREAD_SEARCH_PLACEHOLDER),
                 },
           }}
         />
@@ -296,17 +299,19 @@ export function ScheduledTaskThreadPickerRouteScreen() {
               <SearchField
                 inputRef={searchRef}
                 autoFocus={false}
-                accessibilityLabel="Search threads"
-                clearAccessibilityLabel="Clear thread search"
+                accessibilityLabel={t("Search threads")}
+                clearAccessibilityLabel={t("Clear thread search")}
                 onChangeText={setQuery}
-                placeholder={THREAD_SEARCH_PLACEHOLDER}
+                placeholder={t(THREAD_SEARCH_PLACEHOLDER)}
                 value={query}
               />
             </View>
           )
         }
         ListEmptyComponent={
-          <Text className="p-5 text-center text-sm text-foreground-muted">No matching threads</Text>
+          <Text className="p-5 text-center text-sm text-foreground-muted">
+            {t("No matching threads")}
+          </Text>
         }
         renderItem={({ item, index }) => (
           <SelectionRow
