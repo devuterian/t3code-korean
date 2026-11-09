@@ -86,6 +86,7 @@ function makeCodexMaintenanceResolver(
   const resolver = makePackageManagedProviderMaintenanceResolver({
     provider: DRIVER_KIND,
     npmPackageName: "@openai/codex",
+    mise: { tool: "codex" },
     nativeUpdate: {
       args: ["update"],
       isCommandPath: (commandPath) => codexStandaloneHome(commandPath) !== null,

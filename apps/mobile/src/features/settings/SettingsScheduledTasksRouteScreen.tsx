@@ -72,14 +72,16 @@ import { SettingsScreen } from "./components/SettingsScreen";
 import { SettingsSection } from "./components/SettingsSection";
 import { useSettingsEnvironmentFilter, type SettingsTarget } from "./settings-environment-filter";
 import {
+  changeDraftProject,
   editDraft,
   parseIntervalMinutes,
   scheduledTaskDefaultModel,
   scheduleFromDraft,
+  unbindDraftFromThread,
   type ScheduledTaskDraft as Draft,
 } from "./scheduledTaskDraft";
 import { settingsTargetsForProject } from "./settings-environment-filter.logic";
-import { useScheduledTaskEditor } from "./scheduled-task-editor";
+import { useScheduledTaskDestinationLabel, useScheduledTaskEditor } from "./scheduled-task-editor";
 import {
   discardScheduledTaskEditor,
   markScheduledTaskEditorSaved,
@@ -97,6 +99,7 @@ type ScheduledTaskRoutes = {
   SettingsScheduledTaskEdit: undefined;
   SettingsScheduledTaskModel: undefined;
   SettingsScheduledTaskBranch: undefined;
+  SettingsScheduledTaskThread: undefined;
 };
 
 const DAYS = [
@@ -692,6 +695,7 @@ function TaskForm({
     )
     .sort((left, right) => Number(right.pinnedAt != null) - Number(left.pinnedAt != null));
   const config = useEnvironmentServerConfig(environmentId);
+  const destinationLabel = useScheduledTaskDestinationLabel(environmentId, draft.threadId);
   const modelOptions = buildModelOptions(config, null, undefined, draft.projectId, "settings");
   // Existing webhook tasks keep the option so they can still switch to a timer.
   const webhookDenial = managedCapabilityDenial(config?.managedPolicy, "webhookTasks");
@@ -801,7 +805,7 @@ function TaskForm({
       modelSelection: draft.modelSelection,
       schedule,
       enabled: draft.enabled,
-      threadId: draft.task?.threadId ?? null,
+      threadId: draft.threadId,
       ...(offersThreadModes ? { threadMode: draft.threadMode } : {}),
       workspaceStrategy:
         draft.workspace === "root"
@@ -916,8 +920,7 @@ function TaskForm({
                     draft.modelSelection.instanceId,
                   ));
               setDraft({
-                ...draft,
-                projectId: project.id,
+                ...changeDraftProject(draft, project.id),
                 modelSelection: keepsExplicitModel
                   ? draft.modelSelection
                   : scheduledTaskDefaultModel(config, project),
@@ -942,21 +945,23 @@ function TaskForm({
           />
         </SettingsSection>
 
-        {offersThreadModes ? (
-          <SettingsSection
-            title={t("Destination")}
-            footer={
-              draft.threadMode === "new_thread"
-                ? t("Each run starts a new thread.")
-                : `${
-                    draft.threadMode === "continue"
-                      ? t("Runs continue one conversation.")
-                      : t(
-                          "Runs share one thread, each in a fresh session without earlier runs' context.",
-                        )
-                  } ${t("The first run starts the thread. Deleting it also deletes this task.")}`
-            }
-          >
+        <SettingsSection
+          title={t("Destination")}
+          footer={
+            draft.threadMode === "new_thread"
+              ? t("Each run starts a new thread.")
+              : `${
+                  draft.threadMode === "continue"
+                    ? t("Runs continue one conversation.")
+                    : t(
+                        "Runs share one thread, each in a fresh session without earlier runs' context.",
+                      )
+                }${draft.threadId === null ? ` ${t("The first run starts the thread.")}` : ""} ${t(
+                  "Deleting it also deletes this task.",
+                )}`
+          }
+        >
+          {offersThreadModes ? (
             <SelectRow
               label={t("Runs go to")}
               value={t(THREAD_MODE_LABELS[draft.threadMode])}
@@ -968,12 +973,27 @@ function TaskForm({
                 }),
               )}
               onSelect={(id) => {
-                if (id === "new_thread" || id === "continue" || id === "fresh_session")
+                if (id === "new_thread")
+                  setDraft({ ...unbindDraftFromThread(draft), threadMode: id });
+                else if (id === "continue" || id === "fresh_session")
                   setDraft({ ...draft, threadMode: id });
               }}
             />
-          </SettingsSection>
-        ) : null}
+          ) : null}
+          {!offersThreadModes || draft.threadMode !== "new_thread" ? (
+            <PickerRow
+              label={t("Thread")}
+              borderTop={offersThreadModes}
+              value={
+                draft.threadId === null && draft.threadMode !== "new_thread"
+                  ? t("Started by the first run")
+                  : destinationLabel
+              }
+              onPress={() => navigation.navigate("SettingsScheduledTaskThread")}
+              disabled={!draft.projectId || saving || dictationPending || environmentUnavailable}
+            />
+          ) : null}
+        </SettingsSection>
 
         <SettingsSection title={t("Workspace")}>
           <SelectRow
