@@ -106,8 +106,13 @@ bash scripts/korean-release-mac.sh "$VERSION" "$PWD/release-$VERSION" 2>&1 | tee
 Smoke test the built app without touching the live install: unzip the
 `-mac-arm64.zip` to a temp folder, start
 `"T3 Code Korean.app/Contents/MacOS/T3 Code Korean" --user-data-dir=<tmp>`
-with `T3CODE_HOME=<tmp>/home`, wait until its log shows the backend ready
-(or take a window screenshot), then quit that PID only.
+with `T3CODE_HOME=<tmp>/home` and `HOME=<tmp>/fakehome` (the app derives its
+Electron profile from the home directory and ignores `--user-data-dir`, so
+without `HOME` it hits the running app's single-instance lock and exits at
+once). Run it as a background task, wait until
+`<tmp>/home/userdata/server-runtime.json` appears and its port answers
+`/.well-known/t3/environment` with the new `serverVersion`, then kill that PID
+and the backend PID from that file (SIGTERM is ignored; use `kill -9`).
 
 Windows (no push needed yet; ship the commits as a bundle):
 

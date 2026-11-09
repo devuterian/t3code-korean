@@ -94,5 +94,45 @@
     "asked": "2026-11-08",
     "decision": "yes",
     "answered": "2026-11-08"
+  },
+  "32607": {
+    "title": "fix(web): move overlay panel tabs below native window controls",
+    "asked": "2026-11-09",
+    "decision": "pending"
+  },
+  "32915": {
+    "title": "fix(server): keep Codex loaded when reasoning effort changes",
+    "asked": "2026-11-09",
+    "decision": "pending"
+  },
+  "32963": {
+    "title": "fix(web): mouse tilt wheel no longer switches threads on Windows and Linux desktop",
+    "asked": "2026-11-09",
+    "decision": "pending"
+  },
+  "33092": {
+    "title": "feat(web): send messages while attachments upload",
+    "asked": "2026-11-09",
+    "decision": "pending"
+  },
+  "32732": {
+    "title": "fix(web): a failed send no longer leaves a ghost message when the composer has new text",
+    "asked": "2026-11-09",
+    "decision": "pending"
+  },
+  "33095": {
+    "title": "fix(server): settled threads' pull request status keeps updating",
+    "asked": "2026-11-09",
+    "decision": "pending"
+  },
+  "32902": {
+    "title": "fix(server): restart send stops a Claude turn and runs the message next",
+    "asked": "2026-11-09",
+    "decision": "pending"
+  },
+  "33057": {
+    "title": "feat(web): sidebar folder button picks or adds a project",
+    "asked": "2026-11-09",
+    "decision": "pending"
   }
 }
