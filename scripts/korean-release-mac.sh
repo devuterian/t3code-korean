@@ -72,6 +72,12 @@ if ! security find-identity -p codesigning "$T3CODE_MAC_SIGN_KEYCHAIN" | grep -q
   exit 1
 fi
 
+# Optional: the login keychain password, so this Mac's installed app can read
+# its keychain item after updating without a prompt. Taken out of the
+# environment before the build runs.
+LOGIN_KEYCHAIN_PASSWORD="${T3CODE_LOGIN_KEYCHAIN_PASSWORD:-}"
+unset T3CODE_LOGIN_KEYCHAIN_PASSWORD
+
 # No Apple notarization or Developer ID discovery for fork builds.
 unset T3CODE_DESKTOP_SIGNED CSC_LINK CSC_KEY_PASSWORD CSC_NAME \
   APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID APPLE_API_KEY APPLE_API_KEY_ID APPLE_API_ISSUER
@@ -115,6 +121,18 @@ if [[ "$REQUIREMENT" != *"$EXPECTED_HASH"* ]]; then
   echo "error: unexpected designated requirement: $REQUIREMENT" >&2
   exit 1
 fi
+LEAF_AUTHORITY="$(codesign -dv --verbose=2 "$APP" 2>&1 | sed -n 's/^Authority=//p' | head -n 1)"
+MIXED=""
+while IFS= read -r -d '' file; do
+  file "$file" | grep -q 'Mach-O' || continue
+  authority="$(codesign -dv --verbose=2 "$file" 2>&1 | sed -n 's/^Authority=//p' | head -n 1)"
+  [[ "$authority" == "$LEAF_AUTHORITY" ]] || MIXED+="  ${file#"$APP/"}: ${authority:-unsigned}"$'\n'
+done < <(find "$APP/Contents" -type f -perm -u+x -print0)
+if [[ -n "$MIXED" ]]; then
+  echo "error: files not signed by $LEAF_AUTHORITY:" >&2
+  printf '%s' "$MIXED" >&2
+  exit 1
+fi
 if ! grep -q "repo: ${UPDATE_REPOSITORY#*/}" "$APP/Contents/Resources/app-update.yml"; then
   echo "error: app-update.yml does not point at $UPDATE_REPOSITORY." >&2
   exit 1
@@ -126,6 +144,14 @@ if [[ -n "$READ_ONLY" ]]; then
   echo "$READ_ONLY" >&2
   exit 1
 fi
+# Self-signed builds have no Team ID, so keychain access follows each build's
+# CDHash; allow the new one before the installed app updates to it.
+if [[ -n "$LOGIN_KEYCHAIN_PASSWORD" ]]; then
+  printf '%s\n' "$LOGIN_KEYCHAIN_PASSWORD" | "$REPO_ROOT/scripts/korean-keychain-allow-mac.sh" "$APP"
+else
+  echo "note: set T3CODE_LOGIN_KEYCHAIN_PASSWORD to skip the keychain prompt after this update."
+fi
+unset LOGIN_KEYCHAIN_PASSWORD
 mv "$CHECK_DIR" "$HOME/.Trash/$(basename "$CHECK_DIR")"
 
 echo

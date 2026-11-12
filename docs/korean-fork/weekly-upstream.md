@@ -95,13 +95,23 @@ Base = upstream tag's `x.y.z` (`v0.1.7-nightly.…` → `0.1.7`). Version =
 
 ## 7. Build
 
-Mac (signing material in `~/.config/marierie/codesign.env`, keychain
-`marierie-t3code-codesign`; `.env` with the public T3 Connect ids is in the
-repo root and gitignored):
+Mac (signing material in `~/.config/marierie/codesign.env`, identity
+`marierie Local Code Signing` in keychain `marierie-codesign`; `.env` with the
+public T3 Connect ids is in the repo root and gitignored). Every file in the
+app must carry that one certificate: a release signed with another one makes
+macOS treat the app as a new app and ask for every privacy permission again.
+Pass the login keychain password (passage `mac/16mariebook-admin`) so the
+installed app reads its `t3code Safe Storage` keychain item after the update
+without a prompt:
 
 ```sh
-bash scripts/korean-release-mac.sh "$VERSION" "$PWD/release-$VERSION" 2>&1 | tee /tmp/t3k-mac-build.log
+T3CODE_LOGIN_KEYCHAIN_PASSWORD="<from passage>" \
+  bash scripts/korean-release-mac.sh "$VERSION" "$PWD/release-$VERSION" 2>&1 | tee /tmp/t3k-mac-build.log
 ```
+
+Never keep a second copy of the app (a renamed old build, a mounted dmg) on
+this Mac: both share the `com.marierie.t3code-korean` bundle id, so macOS
+keeps showing permission prompts under the other copy's name.
 
 Smoke test the built app without touching the live install: unzip the
 `-mac-arm64.zip` to a temp folder, start
