@@ -1105,8 +1105,10 @@ export function resolveWindowsServerAsarIgnoreGlobs(arch: typeof BuildArch.Type)
   ];
 }
 
-// Korean fork: +2 for the ia32 ffi-rs addon the x64 stage install still pulls in.
-export const WINDOWS_PACKAGED_PAYLOAD_FILE_LIMIT = 82;
+// Korean fork: +2 for the ia32 ffi-rs addon the x64 stage install still pulls in, and
+// headroom for server-compile-cache entries, whose count varies with the build host
+// (a GitHub runner build had 91 files). Still catches a payload of thousands of loose files.
+export const WINDOWS_PACKAGED_PAYLOAD_FILE_LIMIT = 100;
 export const WINDOWS_SERVER_RESOURCE_SOURCE_DIR = "apps/desktop/prod-resources/windows-server";
 export const WINDOWS_SERVER_EXTRA_RESOURCES = [
   {
