@@ -556,11 +556,11 @@ function PoolBar({
             <div
               key={member.account.key}
               style={{ gridColumn: position + 1, gridRow: 1 }}
-              className="flex h-5 min-w-0 items-center justify-center gap-1.5 overflow-hidden rounded-md border border-dashed border-border text-3xs whitespace-nowrap text-muted-foreground @2xl/pool:h-8 @2xl/pool:justify-start @2xl/pool:px-2 @2xl/pool:text-xs"
+              className="flex h-5 min-w-0 items-center justify-center gap-1.5 overflow-hidden rounded-md border border-dashed border-border text-3xs whitespace-nowrap text-muted-foreground @min-[11rem]/pool:h-8 @min-[11rem]/pool:justify-start @min-[11rem]/pool:px-2 @min-[11rem]/pool:text-xs"
             >
               <AccountName
                 account={member.account}
-                className="hidden min-w-0 truncate @2xl/pool:inline-flex"
+                className="hidden min-w-0 truncate @min-[11rem]/pool:inline-flex"
               />
               $0 cap
             </div>
