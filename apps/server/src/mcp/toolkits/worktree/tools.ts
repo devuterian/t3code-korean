@@ -56,7 +56,8 @@ const WorktreeMoveToLocalTool = Tool.make("t3_worktree_move_to_local", {
   .annotate(Tool.Readonly, false)
   .annotate(Tool.Destructive, true)
   .annotate(Tool.Idempotent, false)
-  .annotate(Tool.OpenWorld, true);
+  .annotate(Tool.OpenWorld, true)
+  .annotate(McpSchema.EnabledWhen, McpInvocationContext.hiddenFromOutsideClients);
 
 const WorktreeStatusTool = Tool.make("t3_worktree_status", {
   description:
