@@ -144,31 +144,37 @@
   "37225": {
     "title": "fix(server): a delegated task still reaches its parent when its first update fails",
     "asked": "2026-11-16",
-    "decision": "pending"
+    "decision": "yes",
+    "answered": "2026-11-17"
   },
   "36835": {
     "title": "fix(server): scheduled-task runs no longer wake a snoozed thread",
     "asked": "2026-11-16",
-    "decision": "pending"
+    "decision": "yes",
+    "answered": "2026-11-17"
   },
   "37248": {
     "title": "fix(mobile): Android thread rows swipe open instead of scrolling the list",
     "asked": "2026-11-16",
-    "decision": "pending"
+    "decision": "yes",
+    "answered": "2026-11-17"
   },
   "36137": {
     "title": "fix(web): Limits account labels stay readable with five or more accounts",
     "asked": "2026-11-16",
-    "decision": "pending"
+    "decision": "yes",
+    "answered": "2026-11-17"
   },
   "36136": {
     "title": "fix(web): Settings and Usage modals use the window's height",
     "asked": "2026-11-16",
-    "decision": "pending"
+    "decision": "yes",
+    "answered": "2026-11-17"
   },
   "36231": {
     "title": "fix(desktop): built-in browser pages follow the OS language instead of en-US",
     "asked": "2026-11-16",
-    "decision": "pending"
+    "decision": "yes",
+    "answered": "2026-11-17"
   }
 }
