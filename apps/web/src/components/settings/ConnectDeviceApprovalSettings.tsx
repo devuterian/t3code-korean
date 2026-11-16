@@ -18,6 +18,7 @@ import {
 } from "./ConnectionsSettings.logic";
 import { ITEM_ROW_CLASSNAME, ITEM_ROW_INNER_CLASSNAME } from "./itemRows";
 import { SettingsSection } from "./settingsLayout";
+import { useTranslate } from "~/i18n/translate";
 
 function reportFailure(title: string, result: Parameters<typeof isAtomCommandInterrupted>[0]) {
   if (result._tag !== "Failure" || isAtomCommandInterrupted(result)) return;
@@ -45,6 +46,7 @@ export function ConnectDeviceApprovalSettings({
   /** Revokes now, or first asks to turn approval on when it is off. */
   readonly requestRevoke: (title: string, revoke: () => Promise<void>) => void;
 }) {
+  const t = useTranslate();
   const approve = useAtomCommand(authEnvironment.approveConnectDevice, { reportFailure: false });
   const deny = useAtomCommand(authEnvironment.revokePairingLink, { reportFailure: false });
   const revoke = useAtomCommand(authEnvironment.revokeConnectDevice, { reportFailure: false });
@@ -89,7 +91,7 @@ export function ConnectDeviceApprovalSettings({
                     )
                   }
                 >
-                  Deny
+                  {t("Deny")}
                 </Button>
                 <Button
                   size="xs"

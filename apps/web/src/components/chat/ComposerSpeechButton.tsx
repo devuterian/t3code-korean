@@ -8,6 +8,7 @@ import { cn } from "~/lib/utils";
 import { Button } from "../ui/button";
 import { Spinner } from "../ui/spinner";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
+import { translate, useTranslate } from "~/i18n/translate";
 
 type DownloadProgress = { downloaded: number; total: number } | null;
 
@@ -22,20 +23,22 @@ export function resolveSpeechPresentation(
     case "idle":
       return { status: null, active: false };
     case "error":
-      return { status: state.error ?? "Voice input failed", active: false };
+      return { status: state.error ?? translate("Voice input failed"), active: false };
     case "preparing":
       return {
         status: progress
-          ? `Downloading model ${Math.round((progress.downloaded / Math.max(1, progress.total)) * 100)}%`
-          : "Starting…",
+          ? translate("Downloading model {percent}%").replace("{percent}", () =>
+              String(Math.round((progress.downloaded / Math.max(1, progress.total)) * 100)),
+            )
+          : translate("Starting…"),
         active: true,
       };
     case "recording":
-      return { status: "Recording", active: true };
+      return { status: translate("Recording"), active: true };
     case "transcribing":
-      return { status: "Transcribing…", active: true };
+      return { status: translate("Transcribing…"), active: true };
     case "post-processing":
-      return { status: "Cleaning up…", active: true };
+      return { status: translate("Cleaning up…"), active: true };
   }
 }
 
@@ -96,8 +99,9 @@ export function ComposerSpeechButton(props: {
   size?: "default" | "compact";
   onStart(): void;
 }) {
+  const t = useTranslate();
   if (props.state.phase !== "idle") return null;
-  const label = "Start voice input";
+  const label = t("Start voice input");
 
   return (
     <ShortcutTooltip label={label} shortcut={props.shortcutLabel}>
@@ -134,6 +138,7 @@ export function ComposerSpeechRecordingPill(props: {
   onCancel(): void;
   onSkipPostProcessing(): void;
 }) {
+  const t = useTranslate();
   const { phase } = props.state;
   const compact = props.size === "compact";
   if (phase === "error") {
@@ -156,12 +161,12 @@ export function ComposerSpeechRecordingPill(props: {
 
   return (
     <VoiceInputPill size={props.size}>
-      <ShortcutTooltip label="Cancel voice input" shortcut={props.cancelShortcutLabel}>
+      <ShortcutTooltip label={t("Cancel voice input")} shortcut={props.cancelShortcutLabel}>
         <Button
           type="button"
           size={compact ? "icon-xs" : "icon-sm-pill"}
           variant="ghost"
-          aria-label="Cancel voice input"
+          aria-label={t("Cancel voice input")}
           onPointerDown={keepFocus}
           onClick={props.onCancel}
           className="shrink-0"
@@ -201,14 +206,14 @@ export function ComposerSpeechRecordingPill(props: {
           onClick={props.onSkipPostProcessing}
           className="shrink-0"
         >
-          Skip
+          {t("Skip")}
         </Button>
       ) : recording ? (
-        <ShortcutTooltip label="Finish voice input" shortcut={props.finishShortcutLabel}>
+        <ShortcutTooltip label={t("Finish voice input")} shortcut={props.finishShortcutLabel}>
           <Button
             type="button"
             size={compact ? "icon-xs" : "icon-sm-pill"}
-            aria-label="Finish voice input"
+            aria-label={t("Finish voice input")}
             onPointerDown={keepFocus}
             onClick={props.onStop}
             className="shrink-0"

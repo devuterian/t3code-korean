@@ -167,10 +167,11 @@ const PREPARING_STAGES: ReadonlyArray<WorktreeSetupStage> = WORKTREE_SETUP_STAGE
 }));
 
 export function WorktreePreparingHeader() {
+  const t = useTranslate();
   return (
     <View className="py-1">
       <View className="min-h-11 flex-row items-center border-b border-border px-1">
-        <HeaderLabel label="Setting up worktree…" active />
+        <HeaderLabel label={t("Setting up worktree…")} active />
       </View>
       <View className="pt-1 pb-2">
         {PREPARING_STAGES.map((stage) => (

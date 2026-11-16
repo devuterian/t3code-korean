@@ -282,7 +282,7 @@ export function pullRequestTimelineRows(
           >
             <View className="flex-row items-center gap-2">
               {thread.path === null ? (
-                <Text className="flex-1 text-xs">Overview</Text>
+                <Text className="flex-1 text-xs">{translate("Overview")}</Text>
               ) : (
                 <>
                   <SymbolView name="doc.text" size={14} tintColorClassName="accent-icon-muted" />

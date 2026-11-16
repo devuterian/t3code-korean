@@ -89,15 +89,19 @@ function PreviewBody(props: { readonly preview: ThreadMoveToLocalCheckoutPreview
   const more = preview.files.length - shown.length + preview.filesOmitted;
   return (
     <div className="grid gap-4 px-6">
-      <Section label="Where">
+      <Section label={t("Where")}>
         <div className="grid gap-1 rounded-md border border-border/60 p-2.5">
-          <PathRow icon={<FolderGitIcon />} label="Worktree" path={preview.worktreePath} />
+          <PathRow icon={<FolderGitIcon />} label={t("Worktree")} path={preview.worktreePath} />
           <ArrowDownIcon className="ms-0.5 size-3.5 text-muted-foreground" aria-hidden="true" />
-          <PathRow icon={<FolderIcon />} label="Project folder" path={preview.localCheckoutPath} />
+          <PathRow
+            icon={<FolderIcon />}
+            label={t("Project folder")}
+            path={preview.localCheckoutPath}
+          />
         </div>
       </Section>
       {preview.branch !== null ? (
-        <Section label="Branch">
+        <Section label={t("Branch")}>
           <div className="flex min-w-0 flex-wrap items-center gap-1.5 text-sm">
             <GitBranchIcon className="size-4 text-muted-foreground" aria-hidden="true" />
             <code className="text-xs">{preview.currentLocalBranch ?? t("detached HEAD")}</code>
@@ -109,7 +113,7 @@ function PreviewBody(props: { readonly preview: ThreadMoveToLocalCheckoutPreview
           </div>
         </Section>
       ) : null}
-      <Section label="Comes along">
+      <Section label={t("Comes along")}>
         {changes === null ? (
           <p className="text-sm">{t("No uncommitted changes. Only the branch switches.")}</p>
         ) : (
@@ -146,7 +150,7 @@ function PreviewBody(props: { readonly preview: ThreadMoveToLocalCheckoutPreview
           </Collapsible>
         )}
       </Section>
-      <Section label="Stays behind">
+      <Section label={t("Stays behind")}>
         <p className="text-muted-foreground text-sm">
           {preview.worktreeOnDisk
             ? t(

@@ -12,6 +12,7 @@ import {
 import { Button } from "../ui/button";
 import { Checkbox } from "../ui/checkbox";
 import { Spinner } from "../ui/spinner";
+import { useTranslate } from "~/i18n/translate";
 
 export interface ConnectDeviceRevokeRequest {
   readonly title: string;
@@ -61,6 +62,7 @@ function RevokeConnectDeviceDialogPopup({
   readonly onClose: () => void;
   readonly requireApproval: () => Promise<boolean>;
 }) {
+  const t = useTranslate();
   const [turnOnApproval, setTurnOnApproval] = useState(true);
   const [busy, setBusy] = useState(false);
 
@@ -92,17 +94,17 @@ function RevokeConnectDeviceDialogPopup({
           />
           <span className="min-w-0">
             <span className="block text-sm font-medium text-foreground">
-              Require approval for new devices
+              {t("Require approval for new devices")}
             </span>
             <span className="block text-xs text-muted-foreground">
-              The device has to be approved here before it can connect again.
+              {t("The device has to be approved here before it can connect again.")}
             </span>
           </span>
         </label>
       </AlertDialogHeader>
       <AlertDialogFooter>
         <AlertDialogClose disabled={busy} render={<Button variant="outline" disabled={busy} />}>
-          Cancel
+          {t("Cancel")}
         </AlertDialogClose>
         <Button variant="destructive" disabled={busy} onClick={() => void confirm()}>
           {busy && <Spinner size="sm" />}

@@ -10,6 +10,7 @@ import { Platform, View } from "react-native";
 import { AppActivityIndicator } from "../../components/ui/AppActivityIndicator";
 import { AppText as Text } from "../../components/ui/AppText";
 import { EmptyState } from "../../components/ui/EmptyState";
+import { useTranslate } from "../../i18n/translate";
 import { cn } from "../../lib/cn";
 import { useEnvironments } from "../../state/environments";
 import { voiceSpeechBenchmarksAtom } from "../voice-input/voiceDestination";
@@ -19,10 +20,11 @@ import { useVoiceModels, VoiceModelRow } from "./VoiceModelSection";
 export function SettingsVoiceModelsRouteScreen({
   route,
 }: StaticScreenProps<{ readonly environmentId: EnvironmentId }>) {
+  const t = useTranslate();
   const { environments } = useEnvironments();
   const label =
     environments.find((environment) => environment.environmentId === route.params.environmentId)
-      ?.label ?? "This environment";
+      ?.label ?? t("This environment");
   const voice = useVoiceModels(route.params.environmentId, label);
   const benchmarks = new Map(
     (
@@ -48,10 +50,10 @@ export function SettingsVoiceModelsRouteScreen({
     );
   return (
     <PullRequestSearchSheet
-      title="Transcription models"
-      placeholder="Search models or languages"
-      closeAccessibilityLabel="Close transcription models"
-      clearAccessibilityLabel="Clear model search"
+      title={t("Transcription models")}
+      placeholder={t("Search models or languages")}
+      closeAccessibilityLabel={t("Close transcription models")}
+      clearAccessibilityLabel={t("Clear model search")}
       query={query}
       onQueryChange={setQuery}
     >

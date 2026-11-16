@@ -16,9 +16,10 @@ import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "../
  * machine, with where that address leads.
  */
 export function LinkAddressWarning({ address }: { readonly address: string }) {
+  const t = useTranslate();
   return (
     <Alert variant="warning">
-      <AlertTitle>Check this address</AlertTitle>
+      <AlertTitle>{t("Check this address")}</AlertTitle>
       <AlertDescription>
         This app cannot confirm it is one of your machines. The pairing code you paste is sent
         there.

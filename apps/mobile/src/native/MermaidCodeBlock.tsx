@@ -7,6 +7,7 @@ import { PixelRatio, Platform, Pressable, StyleSheet, Text, View } from "react-n
 import { parse, Svg, SvgXml } from "react-native-svg";
 
 import { FilePreviewModal } from "../components/ui/FilePreviewModal";
+import { useTranslate } from "../i18n/translate";
 import { copyTextWithHaptic } from "../lib/copyTextWithHaptic";
 import { mermaidSvgForNative, withDiagramBackground } from "../lib/mermaidSvg";
 import { themeColorWithAlpha } from "../lib/mobileTheme";
@@ -129,6 +130,7 @@ function RenderedMermaidBlock(props: MermaidCodeBlockProps) {
 }
 
 function MermaidBlock(props: MermaidCodeBlockProps & { readonly diagram: Diagram | null }) {
+  const t = useTranslate();
   const { code, textStyle, diagram } = props;
   const [showCode, setShowCode] = useState(false);
   const [expansion, setExpansion] = useState<Expansion | null>(null);
@@ -200,14 +202,14 @@ function MermaidBlock(props: MermaidCodeBlockProps & { readonly diagram: Diagram
           {svg ? (
             <CodeBlockHeaderButton
               icon={showCode ? "flowchart" : "chevron.left.forwardslash.chevron.right"}
-              label={showCode ? "Show diagram" : "Show code"}
+              label={showCode ? t("Show diagram") : t("Show code")}
               textStyle={textStyle}
               onPress={() => setShowCode((value) => !value)}
             />
           ) : null}
           <CodeBlockHeaderButton
             icon="doc.on.doc"
-            label="Copy code"
+            label={t("Copy code")}
             textStyle={textStyle}
             onPress={() => copyTextWithHaptic(code)}
           />

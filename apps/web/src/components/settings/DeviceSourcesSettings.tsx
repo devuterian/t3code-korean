@@ -768,6 +768,7 @@ function PlatformIcon(props: {
 }
 
 function DeviceSourceRow(props: { row: SourceRow }) {
+  const t = useTranslate();
   const { row } = props;
   const several = row.environments.length > 1;
   const issues = row.environments.filter(
@@ -805,7 +806,7 @@ function DeviceSourceRow(props: { row: SourceRow }) {
             </span>
             {environment.status.tone === "warning" && environment.status.detail ? (
               <Popover>
-                <PopoverTrigger render={<InlineButton />}>Details</PopoverTrigger>
+                <PopoverTrigger render={<InlineButton />}>{t("Details")}</PopoverTrigger>
                 <PopoverPopup side="bottom" align="start" width="lg" padding="compact">
                   <p className="whitespace-pre-wrap break-words font-mono text-xs text-muted-foreground">
                     {environment.status.detail}

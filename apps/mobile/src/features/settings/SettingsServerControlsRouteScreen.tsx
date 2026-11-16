@@ -592,7 +592,7 @@ function ServerSettingsDetail(props: { readonly page: SettingsPage }) {
                   <View className="border-t border-border-subtle">
                     <SettingsSwitchRow
                       icon="bolt.circle"
-                      label="Keep awake while agents work"
+                      label={t("Keep awake while agents work")}
                       subtitle={managedSubtitle(
                         "keepAwakeWhileAgentsWork",
                         projectSelected

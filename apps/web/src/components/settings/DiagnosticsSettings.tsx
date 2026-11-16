@@ -945,7 +945,7 @@ function DiagnosticsSettingsBody() {
             <DiagnosticsLastChecked checkedAt={processData?.readAt ?? null} />
             <DiagnosticsRefreshButton
               isPending={isProcessPending}
-              label="Refresh process diagnostics"
+              label={t("Refresh process diagnostics")}
               onClick={refreshProcesses}
             />
           </div>
@@ -953,7 +953,7 @@ function DiagnosticsSettingsBody() {
       >
         <StatsGrid>
           <StatBlock
-            label="Child Processes"
+            label={t("Child Processes")}
             value={processData ? formatCount(processData.processCount) : "..."}
           />
           <StatBlock
@@ -964,7 +964,7 @@ function DiagnosticsSettingsBody() {
             )}
           />
           <StatBlock
-            label="Memory"
+            label={t("Memory")}
             value={processData ? formatBytes(processData.totalRssBytes) : "..."}
             tooltip={t(
               "Total resident memory across live child processes of the current server process. The desktop shell and other parent processes are not included.",
@@ -1015,7 +1015,7 @@ function DiagnosticsSettingsBody() {
             <DiagnosticsLastChecked checkedAt={resourceData?.readAt ?? null} />
             <DiagnosticsRefreshButton
               isPending={isResourcePending}
-              label="Refresh resource history"
+              label={t("Refresh resource history")}
               onClick={refreshResources}
             />
           </div>
@@ -1030,14 +1030,14 @@ function DiagnosticsSettingsBody() {
             )}
           />
           <StatBlock
-            label="Samples"
+            label={t("Samples")}
             value={resourceData ? formatCount(resourceData.retainedSampleCount) : "..."}
             tooltip={t(
               "In-memory process samples retained by the server. The server samples only while diagnostics is open, and this resets when the server restarts.",
             )}
           />
           <StatBlock
-            label="Interval"
+            label={t("Interval")}
             value={
               resourceData
                 ? resourceData.sampleIntervalMs === 0
@@ -1047,7 +1047,7 @@ function DiagnosticsSettingsBody() {
             }
           />
           <StatBlock
-            label="Processes"
+            label={t("Processes")}
             value={resourceData ? formatCount(resourceData.topProcesses.length) : "..."}
           />
         </StatsGrid>
@@ -1105,21 +1105,21 @@ function DiagnosticsSettingsBody() {
             </Tooltip>
             <DiagnosticsRefreshButton
               isPending={isPending}
-              label="Refresh trace diagnostics"
+              label={t("Refresh trace diagnostics")}
               onClick={refresh}
             />
           </div>
         }
       >
         <StatsGrid>
-          <StatBlock label="Spans" value={data ? formatCount(data.recordCount) : "..."} />
+          <StatBlock label={t("Spans")} value={data ? formatCount(data.recordCount) : "..."} />
           <StatBlock
-            label="Failures"
+            label={t("Failures")}
             value={data ? formatCount(data.failureCount) : "..."}
             tone={data && data.failureCount > 0 ? "danger" : "default"}
           />
           <StatBlock
-            label="Slow Spans"
+            label={t("Slow Spans")}
             value={data ? formatCount(data.slowSpanCount) : "..."}
             tooltip={
               data
@@ -1129,7 +1129,7 @@ function DiagnosticsSettingsBody() {
             tone={data && data.slowSpanCount > 0 ? "warning" : "default"}
           />
           <StatBlock
-            label="Parse Errors"
+            label={t("Parse Errors")}
             value={data ? formatCount(data.parseErrorCount) : "..."}
             tone={data && data.parseErrorCount > 0 ? "warning" : "default"}
           />

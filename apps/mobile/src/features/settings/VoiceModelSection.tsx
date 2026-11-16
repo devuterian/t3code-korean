@@ -21,6 +21,7 @@ import { ListActionRow } from "../../components/ui/ListActionRow";
 import { ListChoiceRow } from "../../components/ui/ListChoiceRow";
 import { ListRow } from "../../components/ui/ListRow";
 import { Progress } from "../../components/ui/Progress";
+import { useTranslate } from "../../i18n/translate";
 import { formatBytes } from "../../lib/formatBytes";
 import { useEnvironmentScope } from "../../state/session";
 import {
@@ -278,6 +279,7 @@ export function LocalModelChoice(props: {
   readonly selected: boolean;
   readonly onSelect: () => void;
 }) {
+  const t = useTranslate();
   const navigation = useNavigation();
   const voice = useVoiceModels(props.environmentId, props.label);
   const { status } = voice;
@@ -286,13 +288,13 @@ export function LocalModelChoice(props: {
   if (!voice.connection || !status || !status.supported)
     return (
       <ListChoiceRow
-        label="Local model"
+        label={t("Local model")}
         description={
           !voice.connection
-            ? "Not available on this environment"
+            ? t("Not available on this environment")
             : status?.supported === false
               ? status.reason
-              : "Checking…"
+              : t("Checking…")
         }
         selected={props.selected}
         disabled
@@ -306,17 +308,20 @@ export function LocalModelChoice(props: {
     pending?.downloaded === undefined ? undefined : pending.downloaded / pending.size;
   return (
     <ListRow
-      label={active?.model ?? "Local model"}
+      label={active?.model ?? t("Local model")}
       description={
         pending
           ? pending.state === "verifying"
-            ? `Verifying ${pending.name}…`
-            : `Downloading ${pending.name} · ${Math.round((progress ?? 0) * 100)}%`
+            ? t("Verifying {name}…", { name: pending.name })
+            : t("Downloading {name} · {percent}%", {
+                name: pending.name,
+                percent: Math.round((progress ?? 0) * 100),
+              })
           : active
-            ? `Local model · ${formatBytes(active.size)}`
+            ? t("Local model · {size}", { size: formatBytes(active.size) })
             : voice.canManage
-              ? "No model installed · Choose one to download"
-              : `No model installed · Add one using T3 Code on ${props.label}`
+              ? t("No model installed · Choose one to download")
+              : t("No model installed · Add one using T3 Code on {name}", { name: props.label })
       }
       selected={props.selected}
       onPress={() => {

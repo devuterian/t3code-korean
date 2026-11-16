@@ -51,6 +51,7 @@ export function BrowserPreviewRouteScreen({ route }: BrowserPreviewRouteScreenPr
 }
 
 function BrowserUnavailableScreen({ onClose }: { readonly onClose: () => void }) {
+  const t = useTranslate();
   const insets = useSafeAreaInsets();
   const contentTopInset = useContentTopInset();
   return (
@@ -58,7 +59,7 @@ function BrowserUnavailableScreen({ onClose }: { readonly onClose: () => void })
       className="flex-1 bg-sheet"
       style={{ paddingTop: contentTopInset, paddingBottom: insets.bottom }}
     >
-      <SheetHeader title="Browser" onClose={onClose} accessibilityLabel="Close browser" />
+      <SheetHeader title={t("Browser")} onClose={onClose} accessibilityLabel={t("Close browser")} />
     </View>
   );
 }

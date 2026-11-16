@@ -83,7 +83,7 @@ function T3ConnectSteps() {
       <SetupStep number={1}>
         {loadFailed ? (
           <Button size="sm" onClick={retryClerkLoad}>
-            Retry sign-in
+            {t("Retry sign-in")}
           </Button>
         ) : isSignedIn ? (
           <p className="flex items-center gap-1.5 text-muted-foreground">

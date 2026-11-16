@@ -369,7 +369,7 @@ function AutomationMessageRow({ row }: { row: Extract<TimelineRow, { kind: "mess
               {promptLink !== null && (
                 <MessageCopyButton
                   text={promptLink}
-                  label="Copy prompt link"
+                  label={t("Copy prompt link")}
                   icon={LinkIcon}
                   variant="ghost"
                 />

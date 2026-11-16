@@ -247,7 +247,7 @@ export function ScheduledTaskThreadPickerRouteScreen() {
   const selectedKey = threadId ?? (editor.draft.threadMode === "new_thread" ? "new-thread" : null);
 
   return (
-    <SettingsScreen title="Destination" search={search}>
+    <SettingsScreen title={t("Destination")} search={search}>
       <LegendList
         renderScrollComponent={NativeScrollView}
         data={rows}

@@ -1,5 +1,7 @@
 import { Platform } from "react-native";
 
+import { useTranslate } from "../../../i18n/translate";
+
 import { AppBar } from "../../../components/ui/AppBar";
 import { Toolbar } from "../../../components/ui/Toolbar";
 import { NativeStackScreenOptions } from "../../../native/StackHeader";
@@ -15,6 +17,7 @@ export function WorkspaceListEmptyDetail(props: {
   readonly onAddConnection: () => void;
   readonly onStartNewTask: () => void;
 }) {
+  const t = useTranslate();
   const { panes } = useWorkspacePaneState();
   return (
     <>
@@ -30,12 +33,12 @@ export function WorkspaceListEmptyDetail(props: {
       />
       <Toolbar placement="left">
         <Toolbar.Button
-          accessibilityLabel="New task"
+          accessibilityLabel={t("New task")}
           icon="square.and.pencil"
           onPress={props.onStartNewTask}
         />
       </Toolbar>
-      <AppBar embedded title="Threads" />
+      <AppBar embedded title={t("Threads")} />
       <WorkspaceEmptyDetail
         onAddConnection={
           Platform.OS === "android" && !props.hasConnections ? props.onAddConnection : undefined

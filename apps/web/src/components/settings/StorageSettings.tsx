@@ -724,7 +724,7 @@ export function WorktreeCleanupSection() {
               serverScoped={!isProjectScope}
               control={
                 <RetentionControl
-                  label="Delete inactive worktrees"
+                  label={t("Delete inactive worktrees")}
                   value={settings.worktreeAfterDays}
                   onChange={(worktreeAfterDays, onFailed) =>
                     updateWorktree({ worktreeAfterDays }, { onFailed })
@@ -758,7 +758,7 @@ export function WorktreeCleanupSection() {
                     serverScoped={!isProjectScope}
                     control={
                       <RetentionControl
-                        label="Delete settled worktrees"
+                        label={t("Delete settled worktrees")}
                         value={settings.worktreeSettledAfterDays}
                         minimum={0}
                         onChange={(worktreeSettledAfterDays, onFailed) =>
@@ -838,6 +838,7 @@ export function WorktreeCleanupSection() {
 
 /** Retention for logs and captures, and the manual cleanup run, which covers worktrees too. */
 export function StorageCleanupSections() {
+  const t = useTranslate();
   const { scope, connectedEnvironments, targets } = useSettingsScope();
   const scopedSettings = useScopedSettings();
   const updateSettings = useUpdateScopedSettings();
@@ -900,7 +901,7 @@ export function StorageCleanupSections() {
             serverScoped
             control={
               <RetentionControl
-                label="Delete old browser artifacts"
+                label={t("Delete old browser artifacts")}
                 value={settings.browserArtifactsAfterDays}
                 onChange={(browserArtifactsAfterDays, onFailed) =>
                   update({ browserArtifactsAfterDays }, { onFailed })
@@ -918,7 +919,7 @@ export function StorageCleanupSections() {
             serverScoped
             control={
               <RetentionControl
-                label="Delete old rotated logs"
+                label={t("Delete old rotated logs")}
                 value={settings.logsAfterDays}
                 onChange={(logsAfterDays, onFailed) => update({ logsAfterDays }, { onFailed })}
               />

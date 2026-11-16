@@ -52,8 +52,10 @@ function activateLocale(locale: string): void {
 
 function applyLanguageSetting(): void {
   // Not desktopBridge.getSystemLocale(): that is the regional/time locale, not the UI language.
+  // The fork's interface language picks the locale; upstream's separate language row is hidden.
+  const { interfaceLanguage } = getClientSettings();
   requestedLocale = resolveLocale(
-    getClientSettings().language,
+    interfaceLanguage === "zh-CN" ? "zh" : interfaceLanguage,
     navigator.languages,
     SUPPORTED_LOCALES,
     DEFAULT_LOCALE,

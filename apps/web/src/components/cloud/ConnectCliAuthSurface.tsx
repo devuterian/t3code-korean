@@ -88,7 +88,7 @@ export function ConnectCliAuthorizeSurface() {
       {loadFailed ? (
         <div className="mt-6">
           <Button type="button" onClick={retryClerkLoad}>
-            Retry sign-in
+            {t("Retry sign-in")}
           </Button>
         </div>
       ) : isLoaded && !isSignedIn ? (

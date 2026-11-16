@@ -3,6 +3,7 @@ import { Pressable, ScrollView, Text } from "react-native";
 import type { MarkdownStyle } from "react-native-enriched-markdown";
 
 import { Menu } from "../components/ui/Menu";
+import { useTranslate } from "../i18n/translate";
 import { useMarkdownCodeHighlight } from "../features/threads/markdownCodeHighlightState";
 import { copyTextWithHaptic } from "../lib/copyTextWithHaptic";
 import type { HighlightScheme } from "../lib/highlights";
@@ -46,6 +47,7 @@ export function HighlightedCodeBlock(props: {
   readonly codeStyle: NonNullable<MarkdownStyle["codeBlock"]>;
 }) {
   const { code, codeStyle, textStyle } = props;
+  const t = useTranslate();
   const [wrapped, setWrapped] = useState(false);
   const lines = useMarkdownCodeHighlight({
     code,
@@ -106,14 +108,14 @@ export function HighlightedCodeBlock(props: {
         <>
           <CodeBlockHeaderButton
             icon="text.alignleft"
-            label={wrapped ? "Disable line wrap" : "Wrap lines"}
+            label={wrapped ? t("Disable line wrap") : t("Wrap lines")}
             textStyle={textStyle}
             active={wrapped}
             onPress={() => setWrapped((value) => !value)}
           />
           <CodeBlockHeaderButton
             icon="doc.on.doc"
-            label="Copy code"
+            label={t("Copy code")}
             textStyle={textStyle}
             onPress={() => copyTextWithHaptic(code)}
           />

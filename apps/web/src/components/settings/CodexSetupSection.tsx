@@ -790,7 +790,7 @@ function ManagedCodexSetup({
   ) : callbackCompletion ? (
     <div className="space-y-3 text-xs leading-relaxed text-muted-foreground">
       <CodexSignInDescription
-        label="Having trouble signing in?"
+        label={t("Having trouble signing in?")}
         expanded={callbackHelpOpen}
         controls={callbackHelpId}
         onToggle={() => setCallbackHelpOpen((open) => !open)}
@@ -1012,7 +1012,7 @@ function ManagedCodexSetup({
                       void run(() => startInstall({ environmentId, input: { instanceId } }))
                     }
                   >
-                    Update Codex
+                    {t("Update Codex")}
                   </Button>
                 ) : null}
                 <Button

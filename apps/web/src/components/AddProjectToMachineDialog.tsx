@@ -391,8 +391,8 @@ function AddProjectToMachineDialog({ request }: { request: AddProjectToMachineRe
                   <Input
                     size="sm"
                     type="search"
-                    aria-label="Search ignored files"
-                    placeholder="Search ignored files"
+                    aria-label={t("Search ignored files")}
+                    placeholder={t("Search ignored files")}
                     value={fileQuery}
                     maxLength={256}
                     onChange={(event) => setFileQuery(event.target.value)}

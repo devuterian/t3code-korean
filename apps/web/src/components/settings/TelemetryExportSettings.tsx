@@ -83,12 +83,13 @@ function endpointStatus(
 }
 
 export function TelemetryExportSettings() {
+  const t = useTranslate();
   const { environment, scope } = useSettingsScope();
   if (scope.kind !== "environment" || !environment) {
     return (
       <SettingsSection title="OpenTelemetry export" id="telemetry-export">
         <SettingsScopeNotice target="environment">
-          Choose one environment to configure its telemetry exports.
+          {t("Choose one environment to configure its telemetry exports.")}
         </SettingsScopeNotice>
       </SettingsSection>
     );

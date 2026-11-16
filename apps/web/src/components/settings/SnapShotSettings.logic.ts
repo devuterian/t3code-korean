@@ -59,7 +59,7 @@ export function snapShotSetupButtonLabel(state: DesktopSnapShotState | null): st
   if (captureSetupAccessReady(state)) return translate("Manage capture");
   const desktop = captureSetupDesktopName(state);
   return desktop
-    ? `${translate("Set up")} ${desktop} ${translate("capture")}`
+    ? translate("Set up {desktop} capture").replace("{desktop}", desktop)
     : translate("Continue setup");
 }
 

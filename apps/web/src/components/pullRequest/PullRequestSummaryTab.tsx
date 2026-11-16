@@ -254,12 +254,13 @@ function chatSubject(
 }
 
 function AddToChatButton({ onClick }: { onClick: () => void }) {
+  const t = useTranslate();
   return (
     <Button size="xs" variant="ghost" className="shrink-0" onClick={onClick}>
       {/* Wrapped like Fix's label so both sit on the header's baseline. */}
       <span className="inline-flex items-baseline gap-1">
         <MessageSquarePlusIcon className="size-3 self-center" />
-        <span>Add to chat</span>
+        <span>{t("Add to chat")}</span>
       </span>
     </Button>
   );
@@ -620,7 +621,7 @@ export function PullRequestSummaryTab({
     let target: HTMLElement | null | undefined;
     if (location?.kind === "checks") {
       target = root.querySelector<HTMLElement>(
-        '[data-pull-request-summary-section][aria-label="Checks"]',
+        '[data-pull-request-summary-section][aria-label={t("Checks")}]',
       );
     } else if (location?.kind === "summary") {
       if (location.anchor === "top") {

@@ -137,6 +137,7 @@ import { searchableSetting } from "./settingsSearch";
 import { useOptionalSettingsScope, useSettingsScope } from "./SettingsScopeContext";
 import { useScopedModelDisabledReason } from "./useScopedModelAvailability";
 import { useScopedSettings, useUpdateScopedSettings } from "./useScopedSettings";
+import { useTranslate } from "~/i18n/translate";
 
 const OFF = "off";
 function CloudSpeechLogo({ provider }: { provider: CloudSpeechProvider }) {
@@ -202,6 +203,7 @@ function ModelBadge(props: { icon: ReactNode; label: string; tooltip: string }) 
 }
 
 function ModelCard(props: ModelCardProps) {
+  const t = useTranslate();
   const { model } = props;
   const downloading = model.state === "downloading" || model.state === "verifying";
   const progress = model.downloaded === undefined ? 0 : (model.downloaded / model.size) * 100;
@@ -220,22 +222,26 @@ function ModelCard(props: ModelCardProps) {
             {model.recommended ? (
               <ModelBadge
                 icon={<StarIcon className="mr-1 size-3" />}
-                label="Recommended"
-                tooltip="A good default pick for the languages it covers."
+                label={t("Recommended")}
+                tooltip={t("A good default pick for the languages it covers.")}
               />
             ) : null}
             {model.supportsStreaming ? (
               <ModelBadge
                 icon={<AudioLinesIcon className="mr-1 size-3" />}
-                label="Live preview"
-                tooltip="Shows words in your draft as you speak, before the recording finishes."
+                label={t("Live preview")}
+                tooltip={t(
+                  "Shows words in your draft as you speak, before the recording finishes.",
+                )}
               />
             ) : null}
             {model.supportsTranslation ? (
               <ModelBadge
                 icon={<LanguagesIcon className="mr-1 size-3" />}
-                label="Translate"
-                tooltip="Can write English text from speech in another language. Turn on Translate to English to use it."
+                label={t("Translate")}
+                tooltip={t(
+                  "Can write English text from speech in another language. Turn on Translate to English to use it.",
+                )}
               />
             ) : null}
           </div>
@@ -300,16 +306,16 @@ function ModelCard(props: ModelCardProps) {
           ) : model.state === "downloadable" ? (
             <Button size="sm" variant="outline" disabled={props.busy} onClick={props.onDownload}>
               <DownloadIcon />
-              Download
+              {t("Download")}
             </Button>
           ) : model.active ? (
             <Button size="sm" variant="secondary" disabled>
               <CheckIcon />
-              Selected
+              {t("Selected")}
             </Button>
           ) : (
             <Button size="sm" variant="outline" disabled={props.busy} onClick={props.onSelect}>
-              Use model
+              {t("Use model")}
             </Button>
           )}
           {model.state === "installed" ? (
@@ -340,6 +346,7 @@ function DictionaryEditor(props: {
   readonly disabled?: boolean;
   readonly onChange: (words: SpeechCustomWords) => void;
 }) {
+  const t = useTranslate();
   const { words, label, disabled = false, onChange } = props;
   const [termDraft, setTermDraft] = useState("");
   const [aliasDraft, setAliasDraft] = useState<{ term: string; value: string } | null>(null);
@@ -387,7 +394,7 @@ function DictionaryEditor(props: {
             rows={1}
             maxLength={5_100}
             disabled={disabled}
-            placeholder="Add words, separated by commas"
+            placeholder={t("Add words, separated by commas")}
             aria-label={`Add a word or phrase to the ${label}`}
             onChange={(event) => setTermDraft(event.target.value)}
             onKeyDown={(event) => {
@@ -400,7 +407,7 @@ function DictionaryEditor(props: {
         </div>
         <Button type="button" variant="outline" disabled={!canAddTerm} onClick={addTerm}>
           <PlusIcon />
-          Add
+          {t("Add")}
         </Button>
       </div>
       {words.length > 0 ? (
@@ -423,7 +430,7 @@ function DictionaryEditor(props: {
                   value={aliasDraft.value}
                   maxLength={50}
                   aria-label={`Alias for ${term}`}
-                  placeholder="Misspelling"
+                  placeholder={t("Misspelling")}
                   className="ms-auto w-32"
                   onChange={(event) => setAliasDraft({ term, value: event.target.value })}
                   onBlur={() => setAliasDraft(null)}
@@ -445,7 +452,7 @@ function DictionaryEditor(props: {
                   aria-label={`Add an alias for ${term}`}
                   onClick={() => setAliasDraft({ term, value: "" })}
                 >
-                  Alias
+                  {t("Alias")}
                 </Button>
               )}
               <Button
@@ -499,6 +506,7 @@ function ProjectDictionaryRow() {
 
 /** Cleanup runs on the draft's environment, so its model is an environment setting there. */
 function CleanupModelRow() {
+  const t = useTranslate();
   const { environment, connectedEnvironments } = useSettingsScope();
   const settings = useScopedSettings();
   const updateSettings = useUpdateScopedSettings();
@@ -556,12 +564,14 @@ function CleanupModelRow() {
       description="Model for transcript cleanup, such as a cheaper or faster one. When disabled, use the text generation model configured for this environment."
       control={
         connectedEnvironments.length === 0 ? (
-          <span className="text-sm text-muted-foreground">Connect an environment first.</span>
+          <span className="text-sm text-muted-foreground">
+            {t("Connect an environment first.")}
+          </span>
         ) : (
           <div className="flex min-w-0 flex-wrap items-center gap-2 @min-[32rem]/settings-row:justify-end">
             {dedicated && (!hasProvider || !instanceEntry) ? (
               <span className="text-sm text-muted-foreground">
-                No text generation providers available.
+                {t("No text generation providers available.")}
               </span>
             ) : null}
             {dedicated && hasProvider && instanceEntry ? (
@@ -606,7 +616,7 @@ function CleanupModelRow() {
                     : null,
                 })
               }
-              aria-label="Use a separate cleanup model"
+              aria-label={t("Use a separate cleanup model")}
             />
           </div>
         )
@@ -728,6 +738,7 @@ function AdvancedSpeechSettings({
   prepared: PreparedConnection;
   catalog: VoiceModels;
 }) {
+  const t = useTranslate();
   const { run, controlsDisabled, status } = catalog;
   if (!status?.supported) return null;
   const supported = status;
@@ -750,7 +761,7 @@ function AdvancedSpeechSettings({
                 );
             }}
           >
-            <SelectTrigger size="sm" aria-label="Transcription hardware" className="max-w-72">
+            <SelectTrigger size="sm" aria-label={t("Transcription hardware")} className="max-w-72">
               <SelectValue>
                 {supported.acceleration === "auto"
                   ? "Auto"
@@ -762,7 +773,7 @@ function AdvancedSpeechSettings({
               </SelectValue>
             </SelectTrigger>
             <SelectPopup align="end" alignItemWithTrigger={false}>
-              <SelectItem value="auto">Auto</SelectItem>
+              <SelectItem value="auto">{t("Auto")}</SelectItem>
               <SelectItem value="cpu">CPU</SelectItem>
               {supported.gpuDevices.map((device) => (
                 <SelectItem key={device.id} value={`gpu:${device.id}`}>
@@ -792,7 +803,7 @@ function AdvancedSpeechSettings({
                 );
             }}
           >
-            <SelectTrigger size="sm" aria-label="Unload model" className="max-w-72">
+            <SelectTrigger size="sm" aria-label={t("Unload model")} className="max-w-72">
               <SelectValue>{UNLOAD_LABELS[supported.modelUnloadTimeout]}</SelectValue>
             </SelectTrigger>
             <SelectPopup align="end" alignItemWithTrigger={false}>
@@ -816,6 +827,7 @@ function SpeechModelBrowser(props: {
   projectId: ProjectId | null;
   projectName: string | null;
 }) {
+  const t = useTranslate();
   const {
     prepared,
     catalog: { status, models, run, controlsDisabled, canCancel, requestedDownload },
@@ -885,8 +897,8 @@ function SpeechModelBrowser(props: {
           </InputGroupAddon>
           <InputGroupInput
             type="search"
-            aria-label="Search transcription models"
-            placeholder="Search models"
+            aria-label={t("Search transcription models")}
+            placeholder={t("Search models")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -904,14 +916,14 @@ function SpeechModelBrowser(props: {
           <MenuPopup align="end">
             <MenuSearchInput
               autoFocus
-              aria-label="Search languages"
-              placeholder="Search languages"
+              aria-label={t("Search languages")}
+              placeholder={t("Search languages")}
               value={languageSearch}
               onChange={(e) => setLanguageSearch(e.target.value)}
             />
             <div
               role="group"
-              aria-label="Browse models by language"
+              aria-label={t("Browse models by language")}
               className="max-h-72 overflow-y-auto"
             >
               {needle ? null : (
@@ -919,7 +931,7 @@ function SpeechModelBrowser(props: {
                   checked={selectedLanguages.length === 0}
                   onCheckedChange={() => setSelection([])}
                 >
-                  All languages
+                  {t("All languages")}
                 </MenuCheckboxItem>
               )}
               {visibleLanguages.map((code) => (
@@ -938,7 +950,9 @@ function SpeechModelBrowser(props: {
                 </MenuCheckboxItem>
               ))}
               {visibleLanguages.length === 0 && (
-                <p className="px-2 py-1.5 text-sm text-muted-foreground">No languages match.</p>
+                <p className="px-2 py-1.5 text-sm text-muted-foreground">
+                  {t("No languages match.")}
+                </p>
               )}
             </div>
           </MenuPopup>
@@ -953,7 +967,7 @@ function SpeechModelBrowser(props: {
           </MenuTrigger>
           <MenuPopup align="end">
             <MenuGroup>
-              <MenuGroupLabel>Sort by</MenuGroupLabel>
+              <MenuGroupLabel>{t("Sort by")}</MenuGroupLabel>
               <MenuRadioGroup
                 value={sort}
                 onValueChange={(value) => setSort(value as SpeechModelSort)}
@@ -972,7 +986,7 @@ function SpeechModelBrowser(props: {
             </MenuGroup>
             <MenuSeparator />
             <MenuCheckboxItem checked={downloadedOnly} onCheckedChange={setDownloadedOnly}>
-              Downloaded only
+              {t("Downloaded only")}
             </MenuCheckboxItem>
           </MenuPopup>
         </Menu>
@@ -980,11 +994,11 @@ function SpeechModelBrowser(props: {
       <div
         className="mt-2 mb-2 max-h-96 divide-y divide-border/60 overflow-y-auto rounded-lg border border-border/60"
         role="region"
-        aria-label="Transcription models"
+        aria-label={t("Transcription models")}
         tabIndex={0}
       >
         {sortedModels.length === 0 && (
-          <p className="px-3 py-3 text-sm text-muted-foreground">No models match.</p>
+          <p className="px-3 py-3 text-sm text-muted-foreground">{t("No models match.")}</p>
         )}
         {renderedModels.map((model) => {
           const card: ModelCardProps = {
@@ -1043,8 +1057,8 @@ function SpeechModelBrowser(props: {
           <div className="w-full min-w-0 flex-1">
             <Input
               size="compact"
-              aria-label="Path to a model file or folder already on this environment"
-              placeholder="Already downloaded elsewhere? Paste the model file or folder path"
+              aria-label={t("Path to a model file or folder already on this environment")}
+              placeholder={t("Already downloaded elsewhere? Paste the model file or folder path")}
               value={existingPath}
               onChange={(e) => setExistingPath(e.target.value)}
             />
@@ -1055,7 +1069,7 @@ function SpeechModelBrowser(props: {
             variant="outline"
             disabled={controlsDisabled || !existingPath.trim()}
           >
-            Use existing
+            {t("Use existing")}
           </Button>
         </form>
       ) : null}
@@ -1070,6 +1084,7 @@ function TranscriptionTest(props: {
   readonly projectId: ProjectId | null;
   readonly projectName: string | null;
 }) {
+  const t = useTranslate();
   const [transcript, setTranscript] = useState<string | null>(null);
   const draft = transcript ?? "";
   const [showTranscript, setShowTranscript] = useState(false);
@@ -1117,7 +1132,7 @@ function TranscriptionTest(props: {
                   }}
                 >
                   <MicIcon />
-                  Test model
+                  {t("Test model")}
                 </Button>
               ) : null
             ) : (
@@ -1135,13 +1150,15 @@ function TranscriptionTest(props: {
             <div className="min-w-0 flex-1 py-1.5">
               {speech.preview || transcript !== null ? null : (
                 <p className="text-xs text-muted-foreground">
-                  Say a sentence. Cleanup is skipped, so you see exactly what the model heard.
+                  {t(
+                    "Say a sentence. Cleanup is skipped, so you see exactly what the model heard.",
+                  )}
                 </p>
               )}
               {speech.preview || transcript !== null ? (
                 <p
                   role="status"
-                  aria-label="Test transcript"
+                  aria-label={t("Test transcript")}
                   className="select-text whitespace-pre-wrap break-words text-sm leading-relaxed"
                 >
                   {speech.preview ? (
@@ -1158,7 +1175,7 @@ function TranscriptionTest(props: {
             <Button
               size="icon-sm"
               variant="ghost-muted"
-              aria-label="Close model test"
+              aria-label={t("Close model test")}
               onClick={() => {
                 speech.cancel();
                 setShowTranscript(false);
@@ -1189,6 +1206,7 @@ function TranscriptionTest(props: {
 }
 
 export function VoiceSettingsPanel() {
+  const t = useTranslate();
   const cleanupEnabled = useCleanupGrant() !== null;
   const settings = useClientSettings();
   const settingsScope = useOptionalSettingsScope();
@@ -1299,14 +1317,14 @@ export function VoiceSettingsPanel() {
                     type="button"
                     variant="outline"
                     size="icon-sm"
-                    aria-label="Refresh microphones"
+                    aria-label={t("Refresh microphones")}
                     onClick={() => void refreshMicrophones()}
                   >
                     <RefreshCwIcon />
                   </Button>
                 }
               />
-              <TooltipPopup>Refresh microphones</TooltipPopup>
+              <TooltipPopup>{t("Refresh microphones")}</TooltipPopup>
             </Tooltip>
           }
         >
@@ -1331,7 +1349,7 @@ export function VoiceSettingsPanel() {
                   void updateClientSettings({ voiceShortcutMode: value as VoiceShortcutMode });
               }}
             >
-              <SelectTrigger size="sm" aria-label="Dictation shortcut mode">
+              <SelectTrigger size="sm" aria-label={t("Dictation shortcut mode")}>
                 <SelectValue>{SHORTCUT_MODES[settings.voiceShortcutMode].label}</SelectValue>
               </SelectTrigger>
               <SelectPopup align="end" alignItemWithTrigger={false}>
@@ -1386,7 +1404,7 @@ export function VoiceSettingsPanel() {
               >
                 <SelectTrigger
                   size="sm"
-                  aria-label="Transcribe with"
+                  aria-label={t("Transcribe with")}
                   className="min-w-0 @min-[32rem]/settings-row:w-auto @min-[32rem]/settings-row:max-w-72"
                 >
                   <SelectValue>
@@ -1418,12 +1436,12 @@ export function VoiceSettingsPanel() {
                   <SelectItem value={OFF}>
                     <span className="flex items-center gap-2">
                       <MicOffIcon aria-hidden className="size-4" />
-                      Off
+                      {t("Off")}
                     </span>
                   </SelectItem>
                   {environmentChoices.length > 0 && (
                     <SelectGroup>
-                      <SelectGroupLabel>On an environment</SelectGroupLabel>
+                      <SelectGroupLabel>{t("On an environment")}</SelectGroupLabel>
                       {environmentChoices.map(({ environment, value }) => (
                         <SelectItem key={value} value={value}>
                           <span className="flex items-center gap-2">
@@ -1526,7 +1544,7 @@ export function VoiceSettingsPanel() {
             description="Speak any language and get English text."
             control={
               <Switch
-                aria-label="Translate to English"
+                aria-label={t("Translate to English")}
                 checked={settings.speechTranslateToEnglish}
                 onCheckedChange={(checked) =>
                   void updateClientSettings({ speechTranslateToEnglish: checked })
@@ -1545,7 +1563,7 @@ export function VoiceSettingsPanel() {
           }
           control={
             <Switch
-              aria-label="Silence filtering"
+              aria-label={t("Silence filtering")}
               disabled={destination.cloudProvider === "openai"}
               checked={settings.speechSilenceFiltering}
               onCheckedChange={(checked) =>
@@ -1560,7 +1578,7 @@ export function VoiceSettingsPanel() {
           description="Drop “um” and “uh” from transcripts."
           control={
             <Switch
-              aria-label="Remove filler words"
+              aria-label={t("Remove filler words")}
               checked={settings.speechRemoveFillerWords}
               onCheckedChange={(checked) =>
                 void updateClientSettings({ speechRemoveFillerWords: checked })
@@ -1606,7 +1624,7 @@ export function VoiceSettingsPanel() {
           description="Off by default. Sends the transcript and nearby draft text, never audio, to the cleanup model."
           control={
             <Switch
-              aria-label="Clean up transcripts"
+              aria-label={t("Clean up transcripts")}
               checked={cleanupEnabled}
               onCheckedChange={chooseTranscriptCleanup}
             />
@@ -1637,14 +1655,14 @@ export function VoiceSettingsPanel() {
                     });
                 }}
               >
-                <SelectTrigger size="sm" aria-label="Cleanup instructions">
+                <SelectTrigger size="sm" aria-label={t("Cleanup instructions")}>
                   <SelectValue>
                     {settings.speechPostProcessingPrompt.mode === "custom" ? "Custom" : "Built-in"}
                   </SelectValue>
                 </SelectTrigger>
                 <SelectPopup align="end" alignItemWithTrigger={false}>
-                  <SelectItem value="default">Built-in</SelectItem>
-                  <SelectItem value="custom">Custom</SelectItem>
+                  <SelectItem value="default">{t("Built-in")}</SelectItem>
+                  <SelectItem value="custom">{t("Custom")}</SelectItem>
                 </SelectPopup>
               </Select>
             }
@@ -1652,7 +1670,7 @@ export function VoiceSettingsPanel() {
             {settings.speechPostProcessingPrompt.mode === "custom" ? (
               <div className="mt-3 pb-2">
                 <Textarea
-                  aria-label="Custom cleanup instructions"
+                  aria-label={t("Custom cleanup instructions")}
                   maxLength={10_000}
                   value={settings.speechPostProcessingPrompt.customInstructions}
                   onChange={(event) =>
@@ -1680,7 +1698,7 @@ export function VoiceSettingsPanel() {
                 defaultValue={settings.speechCorrectionWord}
                 maxLength={50}
                 placeholder="sorry"
-                aria-label="Correction cue"
+                aria-label={t("Correction cue")}
                 className="@min-[32rem]/settings-row:w-40"
                 onBlur={(event) => {
                   const next = event.target.value.trim();

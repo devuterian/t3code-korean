@@ -199,6 +199,7 @@ const LANE = "chat-content-lane px-4";
 type GuestAccess = "checking" | "session" | "name" | "none";
 
 export function GuestPage() {
+  const t = useTranslate();
   const [{ credential, shareId }] = useState(takeGuestEntry);
   // A browser that already joined this share goes straight back in, even from the spent link.
   // Sessions are per share, so one for another link never stands in for this one.
@@ -236,7 +237,7 @@ export function GuestPage() {
   return (
     <div className="flex h-dvh flex-col bg-background text-foreground">
       {access === "checking" ? (
-        <Notice title="Connecting..." />
+        <Notice title={t("Connecting...")} />
       ) : access === "name" && credential !== null ? (
         <NameForm
           credential={credential}
@@ -250,7 +251,7 @@ export function GuestPage() {
         <GuestSession shareId={shareId} />
       ) : (
         <Notice
-          title="This link has ended or is not valid"
+          title={t("This link has ended or is not valid")}
           detail="Ask the owner for a new link. Each link works in one browser."
         />
       )}
@@ -259,6 +260,7 @@ export function GuestPage() {
 }
 
 function GuestSession({ shareId }: { readonly shareId: string }) {
+  const t = useTranslate();
   const [stream, dispatch] = useReducer(applyGuestStreamEvent, null, () => ({
     ...initialGuestStreamState,
     awaitingRowIds: readAwaitingRowIds(),
@@ -318,10 +320,12 @@ function GuestSession({ shareId }: { readonly shareId: string }) {
   }, [shareId]);
 
   if (stream.ended || (rejected && stream.view !== null)) {
-    return <Notice title="This link has ended" detail="The owner stopped sharing this thread." />;
+    return (
+      <Notice title={t("This link has ended")} detail="The owner stopped sharing this thread." />
+    );
   }
   if (stream.view !== null) {
-    if (stream.projection === null) return <Notice title="Connecting..." />;
+    if (stream.projection === null) return <Notice title={t("Connecting...")} />;
     return (
       <GuestThread
         view={stream.view}
@@ -331,10 +335,10 @@ function GuestSession({ shareId }: { readonly shareId: string }) {
       />
     );
   }
-  if (!rejected) return <Notice title="Connecting..." />;
+  if (!rejected) return <Notice title={t("Connecting...")} />;
   return (
     <Notice
-      title="This link has ended or is not valid"
+      title={t("This link has ended or is not valid")}
       detail="Ask the owner for a new link. Each link works in one browser."
     />
   );

@@ -121,15 +121,15 @@ export function DeviceToolsPanel(props: {
         ) : null}
 
         {props.hostDiagnostics ? (
-          <Section title="Host diagnostics">
+          <Section title={t("Host diagnostics")}>
             <p className="whitespace-pre-line text-xs text-muted-foreground">
               {props.hostDiagnostics}
             </p>
           </Section>
         ) : null}
 
-        <Section title="App">
-          <Row label="Foreground">
+        <Section title={t("App")}>
+          <Row label={t("Foreground")}>
             <span className="truncate font-mono text-xs">{foregroundApp?.id ?? "-"}</span>
           </Row>
           {foregroundApp ? (
@@ -167,7 +167,7 @@ export function DeviceToolsPanel(props: {
         </Section>
 
         <Section title={isIos ? "Simulator" : "Emulator"}>
-          <Row label="Appearance">
+          <Row label={t("Appearance")}>
             <ToggleGroup
               aria-label={t("Appearance")}
               value={settings?.appearance ? [settings.appearance] : []}
@@ -182,7 +182,7 @@ export function DeviceToolsPanel(props: {
               <Toggle value="dark">{t("Dark")}</Toggle>
             </ToggleGroup>
           </Row>
-          <Row label="Text size">
+          <Row label={t("Text size")}>
             <ChoiceSelect
               ariaLabel="Text size"
               value={settings?.textSize ?? null}
@@ -205,11 +205,11 @@ export function DeviceToolsPanel(props: {
                     }
                   }}
                 >
-                  <Toggle value="clear">Clear</Toggle>
+                  <Toggle value="clear">{t("Clear")}</Toggle>
                   <Toggle value="tinted">{t("Tinted")}</Toggle>
                 </ToggleGroup>
               </Row>
-              <Row label="Color filter">
+              <Row label={t("Color filter")}>
                 <ChoiceSelect
                   ariaLabel="Color filter"
                   value={settings?.colorFilter ?? null}
@@ -220,11 +220,11 @@ export function DeviceToolsPanel(props: {
               </Row>
             </>
           ) : (
-            <Row label="Orientation">
+            <Row label={t("Orientation")}>
               <ChoiceSelect
                 ariaLabel="Orientation"
                 value={null}
-                placeholder="Rotate to…"
+                placeholder={t("Rotate to…")}
                 options={ORIENTATIONS}
                 disabled={disabled}
                 onChange={(value) => act({ type: "setOrientation", value })}
@@ -232,7 +232,7 @@ export function DeviceToolsPanel(props: {
             </Row>
           )}
           <SwitchRow
-            label="Reduce Motion"
+            label={t("Reduce Motion")}
             checked={settings?.reduceMotion}
             disabled={disabled}
             onChange={(value) => act({ type: "setToggle", setting: "reduceMotion", value })}
@@ -240,13 +240,13 @@ export function DeviceToolsPanel(props: {
           {isIos ? (
             <>
               <SwitchRow
-                label="Increase Contrast"
+                label={t("Increase Contrast")}
                 checked={settings?.increaseContrast}
                 disabled={disabled}
                 onChange={(value) => act({ type: "setToggle", setting: "increaseContrast", value })}
               />
               <SwitchRow
-                label="Reduce Transparency"
+                label={t("Reduce Transparency")}
                 checked={settings?.reduceTransparency}
                 disabled={disabled}
                 onChange={(value) =>
@@ -254,7 +254,7 @@ export function DeviceToolsPanel(props: {
                 }
               />
               <SwitchRow
-                label="Show Borders"
+                label={t("Show Borders")}
                 checked={settings?.showBorders}
                 disabled={disabled}
                 onChange={(value) => act({ type: "setToggle", setting: "showBorders", value })}
@@ -268,7 +268,7 @@ export function DeviceToolsPanel(props: {
             </>
           ) : (
             <SwitchRow
-              label="Network"
+              label={t("Network")}
               checked={settings?.networkEnabled}
               disabled={disabled}
               onChange={(value) => act({ type: "setToggle", setting: "networkEnabled", value })}
@@ -276,9 +276,9 @@ export function DeviceToolsPanel(props: {
           )}
         </Section>
 
-        <Section title="Accessibility">
+        <Section title={t("Accessibility")}>
           <SwitchRow
-            label="Overlay element frames"
+            label={t("Overlay element frames")}
             checked={props.axOverlay}
             disabled={props.access === null}
             onChange={(value) => {
@@ -306,9 +306,9 @@ export function DeviceToolsPanel(props: {
         />
 
         {isIos ? (
-          <Section title="Push notification">
+          <Section title={t("Push notification")}>
             <SubmitRow
-              placeholder="Alert text"
+              placeholder={t("Alert text")}
               action="Send"
               disabled={disabled || !foregroundApp}
               onSubmit={(payload) =>
@@ -469,7 +469,7 @@ function LocationSection(props: {
     Math.abs(parsed.latitude) <= 90 &&
     Math.abs(parsed.longitude) <= 180;
   return (
-    <Section title="Location">
+    <Section title={t("Location")}>
       <div className="flex gap-1.5">
         <Input
           size="compact"
@@ -562,7 +562,7 @@ function PermissionsSection(props: {
   const decide = (decision: "grant" | "revoke" | "reset") =>
     void props.onDecide(resolvedAppId, permission, decision);
   return (
-    <Section title="Permissions">
+    <Section title={t("Permissions")}>
       <Input
         size="compact"
         font="mono"

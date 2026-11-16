@@ -106,7 +106,7 @@ export default function NotebookPreview(props: {
           ? ` · ${props.sizeBytes === 0 ? t("0 bytes") : formatAttachmentSize(props.sizeBytes)}`
           : ""}
       </div>
-      <FileSurfaceNotice>Saved outputs only. Code is never executed.</FileSurfaceNotice>
+      <FileSurfaceNotice>{t("Saved outputs only. Code is never executed.")}</FileSurfaceNotice>
       <div ref={scroll} className="scrollbar-gutter-both min-h-0 flex-1 overflow-auto">
         <div className="mx-auto max-w-4xl space-y-5 px-5 py-6">
           {props.notebook.cells.slice(0, visible).map((cell, index) => (

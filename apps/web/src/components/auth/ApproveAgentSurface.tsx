@@ -23,6 +23,7 @@ import {
   McpConsent,
   readAuthorizationRequest,
 } from "./ConnectAgentSurface";
+import { translate, useTranslate } from "~/i18n/translate";
 
 const isUnavailable = Schema.is(ConnectMcpApprovalUnavailableError);
 
@@ -45,7 +46,7 @@ function connectTransport(
         kind: "error",
         message: isUnavailable(result.failure)
           ? result.failure.message
-          : "Could not reach this environment. Try again.",
+          : translate("Could not reach this environment. Try again."),
       };
     }
     onEnvironment({
@@ -74,6 +75,7 @@ function connectTransport(
  * T3 Connect here and approves with that session, so no sign-in code is needed.
  */
 export function ApproveAgentSurface() {
+  const t = useTranslate();
   const [environmentId] = useState(readEnvironmentId);
   const [authorization] = useState(readAuthorizationRequest);
   // Another site could frame this page and steer a click onto Approve.
@@ -105,8 +107,8 @@ export function ApproveAgentSurface() {
   if (environmentId === null || transport === null) {
     return (
       <Message
-        title="This sign-in link is incomplete"
-        description="Close this page and start the sign-in again from your agent."
+        title={t("This sign-in link is incomplete")}
+        description={t("Close this page and start the sign-in again from your agent.")}
       />
     );
   }
@@ -114,8 +116,8 @@ export function ApproveAgentSurface() {
   if (framed) {
     return (
       <Message
-        title="Open this page in its own window"
-        description="For your safety, agent sign-ins cannot be approved inside another site."
+        title={t("Open this page in its own window")}
+        description={t("For your safety, agent sign-ins cannot be approved inside another site.")}
       />
     );
   }
@@ -123,12 +125,12 @@ export function ApproveAgentSurface() {
   if (loadFailed) {
     return (
       <Message
-        title="Could not load sign-in"
-        description="T3 Connect sign-in did not load. Check your connection, then try again."
+        title={t("Could not load sign-in")}
+        description={t("T3 Connect sign-in did not load. Check your connection, then try again.")}
       >
         <div className="mt-6">
           <Button type="button" onClick={retryClerkLoad}>
-            Retry sign-in
+            {t("Retry sign-in")}
           </Button>
         </div>
       </Message>
@@ -139,9 +141,9 @@ export function ApproveAgentSurface() {
     return (
       <StandalonePage>
         <StandalonePageHeader
-          context="Agent sign-in"
-          title="Connecting to T3 Connect"
-          description="One moment while your account loads."
+          context={t("Agent sign-in")}
+          title={t("Connecting to T3 Connect")}
+          description={t("One moment while your account loads.")}
         />
         <Spinner className="mt-6" size="lg" tone="muted" />
       </StandalonePage>
@@ -151,12 +153,12 @@ export function ApproveAgentSurface() {
   if (!isSignedIn) {
     return (
       <Message
-        title="Sign in to approve"
-        description="Sign in to T3 Connect with the account this environment is linked to."
+        title={t("Sign in to approve")}
+        description={t("Sign in to T3 Connect with the account this environment is linked to.")}
       >
         <div className="mt-6">
           <Button type="button" onClick={openSignIn}>
-            Sign in
+            {t("Sign in")}
           </Button>
         </div>
       </Message>
@@ -181,7 +183,7 @@ export function ApproveAgentSurface() {
                 <a href={`${new URL("/connect-agent", environment.url).toString()}?${search}`} />
               }
             >
-              Use a sign-in code instead
+              {t("Use a sign-in code instead")}
             </Button>
           ) : null}
           <Button
@@ -190,7 +192,7 @@ export function ApproveAgentSurface() {
             onClick={() => void clerk.signOut({ redirectUrl: window.location.href })}
             type="button"
           >
-            Use another account
+            {t("Use another account")}
           </Button>
         </div>
       }
@@ -207,9 +209,10 @@ function Message({
   readonly description: string;
   readonly children?: ReactNode;
 }) {
+  const t = useTranslate();
   return (
     <StandalonePage>
-      <StandalonePageHeader context="Agent sign-in" title={title} description={description} />
+      <StandalonePageHeader context={t("Agent sign-in")} title={title} description={description} />
       {children}
     </StandalonePage>
   );

@@ -75,7 +75,7 @@ export function DeviceControlsRail(props: {
           <>
             <RailButton
               tooltipSide={popupSide}
-              label="Back"
+              label={t("Back")}
               disabled={inputDisabled}
               onClick={() => handle?.pressButton("back")}
             >
@@ -83,7 +83,7 @@ export function DeviceControlsRail(props: {
             </RailButton>
             <RailButton
               tooltipSide={popupSide}
-              label="Recents"
+              label={t("Recents")}
               disabled={inputDisabled}
               onClick={() => handle?.pressButton("recents")}
             >
@@ -123,7 +123,7 @@ export function DeviceControlsRail(props: {
         ) : props.hostKind === "simlock" ? null : (
           <RailButton
             tooltipSide={popupSide}
-            label="Rotate device"
+            label={t("Rotate device")}
             disabled={inputDisabled || !!view.keyboard?.attached}
             onClick={() => handle?.rotate()}
           >
@@ -192,7 +192,7 @@ export function DeviceControlsRail(props: {
             </Menu>
             <RailButton
               tooltipSide={popupSide}
-              label="Device tools"
+              label={t("Device tools")}
               pressed={props.toolsOpen}
               onClick={props.onTools}
             >
@@ -254,7 +254,7 @@ export function DeviceControlsRail(props: {
         </RailButton>
         <RailButton
           tooltipSide={popupSide}
-          label="Flat view"
+          label={t("Flat view")}
           pressed={!view.phone}
           disabled={!view.streaming}
           onClick={view.showFlat}
@@ -272,7 +272,7 @@ export function DeviceControlsRail(props: {
           </RailButton>
         ) : null}
         {view.phone ? (
-          <RailButton tooltipSide={popupSide} label="Restore 3D view" onClick={view.resetView}>
+          <RailButton tooltipSide={popupSide} label={t("Restore 3D view")} onClick={view.resetView}>
             <Maximize />
           </RailButton>
         ) : null}
