@@ -1,5 +1,6 @@
-# Unsigned Windows build of the Korean fork. Run it by hand from the Actions
-# tab (or `gh workflow run`); the installer lands as a workflow artifact.
+# Unsigned Windows release build of the Korean fork (scripts/korean-release-win.ps1),
+# for weeks the Windows PC is offline. Run it by hand from the Actions tab (or
+# `gh workflow run`); the installer, blockmap and latest.yml land as a workflow artifact.
 name: Korean desktop (Windows)
 
 on:
@@ -8,7 +9,7 @@ on:
       ref:
         description: Branch, tag, or commit to build
         required: true
-        default: korean-v2
+        default: korean-v5
       version:
         description: Version stamped into the artifact
         required: true
@@ -64,16 +65,14 @@ jobs:
           }
 
       - name: Build desktop artifact
-        shell: bash
-        run: |
-          node scripts/build-desktop-artifact.ts \
-            --platform win --target nsis --arch x64 \
-            --build-version "${{ inputs.version }}" \
-            --output-dir release --verbose
+        shell: pwsh
+        run: ./scripts/korean-release-win.ps1 "${{ inputs.version }}" release
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: t3code-korean-windows-x64
           path: |
             release/*.exe
+            release/*.exe.blockmap
+            release/latest.yml
           if-no-files-found: error
