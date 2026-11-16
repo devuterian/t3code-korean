@@ -66,7 +66,17 @@ jobs:
 
       - name: Build desktop artifact
         shell: pwsh
+        env:
+          T3CODE_DESKTOP_KEEP_STAGE: "true"
         run: ./scripts/korean-release-win.ps1 "${{ inputs.version }}" release
+
+      - name: List the packaged payload after a failed build
+        if: failure()
+        shell: pwsh
+        run: |
+          Get-ChildItem $env:TEMP -Directory -Filter "t3code-desktop-win-stage-*" |
+            ForEach-Object { Get-ChildItem $_.FullName -Recurse -Directory -Filter "*-unpacked" } |
+            ForEach-Object { $root = $_.FullName; Get-ChildItem $root -Recurse -File | ForEach-Object { $_.FullName.Substring($root.Length) } }
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
