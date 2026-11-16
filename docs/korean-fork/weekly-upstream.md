@@ -17,7 +17,7 @@ In zsh, write `"${TAG}:path"`, never `$TAG:path` (`:a`, `:r` are modifiers).
 - Free space: Mac internal over 15 GB, Windows `C:` over 8 GB. Otherwise stop
   and report.
 - `ssh -o ConnectTimeout=10 DESKTOP-BCUC43S 'echo ok'`. If Windows is off,
-  finish steps 1-6, skip the release, and report that Windows was offline.
+  build Windows on GitHub Actions instead (step 7) and say so in the report.
 - `ssh -o ConnectTimeout=10 instance-20260703-0538 'echo ok'` (Linux arm64
   build host, OCI). If it is down, release without the Linux archive and say so.
 - Track progress: `ID=$(eta start "T3 Code 한국어판 주간 업스트림" --steps "업스트림 머지,충돌 해결,설치·검사,번역,맥 빌드,윈도우 빌드,안드로이드 빌드,리눅스 arm64 빌드,GitHub 릴리즈,폰 서버 교체,PR 후보")`,
@@ -132,6 +132,15 @@ scp /tmp/t3k.bundle DESKTOP-BCUC43S:C:/Users/marie/src/t3k.bundle
 ssh DESKTOP-BCUC43S 'cd C:\Users\marie\src\t3code-korean-v3; git fetch ..\t3k.bundle <branch>:<branch>-new; git checkout <branch>-new'
 ssh DESKTOP-BCUC43S 'cd C:\Users\marie\src\t3code-korean-v3; $env:PATH="$PWD\node_modules\.bin;$env:USERPROFILE\.cargo\bin;$env:PATH"; $env:CI="true"; vp i; powershell -ExecutionPolicy Bypass -File scripts\korean-release-win.ps1 <VERSION> release-<VERSION>-win'
 scp "DESKTOP-BCUC43S:C:/Users/marie/src/t3code-korean-v3/release-<VERSION>-win/<file>" <local dir>   # one file per scp
+```
+
+If the Windows PC is offline, push the branch and run the same script on a
+GitHub runner (the repo is public, so it costs nothing), then download its
+artifact:
+
+```sh
+gh workflow run korean-desktop-windows.yml -R devuterian/t3code-korean --ref <branch> -f ref=$(git rev-parse HEAD) -f version=<VERSION>
+gh run download <run id> -R devuterian/t3code-korean -n t3code-korean-windows-x64 -D release-<VERSION>-win
 ```
 
 Always pass the `release-<VERSION>` output dirs: the scripts' default `release-ko<n>` dirs collide with older versions that had the same `-ko.<n>`.
