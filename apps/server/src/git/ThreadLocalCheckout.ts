@@ -439,7 +439,9 @@ const performMove = Effect.fn("ThreadLocalCheckout.performMove")(function* (
     }
   });
 
-  if (!(yield* gitWorkflow.isRepository(projectPath).pipe(Effect.orElseSucceed(() => false)))) {
+  if (
+    (yield* gitWorkflow.repositoryRoot(projectPath).pipe(Effect.orElseSucceed(() => null))) === null
+  ) {
     return yield* fail("not_a_repository", `'${projectPath}' is not a git repository.`);
   }
   // A project can sit in a subfolder of its repository. Git reports paths from the repository

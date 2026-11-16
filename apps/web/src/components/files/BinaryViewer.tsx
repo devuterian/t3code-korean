@@ -242,7 +242,8 @@ export default function BinaryViewer(props: {
                 <SelectPopup>
                   {database.tables.map((item) => (
                     <SelectItem key={item.name} value={item.name}>
-                      {item.name} ({item.count.toLocaleString()} rows)
+                      {item.name} (
+                      {t("{count} rows").replace("{count}", () => item.count.toLocaleString())})
                     </SelectItem>
                   ))}
                 </SelectPopup>

@@ -4,6 +4,18 @@ function underAMinute(): string {
   return getInterfaceLanguage() === "ko" ? "방금" : "<1m";
 }
 
+// Host timestamps may carry UTC offsets or mixed fractions, so text order is not time order.
+export function compareTimestamps(left: string, right: string): number {
+  return (Date.parse(left) || 0) - (Date.parse(right) || 0);
+}
+
+export function byTimestamp(newestFirst: boolean) {
+  return (left: { readonly date: string }, right: { readonly date: string }) =>
+    newestFirst
+      ? compareTimestamps(right.date, left.date)
+      : compareTimestamps(left.date, right.date);
+}
+
 export function relativeTime(input: string, nowMs: number = Date.now()): string {
   const timestamp = Date.parse(input);
   if (Number.isNaN(timestamp)) {

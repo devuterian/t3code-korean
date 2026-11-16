@@ -344,7 +344,7 @@ export async function buildIncomingShareDraft(input: {
           }
         }
         attachments.push({
-          id: `${input.id}:file:${index}`,
+          id: `${input.id}-file-${index}`,
           type: "file",
           name,
           mimeType,
@@ -408,7 +408,7 @@ export async function buildIncomingShareDraft(input: {
       }
       const dataUrl = `data:${mimeType};base64,${base64}`;
       attachments.push({
-        id: `${input.id}:image:${index}`,
+        id: `${input.id}-image-${index}`,
         type: "image",
         name: resolved?.originalName ?? fallbackName(uri, index, mimeType),
         mimeType,

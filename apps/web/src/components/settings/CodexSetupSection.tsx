@@ -97,6 +97,8 @@ interface CodexSetupSectionProps {
   readonly mode: "managed" | "existing";
   readonly enabled: boolean;
   readonly readOnly?: boolean;
+  // Onboarding's "Use existing CLI" opens a terminal, which this session may not be allowed.
+  readonly existingCliDisabled?: boolean;
   readonly presentation?: "settings" | "onboarding";
   readonly onModeChange: (mode: "managed" | "existing") => void;
   readonly autoStart?: boolean;
@@ -175,7 +177,12 @@ export function CodexSetupSection(props: CodexSetupSectionProps) {
         }
         secondaryControl={
           !existingAuthenticated && !existingReady && !existingChecking ? (
-            <Button size="sm" variant="ghost-muted" onClick={() => props.onModeChange("existing")}>
+            <Button
+              size="sm"
+              variant="ghost-muted"
+              disabled={props.existingCliDisabled}
+              onClick={() => props.onModeChange("existing")}
+            >
               {t("Use existing CLI")}
             </Button>
           ) : null
@@ -261,6 +268,7 @@ function ManagedCodexSetup({
   autoStart,
   onAutoStartConsumed,
   allowExistingCli = true,
+  existingCliDisabled,
   presentation,
   displayName,
   onSignInCancelled,
@@ -495,11 +503,7 @@ function ManagedCodexSetup({
         await ensureLocalApi().shell.openExternal(authorizationUrl);
       }
     } catch {
-      setError(
-        translate(
-          "Could not finish sign-in on this computer. Try again or paste the redirect URL below.",
-        ),
-      );
+      setError(translate("Could not finish sign-in on this computer. Try again."));
     }
   };
 
@@ -933,7 +937,7 @@ function ManagedCodexSetup({
               <Button
                 size="sm"
                 variant="ghost-muted"
-                disabled={readOnly || busy}
+                disabled={readOnly || busy || existingCliDisabled}
                 onClick={() => onModeChange("existing")}
               >
                 {t("Use existing CLI")}
@@ -999,6 +1003,18 @@ function ManagedCodexSetup({
               </Button>
             ) : authenticated ? (
               <>
+                {updateAvailable ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={unavailable || busy}
+                    onClick={() =>
+                      void run(() => startInstall({ environmentId, input: { instanceId } }))
+                    }
+                  >
+                    Update Codex
+                  </Button>
+                ) : null}
                 <Button
                   size="sm"
                   variant="outline"

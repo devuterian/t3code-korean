@@ -62,13 +62,13 @@ export function formatNextScheduledTaskRun(nextRunAt: string, now: number): stri
   const days = localCalendarDay(next) - localCalendarDay(current);
   if (days === 0) {
     if (remaining < MINUTE) return translate("Next run in less than a minute");
-    const minutes = remaining < HOUR;
-    const count = Math.round(remaining / (minutes ? MINUTE : HOUR));
-    if (minutes) {
-      return count === 1
+    const minutes = Math.round(remaining / MINUTE);
+    if (minutes < 60) {
+      return minutes === 1
         ? translate("Next run in 1 minute")
-        : translate("Next run in {count} minutes", { count });
+        : translate("Next run in {count} minutes", { count: minutes });
     }
+    const count = Math.round(remaining / HOUR);
     return count === 1
       ? translate("Next run in 1 hour")
       : translate("Next run in {count} hours", { count });

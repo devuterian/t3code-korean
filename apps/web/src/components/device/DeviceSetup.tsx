@@ -1,14 +1,12 @@
 import { DeviceHostUpdates } from "./DeviceHostUpdates";
 import type { DevicePlatform, DeviceServiceState, EnvironmentId } from "@t3tools/contracts";
-import { Check } from "lucide-react";
-import { Check as CheckGlyph, CircleAlert } from "lucide";
+import { Check, CircleAlert } from "lucide-react";
 import { AuthSettingsWriteScope } from "@t3tools/contracts";
 import { useAtomMount } from "@effect/atom-react";
 import { useState } from "react";
 
 import { Button } from "~/components/ui/button";
 import { DialogClose } from "~/components/ui/dialog";
-import { MorphIcon } from "~/components/MorphIcon";
 import { WizardHeader, WizardPanel, WizardSteps, WizardFooter } from "~/components/ui/wizard";
 import { Spinner } from "~/components/ui/spinner";
 import { Switch } from "~/components/ui/switch";
@@ -160,8 +158,8 @@ export function platformSetupStatus(state: DeviceServiceState, platform: DeviceP
       remoteHost?.kind === "eas"
         ? translate(
             platform === "ios"
-              ? "{host} starts iOS Simulators in the cloud with EAS Simulator."
-              : "{host} starts Android emulators in the cloud with EAS Simulator.",
+              ? "{host} starts iOS Simulators in the cloud with Expo Simulators."
+              : "{host} starts Android emulators in the cloud with Expo Simulators.",
           ).replace("{host}", () => remoteHost.label)
         : availableMessage.replace("{host}", () => remoteHost?.label ?? ""),
   };
@@ -417,13 +415,11 @@ function PlatformStatus(props: {
     <div
       className={cn("flex gap-2", !props.compact && "rounded-md border border-border/60 px-3 py-2")}
     >
-      <MorphIcon
-        className={cn(
-          "mt-0.5 size-4 shrink-0",
-          props.status.ready ? "text-success" : "text-muted-foreground",
-        )}
-        icon={props.status.ready ? CheckGlyph : CircleAlert}
-      />
+      {props.status.ready ? (
+        <Check className="mt-0.5 size-4 shrink-0 text-success" />
+      ) : (
+        <CircleAlert className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+      )}
       <div className={cn(props.compact && props.status.ready && "flex items-center gap-2")}>
         <p className="font-medium">{props.platform}</p>
         <p className="text-xs text-muted-foreground">

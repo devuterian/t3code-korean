@@ -3,8 +3,6 @@ import * as NodeFS from "node:fs";
 import * as NodeVM from "node:vm";
 import { describe, expect, it, vi } from "vite-plus/test";
 
-const FRAME_MS = 16;
-
 function createList(bundle: string) {
   const source = NodeFS.readFileSync(
     new URL(`../apps/web/node_modules/@legendapp/list/${bundle}`, import.meta.url),
@@ -12,11 +10,9 @@ function createList(bundle: string) {
   );
   const slice = (start: string, end: string) =>
     source.slice(source.indexOf(start), source.indexOf(end));
-  const maintain = slice("// src/core/doMaintainScrollAtEnd.ts", "// src/utils/requestAdjust.ts");
+  const maintain = slice("function doMaintainScrollAtEnd(", "// src/core/finishScrollTo.ts");
   const layout = slice("// src/core/handleLayout.ts", "// src/core/onScroll.ts");
   const frames: Array<() => void> = [];
-  let tasks: Array<{ at: number; run: () => void }> = [];
-  let now = 0;
   let within = true;
   let layoutLeavesWithinThreshold = true;
   let nativeScroll = 2000;
@@ -25,48 +21,66 @@ function createList(bundle: string) {
   });
   const state = {
     props: {
+      data: [],
       maintainScrollAtEnd: { animated: true, onLayout: true, onDataChange: true } as
         | { animated: boolean; onLayout: boolean; onDataChange: boolean }
         | undefined,
     },
     didContainersLayout: true,
+    didFinishInitialScroll: true,
     pendingNativeMVCPAdjust: undefined,
     refScroller: { current: { scrollToEnd, getCurrentScrollOffset: () => nativeScroll } },
+    maintainingScrollAtEnd: undefined as string | undefined,
+    pendingMaintainScrollAtEnd: false,
+    scheduledWork: { frame: (run: () => void) => frames.push(run) },
     scroll: 2000,
     scrollLength: 800,
     otherAxisSize: 600,
     lastLayout: { x: 0, y: 0, width: 600, height: 800 },
   };
-  const ctx = { state };
+  // Like doScrollTo, an instant scrollToEnd writes the landed offset to state.scroll itself.
+  const ctx = {
+    state,
+    interruptUserScroll: vi.fn(),
+    scrollToEnd: ({ animated }: { animated: boolean }) => {
+      state.refScroller.current.scrollToEnd({ animated } as never);
+      if (!animated) state.scroll = nativeScroll;
+    },
+  };
   const api = NodeVM.runInNewContext(
     `${maintain}\n${layout}\n({ doMaintainScrollAtEnd, handleLayout })`,
     {
-      requestAnimationFrame: (callback: () => void) => frames.push(callback),
-      setTimeout: (run: () => void, delay: number) => tasks.push({ at: now + delay, run }),
+      Platform: { OS: "web" },
+      invalidateHorizontalRTLScrollType: vi.fn(),
+      getWindowSize: () => ({ width: 600, height: 800 }),
+      scrollToIndex: vi.fn(),
+      finishMaintainScrollAtEnd: () => {
+        state.maintainingScrollAtEnd = undefined;
+        state.pendingMaintainScrollAtEnd = false;
+      },
+      getObservedScrollOffset: () => nativeScroll,
+      isWebScrollAwayFromEnd: () => false,
+      getScrollRequestTracker: () => ({
+        runNowIfIdle: (run: () => void) => Promise.resolve().then(run),
+      }),
+      clampScrollOffset: (_ctx: unknown, offset: number) => offset,
+      areKnownOrFixedItemSizesAvailable: () => true,
+      isEndOfContentTarget: () => false,
       peek$: (_ctx: unknown, key: string) =>
         key === "isWithinMaintainScrollAtEndThreshold" && within,
       set$: vi.fn(),
       getContentSize: () => 3000,
-      isHorizontalRTL: () => false,
       updateContentMetricsState: vi.fn(),
       doInitialAllocateContainers: vi.fn(),
       calculateItemsInView: vi.fn(),
       checkThresholds: () => {
         within = layoutLeavesWithinThreshold;
       },
-      updateScroll: (_ctx: unknown, offset: number) => {
-        state.scroll = offset;
-      },
       IS_DEV: false,
     },
   ) as {
     doMaintainScrollAtEnd: (context: typeof ctx) => boolean;
     handleLayout: (context: typeof ctx, layout: object, setCanRender: () => void) => void;
-  };
-  const runDueTasks = () => {
-    const due = tasks.filter((task) => task.at <= now);
-    tasks = tasks.filter((task) => task.at > now);
-    for (const task of due) task.run();
   };
   return {
     scrollToEnd,
@@ -90,62 +104,62 @@ function createList(bundle: string) {
       within = true;
       layoutLeavesWithinThreshold = true;
     },
-    // Browser order per frame: rAF callbacks, then ResizeObserver layout, then queued tasks.
-    frame(viewportHeight?: number) {
-      now += FRAME_MS;
+    // Browser order per frame: rAF callbacks, then ResizeObserver layout, then microtasks.
+    async frame(viewportHeight?: number) {
       for (const callback of frames.splice(0)) callback();
       if (viewportHeight !== undefined) {
         api.handleLayout(ctx, { x: 0, y: 0, width: 600, height: viewportHeight }, () => {});
       }
-      runDueTasks();
+      await Promise.resolve();
+      await Promise.resolve();
     },
   };
 }
 
 describe.each(["react.mjs", "react.js"])("maintainScrollAtEnd while animated (%s)", (bundle) => {
-  it("pins every frame of a continuous viewport resize instantly", () => {
+  it("pins every frame of a continuous viewport resize instantly", async () => {
     const list = createList(bundle);
-    for (let index = 1; index <= 12; index++) list.frame(800 - index * 20);
-    list.frame();
+    for (let index = 1; index <= 12; index++) await list.frame(800 - index * 20);
+    await list.frame();
     expect(list.scrollToEnd.mock.calls).toEqual(
       Array.from({ length: 12 }, () => [{ animated: false }]),
     );
   });
 
-  it("keeps a content-growth pin smooth and pins the following resize instantly", () => {
+  it("keeps a content-growth pin smooth and pins the following resize instantly", async () => {
     const list = createList(bundle);
     list.dataChange();
-    for (let index = 1; index <= 6; index++) list.frame(800 - index * 20);
-    list.frame();
+    for (let index = 1; index <= 6; index++) await list.frame(800 - index * 20);
+    await list.frame();
     expect(list.scrollToEnd.mock.calls).toEqual([
       [{ animated: true }],
       ...Array.from({ length: 6 }, () => [{ animated: false }]),
     ]);
   });
 
-  it("pins a shrink that leaves the end beyond one viewport while a smooth scroll is in flight", () => {
+  it("pins a shrink that leaves the end beyond one viewport while a smooth scroll is in flight", async () => {
     const list = createList(bundle);
     list.dataChange();
-    list.frame();
+    await list.frame();
     list.layoutLeavesEndBeyondThreshold();
-    list.frame(468);
+    await list.frame(468);
     list.scrolled(2030);
-    list.frame();
+    await list.frame();
     expect(list.scrollToEnd.mock.calls).toEqual([[{ animated: true }], [{ animated: false }]]);
     // A later MVCP adjustment rebases on this offset, so it must be the pinned one.
     expect(list.state.scroll).toBe(2200);
     list.reachEnd();
-    for (let index = 0; index < 32; index++) list.frame();
+    for (let index = 0; index < 32; index++) await list.frame();
     list.dataChange();
-    list.frame();
+    await list.frame();
     expect(list.scrollToEnd.mock.calls.at(-1)).toEqual([{ animated: true }]);
   });
 
-  it("drops a queued resize pin once the reader scrolls away", () => {
+  it("drops a queued resize pin once the reader scrolls away", async () => {
     const list = createList(bundle);
-    list.frame(700);
+    await list.frame(700);
     list.releaseFollow();
-    list.frame();
+    await list.frame();
     expect(list.scrollToEnd).not.toHaveBeenCalled();
   });
 });

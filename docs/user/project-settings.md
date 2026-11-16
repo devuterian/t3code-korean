@@ -5,10 +5,12 @@ the project and environment a change applies to. Pages that only hold device pre
 Appearance, don't show it. They start at **All projects** and **All environments**
 and stay selected as you move between categories or search for a setting.
 
-Preferences saved on this device, such as appearance, confirmations and browser profiles, always
-show and ignore the selection. Everything else is stored on a server. Choose one environment to
-edit its settings, or leave **All environments** to edit every connected environment at once.
-Offline environments keep their current values; this is a bulk edit, not a synced global default.
+Preferences saved on this device, such as appearance, confirmations and browser profiles, ignore
+the environment selection. On the Browser page they are read-only while a project is selected,
+though profiles can still be added, renamed and removed. Everything else is stored on a server.
+Choose one environment to edit its settings, or leave **All environments** to edit every connected
+environment at once. Offline environments keep their current values; this is a bulk edit, not a
+synced global default.
 
 Choose a project to override settings for it on the selected environments. A layers icon beside
 each server row's title shows where the value comes from: the built-in default, the environment,
@@ -180,7 +182,8 @@ project crumb.
 The Projects category, under Code, holds the project's name, icon, actions,
 checkouts and removal. Actions belong to a project: editing them creates the project's own list
 on each selected environment, and reset returns to the environment's shared list. A project's
-`t3.json` actions can be imported there.
+`t3.json` actions can be imported there. When a project has several checkouts on one environment,
+choose one in the scope line at the top to see or change only that checkout's settings.
 
 Settings a repository can also declare in `t3.json`, such as the workspace for new threads,
 resolve in one order: a project override, then the environment setting, then `t3.json`, then the
@@ -201,30 +204,18 @@ such as another drive, set **Settings → Worktrees → Worktree location** to a
 `D:\worktrees` or `~/worktrees`. The setting is per machine. Existing worktrees stay where they
 are, and cleanup covers both the default folder and the custom one.
 
-## Faster worktree checkouts on macOS
+## Fast worktree checkout on macOS
 
-On a Mac, [git-worktree-fast](https://github.com/mweinbach/worktree-fast) can clone a commit you
-prepared earlier instead of checking out every file. The desktop app includes it; when T3 Code runs
-another way, the setting shows the command to install it. Prepare a commit by running
-`git worktree-fast prepare [commit]` in the repository from a T3 Code terminal, which finds the
-bundled copy. From another terminal, run the bundled executable directly, for example
-`"/Applications/T3 Code (Beta).app/Contents/Resources/worktree-fast/git-worktree-fast" prepare`, or
-install your own copy. To prepare new commits automatically instead, run
-`git worktree-fast auto enable` in the repository once. It keeps the three newest commits on each
-branch prepared in the background. Its commit hook runs the copy that enabled it, so after moving
-the app or switching to another release channel, run `auto enable` again, and run `auto disable`
-before deleting the app. Then turn on **Settings → Worktrees → Use git-worktree-fast** under
-Advanced. The setting is per machine. Commits
-you have not prepared use Git's normal checkout, and so does a failed fast clone that left nothing
-behind. The worktrees it makes are ordinary Git worktrees.
+Fast worktree checkout is a beta. Turn it on for each Mac in **Settings → Labs → Fast worktree
+checkout**. T3 Code then keeps a few recent checkouts of each repository in the `caches` folder of
+the T3 home directory. A new worktree is cloned from one of them with APFS copy-on-write, which is
+about twice as fast as writing every file and makes the first `git status` in it fast as well.
+Turning it off deletes the cache.
 
-The fast clone only works when the worktree is on the same APFS volume as git-worktree-fast's cache,
-which is in `~/Library/Caches` unless `XDG_CACHE_HOME` is set. If **Worktree location** points at
-another drive, worktrees there use Git's normal checkout. To use the fast clone on that drive, give
-T3 Code an absolute `XDG_CACHE_HOME` on it before opening the app, for example
-`launchctl setenv XDG_CACHE_HOME /Volumes/Work/.cache`. The desktop app doesn't read this variable
-from your shell profile. T3 Code terminals inherit it, so commits you prepare there use the same
-cache.
+The first worktree of a repository uses Git's normal checkout and fills the cache. It needs Git 2.42
+or newer. Git's normal checkout is also used for worktrees on a different drive from the T3 home
+directory, sparse checkouts, repositories whose attributes use filters such as Git LFS, and
+repositories whose checkout settings changed.
 
 ## Storage cleanup
 
@@ -238,8 +229,9 @@ manually. Custom applies separate worktree rules to the selected project or chec
 captures and log retention remain machine-wide.
 
 Worktrees can be removed after a chosen number of inactive days, after a thread settles, after
-merging, or when they have no commits beyond the default branch. Set settled retention to 0 days
-to remove a worktree at the next cleanup after settlement. In repositories without remotes,
+merging, or when they have no commits beyond the default branch and their thread is settled or
+archived. Set settled retention to 0 days to remove a worktree at the next cleanup after
+settlement. In repositories without remotes,
 unchanged-worktree cleanup compares against the branch checked out in the project workspace;
 if that checkout has a detached HEAD, the worktree is kept. Only T3-managed worktrees are eligible.
 Active sessions and shared worktrees prevent removal. **Keep worktrees with local changes** defaults
@@ -259,6 +251,15 @@ Existing prompts for deleting a worktree manually remain available when this pol
 Choose **Delete now** to run the enabled rules immediately. The latest results show which
 worktrees were removed or kept and why, plus any failures.
 Results also list folders in the worktree folder that no thread uses, with their sizes; cleanup never removes them, so remove them manually if you want.
+
+The inactive and settled retention periods also apply to the folders of
+[threads without a project](./thread-sidebar.md#start-without-a-project). Those folders are not
+Git repositories, so their files are deleted with them and cannot be recovered; the thread stays,
+and its next turn starts in a new, empty folder. A folder is kept when it has a Git repository
+anywhere inside it or when its thread has an enabled scheduled task. Every file in such a folder
+counts as untracked, so only **Edited tracked files** removes a folder that holds anything other
+than `node_modules`; the other two rules remove only empty folders. Folders that no thread uses
+are listed here too.
 
 Browser captures and rotated logs have separate retention periods. Expired capture links stop
 working. Current logs, message attachments, and browser profiles are kept.

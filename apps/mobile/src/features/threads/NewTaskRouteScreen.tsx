@@ -30,6 +30,7 @@ import { ProjectFavicon } from "../../components/ProjectFavicon";
 import { useProjects, useServerConfigs } from "../../state/entities";
 import { projectEnvironment } from "../../state/projects";
 import { useAtomCommand } from "../../state/use-atom-command";
+import { retargetSavedNewTaskDraft } from "../../state/use-composer-drafts";
 import { useRemoteConnectionStatus } from "../../state/use-remote-environment-registry";
 import type { WorkspaceState } from "../../state/workspaceModel";
 import { useWorkspaceState } from "../../state/workspace";
@@ -48,6 +49,8 @@ type NewTaskRouteParams = {
   readonly startWithoutProject?: boolean;
   readonly requestId?: string;
   readonly incomingShareId?: string | string[];
+  /** An existing draft whose project is gone; the chosen project takes it over. */
+  readonly draftId?: string | string[];
   readonly prompt?: string | string[];
   readonly repo?: string | string[];
   readonly pr?: string | string[];
@@ -170,6 +173,9 @@ export function NewTaskRouteScreen({ route }: StaticScreenProps<NewTaskRoutePara
     ? route.params.incomingShareId[0]
     : route.params?.incomingShareId;
   const incomingShare = routeShareId ? getShare(routeShareId) : null;
+  const routeDraftId = Array.isArray(route.params?.draftId)
+    ? route.params.draftId[0]
+    : route.params?.draftId;
   const incomingShareSubtitle = incomingShare
     ? incomingShare.attachments.length === 0
       ? t("Choose a project for what you shared")
@@ -244,11 +250,30 @@ export function NewTaskRouteScreen({ route }: StaticScreenProps<NewTaskRoutePara
       : navigation.getParent();
     const rootState = root?.getState();
     const threadRoute = rootState?.routes[rootState.index - 1];
-    if (isDraftThreadRoute(threadRoute) && !route.params?.requestId) {
+    if (routeDraftId === undefined && !route.params?.requestId && isDraftThreadRoute(threadRoute)) {
       setProject(project);
       root?.goBack();
       return;
     }
+    // Restamp only on choice, so backing out leaves the draft as it was.
+    const retargeted =
+      routeDraftId === undefined
+        ? false
+        : await retargetSavedNewTaskDraft(routeDraftId, {
+            environmentId: project.environmentId,
+            projectId: project.id,
+          }).then(
+            (found) => found,
+            () => null,
+          );
+    if (retargeted === null) {
+      Dialog.alert(
+        translate("Could not change project"),
+        translate("Saved drafts could not be loaded. Try again."),
+      );
+      return;
+    }
+    const draftId = retargeted ? routeDraftId : undefined;
     selectDetail({
       name: "Thread",
       params: {
@@ -256,6 +281,7 @@ export function NewTaskRouteScreen({ route }: StaticScreenProps<NewTaskRoutePara
           requestId: route.params?.requestId,
           environmentId: String(project.environmentId),
           projectId: String(project.id),
+          draftId,
           incomingShareId: incomingShare?.id,
         },
       },
@@ -341,7 +367,7 @@ export function NewTaskRouteScreen({ route }: StaticScreenProps<NewTaskRoutePara
         catalogState.hasConnectingEnvironment &&
         catalogState.connectionError === null))
   ) {
-    return <LoadingScreen message="Opening new task…" />;
+    return <LoadingScreen message={translate("Opening new task…")} />;
   }
 
   return (
@@ -545,7 +571,7 @@ export function NewTaskRouteScreen({ route }: StaticScreenProps<NewTaskRoutePara
                           faviconPath={scope.representative.faviconPath}
                           projectIcon={scope.representative.projectIcon}
                           size={24}
-                          projectTitle={scope.title}
+                          projectTitle={scope.representative.title}
                           workspaceRoot={scope.representative.workspaceRoot}
                         />
                       }
@@ -570,7 +596,7 @@ export function NewTaskRouteScreen({ route }: StaticScreenProps<NewTaskRoutePara
                           faviconPath={scope.representative.faviconPath}
                           projectIcon={scope.representative.projectIcon}
                           size={20}
-                          projectTitle={scope.title}
+                          projectTitle={scope.representative.title}
                           workspaceRoot={scope.representative.workspaceRoot}
                         />
                       </View>

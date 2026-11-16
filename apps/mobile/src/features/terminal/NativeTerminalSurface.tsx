@@ -1,4 +1,8 @@
-import type { TerminalGrid, TerminalOutputState } from "@t3tools/client-runtime/state/terminal";
+import {
+  terminalOutputText,
+  type TerminalGrid,
+  type TerminalOutputState,
+} from "@t3tools/client-runtime/state/terminal";
 import { memo, useEffect, useImperativeHandle, useMemo, useRef, useState, type Ref } from "react";
 import {
   Pressable,
@@ -59,6 +63,7 @@ interface TerminalSurfaceProps extends ViewProps {
   readonly onCapture?: (text: string) => void;
   readonly theme?: TerminalTheme;
   readonly onInput: (data: string) => void;
+  readonly onPaste?: (text: string) => void;
   readonly onResize: (size: { readonly cols: number; readonly rows: number }) => void;
 }
 
@@ -200,7 +205,12 @@ const FallbackTerminalSurface = memo(function FallbackTerminalSurface({
 });
 
 export const TerminalSurface = memo(function TerminalSurface(props: TerminalSurfaceProps) {
-  const buffer = useTerminalSurfaceBuffer(props);
+  // The text fallback draws escape sequences literally, so it gets displayed text, not the replay.
+  const buffer = useTerminalSurfaceBuffer(
+    resolveNativeTerminalSurfaceView() || props.output === null
+      ? props
+      : { terminalKey: props.terminalKey, buffer: terminalOutputText(props.output) },
+  );
   return <ReadyTerminalSurface key={props.terminalKey} {...props} buffer={buffer} />;
 });
 
@@ -290,6 +300,9 @@ const ReadyTerminalSurface = memo(function ReadyTerminalSurface({
           style={{ flex: 1 }}
           themeConfig={buildGhosttyThemeConfig(theme)}
           onInput={handleNativeInput}
+          onPaste={(event) => {
+            if (props.isRunning && !props.readOnly) props.onPaste?.(event.nativeEvent.text);
+          }}
           onResize={handleNativeResize}
           captureRequest={props.captureRequest}
           onCapture={(event) => props.onCapture?.(event.nativeEvent.text)}

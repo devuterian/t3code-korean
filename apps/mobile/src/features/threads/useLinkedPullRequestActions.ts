@@ -11,8 +11,14 @@ import {
   squashAtomCommandFailure,
   type AtomCommandResult,
 } from "@t3tools/client-runtime/state/runtime";
-import { planThreadPullRequestMutation } from "@t3tools/client-runtime/thread-pull-request-compatibility";
-import { sourceControlClients } from "@t3tools/client-runtime/source-control-clients";
+import {
+  canStartThreadPullRequestWatch,
+  planThreadPullRequestMutation,
+} from "@t3tools/client-runtime/thread-pull-request-compatibility";
+import {
+  capitalizeTerm,
+  sourceControlClients,
+} from "@t3tools/client-runtime/source-control-clients";
 import { AuthOrchestrationOperateScope, type ThreadPullRequestLink } from "@t3tools/contracts";
 import * as Clipboard from "expo-clipboard";
 
@@ -42,13 +48,7 @@ export function useLinkedPullRequestActions(input: {
   );
   const canEdit = canOperate && capabilities !== undefined;
   const canWatch = canOperate && capabilities?.threadPullRequestWatch === true;
-  const canStartWatch =
-    canWatch &&
-    thread !== null &&
-    thread.archivedAt === null &&
-    thread.settledAt === null &&
-    thread.settledOverride !== "settled" &&
-    thread.lineage.relationshipToParent !== "subagent";
+  const canStartWatch = canWatch && thread !== null && canStartThreadPullRequestWatch(thread);
   const link = useAtomCommand(threadEnvironment.linkPullRequest, { reportFailure: false });
   const unlink = useAtomCommand(threadEnvironment.unlinkPullRequest, { reportFailure: false });
   const watch = useAtomCommand(threadEnvironment.watchPullRequest, { reportFailure: false });
@@ -93,7 +93,7 @@ export function useLinkedPullRequestActions(input: {
       message: t("Paste a {singular} URL, or enter 123 / #123 for this thread's repository.", {
         singular,
       }),
-      placeholder: t("{term} URL or #42", { term: singular }),
+      placeholder: t("{term} URL or #42", { term: capitalizeTerm(singular) }),
       initialValue: "",
       confirmText: t("Link"),
       onConfirm: (reference) => {

@@ -1,0 +1,240 @@
+diff --git a/react-native.js b/react-native.js
+index 4af685dfb961eb0c8a4bf1ae9132c9304cf4fa4d..df4ead7ae4f03cd0fbcd99a3df7d95e15b1852b1 100644
+--- a/react-native.js
++++ b/react-native.js
+@@ -1795,7 +1795,35 @@ function resolvePendingNativeMVCPAdjust(ctx, newScroll) {
+   }
+   return false;
+ }
++// T3 patch: while following the end, a size-only change keeps the end in the same pass that
++// repositions the items. Native end following otherwise runs a frame later, after MVCP has
++// anchored the top row, so the feed visibly jumps twice.
++function shouldHoldEndOnSizeChange(ctx, dataChanged) {
++  const state = ctx.state;
++  return !dataChanged && !!state.props.maintainScrollAtEnd && !!state.didFinishInitialScroll && !state.endFollowInterrupted && !state.visibleContentAnchor && state.scrollingTo === void 0 && !state.isDragging && state.userScrollContentSize === void 0 && !!peek$(ctx, "isFollowingEnd");
++}
+ function prepareMVCP(ctx, dataChanged, adjustmentSource) {
++  const restore = prepareDefaultMVCP(ctx, dataChanged, adjustmentSource);
++  if (!shouldHoldEndOnSizeChange(ctx, dataChanged)) {
++    return restore;
++  }
++  return () => {
++    if (!shouldHoldEndOnSizeChange(ctx, dataChanged)) {
++      restore == null ? void 0 : restore();
++      return;
++    }
++    // Content that shrinks under an offset past its new end pulls the native offset back by itself.
++    const endOffset = getScrollRangeEnd(ctx);
++    if (ctx.state.scroll > endOffset) {
++      ctx.state.scroll = endOffset;
++    }
++    const positionDiff = endOffset - ctx.state.scroll;
++    if (Math.abs(positionDiff) > MVCP_POSITION_EPSILON) {
++      requestAdjust(ctx, positionDiff, adjustmentSource);
++    }
++  };
++}
++function prepareDefaultMVCP(ctx, dataChanged, adjustmentSource) {
+   var _a3, _b, _c;
+   const state = ctx.state;
+   const { idsInView, positions, props } = state;
+diff --git a/react-native.mjs b/react-native.mjs
+index 9ebfddc183a9b202d35c990a387c9b628feeb185..c414a49e866ecab1393645101fb67d55530a7d00 100644
+--- a/react-native.mjs
++++ b/react-native.mjs
+@@ -1774,7 +1774,35 @@ function resolvePendingNativeMVCPAdjust(ctx, newScroll) {
+   }
+   return false;
+ }
++// T3 patch: while following the end, a size-only change keeps the end in the same pass that
++// repositions the items. Native end following otherwise runs a frame later, after MVCP has
++// anchored the top row, so the feed visibly jumps twice.
++function shouldHoldEndOnSizeChange(ctx, dataChanged) {
++  const state = ctx.state;
++  return !dataChanged && !!state.props.maintainScrollAtEnd && !!state.didFinishInitialScroll && !state.endFollowInterrupted && !state.visibleContentAnchor && state.scrollingTo === void 0 && !state.isDragging && state.userScrollContentSize === void 0 && !!peek$(ctx, "isFollowingEnd");
++}
+ function prepareMVCP(ctx, dataChanged, adjustmentSource) {
++  const restore = prepareDefaultMVCP(ctx, dataChanged, adjustmentSource);
++  if (!shouldHoldEndOnSizeChange(ctx, dataChanged)) {
++    return restore;
++  }
++  return () => {
++    if (!shouldHoldEndOnSizeChange(ctx, dataChanged)) {
++      restore == null ? void 0 : restore();
++      return;
++    }
++    // Content that shrinks under an offset past its new end pulls the native offset back by itself.
++    const endOffset = getScrollRangeEnd(ctx);
++    if (ctx.state.scroll > endOffset) {
++      ctx.state.scroll = endOffset;
++    }
++    const positionDiff = endOffset - ctx.state.scroll;
++    if (Math.abs(positionDiff) > MVCP_POSITION_EPSILON) {
++      requestAdjust(ctx, positionDiff, adjustmentSource);
++    }
++  };
++}
++function prepareDefaultMVCP(ctx, dataChanged, adjustmentSource) {
+   var _a3, _b, _c;
+   const state = ctx.state;
+   const { idsInView, positions, props } = state;
+diff --git a/react.js b/react.js
+index 515545471e08426fc90856256db9491db0ca4b92..3e37c7d006b0a3494a56ffdd7742af676ffabf20 100644
+--- a/react.js
++++ b/react.js
+@@ -2231,6 +2231,10 @@ function doMaintainScrollAtEnd(ctx, options) {
+     return false;
+   }
+   const immediate = (options == null ? void 0 : options.immediate) && Platform.OS === "web" && !(maintainScrollAtEnd == null ? void 0 : maintainScrollAtEnd.animated);
++  // T3 patch: a layout pin (options.instant) must reach the end at once even when the list follows
++  // content growth with smooth scrolls. The end itself moves with the viewport, so a smooth pin
++  // would chase it and a queued one would only run after the running smooth scroll finished.
++  const jump = !!(options == null ? void 0 : options.instant) && !!(maintainScrollAtEnd == null ? void 0 : maintainScrollAtEnd.animated);
+   const isWithinMaintainScrollAtEndThreshold = peek$(ctx, "isWithinMaintainScrollAtEndThreshold");
+   const isReplayingPendingMaintain = !!state.pendingMaintainScrollAtEnd;
+   const shouldMaintainScrollAtEnd = !!(!((_j = ctx.scrollRequestTracker) == null ? void 0 : _j.isWaitingToRun()) && (!state.scrollingTo || state.scrollingTo.isScrollToEnd) && !state.endFollowInterrupted && (peek$(ctx, "isFollowingEnd") || isWithinMaintainScrollAtEndThreshold || isReplayingPendingMaintain || ((_k = state.scrollingTo) == null ? void 0 : _k.isScrollToEnd)) && maintainScrollAtEnd && didFinishInitialScroll);
+@@ -2260,7 +2264,7 @@ function doMaintainScrollAtEnd(ctx, options) {
+     return false;
+   }
+   if (state.scrollingTo || state.pendingScrollResolve) {
+-    if ((options == null ? void 0 : options.immediate) && !maintainScrollAtEnd.animated && ((_o = state.scrollingTo) == null ? void 0 : _o.isScrollToEnd) && !state.scrollingTo.animated) {
++    if (((options == null ? void 0 : options.immediate) && !maintainScrollAtEnd.animated && ((_o = state.scrollingTo) == null ? void 0 : _o.isScrollToEnd) && !state.scrollingTo.animated) || jump && ((_o = state.scrollingTo) == null ? void 0 : _o.isScrollToEnd)) {
+       state.pendingMaintainScrollAtEnd = false;
+       ctx.scrollToEnd({ animated: false });
+       return true;
+@@ -2273,17 +2277,20 @@ function doMaintainScrollAtEnd(ctx, options) {
+   if (contentSize < state.scrollLength) {
+     state.scroll = clampScrollOffset(ctx, 0);
+   }
+-  if (!state.maintainingScrollAtEnd || immediate && (state.maintainingScrollAtEnd === "pending-instant" || state.maintainingScrollAtEnd === "instant")) {
+-    const pendingState = maintainScrollAtEnd.animated ? "pending-animated" : "pending-instant";
+-    const activeState = maintainScrollAtEnd.animated ? "animated" : "instant";
++  if (!state.maintainingScrollAtEnd || immediate && (state.maintainingScrollAtEnd === "pending-instant" || state.maintainingScrollAtEnd === "instant") || // An instant scroll write halts an in-flight smooth one; a queued instant pin already reaches the end.
++  jump && state.maintainingScrollAtEnd !== "pending-instant") {
++    const animated = !jump && maintainScrollAtEnd.animated;
++    const pendingState = animated ? "pending-animated" : "pending-instant";
++    const activeState = animated ? "animated" : "instant";
+     const scrollAtRequest = state.scroll;
+     state.maintainingScrollAtEnd = pendingState;
+     const run = () => {
+       var _a4, _b2;
+       if (state.maintainingScrollAtEnd !== pendingState) return;
+-      if (state.isDragging || state.userScrollContentSize !== void 0 || ((_b2 = (_a4 = state.refScroller.current) == null ? void 0 : _a4.isScrollInRange) == null ? void 0 : _b2.call(_a4)) === false || // Layout may move the end beyond the threshold. Only web offset changes
++      if (state.isDragging || state.userScrollContentSize !== void 0 || ((_b2 = (_a4 = state.refScroller.current) == null ? void 0 : _a4.isScrollInRange) == null ? void 0 : _b2.call(_a4)) === false || // A resize moves the end itself, so only releasing the follow cancels a layout pin.
++      jump && !state.props.maintainScrollAtEnd || // Layout may move the end beyond the threshold. Only web offset changes
+       // cancel here; native user input is canceled by its drag handler.
+-      !isReplayingPendingMaintain && !peek$(ctx, "isWithinMaintainScrollAtEndThreshold") && Platform.OS === "web" && state.scroll !== scrollAtRequest) {
++      !jump && !isReplayingPendingMaintain && !peek$(ctx, "isWithinMaintainScrollAtEndThreshold") && Platform.OS === "web" && state.scroll !== scrollAtRequest) {
+         finishMaintainScrollAtEnd(ctx);
+       } else if (state.scrollingTo || state.pendingScrollResolve) {
+         state.pendingMaintainScrollAtEnd = true;
+@@ -2291,7 +2298,7 @@ function doMaintainScrollAtEnd(ctx, options) {
+       } else {
+         state.maintainingScrollAtEnd = activeState;
+         const scrollPromise = getScrollRequestTracker(ctx).runNowIfIdle(
+-          () => ctx.scrollToEnd({ animated: maintainScrollAtEnd.animated })
++          () => ctx.scrollToEnd({ animated })
+         );
+         void scrollPromise.then(() => {
+           if (state.maintainingScrollAtEnd === activeState && !state.scrollingTo && !state.pendingScrollResolve) {
+@@ -2310,9 +2317,9 @@ function doMaintainScrollAtEnd(ctx, options) {
+     } else {
+       state.scheduledWork.frame(run, "maintainScrollAtEnd");
+     }
+-  } else if (state.maintainingScrollAtEnd === "animated" || state.maintainingScrollAtEnd === "instant" || // Android clamps an instant command to the extent it has laid out, which can still be the
++  } else if (!jump && (state.maintainingScrollAtEnd === "animated" || state.maintainingScrollAtEnd === "instant" || // Android clamps an instant command to the extent it has laid out, which can still be the
+   // pre-append one; replay the coalesced follow once the first command lands.
+-  Platform.OS === "android") {
++  Platform.OS === "android")) {
+     state.pendingMaintainScrollAtEnd = true;
+   }
+   return true;
+@@ -8095,7 +8102,7 @@ function handleLayout(ctx, layoutParam, setCanRender) {
+       set$(ctx, "scrollSize", { height: layout.height, width: layout.width });
+     }
+     if (maintainScrollAtEnd == null ? void 0 : maintainScrollAtEnd.onLayout) {
+-      doMaintainScrollAtEnd(ctx, { immediate: true });
++      doMaintainScrollAtEnd(ctx, { immediate: true, instant: true });
+     }
+     checkThresholds(ctx);
+     if (state) {
+diff --git a/react.mjs b/react.mjs
+index ce08abe7ee62e8940f9c6ff169829244bd6bb736..e3191addcecad54859048f84566d2df139ab2a2a 100644
+--- a/react.mjs
++++ b/react.mjs
+@@ -2210,6 +2210,10 @@ function doMaintainScrollAtEnd(ctx, options) {
+     return false;
+   }
+   const immediate = (options == null ? void 0 : options.immediate) && Platform.OS === "web" && !(maintainScrollAtEnd == null ? void 0 : maintainScrollAtEnd.animated);
++  // T3 patch: a layout pin (options.instant) must reach the end at once even when the list follows
++  // content growth with smooth scrolls. The end itself moves with the viewport, so a smooth pin
++  // would chase it and a queued one would only run after the running smooth scroll finished.
++  const jump = !!(options == null ? void 0 : options.instant) && !!(maintainScrollAtEnd == null ? void 0 : maintainScrollAtEnd.animated);
+   const isWithinMaintainScrollAtEndThreshold = peek$(ctx, "isWithinMaintainScrollAtEndThreshold");
+   const isReplayingPendingMaintain = !!state.pendingMaintainScrollAtEnd;
+   const shouldMaintainScrollAtEnd = !!(!((_j = ctx.scrollRequestTracker) == null ? void 0 : _j.isWaitingToRun()) && (!state.scrollingTo || state.scrollingTo.isScrollToEnd) && !state.endFollowInterrupted && (peek$(ctx, "isFollowingEnd") || isWithinMaintainScrollAtEndThreshold || isReplayingPendingMaintain || ((_k = state.scrollingTo) == null ? void 0 : _k.isScrollToEnd)) && maintainScrollAtEnd && didFinishInitialScroll);
+@@ -2239,7 +2243,7 @@ function doMaintainScrollAtEnd(ctx, options) {
+     return false;
+   }
+   if (state.scrollingTo || state.pendingScrollResolve) {
+-    if ((options == null ? void 0 : options.immediate) && !maintainScrollAtEnd.animated && ((_o = state.scrollingTo) == null ? void 0 : _o.isScrollToEnd) && !state.scrollingTo.animated) {
++    if (((options == null ? void 0 : options.immediate) && !maintainScrollAtEnd.animated && ((_o = state.scrollingTo) == null ? void 0 : _o.isScrollToEnd) && !state.scrollingTo.animated) || jump && ((_o = state.scrollingTo) == null ? void 0 : _o.isScrollToEnd)) {
+       state.pendingMaintainScrollAtEnd = false;
+       ctx.scrollToEnd({ animated: false });
+       return true;
+@@ -2252,17 +2256,20 @@ function doMaintainScrollAtEnd(ctx, options) {
+   if (contentSize < state.scrollLength) {
+     state.scroll = clampScrollOffset(ctx, 0);
+   }
+-  if (!state.maintainingScrollAtEnd || immediate && (state.maintainingScrollAtEnd === "pending-instant" || state.maintainingScrollAtEnd === "instant")) {
+-    const pendingState = maintainScrollAtEnd.animated ? "pending-animated" : "pending-instant";
+-    const activeState = maintainScrollAtEnd.animated ? "animated" : "instant";
++  if (!state.maintainingScrollAtEnd || immediate && (state.maintainingScrollAtEnd === "pending-instant" || state.maintainingScrollAtEnd === "instant") || // An instant scroll write halts an in-flight smooth one; a queued instant pin already reaches the end.
++  jump && state.maintainingScrollAtEnd !== "pending-instant") {
++    const animated = !jump && maintainScrollAtEnd.animated;
++    const pendingState = animated ? "pending-animated" : "pending-instant";
++    const activeState = animated ? "animated" : "instant";
+     const scrollAtRequest = state.scroll;
+     state.maintainingScrollAtEnd = pendingState;
+     const run = () => {
+       var _a4, _b2;
+       if (state.maintainingScrollAtEnd !== pendingState) return;
+-      if (state.isDragging || state.userScrollContentSize !== void 0 || ((_b2 = (_a4 = state.refScroller.current) == null ? void 0 : _a4.isScrollInRange) == null ? void 0 : _b2.call(_a4)) === false || // Layout may move the end beyond the threshold. Only web offset changes
++      if (state.isDragging || state.userScrollContentSize !== void 0 || ((_b2 = (_a4 = state.refScroller.current) == null ? void 0 : _a4.isScrollInRange) == null ? void 0 : _b2.call(_a4)) === false || // A resize moves the end itself, so only releasing the follow cancels a layout pin.
++      jump && !state.props.maintainScrollAtEnd || // Layout may move the end beyond the threshold. Only web offset changes
+       // cancel here; native user input is canceled by its drag handler.
+-      !isReplayingPendingMaintain && !peek$(ctx, "isWithinMaintainScrollAtEndThreshold") && Platform.OS === "web" && state.scroll !== scrollAtRequest) {
++      !jump && !isReplayingPendingMaintain && !peek$(ctx, "isWithinMaintainScrollAtEndThreshold") && Platform.OS === "web" && state.scroll !== scrollAtRequest) {
+         finishMaintainScrollAtEnd(ctx);
+       } else if (state.scrollingTo || state.pendingScrollResolve) {
+         state.pendingMaintainScrollAtEnd = true;
+@@ -2270,7 +2277,7 @@ function doMaintainScrollAtEnd(ctx, options) {
+       } else {
+         state.maintainingScrollAtEnd = activeState;
+         const scrollPromise = getScrollRequestTracker(ctx).runNowIfIdle(
+-          () => ctx.scrollToEnd({ animated: maintainScrollAtEnd.animated })
++          () => ctx.scrollToEnd({ animated })
+         );
+         void scrollPromise.then(() => {
+           if (state.maintainingScrollAtEnd === activeState && !state.scrollingTo && !state.pendingScrollResolve) {
+@@ -2289,9 +2296,9 @@ function doMaintainScrollAtEnd(ctx, options) {
+     } else {
+       state.scheduledWork.frame(run, "maintainScrollAtEnd");
+     }
+-  } else if (state.maintainingScrollAtEnd === "animated" || state.maintainingScrollAtEnd === "instant" || // Android clamps an instant command to the extent it has laid out, which can still be the
++  } else if (!jump && (state.maintainingScrollAtEnd === "animated" || state.maintainingScrollAtEnd === "instant" || // Android clamps an instant command to the extent it has laid out, which can still be the
+   // pre-append one; replay the coalesced follow once the first command lands.
+-  Platform.OS === "android") {
++  Platform.OS === "android")) {
+     state.pendingMaintainScrollAtEnd = true;
+   }
+   return true;
+@@ -8074,7 +8081,7 @@ function handleLayout(ctx, layoutParam, setCanRender) {
+       set$(ctx, "scrollSize", { height: layout.height, width: layout.width });
+     }
+     if (maintainScrollAtEnd == null ? void 0 : maintainScrollAtEnd.onLayout) {
+-      doMaintainScrollAtEnd(ctx, { immediate: true });
++      doMaintainScrollAtEnd(ctx, { immediate: true, instant: true });
+     }
+     checkThresholds(ctx);
+     if (state) {

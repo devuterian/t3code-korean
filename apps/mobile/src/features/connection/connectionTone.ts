@@ -4,7 +4,17 @@ import type { connectionStatusText } from "@t3tools/client-runtime/connection";
 import { translate } from "../../i18n/translate";
 import type { RemoteClientConnectionState } from "../../lib/connection";
 
-export function connectionTone(state: RemoteClientConnectionState): StatusTone {
+export function connectionTone(
+  state: RemoteClientConnectionState,
+  awaitingApproval?: boolean,
+): StatusTone {
+  if (state === "reconnecting" && awaitingApproval) {
+    return {
+      label: translate("Waiting for approval"),
+      pillClassName: "bg-update",
+      textClassName: "text-update-foreground",
+    };
+  }
   switch (state) {
     case "connected":
       return {
@@ -66,6 +76,11 @@ export function localizedConnectionStatusText(
     case "connecting":
       return translate("Connecting...");
     case "reconnecting":
+      if (connection.awaitingApproval) {
+        return connection.error
+          ? translate(connection.error)
+          : translate("Waiting for approval on the host");
+      }
       return connection.error
         ? translate("Failed to connect. Reconnecting... Reason: {reason}", {
             reason: connection.error,

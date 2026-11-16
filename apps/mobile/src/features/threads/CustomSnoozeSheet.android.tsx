@@ -34,14 +34,16 @@ import { OverlayPortal } from "../../components/ui/OverlayPortal";
 import { getFormattingLocale, useTranslate } from "../../i18n/translate";
 import { useAppearancePreferences } from "../settings/appearance/AppearancePreferencesProvider";
 import { useScaledTextRole } from "../settings/appearance/useScaledTextRole";
-import type { CustomSnoozeSheet as SharedCustomSnoozeSheet } from "./CustomSnoozeSheet.shared";
 import {
   applySnoozePickerDate,
   applySnoozePickerTime,
   snoozeDateToPickerDate,
 } from "./customSnoozeDate";
 
-type Props = Parameters<typeof SharedCustomSnoozeSheet>[0];
+type Props = {
+  readonly onClose: () => void;
+  readonly onSnooze: (snoozedUntil: string) => void;
+};
 
 const roundedCorner = Shape.RoundedCorner;
 
@@ -300,7 +302,10 @@ function SnoozeDateTimePicker(props: {
       is24Hour={props.is24Hour}
       showVariantToggle={false}
       elementColors={props.colors}
-      onDateSelected={props.onChange}
+      // Null marks incomplete input; keep the last valid date.
+      onDateSelected={(date) => {
+        if (date) props.onChange(date);
+      }}
     />
   );
 }

@@ -17,7 +17,7 @@ import { assetImageSource } from "../lib/assetImageSource";
 import { useAssetUrlState, useRefreshAssetUrl } from "../state/assets";
 import { AppText as Text } from "./ui/AppText";
 import { translate, useTranslate } from "../i18n/translate";
-import { FilePreviewModal } from "./FilePreviewModal";
+import { FilePreviewModal } from "./ui/FilePreviewModal";
 import { PresentationSource } from "./ui/NativePresentation";
 
 export function ComposerContextAttachment(props: {

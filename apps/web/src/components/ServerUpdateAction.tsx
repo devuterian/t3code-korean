@@ -207,6 +207,7 @@ export function ServerUpdatesAction({
             translate(
               `Update the T3 Code desktop apps on ${desktopTargets.map((target) => target.serverLabel).join(", ")}? They will close and relaunch on those machines.`,
             ),
+            { initialFocus: "confirm" },
           )) ?? true;
         if (!confirmed) return;
       }
@@ -282,24 +283,23 @@ export function ServerUpdateAction({
   const canUpdate = useAtomValue(sessionStateAtom, canUpdateServer);
   const updatesDenial = managedUpdatesDenial(useManagedPolicy(environmentId));
   const update = useServerUpdate();
+  const updatesInstall =
+    installation?.kind === "npm-global" || installation?.kind === "t3-launcher";
   const { copyToClipboard } = useCopyToClipboard<{ command: string }>({
-    target: installation?.kind === "npm-global" ? "update command" : "relaunch command",
+    target: updatesInstall ? "update command" : "relaunch command",
     onCopy: ({ command }) => {
       toastManager.add({
         type: "success",
-        title: translate(
-          installation?.kind === "npm-global" ? "Update command copied" : "Relaunch command copied",
-        ),
-        description:
-          installation?.kind === "npm-global"
-            ? translate("Run `{command}` on {server}, then restart t3 with your usual options.")
-                .replace("{command}", () => command)
-                .replace("{server}", () => serverLabel)
-            : translate(
-                "Stop t3 on {server}, then relaunch with `{command}` using the same subcommand and options. This does not update an installed t3 command.",
-              )
-                .replace("{server}", () => serverLabel)
-                .replace("{command}", () => command),
+        title: translate(updatesInstall ? "Update command copied" : "Relaunch command copied"),
+        description: updatesInstall
+          ? translate("Run `{command}` on {server}, then restart t3 with your usual options.")
+              .replace("{command}", () => command)
+              .replace("{server}", () => serverLabel)
+          : translate(
+              "Stop t3 on {server}, then relaunch with `{command}` using the same subcommand and options. This does not update an installed t3 command.",
+            )
+              .replace("{server}", () => serverLabel)
+              .replace("{command}", () => command),
       });
     },
     onError: (error) => {
@@ -324,6 +324,7 @@ export function ServerUpdateAction({
           translate(
             `Update the T3 Code desktop app that runs the ${serverLabel}? It will close and relaunch on that machine.`,
           ),
+          { initialFocus: "confirm" },
         )) ?? true;
       if (!confirmed) {
         return;
@@ -367,7 +368,7 @@ export function ServerUpdateAction({
     selfUpdate === null ? manualServerUpdateCommand(targetVersion, installation) : null;
   const actionLabel = t(
     manualCommand !== null
-      ? installation?.kind === "npm-global"
+      ? updatesInstall
         ? "Copy update command"
         : "Copy relaunch command"
       : label,

@@ -176,7 +176,7 @@ const makeHarness = (options: HarnessOptions) => {
       Effect.gen(function* () {
         const driver = yield* GitVcsDriver.GitVcsDriver;
         return GitWorkflowService.GitWorkflowService.of({
-          isRepository: () => Effect.succeed(true),
+          repositoryRoot: (cwd: string) => Effect.succeed(cwd),
           removeWorktree: (input: {
             readonly cwd: string;
             readonly path: string;

@@ -38,13 +38,10 @@ export async function checkoutNewTaskBranch<E>(input: {
       ),
     );
   }
-  if (input.workspaceMode === "worktree" || input.branch.current) {
-    return AsyncResult.success(
-      input.branch.current ? { ...input.branch, worktreePath: null } : input.branch,
-    );
-  }
+  if (input.workspaceMode === "worktree") return AsyncResult.success(input.branch);
 
-  // Remote refs omit local worktrees, and historical thread metadata can be stale.
+  // The picked ref's current flag, remote refs' missing worktrees and historical
+  // thread metadata can all be stale, so Git is asked again before choosing.
   const localName = localBranchName(input.branch);
   let cursor: number | undefined;
   for (;;) {

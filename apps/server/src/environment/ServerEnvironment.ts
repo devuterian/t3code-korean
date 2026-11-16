@@ -22,7 +22,6 @@ import { resolveServiceLauncherMode } from "../cloud/serviceLauncherClient.ts";
 import * as ServerConfig from "../config.ts";
 import { databaseMigrationHead } from "../persistence/databaseMigrationHead.ts";
 import * as ProcessRunner from "../processRunner.ts";
-import { worktreeFastEnv } from "../vcs/worktreeFast.ts";
 import { isSpeechPlatformSupported } from "../speech/platform.ts";
 import { resolveServerEnvironmentLabel } from "./ServerEnvironmentLabel.ts";
 import { detectServerEnvironmentMachineKind } from "./ServerEnvironmentMachine.ts";
@@ -83,25 +82,6 @@ function platformArch(
       return "other";
   }
 }
-
-const probeWorktreeFast = Effect.fn("ServerEnvironment.probeWorktreeFast")(function* (
-  processRunner: ProcessRunner.ProcessRunner["Service"],
-  env: NodeJS.ProcessEnv,
-) {
-  const installed = yield* processRunner
-    .run({
-      command: "git",
-      args: ["worktree-fast", "--version"],
-      env,
-      timeout: "5 seconds",
-      timeoutBehavior: "timedOutResult",
-    })
-    .pipe(
-      Effect.map((result) => result.code === 0),
-      Effect.orElseSucceed(() => false),
-    );
-  return { installed };
-});
 
 const makeIdentity = Effect.gen(function* () {
   const fileSystem = yield* FileSystem.FileSystem;
@@ -221,26 +201,13 @@ export const make = Effect.gen(function* () {
     launcherManaged: launcher.managed,
   });
   const serverInstallation = serverSelfUpdate === null ? yield* resolveServerInstallation : null;
-  // Desktop and server ship together; a control fd guarantees requestDesktopUpdate support.
-
+  // The desktop reports whether it can install updates; requests travel over its control fd.
   const desktopAppUpdate =
-    serverSelfUpdate === "desktop-managed" && serverConfig.desktopTelemetryControlFd !== undefined;
+    serverSelfUpdate === "desktop-managed" &&
+    serverConfig.desktopAppUpdate === true &&
+    serverConfig.desktopTelemetryControlFd !== undefined;
 
   const databaseMigration = databaseMigrationHead(serverConfig.dbPath);
-  // Re-probed after a minute so installing the tool shows up without a server restart.
-  const readWorktreeFastCapability =
-    hostPlatform === "darwin"
-      ? (yield* probeWorktreeFast(
-          yield* ProcessRunner.ProcessRunner,
-          worktreeFastEnv({
-            bundledPath: serverConfig.worktreeFastPath,
-            pathEnv: (yield* HostProcess.Environment).PATH,
-            dirname: path.dirname,
-          }),
-        ).pipe(Effect.cachedWithTTL("1 minute"))).pipe(
-          Effect.map((worktreeFast) => ({ worktreeFast })),
-        )
-      : Effect.succeed({});
   const descriptor: ExecutionEnvironmentDescriptor = {
     environmentId,
     label,
@@ -260,7 +227,9 @@ export const make = Effect.gen(function* () {
       fileAttachments: { maxUploadBytes: PROVIDER_SEND_TURN_MAX_FILE_BYTES },
       pullRequests: true,
       pullRequestChecks: true,
+      linkedThreadRefreshes: true,
       sideChats: true,
+      vcsBranchStatus: true,
       inlineMessageContext: true,
       requiredWorktreeBootstrap: true,
       threadSettlement: true,
@@ -270,9 +239,11 @@ export const make = Effect.gen(function* () {
       storageCleanupRun: true,
       databaseStorage: true,
       otlpEndpointCheck: true,
+      secretSourceCheck: true,
       projectWorktreeCleanup: true,
       settledWorktreeCleanup: true,
       worktreesDirectory: true,
+      ...(hostPlatform === "darwin" ? { fastWorktreeCheckout: true } : {}),
       threadAutoSettlementScope: true,
       threadRestartContinuation: true,
       projectSettingsOverrides: true,
@@ -283,6 +254,7 @@ export const make = Effect.gen(function* () {
       environmentThemes: true,
       usageLimitSources: true,
       providerWorkspaceSnapshotsOnDemand: true,
+      modelCatalogRefresh: true,
       usagePriceOverrides: true,
       usageModelAliases: true,
       providerPools: true,
@@ -306,6 +278,7 @@ export const make = Effect.gen(function* () {
       projectCloneTracking: true,
       projectOrganization: true,
       ignoredFileListing: true,
+      ignoredFileSearch: true,
       triage: true,
       oneTimeSchedules: true,
       freshContext: true,
@@ -318,28 +291,26 @@ export const make = Effect.gen(function* () {
       ...(serverSelfUpdate === "boot-service" || desktopAppUpdate
         ? { serverSelfUpdateProgress: true }
         : {}),
+      ...(serverSelfUpdate === "boot-service" ? { serverUpdateStaging: true } : {}),
       ...(desktopAppUpdate ? { desktopAppUpdate: true, desktopAppChannelSwitch: true } : {}),
       serverBrowser: true,
       peerLinks: true,
       mcpModeLimitHeader: true,
       linkFence: true,
+      mcpApprovalCodes: true,
+      mcpHostedApproval: true,
+      shellThreadFamilies: true,
+      shellOlderSettled: true,
     },
   };
 
   return ServerEnvironment.of({
     getEnvironmentId: Effect.succeed(environmentId),
     // Publishing opt-in and relay links change at runtime; read the capability per request.
-    getDescriptor: Effect.all([
-      readAgentActivityPublishingActive(secrets),
-      readWorktreeFastCapability,
-    ]).pipe(
-      Effect.map(([agentActivityPublishing, worktreeFastCapability]) => ({
+    getDescriptor: readAgentActivityPublishingActive(secrets).pipe(
+      Effect.map((agentActivityPublishing) => ({
         ...descriptor,
-        capabilities: {
-          ...descriptor.capabilities,
-          agentActivityPublishing,
-          ...worktreeFastCapability,
-        },
+        capabilities: { ...descriptor.capabilities, agentActivityPublishing },
       })),
     ),
   });

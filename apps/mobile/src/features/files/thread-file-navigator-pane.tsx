@@ -4,7 +4,7 @@ import type { EnvironmentId } from "@t3tools/contracts";
 import { AppBar } from "../../components/ui/AppBar";
 import { ScreenContent } from "../../components/ui/ScreenContent";
 import { useState } from "react";
-import { View } from "react-native";
+import { SheetPane } from "../../components/ui/SheetPane";
 
 import { useEnvironmentQuery } from "../../state/query";
 import { useEnvironmentPresentation } from "../../state/presentation";
@@ -22,7 +22,11 @@ export function ThreadFileNavigatorPane(props: {
   readonly onSelectFile: (path: string) => void;
 }) {
   const t = useTranslate();
-  const [searchQuery, setSearchQuery] = useState("");
+  const workspaceKey = JSON.stringify([props.environmentId, props.cwd]);
+  // The pane stays mounted across thread switches; a query only filters the workspace it was typed in.
+  const [search, setSearch] = useState({ workspaceKey, query: "" });
+  const searchQuery = search.workspaceKey === workspaceKey ? search.query : "";
+  const setSearchQuery = (query: string) => setSearch({ workspaceKey, query });
   const { themeAppearance: highlightTheme } = useAppearancePreferences();
   const fileAccessSession = useEnvironmentQuery(
     environmentSession.sessionStateAtom(props.environmentId),
@@ -50,7 +54,7 @@ export function ThreadFileNavigatorPane(props: {
   };
   const fileTree = (
     <FileTreeBrowser
-      key={JSON.stringify([props.environmentId, props.cwd])}
+      key={workspaceKey}
       revealSelection={entriesQuery.revealSelection}
       expandedPaths={entriesQuery.expandedPaths}
       setExpandedPaths={entriesQuery.setExpandedPaths}
@@ -80,7 +84,7 @@ export function ThreadFileNavigatorPane(props: {
   );
 
   return (
-    <View className="flex-1 ios:bg-sheet android:bg-header">
+    <SheetPane>
       <AppBar
         title={t("Files")}
         subtitle={props.projectName}
@@ -92,6 +96,6 @@ export function ThreadFileNavigatorPane(props: {
         refresh={{ accessibilityLabel: t("Refresh files"), onPress: entriesQuery.refresh }}
       />
       <ScreenContent insetHorizontal>{fileTree}</ScreenContent>
-    </View>
+    </SheetPane>
   );
 }

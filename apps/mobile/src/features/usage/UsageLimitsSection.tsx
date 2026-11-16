@@ -11,6 +11,8 @@ import {
   type ServerProviderUsageWindow,
 } from "@t3tools/contracts";
 import {
+  type ResetCreditChoice,
+  resetCreditChoices,
   limitsNotice,
   paceOf,
   paceRemainingPercent,
@@ -252,7 +254,7 @@ export function ResetCredits(props: {
   const expiresIn = credits.nextExpiresAt
     ? formatUsageDuration(Date.parse(credits.nextExpiresAt) - now)
     : null;
-  const summary =
+  const defaultSummary =
     credits.availableCount === 0
       ? t("No reset credits banked")
       : `${t(
@@ -261,12 +263,14 @@ export function ResetCredits(props: {
             : "{count} reset credits banked",
           { count: credits.availableCount },
         )}${expiresIn ? ` · ${t("next expires in {duration}", { duration: expiresIn })}` : ""}`;
+  const choiceSummary = (choice: ResetCreditChoice) =>
+    choice.key === "next" ? defaultSummary : choice.summary;
 
-  const redeem = async () => {
+  const redeem = async (choice: ResetCreditChoice) => {
     if (!readEnvironmentScope(environmentId, AuthProvidersManageScope)) return;
     setBusy(true);
     setStatus(null);
-    const result = await consume({ environmentId, input });
+    const result = await consume({ environmentId, input: choice.input });
     setBusy(false);
     if (result._tag === "Success") {
       setStatus(result.value.warning ?? translate(OUTCOME_TEXT[result.value.outcome]));
@@ -279,46 +283,46 @@ export function ResetCredits(props: {
     );
   };
 
-  const confirm = () => {
+  const confirm = (choice: ResetCreditChoice) => {
     if (!readEnvironmentScope(environmentId, AuthProvidersManageScope)) return;
-    Dialog.alert(
-      t("Use a reset credit?"),
-      t(
-        "This redeems one credit on your account and clears the current rate-limit windows. It cannot be undone.",
-      ),
-      [
-        { text: t("Cancel"), style: "cancel" },
-        { text: t("Use credit"), onPress: () => void redeem() },
-      ],
-    );
+    Dialog.alert(t("Use a reset credit?"), t(choice.confirmDescription), [
+      { text: t("Cancel"), style: "cancel" },
+      { text: t("Use credit"), onPress: () => void redeem(choice) },
+    ]);
   };
 
   return (
-    <View className="flex-row flex-wrap items-center gap-x-3 gap-y-1">
-      <Text className="text-xs tabular-nums text-foreground-tertiary">{summary}</Text>
-      {credits.availableCount > 0 ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityState={{ disabled: busy || !canManageProviders }}
-          disabled={busy || !canManageProviders}
-          onPress={confirm}
-          className={
-            dense
-              ? "rounded-full bg-subtle-strong px-2.5 py-1 disabled:opacity-[0.45]"
-              : "min-h-[44px] justify-center rounded-full bg-subtle-strong px-3 py-1.5 disabled:opacity-[0.45]"
-          }
-        >
-          <Text
-            className={
-              dense
-                ? "text-xs font-t3-medium text-foreground"
-                : "text-sm font-t3-medium text-foreground"
-            }
-          >
-            {busy ? t("Using…") : t("Use reset")}
+    <View className="gap-1">
+      {resetCreditChoices(credits, input, now).map((choice) => (
+        <View key={choice.key} className="flex-row flex-wrap items-center gap-x-3 gap-y-1">
+          <Text className="text-xs tabular-nums text-foreground-tertiary">
+            {choiceSummary(choice)}
           </Text>
-        </Pressable>
-      ) : null}
+          {choice.availableCount > 0 ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ disabled: busy || !canManageProviders }}
+              disabled={busy || !canManageProviders}
+              onPress={() => confirm(choice)}
+              className={
+                dense
+                  ? "rounded-full bg-subtle-strong px-2.5 py-1 disabled:opacity-[0.45]"
+                  : "min-h-[44px] justify-center rounded-full bg-subtle-strong px-3 py-1.5 disabled:opacity-[0.45]"
+              }
+            >
+              <Text
+                className={
+                  dense
+                    ? "text-xs font-t3-medium text-foreground"
+                    : "text-sm font-t3-medium text-foreground"
+                }
+              >
+                {busy ? t("Using…") : t(choice.actionLabel)}
+              </Text>
+            </Pressable>
+          ) : null}
+        </View>
+      ))}
       {!canManageProviders ? (
         <Text className="text-xs text-foreground-tertiary">
           {t("This connection cannot manage provider accounts.")}

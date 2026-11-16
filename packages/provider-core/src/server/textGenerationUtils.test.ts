@@ -1,11 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import {
-  limitSection,
-  sanitizeCommitSubject,
-  sanitizeNextPrompt,
-  sanitizeThreadTitle,
-} from "./textGenerationUtils.ts";
+import { limitSection, sanitizeCommitSubject, sanitizeThreadTitle } from "./textGenerationUtils.ts";
 
 describe("limitSection", () => {
   it("cuts a long section without splitting an emoji", () => {
@@ -23,22 +18,6 @@ describe("sanitizeCommitSubject", () => {
     const prefix = "a".repeat(prefixLength);
 
     expect(sanitizeCommitSubject(`${prefix}${character} more`)).toBe(prefix);
-  });
-});
-
-describe("sanitizeNextPrompt", () => {
-  it.each(["", "   ", '""', "\n"])("returns null for an empty reply (%j)", (raw) => {
-    expect(sanitizeNextPrompt(raw)).toBeNull();
-  });
-
-  it("strips wrapping quotes and surrounding whitespace", () => {
-    expect(sanitizeNextPrompt('  "Run the tests again"  ')).toBe("Run the tests again");
-  });
-
-  it("truncates a runaway reply to the composer-sized limit", () => {
-    const result = sanitizeNextPrompt("a".repeat(400));
-    expect(result).toHaveLength(280);
-    expect(result?.endsWith("...")).toBe(true);
   });
 });
 

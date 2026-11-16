@@ -201,18 +201,21 @@ const make = Effect.fn("makeProviderInstallation")(function* () {
       .pipe(Effect.mapError(failure(input.instanceId)));
   });
 
+  // Watching an installation is when its owner can act on an update, so the
+  // lookup runs then, in the background, unless update checks are off. The
+  // Korean fork's Codex installation runs its own updater, so only Antigravity checks here.
   const subscribe = (input: ProviderSetupInput) =>
     Stream.unwrap(
       requireInstance(input.instanceId, "observe-install").pipe(
         Effect.tap(({ driver }) =>
-          driver === CODEX
-            ? settings.getSettings.pipe(
-                Effect.flatMap((current) =>
-                  current.enableProviderUpdateChecks ? codexInstallation.refresh() : Effect.void,
-                ),
-                Effect.ignore,
-              )
-            : Effect.void,
+          settings.getSettings.pipe(
+            Effect.flatMap((current) =>
+              current.enableProviderUpdateChecks && driver === ANTIGRAVITY
+                ? Effect.forkDetach(antigravityInstallation.checkForUpdate)
+                : Effect.void,
+            ),
+            Effect.ignore,
+          ),
         ),
         Effect.map(({ installation }) => installation.changes),
       ),

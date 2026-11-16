@@ -29,16 +29,19 @@ export function useAvailableSettingsSearchItems() {
         hasServerConfig: environment.serverConfig !== null,
       }),
     ) === true;
-  const worktreeFastScope = environments.filter(
-    (environment) => environment.connection.phase === "connected",
-  );
-  // Matches WorktreeFastRow, which hides unless every machine in scope reports the capability.
-  const hasWorktreeFastEnvironment =
-    (worktreeFastScope.length > 0 &&
-      worktreeFastScope.every(
-        (environment) =>
-          environment.serverConfig?.environment.capabilities.worktreeFast !== undefined,
-      )) === true;
+  // Any machine that offers it; the row then shows for a settings scope where all selected ones do.
+  const hasFastWorktreeCheckoutEnvironment =
+    environments.some(
+      (environment) =>
+        environment.connection.phase === "connected" &&
+        environment.serverConfig?.environment.capabilities.fastWorktreeCheckout === true,
+    ) === true;
+  const hasTextGeneratorsEnvironment =
+    environments.some(
+      (environment) =>
+        environment.serverConfig !== null &&
+        environment.serverConfig.managedPolicy?.limits?.providers?.allowedDrivers === undefined,
+    ) === true;
   const hasThreadAutoSettlement =
     getThreadAutoSettlementSearchAvailability(environments).eligibleEnvironmentIds.length > 0;
   const hasProviderPools = hasProviderPoolsEnvironment(environments);
@@ -70,6 +73,8 @@ export function useAvailableSettingsSearchItems() {
     hasProviderPools,
     managedTunnelActive,
     hasPeerLinkHost,
-    hasWorktreeFastEnvironment,
+    hasFastWorktreeCheckoutEnvironment,
+    hasTextGeneratorsEnvironment,
+    hasPrimaryEnvironment: primaryEnvironmentId !== null,
   });
 }

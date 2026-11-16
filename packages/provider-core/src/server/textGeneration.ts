@@ -2,6 +2,7 @@ import type {
   BranchNamingOptions,
   ChatAttachment,
   ModelSelection,
+  ProjectId,
   PullRequestReviewGuide,
   TextGenerationError,
 } from "@t3tools/contracts";
@@ -18,6 +19,7 @@ export interface CommitMessageGenerationInput {
   includeBranch?: boolean;
   policy?: TextGenerationPolicy | undefined;
   modelSelection: ModelSelection;
+  projectId?: ProjectId | null | undefined;
 }
 
 export interface CommitMessageGenerationResult {
@@ -37,6 +39,7 @@ export interface PrContentGenerationInput {
   threadContext?: string | undefined;
   policy?: TextGenerationPolicy | undefined;
   modelSelection: ModelSelection;
+  projectId?: ProjectId | null | undefined;
 }
 
 export interface PrContentGenerationResult {
@@ -50,6 +53,7 @@ export interface BranchNameGenerationInput {
   message: string;
   attachments?: ReadonlyArray<ChatAttachment> | undefined;
   modelSelection: ModelSelection;
+  projectId?: ProjectId | null | undefined;
 }
 
 export interface BranchNameGenerationResult {
@@ -60,29 +64,18 @@ export interface ThreadTitleGenerationInput {
   linkedContext?: string | undefined;
   cwd: string;
   message: string;
+  projectTitle?: string | undefined;
   previousTitle?: string | undefined;
   forkSource?: ThreadTitleForkSource | undefined;
   attachments?: ReadonlyArray<ChatAttachment> | undefined;
   instructions?: string | undefined;
   modelSelection: ModelSelection;
+  projectId?: ProjectId | null | undefined;
 }
 
 export interface ThreadTitleGenerationResult {
   title: string;
   needsRefinement?: boolean | undefined;
-}
-
-export interface NextPromptGenerationInput {
-  cwd: string;
-  /** The thread's recent conversation, already trimmed to a model-sized budget. */
-  message: string;
-  instructions?: string | undefined;
-  modelSelection: ModelSelection;
-}
-
-export interface NextPromptGenerationResult {
-  /** Null when the thread has no natural next message. */
-  suggestion: string | null;
 }
 
 export interface ReviewGuideStackLayer {
@@ -103,6 +96,7 @@ export interface ReviewGuideGenerationInput {
   instructions?: string | undefined;
   stack?: ReadonlyArray<ReviewGuideStackLayer> | undefined;
   modelSelection: ModelSelection;
+  projectId?: ProjectId | null | undefined;
 }
 
 export type ReviewGuideGenerationResult = Omit<
@@ -140,10 +134,6 @@ export interface ProviderTextGeneration {
   readonly generateThreadTitle: (
     input: ThreadTitleGenerationInput,
   ) => Effect.Effect<ThreadTitleGenerationResult, TextGenerationError>;
-
-  readonly generateNextPrompt: (
-    input: NextPromptGenerationInput,
-  ) => Effect.Effect<NextPromptGenerationResult, TextGenerationError>;
 
   readonly generateReviewGuide: (
     input: ReviewGuideGenerationInput,

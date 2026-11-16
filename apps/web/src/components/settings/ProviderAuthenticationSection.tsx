@@ -16,6 +16,7 @@ import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { CopyIcon } from "lucide-react";
 
 import { writeTextToClipboard } from "../../hooks/useCopyToClipboard";
+import { isWebUrl } from "../../browser/webUrl";
 import { useTranslate } from "../../i18n/translate";
 import { ensureLocalApi } from "../../localApi";
 import { useEnvironmentQuery } from "../../state/query";
@@ -157,6 +158,7 @@ export function ProviderAuthenticationSection({
       ? interaction.url
       : auth?.authorizationUrl;
 
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- Asks the server to re-probe once per finished Codex install, so the provider status catches up with the new binary.
   useEffect(() => {
     if (!canInstallCodex || installationKey === null) {
       refreshedInstallation.current = null;
@@ -167,7 +169,9 @@ export function ProviderAuthenticationSection({
     void refreshProviders({ environmentId, input: { instanceId } });
   }, [canInstallCodex, environmentId, instanceId, installationKey, refreshProviders]);
 
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- Closes the tab reserved for a sign-in that never got its URL when the section unmounts.
   useEffect(() => () => reservedBrowser.current?.close(), []);
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- The sign-in URL arrives from the server after the click, so the tab opened in the click is pointed at it once it lands.
   useEffect(() => {
     if (!browserFlowId || handledBrowserFlow.current === browserFlowId) return;
     if (query.error || (auth?.flowId === browserFlowId && !active)) {
@@ -257,6 +261,10 @@ export function ProviderAuthenticationSection({
 
   async function openBrowser() {
     if (!url || readOnly) return;
+    if (!isWebUrl(url)) {
+      setError("This sign-in link is not a web address, so it was not opened.");
+      return;
+    }
     const requiresConsent = interaction?.type === "browser" && interaction.requiresConsent;
     // Reserve tabs before awaiting consent; browsers block later opens.
     const pending = requiresConsent && !window.desktopBridge ? window.open("", "_blank") : null;

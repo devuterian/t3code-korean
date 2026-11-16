@@ -25,9 +25,11 @@ import {
   partitionStashAttachments,
   usePromptStashStore,
 } from "../../promptStashStore";
+import type { PendingUserInputProgress } from "../../pendingUserInput";
 import { type PendingUserInput } from "../../session-logic";
 import { type ReviewCommentContext } from "../../reviewCommentContext";
 import { collapseExpandedComposerCursor } from "../../composer-logic";
+import { collectComposerPromptInlineTokens } from "../../composer-editor-mentions";
 import { compressImageForStash } from "../../lib/imageCompression";
 import {
   collectInlineContextIds,
@@ -37,7 +39,9 @@ import { toKindScopedComposerContextId } from "@t3tools/shared/composerContextRe
 import { translate } from "~/i18n/translate";
 import { isCommandPaletteOpen } from "../../commandPaletteBus";
 import { pendingDraftWork } from "./pendingDraftWork";
+import { countPreparingComposerImages } from "./preparingComposerImages";
 import {
+  isResponseContextRecord,
   previewAnnotationContextRecord,
   reviewCommentContextRecord,
   terminalContextRecord,
@@ -50,6 +54,7 @@ import {
   verifyStashedAttachmentUpload,
 } from "../../lib/attachmentUploadQueue";
 import { remainingComposerAttachmentSlots } from "./composerThreadImport";
+import { composerImageDedupKey } from "./composerAttachmentFiles";
 import { replaceComposerContextReferences } from "@t3tools/shared/composerContextReferences";
 import { resizeSnapShotSource } from "../../lib/snapShotSource";
 import { registerCommands } from "../../shortcuts/dispatcher";
@@ -82,7 +87,7 @@ export function useComposerStash(input: {
   readonly routeThreadRef: ChatComposerProps["routeThreadRef"];
   readonly projectSelectionRequired: boolean;
   readonly pendingUserInputs: ReadonlyArray<PendingUserInput>;
-  readonly activePendingProgress: ChatComposerProps["activePendingProgress"];
+  readonly activePendingProgress: PendingUserInputProgress | null;
   readonly prompt: string;
   readonly composerMenuOpen: boolean;
   readonly isComposerCollapsedMobile: boolean;
@@ -131,6 +136,7 @@ export function useComposerStash(input: {
   } = input;
   const getComposerDraft = useComposerDraftStore((store) => store.getComposerDraft);
   const setComposerDraftPrompt = useComposerDraftStore((store) => store.setPrompt);
+  const setComposerDraftReplyTo = useComposerDraftStore((store) => store.setReplyTo);
   const addComposerDraftImages = useComposerDraftStore((store) => store.addImages);
   const addComposerDraftFiles = useComposerDraftStore((store) => store.addFiles);
   const removeComposerDraftPreviewAnnotation = useComposerDraftStore(
@@ -146,6 +152,9 @@ export function useComposerStash(input: {
     (store) => store.clearComposerPromptAndImages,
   );
   const setComposerDraftThreadContexts = useComposerDraftStore((store) => store.setThreadContexts);
+  const setComposerDraftEnvironmentContexts = useComposerDraftStore(
+    (store) => store.setEnvironmentContexts,
+  );
   const [isStashMenuOpen, setIsStashMenuOpen] = useState(false);
   // Each stash bumps the key; the badge replays its one-shot pulse animation per key.
   const [stashPulseKey, setStashPulseKey] = useState(0);
@@ -160,6 +169,23 @@ export function useComposerStash(input: {
     setStashPulseKey((key) => key + 1);
   };
 
+  // Stable, so the check after the verify await sees a question that opened during it.
+  const refuseMachinesInAnswer = useStableCallback((menuEntry: PromptStashEntry) => {
+    // An answer to an agent's question carries no machines, so restoring here would drop them.
+    if (
+      pendingUserInputs.length > 0 &&
+      menuEntry.records?.some((record) => record.kind === "environment")
+    ) {
+      toastManager.add({
+        type: "error",
+        title: "Stashed machines can't go in an answer",
+        description: "Restore this prompt after the agent's question is answered.",
+      });
+      return true;
+    }
+    return false;
+  });
+
   const restoreStashEntry = async (menuEntry: PromptStashEntry) => {
     const filesToVerify = menuEntry.files ?? [];
     if (filesToVerify.some((file) => file.environmentId !== environmentId)) {
@@ -170,6 +196,7 @@ export function useComposerStash(input: {
       });
       return;
     }
+    if (refuseMachinesInAnswer(menuEntry)) return;
     setIsStashMenuOpen(false);
 
     // An expired upload restores as a needs-reattach row instead of a reference
@@ -192,7 +219,8 @@ export function useComposerStash(input: {
     // so abort and leave the entry restorable where the user now is.
     if (
       isRevertingCheckpoint() ||
-      !isComposerDraftTargetOpen(composerTargetKey(composerDraftTarget))
+      !isComposerDraftTargetOpen(composerTargetKey(composerDraftTarget)) ||
+      refuseMachinesInAnswer(menuEntry)
     ) {
       return;
     }
@@ -213,6 +241,17 @@ export function useComposerStash(input: {
     const rewrittenContextIds = entry.records
       ? importContextRecords(entry.records, null, composerDraftTarget)
       : new Map<string, string>();
+    // A reply only makes sense in the thread that holds the response, and one already pending wins.
+    const stashedReply = entry.records?.find(isResponseContextRecord);
+    if (
+      stashedReply &&
+      !getComposerDraft(composerDraftTarget)?.replyTo &&
+      typeof composerDraftTarget !== "string" &&
+      stashedReply.citation.threadId === composerDraftTarget.threadId &&
+      stashedReply.citation.environmentId === composerDraftTarget.environmentId
+    ) {
+      setComposerDraftReplyTo(composerDraftTarget, stashedReply);
+    }
     const restoredPrompt = replaceComposerContextReferences(entry.prompt, (reference) => {
       const contextId = rewrittenContextIds.get(reference.contextId);
       return contextId
@@ -355,40 +394,36 @@ export function useComposerStash(input: {
     if (entry.attachments.length > 0) {
       const attachmentDraft = readAttachmentDraft();
       const existingIds = new Set(attachmentDraft.images.map((image) => image.id));
-      // A chip in the restored prompt points at its own attachment, such as one of two
-      // citations of the same region, so that attachment comes back even when the draft
-      // already holds an identical image. An unreferenced image is skipped when the draft,
-      // a referenced image, or an earlier unreferenced one already has its
-      // mimeType+sizeBytes+name, the key the store dedupes by.
-      const dedupKey = (image: { mimeType: string; sizeBytes: number; name: string }) =>
-        `${image.mimeType}\0${image.sizeBytes}\0${image.name}`;
+      // A chip in the restored prompt brings back its own attachment even when the draft holds
+      // an identical image, as two citations of one region do. Other images skip a dedupe key
+      // already taken, since the store refuses duplicates and counting them would push a
+      // unique image into the overflow list.
       const referencedIds = new Set(collectInlineContextIds(restoredPrompt));
-      const isReferenced = (attachment: { id: string }) =>
-        referencedIds.has(toKindScopedComposerContextId("image", attachment.id));
+      const isReferenced = (image: { id: string }) =>
+        referencedIds.has(toKindScopedComposerContextId("image", image.id));
+      const hydrated = hydrateImagesFromPersisted(entry.attachments);
       const takenDedupKeys = new Set([
-        ...attachmentDraft.images.map(dedupKey),
-        ...entry.attachments.filter(isReferenced).map(dedupKey),
+        ...attachmentDraft.images.map(composerImageDedupKey),
+        ...hydrated.filter(isReferenced).map(composerImageDedupKey),
       ]);
       const capacity = remainingComposerAttachmentSlots(
         attachmentDraft.images.length + attachmentDraft.files.length + restoredFileCount,
         pendingThreadImportsRef.current.get(composerTargetKey(composerDraftTarget)) ?? 0,
       );
-      const unreferenced = entry.attachments.filter((attachment) => {
-        if (existingIds.has(attachment.id) || isReferenced(attachment)) return false;
-        const key = dedupKey(attachment);
+      const unreferenced = hydrated.filter((image) => {
+        if (existingIds.has(image.id) || isReferenced(image)) return false;
+        const key = composerImageDedupKey(image);
         if (takenDedupKeys.has(key)) return false;
         takenDedupKeys.add(key);
         return true;
       });
       // Referenced images come first so a chip keeps its attachment when slots run out.
       const pending = [
-        ...entry.attachments.filter(
-          (attachment) => !existingIds.has(attachment.id) && isReferenced(attachment),
-        ),
+        ...hydrated.filter((image) => !existingIds.has(image.id) && isReferenced(image)),
         ...unreferenced,
       ];
-      unrestoredImageNames = pending.slice(capacity).map((attachment) => attachment.name);
-      const restoredImages = hydrateImagesFromPersisted(pending.slice(0, capacity));
+      unrestoredImageNames = pending.slice(capacity).map((image) => image.name);
+      const restoredImages = pending.slice(0, capacity);
       if (restoredImages.length > 0) {
         // Deduped above; the store's own dedup would drop a referenced citation's twin.
         addComposerDraftImages(composerDraftTarget, restoredImages, { allowDuplicates: true });
@@ -486,12 +521,20 @@ export function useComposerStash(input: {
       });
       return;
     }
-    const prompt = promptRef.current.trim();
+    const replyTo = getComposerDraft(composerDraftTarget)?.replyTo;
+    const trimmedPrompt = promptRef.current.trim();
+    // A trailing chip only parses with whitespace after it, so keep one space to restore it.
+    const endsWithChip =
+      collectComposerPromptInlineTokens(promptRef.current).at(-1)?.end ===
+      promptRef.current.trimEnd().length;
+    const prompt = endsWithChip ? `${trimmedPrompt} ` : trimmedPrompt;
     const attachmentDraft = readAttachmentDraft();
     const images = [...attachmentDraft.images];
     const files = [...attachmentDraft.files];
     const stashedRecords: ComposerContextRecord[] = [
+      ...(replyTo ? [replyTo] : []),
       ...composerThreadContexts,
+      ...(getComposerDraft(composerDraftTarget)?.environmentContexts ?? []),
       ...readTerminalContexts().map(terminalContextRecord),
       ...composerReviewComments.map(reviewCommentContextRecord),
       ...composerPreviewAnnotations.map((annotation) =>
@@ -510,6 +553,16 @@ export function useComposerStash(input: {
       } else {
         setIsStashMenuOpen((open) => !open);
       }
+      return;
+    }
+    // The snapshot only holds compressed images; a still-compressing one would land in the
+    // emptied composer instead of travelling with this entry.
+    if (countPreparingComposerImages(attachmentTargetKey) > 0) {
+      toastManager.add({
+        type: "info",
+        title: "Still compressing a pasted image.",
+        description: "Stash again once it finishes compressing.",
+      });
       return;
     }
     const stashedFiles: PersistedComposerFileAttachment[] = [];
@@ -597,6 +650,8 @@ export function useComposerStash(input: {
       clearComposerDraftPromptAndImages(stashTarget);
       clearComposerDraftTerminalContexts(stashTarget);
       setComposerDraftThreadContexts(stashTarget, []);
+      setComposerDraftEnvironmentContexts(stashTarget, []);
+      setComposerDraftReplyTo(stashTarget, null);
       for (const comment of composerReviewComments) {
         removeComposerDraftReviewComment(stashTarget, comment.id);
       }

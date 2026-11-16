@@ -67,6 +67,10 @@ import {
 } from "./ConnectionsSettings.logic";
 
 const EMPTY_DISCOVERED_SSH_HOSTS: ReadonlyArray<DesktopDiscoveredSshHost> = [];
+// known_hosts can list one host on several ports. Its own bracketed form keeps an IPv6
+// host's port separate from the address; no portless known_hosts entry has that form.
+const sshHostSuggestionValue = (target: DesktopDiscoveredSshHost) =>
+  target.port === null ? target.alias : `[${target.alias}]:${target.port}`;
 
 export function AddEnvironmentDialog({
   open,
@@ -302,6 +306,7 @@ export function AddEnvironmentDialog({
       setIsAddingSavedBackend(false);
       return;
     }
+    if (target.port !== null) resolved = { ...resolved, port: target.port };
     setSavedBackendSshUsername(resolved.username ?? "");
     setSavedBackendSshPort(resolved.port === null ? "" : String(resolved.port));
     await connectSavedBackendSshTarget(resolved);
@@ -372,6 +377,7 @@ export function AddEnvironmentDialog({
         )}
         disabled={isAddingSavedBackend}
         onClick={() => {
+          if (!selected) onErrorChange(null);
           setSavedBackendMode(input.mode);
         }}
       >
@@ -506,7 +512,7 @@ export function AddEnvironmentDialog({
           </label>
           <Autocomplete
             items={filteredDiscoveredSshHosts}
-            itemToStringValue={(target) => target.alias}
+            itemToStringValue={sshHostSuggestionValue}
             mode="none"
             openOnInputClick
             open={sshHostSuggestionsOpen}
@@ -519,7 +525,9 @@ export function AddEnvironmentDialog({
               setSavedBackendSshHost(value);
               if (eventDetails.reason !== "item-press") return;
 
-              const target = filteredDiscoveredSshHosts.find((host) => host.alias === value);
+              const target = filteredDiscoveredSshHosts.find(
+                (host) => sshHostSuggestionValue(host) === value,
+              );
               if (target) void handleSelectSshHostSuggestion(target);
             }}
           >
