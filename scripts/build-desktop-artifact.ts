@@ -1021,7 +1021,6 @@ export const STAGE_INSTALL_ARGS = [
   "--",
   "--registry=https://registry.npmjs.org/",
 ] as const;
-export const DESKTOP_ELECTRON_LANGUAGES = ["en-US"] as const;
 export const DESKTOP_FILE_EXCLUSIONS = [
   // Cursor walks from argv[1] to platform assets; helpers and native addons need real paths outside ASAR.
   "!**/node_modules/@cursor/sdk-*/**/*",
@@ -1105,10 +1104,11 @@ export function resolveWindowsServerAsarIgnoreGlobs(arch: typeof BuildArch.Type)
   ];
 }
 
-// Korean fork: +2 for the ia32 ffi-rs addon the x64 stage install still pulls in, and
-// headroom for server-compile-cache entries, whose count varies with the build host
-// (a GitHub runner build had 91 files). Still catches a payload of thousands of loose files.
-export const WINDOWS_PACKAGED_PAYLOAD_FILE_LIMIT = 100;
+// Korean fork: the x64 stage install also pulls in the ia32 ffi-rs addon, and the
+// server-compile-cache entry count varies with the build host (a GitHub runner build had
+// 91 files before every Chromium locale shipped; the locale paks add 54 more). Still
+// catches loose dependency trees, which run to hundreds of files.
+export const WINDOWS_PACKAGED_PAYLOAD_FILE_LIMIT = 160;
 export const WINDOWS_SERVER_RESOURCE_SOURCE_DIR = "apps/desktop/prod-resources/windows-server";
 export const WINDOWS_SERVER_EXTRA_RESOURCES = [
   {
@@ -2967,7 +2967,7 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
         : platform === "win"
           ? KOREAN_WIN_ARTIFACT_NAME
           : "T3-Code-${version}-${arch}.${ext}",
-    electronLanguages: [...DESKTOP_ELECTRON_LANGUAGES],
+    // Keep every Chromium locale so browser language and date inputs follow the OS language.
     files: [
       ...DESKTOP_FILE_EXCLUSIONS,
       ...(platform === "mac"
