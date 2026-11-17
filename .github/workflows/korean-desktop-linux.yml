@@ -59,9 +59,24 @@ jobs:
             --build-version "${{ inputs.version }}" \
             --output-dir release --verbose
 
+      # Release name plus the electron-updater feed the installed AppImage reads.
+      - name: Name the AppImage and write latest-linux.yml
+        run: |
+          mkdir -p out
+          name="T3-Code-Korean-${{ inputs.version }}-linux-x86_64.AppImage"
+          src=$(ls release/*.AppImage | head -1)
+          cp "$src" "out/$name"
+          sha=$(openssl dgst -sha512 -binary "out/$name" | base64 -w0)
+          size=$(stat -c %s "out/$name")
+          printf "version: %s\nfiles:\n  - url: %s\n    sha512: %s\n    size: %s\npath: %s\nsha512: %s\nreleaseDate: '%s'\n" \
+            "${{ inputs.version }}" "$name" "$sha" "$size" "$name" "$sha" "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)" \
+            > out/latest-linux.yml
+          cat out/latest-linux.yml
+
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: t3code-korean-linux-x64
           path: |
-            release/*.AppImage
+            out/*.AppImage
+            out/latest-linux.yml
           if-no-files-found: error
