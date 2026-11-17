@@ -36,8 +36,9 @@ import * as HttpApiBuilder from "effect/http-api/HttpApiBuilder";
 
 import * as EnvironmentAuth from "./EnvironmentAuth.ts";
 import * as SessionStore from "./SessionStore.ts";
+import * as TailnetAutoConnect from "./TailnetAutoConnect.ts";
 import { traceAuthenticatedRelayRequest, traceRelayRequest } from "../cloud/traceRelayRequest.ts";
-import { deriveAuthClientMetadata } from "./utils.ts";
+import { deriveAuthClientMetadata, readNonLoopbackSocketAddress } from "./utils.ts";
 import { checkRequestDpopProof } from "./dpop.ts";
 import { requestUrl } from "../requestUrl.ts";
 
@@ -279,6 +280,7 @@ export const layer = HttpApiBuilder.group(
   Effect.fnUntraced(function* (handlers) {
     const serverAuth = yield* EnvironmentAuth.EnvironmentAuth;
     const sessions = yield* SessionStore.SessionStore;
+    const tailnet = yield* TailnetAutoConnect.TailnetAutoConnect;
 
     return handlers
       .handle(
@@ -564,6 +566,44 @@ export const layer = HttpApiBuilder.group(
           Effect.catchIf(EnvironmentAuth.isServerAuthInternalError, (error) =>
             failEnvironmentInternal("connect_device_revoke_failed", error),
           ),
+        ),
+      )
+      .handle(
+        "tailnetCredential",
+        Effect.fn("environment.auth.tailnetCredential")(
+          function* (args) {
+            yield* annotateEnvironmentRequest(args.endpoint.name);
+            const request = yield* HttpServerRequest.HttpServerRequest;
+            yield* appendCredentialResponseHeaders;
+            // Raw socket peer only: X-Forwarded-For is client-controlled and would spoof whois.
+            return yield* tailnet.issueCredential(
+              readNonLoopbackSocketAddress(request),
+              request.headers["origin"],
+            );
+          },
+          Effect.catchTags({
+            TailnetAutoConnectRefusedError: (error) =>
+              Effect.fail(new EnvironmentHttpForbiddenError({ message: error.message })),
+            ManagedPolicyRefusedError: (error) =>
+              Effect.fail(new EnvironmentHttpForbiddenError({ message: error.message })),
+          }),
+          Effect.catchIf(EnvironmentAuth.isServerAuthInternalError, (error) =>
+            failEnvironmentInternal("pairing_credential_issuance_failed", error),
+          ),
+        ),
+      )
+      .handle(
+        "tailnetPeers",
+        Effect.fn("environment.auth.tailnetPeers")(
+          function* (args) {
+            yield* annotateEnvironmentRequest(args.endpoint.name);
+            const peers = yield* tailnet.listPeers();
+            return { peers };
+          },
+          Effect.catchTags({
+            TailnetAutoConnectRefusedError: (error) =>
+              Effect.fail(new EnvironmentHttpForbiddenError({ message: error.message })),
+          }),
         ),
       )
       .handle(

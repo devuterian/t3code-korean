@@ -279,9 +279,8 @@ export function parseRemotePairingFields(input: {
   if (!host) {
     throw new Error("Enter a backend host.");
   }
-  if (!pairingCode) {
-    throw new Error("Enter a pairing code.");
-  }
+  // An empty code is allowed: the host may hand out a tailnet credential, and if it does not,
+  // pairing fails with the usual "Enter a pairing code." message.
   return { host, pairingCode };
 }
 

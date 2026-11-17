@@ -179,6 +179,14 @@ function resolveClientIpAddress(request: HttpServerRequest.HttpServerRequest): s
   return forwarded && NodeNet.isIP(forwarded) !== 0 ? forwarded : peer;
 }
 
+/** The TCP peer address, never a forwarded header; undefined for loopback peers. */
+export function readNonLoopbackSocketAddress(
+  request: HttpServerRequest.HttpServerRequest,
+): string | undefined {
+  const peer = readRemoteAddressFromSource(request.source);
+  return peer !== undefined && !isLoopbackIpAddress(peer) ? peer : undefined;
+}
+
 export function deriveAuthClientMetadata(input: {
   readonly request: HttpServerRequest.HttpServerRequest;
   readonly presented?: AuthClientPresentationMetadata;

@@ -238,7 +238,8 @@ function sectionAtSidebarSlot(items: readonly SidebarListItem[], index: number):
   for (let i = 0; i < index && i < items.length; i += 1) {
     const item = items[i]!;
     if (item.kind !== "marker") continue;
-    if (item.marker === "pinned-divider") section = "active";
+    if (item.marker === "pinned-header") section = "pinned";
+    else if (item.marker === "pinned-divider") section = "active";
     else if (item.marker === "working-header") section = "working";
     else if (item.marker === "snoozed-header") section = "snoozed";
     else if (item.marker === "settled-header") section = "settled";
@@ -267,16 +268,21 @@ export function resolveSidebarDropTarget(
   const pinnedOrder: string[] = [];
   const activeOrder: string[] = [];
   let currentSection: SidebarSection = "pinned";
+  // A Working shelf on top sits before the pinned header and is not part of either order.
+  let inTopShelf = false;
   for (const item of moved) {
     if (item.kind === "marker") {
-      if (item.marker === "pinned-divider") currentSection = "active";
+      if (item.marker === "pinned-header") inTopShelf = false;
+      else if (item.marker === "pinned-divider") currentSection = "active";
+      else if (item.marker === "working-header" && currentSection === "pinned") inTopShelf = true;
       else if (
         item.marker === "working-header" ||
         item.marker === "snoozed-header" ||
         item.marker === "settled-header"
       )
         break;
-    } else if (currentSection === "pinned") pinnedOrder.push(item.key);
+    } else if (inTopShelf) continue;
+    else if (currentSection === "pinned") pinnedOrder.push(item.key);
     else activeOrder.push(item.key);
   }
   return { section, pinnedOrder, activeOrder };
@@ -1232,6 +1238,21 @@ export function sortSidebarInboxThreads<
     return sortInboxThreadsByReturn(input.threads, input.observedReturnAt);
   }
   return sortActiveThreads(input.threads, input.order);
+}
+
+/** Visual top-to-bottom order of the thread groups; jump shortcuts and range selection follow it. */
+export function orderSidebarThreadGroups<T>(input: {
+  readonly workingOnTop: boolean;
+  readonly working: readonly T[];
+  readonly pinned: readonly T[];
+  readonly active: readonly T[];
+  readonly snoozed: readonly T[];
+  readonly settled: readonly T[];
+}): T[] {
+  const { working, pinned, active, snoozed, settled } = input;
+  return input.workingOnTop
+    ? [...working, ...pinned, ...active, ...snoozed, ...settled]
+    : [...pinned, ...active, ...working, ...snoozed, ...settled];
 }
 
 export function resolveWorkingStartedAt(

@@ -232,12 +232,21 @@ export function AutoSettleSettingsRows(props: {
   );
 }
 
+const WORKING_SHELF_POSITION_OPTIONS = [
+  { value: "top", label: "Top" },
+  { value: "bottom", label: "Bottom" },
+] as const;
+
 export function WorkingSectionSettings() {
   const t = useTranslate();
   const savePreferences = useAtomSet(updateMobilePreferencesAtom);
   const preferences = useAtomValue(mobilePreferencesAtom);
   const workingShelfEnabled =
     AsyncResult.isSuccess(preferences) && preferences.value.workingShelfEnabled !== false;
+  const ready = AsyncResult.isSuccess(preferences) && !preferences.waiting;
+  const workingShelfPosition = AsyncResult.isSuccess(preferences)
+    ? (preferences.value.workingShelfPosition ?? "top")
+    : null;
 
   return (
     <View className="gap-3">
@@ -253,6 +262,21 @@ export function WorkingSectionSettings() {
         {t(
           "Fold working and monitoring threads into a Working section. They return to the top of the list when they need you. While this is on, active threads are ordered by time and cannot be moved.",
         )}
+      </Text>
+      <SettingsSection title={t("Working section position")}>
+        {WORKING_SHELF_POSITION_OPTIONS.map((option, index) => (
+          <SettingsChoiceRow
+            key={option.value}
+            label={t(option.label)}
+            selected={workingShelfPosition === option.value}
+            separated={index > 0}
+            disabled={!ready || !workingShelfEnabled}
+            onPress={() => savePreferences({ workingShelfPosition: option.value })}
+          />
+        ))}
+      </SettingsSection>
+      <Text className="px-2 text-sm text-foreground-muted">
+        {t("Choose where the Working section appears in the thread list.")}
       </Text>
     </View>
   );

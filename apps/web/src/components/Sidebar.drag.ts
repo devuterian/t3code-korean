@@ -56,12 +56,15 @@ export function createSidebarCollisionDetection(
       if (pointer.x >= boundary.left && pointer.x <= boundary.right) {
         if (pointer.y < previousY && pointer.y <= boundary.bottom) boundarySection = "pinned";
         else if (pointer.y > previousY && pointer.y >= boundary.top) boundarySection = "active";
-        const nextHeader = (["working-header", "snoozed-header", "settled-header"] as const)
-          .map((marker) =>
-            args.droppableContainers.find((container) => container.id === sidebarMarkerId(marker)),
+        // The first shelf header below the divider ends the active section; a Working shelf on top sits above it.
+        const activeBottom = (["working-header", "snoozed-header", "settled-header"] as const)
+          .map(
+            (marker) =>
+              args.droppableContainers
+                .find((container) => container.id === sidebarMarkerId(marker))
+                ?.node.current?.getBoundingClientRect().top,
           )
-          .find((container) => container !== undefined);
-        const activeBottom = nextHeader?.node.current?.getBoundingClientRect().top;
+          .find((top) => top !== undefined && top > boundary.bottom);
         if (boundarySection === "pinned" || (activeBottom != null && pointer.y < activeBottom)) {
           const target = collisions.find((collision) => {
             const id = String(collision.id);
@@ -172,14 +175,21 @@ export function createSidebarSortingStrategy(input: {
       if (groups[name].length > 0) projected.push(...groups[name]);
       else marker(`${name}-placeholder`);
     };
+    const markerIndex = (name: SidebarListMarker) =>
+      items.findIndex((item) => item.kind === "marker" && item.marker === name);
+    const workingIndex = markerIndex("working-header");
+    const workingOnTop = workingIndex !== -1 && workingIndex < markerIndex("pinned-header");
+    const pushWorking = () => {
+      if (workingIndex === -1) return;
+      marker("working-header");
+      projected.push(...groups.working);
+    };
+    if (workingOnTop) pushWorking();
     marker("pinned-header");
     projected.push(...groups.pinned);
     marker("pinned-divider");
     section("active");
-    if (items.some((item) => item.kind === "marker" && item.marker === "working-header")) {
-      marker("working-header");
-      projected.push(...groups.working);
-    }
+    if (!workingOnTop) pushWorking();
     if (
       groups.snoozed.length > 0 ||
       ((active.section !== "snoozed" || (input.snoozedThreadCount ?? 0) > 1) &&

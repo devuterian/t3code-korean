@@ -203,6 +203,7 @@ import {
   shouldNavigateAfterThreadPark,
   sidebarListItemId,
   sidebarThreadKeyAtY,
+  orderSidebarThreadGroups,
   sortSidebarInboxThreads,
   sortPinnedThreadsForSidebar,
   sortWorkingThreadsBySend,
@@ -463,6 +464,7 @@ function useSidebarThreads(input: {
   // Folders already separate the work, so boring mode has no Working shelf.
   const workingShelfEnabled =
     useClientSettings((s) => s.sidebarWorkingShelfEnabled) && folderGroups === null;
+  const workingOnTop = useClientSettings((s) => s.sidebarWorkingShelfPosition) === "top";
   const {
     order: activeThreadSortOrder,
     setOrder: setActiveThreadSortOrder,
@@ -575,15 +577,15 @@ function useSidebarThreads(input: {
               : EMPTY_THREADS,
           };
         });
-  const orderedThreads = [
-    ...pinnedThreads,
-    ...(projectFolders === null
-      ? activeThreads
-      : projectFolders.flatMap((folder) => folder.threads)),
-    ...visibleWorkingThreads,
-    ...visibleSnoozedThreads,
-    ...renderedSettledThreads,
-  ];
+  const orderedThreads = orderSidebarThreadGroups({
+    workingOnTop,
+    working: visibleWorkingThreads,
+    pinned: pinnedThreads,
+    active:
+      projectFolders === null ? activeThreads : projectFolders.flatMap((folder) => folder.threads),
+    snoozed: visibleSnoozedThreads,
+    settled: renderedSettledThreads,
+  });
   const sectionByThreadKey = new Map<string, SidebarSection>();
   for (const [list, section] of [
     [pinnedThreads, "pinned"],
@@ -598,6 +600,7 @@ function useSidebarThreads(input: {
     ...partition,
     threads,
     workingShelfEnabled,
+    workingOnTop,
     activeThreadSortOrder,
     setActiveThreadSortOrder,
     activeThreadSortAvailable,
@@ -1346,6 +1349,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
 
   const {
     workingShelfEnabled,
+    workingOnTop,
     activeThreadSortOrder,
     setActiveThreadSortOrder,
     activeThreadSortAvailable,
@@ -2007,17 +2011,21 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
     ) {
       return [];
     }
-    const items: SidebarListItem[] = [{ kind: "marker", marker: "pinned-header" }];
+    const items: SidebarListItem[] = [];
+    const pushWorking = () => {
+      if (workingThreads.length === 0) return;
+      items.push({ kind: "marker", marker: "working-header" });
+      items.push(...rowsOf(visibleWorkingThreads, "working"));
+    };
+    if (workingOnTop) pushWorking();
+    items.push({ kind: "marker", marker: "pinned-header" });
     const pinnedRows = rowsOf(pinnedThreads, "pinned");
     items.push(...pinnedRows);
     items.push({ kind: "marker", marker: "pinned-divider" });
     const activeRows = rowsOf(activeThreads, "active");
     items.push({ kind: "marker", marker: "active-placeholder" });
     items.push(...activeRows);
-    if (workingThreads.length > 0) {
-      items.push({ kind: "marker", marker: "working-header" });
-      items.push(...rowsOf(visibleWorkingThreads, "working"));
-    }
+    if (!workingOnTop) pushWorking();
     if (snoozedThreads.length > 0) {
       items.push({ kind: "marker", marker: "snoozed-header" });
       items.push(...rowsOf(visibleSnoozedThreads, "snoozed"));
@@ -3556,6 +3564,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                           />
                         );
                       };
+                      const bottomWorkingCount = workingOnTop ? 0 : workingThreads.length;
                       const from = isContextDrag ? null : (dragState?.activeSection ?? null);
                       const items: ReactNode[] = [
                         <SidebarDraftBlock
@@ -3646,7 +3655,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                               <SidebarSectionHeader
                                 key="working-shelf-header"
                                 marker="working-header"
-                                className="mt-auto"
+                                className={cn(!workingOnTop && "mt-auto")}
                                 label={t("Working")}
                                 count={workingThreads.length}
                                 toggle={{
@@ -3661,7 +3670,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                               <SidebarSectionHeader
                                 key="snoozed-shelf-header"
                                 marker="snoozed-header"
-                                className={cn(workingThreads.length === 0 && "mt-auto")}
+                                className={cn(bottomWorkingCount === 0 && "mt-auto")}
                                 label={t("Snoozed")}
                                 count={snoozedThreads.length}
                                 toggle={{
@@ -3677,7 +3686,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                                 key="settled-shelf-header"
                                 marker="settled-header"
                                 className={cn(
-                                  workingThreads.length + snoozedThreads.length === 0 && "mt-auto",
+                                  bottomWorkingCount + snoozedThreads.length === 0 && "mt-auto",
                                 )}
                                 label={t("Settled")}
                                 count={settledCount}

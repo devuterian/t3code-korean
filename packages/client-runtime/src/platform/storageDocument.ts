@@ -29,6 +29,8 @@ export const ConnectionCatalogDocument = Schema.Struct({
   disabledEnvironmentIds: Schema.Array(EnvironmentId).pipe(
     Schema.withDecodingDefaultKey(Effect.succeed([])),
   ),
+  // Korean fork: environments the user removed, which tailnet auto-connect must not re-add.
+  tailnetDismissedEnvironmentIds: Schema.optionalKey(Schema.Array(EnvironmentId)),
 });
 export type ConnectionCatalogDocument = typeof ConnectionCatalogDocument.Type;
 

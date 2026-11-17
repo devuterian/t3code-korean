@@ -34,6 +34,7 @@ import * as McpOAuth from "./McpOAuth.ts";
 import * as McpOAuthHttp from "./mcpOAuthHttp.ts";
 import * as ServerSecretStore from "./ServerSecretStore.ts";
 import * as AuthHttp from "./http.ts";
+import * as TailnetAutoConnect from "./TailnetAutoConnect.ts";
 import * as ManagedPolicy from "../policy/ManagedPolicy.ts";
 
 class AuthTestApi extends HttpApi.make("environment")
@@ -64,7 +65,7 @@ const makeLayerRoutes = (
       EnvironmentAuth.EnvironmentAuth.pipe(Effect.tap((auth) => Effect.sync(() => capture(auth)))),
     ),
     HttpApiBuilder.layer(AuthTestApi).pipe(
-      Layer.provide(AuthHttp.layer),
+      Layer.provide(AuthHttp.layer.pipe(Layer.provide(TailnetAutoConnect.layerDisabled))),
       Layer.provide(
         McpOAuthHttp.layer.pipe(
           Layer.provide(McpOAuth.layer),

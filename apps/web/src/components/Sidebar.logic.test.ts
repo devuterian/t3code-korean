@@ -23,6 +23,7 @@ import {
   searchSidebarThreads,
   shouldRecedeSidebarThread,
   sortInboxThreadsByReturn,
+  orderSidebarThreadGroups,
   sortSidebarInboxThreads,
   resolveSidebarDropTarget,
   planSidebarThreadDrop,
@@ -1166,6 +1167,55 @@ describe("Working shelf (beta)", () => {
         activeOrder: ["a1", "a2", "p1"],
       });
       expect(resolveSidebarDropVerb("active", "working")).toBeNull();
+    });
+
+    it("lists the Working group first or after the inbox, per its position", () => {
+      const groups = {
+        working: ["w"],
+        pinned: ["p"],
+        active: ["a"],
+        snoozed: ["z"],
+        settled: ["s"],
+      };
+      expect(orderSidebarThreadGroups({ ...groups, workingOnTop: true })).toEqual([
+        "w",
+        "p",
+        "a",
+        "z",
+        "s",
+      ]);
+      expect(orderSidebarThreadGroups({ ...groups, workingOnTop: false })).toEqual([
+        "p",
+        "a",
+        "w",
+        "z",
+        "s",
+      ]);
+    });
+
+    it("keeps a Working shelf on top out of the pinned and inbox orders", () => {
+      const topItems: readonly SidebarListItem[] = [
+        marker("working-header"),
+        row("w1", "working"),
+        marker("pinned-header"),
+        row("p1", "pinned"),
+        marker("pinned-divider"),
+        row("a1", "active"),
+        row("a2", "active"),
+        marker("settled-header"),
+        row("s1", "settled"),
+      ];
+      expect(resolveSidebarDropTarget(topItems, "w1", "a2")).toEqual({
+        section: "active",
+        pinnedOrder: ["p1"],
+        activeOrder: ["a1", "a2", "w1"],
+      });
+      expect(resolveSidebarDropTarget(topItems, "p1", "a2")).toEqual({
+        section: "active",
+        pinnedOrder: [],
+        activeOrder: ["a1", "a2", "p1"],
+      });
+      expect(resolveSidebarDropTarget(topItems, "a1", "w1")).toBeNull();
     });
 
     it("lets an explicit last-message sort win over the inbox return order", () => {

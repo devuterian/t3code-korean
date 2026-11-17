@@ -28,12 +28,24 @@ const TAILSCALE_KILL_GRACE = Duration.millis(500);
 const TAILSCALE_SERVE_TIMEOUT = Duration.seconds(10);
 const TAILSCALE_PROBE_TIMEOUT = Duration.millis(2_500);
 
-const tailscaleCommandForPlatform = (platform: NodeJS.Platform): "tailscale" | "tailscale.exe" =>
-  platform === "win32" ? "tailscale.exe" : "tailscale";
+const MACOS_APP_CLI = "/Applications/Tailscale.app/Contents/MacOS/Tailscale";
+
+/**
+ * The macOS app does not put `tailscale` on PATH, so on a Mac a failed spawn of `tailscale` is
+ * retried with the CLI bundled in the app.
+ */
+export const tailscaleExecutablesForPlatform = (
+  platform: NodeJS.Platform,
+): ReadonlyArray<"tailscale" | "tailscale.exe" | typeof MACOS_APP_CLI> =>
+  platform === "win32"
+    ? ["tailscale.exe"]
+    : platform === "darwin"
+      ? ["tailscale", MACOS_APP_CLI]
+      : ["tailscale"];
 
 const TailscaleCommandContext = {
-  executable: Schema.Literals(["tailscale", "tailscale.exe"]),
-  subcommand: Schema.Literals(["status", "serve", "debug"]),
+  executable: Schema.Literals(["tailscale", "tailscale.exe", MACOS_APP_CLI]),
+  subcommand: Schema.Literals(["status", "serve", "debug", "whois"]),
   argumentCount: Schema.Number,
 };
 
@@ -241,31 +253,52 @@ export const parseTailscaleStatus = (
     }),
   );
 
+/** Spawns the first executable that starts; a spawn failure on every one is the last one's. */
+const spawnTailscale = Effect.fn("tailscale.spawnTailscale")(function* (
+  spawner: ChildProcessSpawner.ChildProcessSpawner["Service"],
+  platform: NodeJS.Platform,
+  args: readonly string[],
+  context: {
+    readonly subcommand: "status" | "serve" | "debug" | "whois";
+    readonly argumentCount: number;
+  },
+) {
+  const executables = tailscaleExecutablesForPlatform(platform);
+  let failure: TailscaleCommandSpawnError | undefined;
+  for (const executable of executables) {
+    const spawned = yield* spawner
+      .spawn(ChildProcess.make(executable, [...args], { forceKillAfter: TAILSCALE_KILL_GRACE }))
+      .pipe(
+        Effect.mapError(
+          (cause) => new TailscaleCommandSpawnError({ ...context, executable, cause }),
+        ),
+        // Spawning can also fail as a defect rather than a typed error - a
+        // non-directory entry on PATH makes node throw ENOTDIR synchronously.
+        // `mapError` never sees that, so it would escape as an uncaught error.
+        Effect.catchDefect((cause) =>
+          Effect.fail(new TailscaleCommandSpawnError({ ...context, executable, cause })),
+        ),
+        Effect.result,
+      );
+    if (spawned._tag === "Success") return spawned.success;
+    failure = spawned.failure;
+  }
+  return yield* failure!;
+});
+
 const readTailscaleOutput = Effect.fn("tailscale.readTailscaleOutput")(function* (
-  subcommand: "status" | "serve" | "debug",
+  subcommand: "status" | "serve" | "debug" | "whois",
   args: readonly string[],
 ) {
   const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
   const hostPlatform = yield* HostProcess.Platform;
-  const executable = tailscaleCommandForPlatform(hostPlatform);
   const commandContext = {
-    executable,
+    executable: tailscaleExecutablesForPlatform(hostPlatform)[0]!,
     subcommand,
     argumentCount: args.length,
   };
-  const command = ChildProcess.make(executable, [...args], {
-    forceKillAfter: TAILSCALE_KILL_GRACE,
-  });
   return yield* Effect.gen(function* () {
-    const child = yield* spawner.spawn(command).pipe(
-      Effect.mapError((cause) => new TailscaleCommandSpawnError({ ...commandContext, cause })),
-      // Spawning can also fail as a defect rather than a typed error - a
-      // non-directory entry on PATH makes node throw ENOTDIR synchronously.
-      // `mapError` never sees that, so it would escape as an uncaught error.
-      Effect.catchDefect((cause) =>
-        Effect.fail(new TailscaleCommandSpawnError({ ...commandContext, cause })),
-      ),
-    );
+    const child = yield* spawnTailscale(spawner, hostPlatform, args, commandContext);
     const [stdout, stderr, exitCode] = yield* Effect.all(
       [
         collectStdout(child.stdout),
@@ -359,6 +392,147 @@ export const readTailscaleExitNode = readTailscaleOutput("status", ["status", "-
   Effect.flatMap(parseTailscaleExitNode),
 );
 
+/**
+ * Korean fork, tailnet auto-connect. `tailscale status --json` as the server's identity source:
+ * `Self.UserID` is the tailnet user this machine belongs to, `Peer` lists the other nodes. Tagged
+ * nodes carry a synthetic UserID, so they never equal a real user's id.
+ */
+const TailscalePeerNodeJson = Schema.Struct({
+  HostName: Schema.optional(Schema.Unknown),
+  DNSName: Schema.optional(Schema.Unknown),
+  TailscaleIPs: Schema.optional(Schema.Unknown),
+  UserID: Schema.optional(Schema.Unknown),
+  Online: Schema.optional(Schema.Unknown),
+  OS: Schema.optional(Schema.Unknown),
+  Tags: Schema.optional(Schema.Unknown),
+});
+
+const TailscalePeersJson = Schema.Struct({
+  BackendState: Schema.optional(Schema.Unknown),
+  Self: Schema.optional(TailscalePeerNodeJson),
+  Peer: Schema.optional(Schema.Record(Schema.String, TailscalePeerNodeJson)),
+});
+
+const decodeTailscalePeersJson = Schema.decodeEffect(Schema.fromJsonString(TailscalePeersJson));
+
+export interface TailscalePeer {
+  readonly hostName: string;
+  /** MagicDNS name without the trailing dot, or null. */
+  readonly dnsName: string | null;
+  readonly tailnetIpv4Addresses: readonly string[];
+  readonly userId: number | null;
+  readonly online: boolean;
+  readonly tagged: boolean;
+  readonly os: string | null;
+}
+
+export interface TailscalePeers {
+  readonly running: boolean;
+  readonly selfUserId: number | null;
+  readonly selfIpv4Addresses: readonly string[];
+  /** This machine's MagicDNS name without the trailing dot, or null. */
+  readonly selfDnsName: string | null;
+  readonly peers: readonly TailscalePeer[];
+}
+
+const nodeUserId = (value: unknown): number | null =>
+  typeof value === "number" && Number.isSafeInteger(value) && value > 0 ? value : null;
+
+const toTailscalePeer = (node: typeof TailscalePeerNodeJson.Type): TailscalePeer => {
+  const dns = typeof node.DNSName === "string" ? node.DNSName.trim().replace(/\.$/u, "") : "";
+  return {
+    hostName: typeof node.HostName === "string" ? node.HostName.trim() : "",
+    dnsName: dns.length > 0 ? dns : null,
+    tailnetIpv4Addresses: Array.isArray(node.TailscaleIPs)
+      ? node.TailscaleIPs.filter(
+          (address): address is string =>
+            typeof address === "string" && isTailscaleIpv4Address(address),
+        )
+      : [],
+    userId: nodeUserId(node.UserID),
+    online: node.Online === true,
+    tagged: Array.isArray(node.Tags) && node.Tags.length > 0,
+    os: typeof node.OS === "string" && node.OS.length > 0 ? node.OS : null,
+  };
+};
+
+export const parseTailscalePeers = (
+  rawStatusJson: string,
+): Effect.Effect<TailscalePeers, TailscaleStatusParseError> =>
+  decodeTailscalePeersJson(rawStatusJson).pipe(
+    Effect.mapError((cause) => new TailscaleStatusParseError({ cause })),
+    Effect.map((parsed) => {
+      const self = parsed.Self === undefined ? undefined : toTailscalePeer(parsed.Self);
+      return {
+        running: parsed.BackendState === "Running",
+        // A tagged Self has no owning user, so it can never match a person.
+        selfUserId: self === undefined || self.tagged ? null : self.userId,
+        selfIpv4Addresses: self?.tailnetIpv4Addresses ?? [],
+        selfDnsName: self?.dnsName ?? null,
+        peers: Object.values(parsed.Peer ?? {}).map(toTailscalePeer),
+      };
+    }),
+  );
+
+export const readTailscalePeers = readTailscaleOutput("status", ["status", "--json"]).pipe(
+  Effect.flatMap(parseTailscalePeers),
+);
+
+const TailscaleWhoisJson = Schema.Struct({
+  Node: Schema.optional(
+    Schema.Struct({
+      Name: Schema.optional(Schema.Unknown),
+      Tags: Schema.optional(Schema.Unknown),
+    }),
+  ),
+  UserProfile: Schema.optional(
+    Schema.Struct({
+      ID: Schema.optional(Schema.Unknown),
+      LoginName: Schema.optional(Schema.Unknown),
+    }),
+  ),
+});
+
+const decodeTailscaleWhoisJson = Schema.decodeEffect(Schema.fromJsonString(TailscaleWhoisJson));
+
+export interface TailscaleWhois {
+  /** The node's MagicDNS name without the trailing dot, or null. */
+  readonly nodeName: string | null;
+  readonly tagged: boolean;
+  /** The owning tailnet user; null for a tagged node or when the CLI omitted the profile. */
+  readonly user: { readonly id: number; readonly loginName: string | null } | null;
+}
+
+export const parseTailscaleWhois = (
+  rawWhoisJson: string,
+): Effect.Effect<TailscaleWhois, TailscaleStatusParseError> =>
+  decodeTailscaleWhoisJson(rawWhoisJson).pipe(
+    Effect.mapError((cause) => new TailscaleStatusParseError({ cause })),
+    Effect.map((parsed) => {
+      const name = typeof parsed.Node?.Name === "string" ? parsed.Node.Name.trim() : "";
+      const userId = nodeUserId(parsed.UserProfile?.ID);
+      const loginName = parsed.UserProfile?.LoginName;
+      return {
+        nodeName: name.length > 0 ? name.replace(/\.$/u, "") : null,
+        tagged: Array.isArray(parsed.Node?.Tags) && parsed.Node.Tags.length > 0,
+        user:
+          userId === null
+            ? null
+            : { id: userId, loginName: typeof loginName === "string" ? loginName : null },
+      };
+    }),
+  );
+
+const isIpLiteral = (value: string) => /^[0-9a-f.:]+$/iu.test(value) && value.length <= 45;
+
+/** Who owns the tailnet address `ip`, as the local tailscaled sees it. Fails on anything unclear. */
+export const readTailscaleWhois = (ip: string) =>
+  isIpLiteral(ip)
+    ? readTailscaleOutput("whois", ["whois", "--json", ip]).pipe(
+        Effect.flatMap(parseTailscaleWhois),
+      )
+    : Effect.fail(new TailscaleStatusParseError({ cause: "not an IP literal" }));
+
 const TailscalePrefsJson = Schema.Struct({
   RunSSH: Schema.optional(Schema.Unknown),
   WantRunning: Schema.optional(Schema.Unknown),
@@ -401,22 +575,14 @@ const runTailscaleCommand = Effect.fn("tailscale.runTailscaleCommand")(function*
 ): Effect.fn.Return<void, TailscaleCommandError, ChildProcessSpawner.ChildProcessSpawner> {
   const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
   const hostPlatform = yield* HostProcess.Platform;
-  const executable = tailscaleCommandForPlatform(hostPlatform);
   const commandContext = {
-    executable,
+    executable: tailscaleExecutablesForPlatform(hostPlatform)[0]!,
     subcommand: "serve" as const,
     argumentCount: args.length,
   };
   const timeout = Duration.fromInputUnsafe(timeoutInput);
   return yield* Effect.gen(function* () {
-    const child = yield* spawner
-      .spawn(ChildProcess.make(executable, args, { forceKillAfter: TAILSCALE_KILL_GRACE }))
-      .pipe(
-        Effect.mapError((cause) => new TailscaleCommandSpawnError({ ...commandContext, cause })),
-        Effect.catchDefect((cause) =>
-          Effect.fail(new TailscaleCommandSpawnError({ ...commandContext, cause })),
-        ),
-      );
+    const child = yield* spawnTailscale(spawner, hostPlatform, args, commandContext);
     // An unread stdout pipe fills on a long success summary and blocks the child before it exits.
     const [, stderr, exitCode] = yield* Effect.all(
       [

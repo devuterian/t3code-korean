@@ -42,6 +42,7 @@ import {
   PullRequestRoutingPermissions,
   pullRequestRoutingConnectionKey,
 } from "./pullRequestRoutingPermissions.ts";
+import { TailnetDismissals } from "./tailnetDismissals.ts";
 import {
   RELAY_ROUTE_ID,
   connectionRouteId,
@@ -216,6 +217,7 @@ export const make = Effect.gen(function* () {
   const profiles = yield* ConnectionProfileStore.ConnectionProfileStore;
   const credentials = yield* ConnectionCredentialStore.ConnectionCredentialStore;
   const pullRequestRoutingPermissions = yield* PullRequestRoutingPermissions;
+  const tailnetDismissals = yield* TailnetDismissals;
   const connectivity = yield* Connectivity.Connectivity;
   const driver = yield* ConnectionDriver.ConnectionDriver;
   const wakeups = yield* ConnectionWakeups.ConnectionWakeups;
@@ -897,7 +899,9 @@ export const make = Effect.gen(function* () {
   });
 
   const remove = Effect.fn("EnvironmentRegistry.remove")(function* (environmentId: EnvironmentId) {
-    return yield* withLeaseLock(environmentId, removeLocked(environmentId));
+    yield* withLeaseLock(environmentId, removeLocked(environmentId));
+    // Only a removal the user asked for; the tailnet scan must not add it back.
+    yield* tailnetDismissals.add(environmentId);
   });
 
   const disconnectSsh = (environmentId: EnvironmentId, profile: SshConnectionProfile) =>

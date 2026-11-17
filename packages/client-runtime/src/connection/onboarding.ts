@@ -33,6 +33,8 @@ import * as Persistence from "../platform/persistence.ts";
 import * as EnvironmentRegistry from "./registry.ts";
 import { orchestrationProtocolCompatibilityError } from "./compatibility.ts";
 import { connectionRoutes, routeEntry, sshTargetKey } from "./routes.ts";
+import { TailnetDismissals } from "./tailnetDismissals.ts";
+import { withTailnetCredential } from "./tailnetCredential.ts";
 
 export interface PairingConnectionInput {
   readonly pairingUrl?: string;
@@ -154,7 +156,9 @@ export const preparePairingRegistration = Effect.fn(
 
 const registerPairingConnection = Effect.fn(
   "clientRuntime.connection.onboarding.registerPairingConnection",
-)(function* (input: PairingConnectionInput) {
+)(function* (rawInput: PairingConnectionInput) {
+  // An address with no code asks the server for a tailnet credential first (Korean fork).
+  const input = yield* withTailnetCredential(rawInput);
   const registration = yield* preparePairingRegistration(input);
   const registry = yield* EnvironmentRegistry.EnvironmentRegistry;
   const knownAddressOnly = input.expectedEnvironmentId === undefined;
@@ -304,12 +308,16 @@ export const make = Effect.gen(function* () {
   const httpClient = yield* HttpClient.HttpClient;
   const ssh = yield* ClientCapabilities.SshEnvironmentGateway;
   const credentials = yield* ConnectionCredentialStore.ConnectionCredentialStore;
+  const tailnetDismissals = yield* TailnetDismissals;
 
   // Provisioning retains the delegated onboarding operation spans.
   return ConnectionOnboarding.of({
     registerPairing: Effect.fnUntraced(
       function* (input) {
-        return yield* registerPairingConnection(input);
+        const environmentId = yield* registerPairingConnection(input);
+        // Pairing again by hand undoes an earlier removal for tailnet auto-connect.
+        yield* tailnetDismissals.forget(environmentId);
+        return environmentId;
       },
       Effect.provideService(EnvironmentRegistry.EnvironmentRegistry, registry),
       Effect.provideService(ClientCapabilities.ClientPresentation, presentation),

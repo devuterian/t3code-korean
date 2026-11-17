@@ -28,6 +28,8 @@ import {
   StoredPullRequestRoutingPermission,
   pullRequestRoutingConnectionKey,
   pullRequestRoutingPermissionFor,
+  makeTailnetDismissals,
+  TailnetDismissals,
 } from "@t3tools/client-runtime/connection";
 import { EnvironmentQueryStore } from "@t3tools/client-runtime/state/query-persistence";
 import { EnvironmentId, ServerConfig, ThreadId, VcsListRefsResult } from "@t3tools/contracts";
@@ -694,6 +696,33 @@ export function makeBrowserPullRequestRoutingPermissions(
   });
 }
 
+const TAILNET_DISMISSED_KEY = "t3code:tailnet-dismissed-environments";
+const TailnetDismissedJson = Schema.fromJsonString(Schema.Array(EnvironmentId));
+const decodeTailnetDismissed = Schema.decodeUnknownSync(TailnetDismissedJson);
+const encodeTailnetDismissed = Schema.encodeSync(TailnetDismissedJson);
+
+/** Environments the user removed, kept in localStorage so tailnet auto-connect leaves them out. */
+function makeBrowserTailnetDismissals(browser: Pick<Window, "localStorage"> = window) {
+  return makeTailnetDismissals({
+    read: Effect.sync(() => {
+      try {
+        const raw = browser.localStorage.getItem(TAILNET_DISMISSED_KEY);
+        return raw === null ? [] : decodeTailnetDismissed(raw);
+      } catch {
+        return [];
+      }
+    }),
+    write: (ids) =>
+      Effect.sync(() => {
+        try {
+          browser.localStorage.setItem(TAILNET_DISMISSED_KEY, encodeTailnetDismissed(ids));
+        } catch {
+          // Storage can be unavailable; the removal then only holds until reload.
+        }
+      }),
+  });
+}
+
 // MessageChannel yields without nested-timer clamping or background throttling.
 const yieldToBrowserTask = Effect.callback<void>((resume) => {
   const { port1, port2 } = new MessageChannel();
@@ -1108,6 +1137,7 @@ export const layer = Layer.effectContext(
 
     return Context.make(Persistence.ConnectionTargetStore, targetStore).pipe(
       Context.add(PullRequestRoutingPermissions, pullRequestRoutingPermissions),
+      Context.add(TailnetDismissals, makeBrowserTailnetDismissals()),
       Context.add(Persistence.ConnectionRegistrationStore, registrationStore),
       Context.add(ProfileStore.ConnectionProfileStore, profileStore),
       Context.add(CredentialStore.ConnectionCredentialStore, credentialStore),

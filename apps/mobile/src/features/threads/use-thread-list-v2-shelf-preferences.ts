@@ -12,6 +12,9 @@ export function useThreadListV2ShelfPreferences() {
   const settledShelfExpanded =
     loaded && preferencesResult.value.threadListSettledShelfExpanded === true;
   const workingShelfEnabled = loaded && preferencesResult.value.workingShelfEnabled !== false;
+  const workingShelfPosition = loaded
+    ? (preferencesResult.value.workingShelfPosition ?? "top")
+    : ("top" as const);
   // Fork: expanded unless the user folded it.
   const workingShelfExpanded =
     loaded && preferencesResult.value.threadListWorkingShelfExpanded !== false;
@@ -47,6 +50,7 @@ export function useThreadListV2ShelfPreferences() {
     settledShelfExpanded,
     snoozedShelfExpanded,
     workingShelfEnabled,
+    workingShelfPosition,
     workingShelfExpanded,
     toggleSettledShelf,
     toggleSnoozedShelf,

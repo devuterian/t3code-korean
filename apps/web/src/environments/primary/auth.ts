@@ -308,13 +308,63 @@ function isTransportError(error: unknown): boolean {
   return HttpClientError.isHttpClientError(error) && error.reason._tag === "TransportError";
 }
 
+const TAILNET_PAUSED_KEY = "t3code:tailnet-auto-sign-in-paused";
+const SESSION_SEEN_KEY = "t3code:primary-session-seen";
+
+function readLocalFlag(key: string): boolean {
+  try {
+    return window.localStorage.getItem(key) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function writeLocalFlag(key: string, on: boolean) {
+  try {
+    if (on) window.localStorage.setItem(key, "1");
+    else window.localStorage.removeItem(key);
+  } catch {
+    // Storage can be unavailable; auto sign-in then simply is not paused.
+  }
+}
+
+/**
+ * Korean fork, tailnet auto-connect: a server that says it trusts this device's Tailscale identity
+ * hands out a credential without a pairing link. Any refusal or failure means "sign in the usual
+ * way". Auto sign-in stays off on this origin once a session that was seen is gone (signed out or
+ * revoked), until the user signs in by hand.
+ */
+async function fetchTailnetCredential(): Promise<string | null> {
+  if (readLocalFlag(TAILNET_PAUSED_KEY)) return null;
+  try {
+    const descriptor = await runPrimaryHttp(
+      PrimaryEnvironmentHttpClient.pipe(Effect.flatMap((client) => client.metadata.descriptor())),
+    );
+    if (descriptor.tailnetAutoConnect !== true) return null;
+    const result = await runPrimaryHttp(
+      PrimaryEnvironmentHttpClient.pipe(
+        Effect.flatMap((client) => client.auth.tailnetCredential()),
+      ),
+    );
+    return result.credential;
+  } catch {
+    return null;
+  }
+}
+
 async function bootstrapServerAuth(urlCredential: string | null): Promise<ServerAuthGateState> {
   const currentSession = await fetchSessionState();
   if (currentSession.authenticated && !urlCredential) {
+    writeLocalFlag(SESSION_SEEN_KEY, true);
     return { status: "authenticated" };
   }
+  if (!currentSession.authenticated && readLocalFlag(SESSION_SEEN_KEY)) {
+    writeLocalFlag(SESSION_SEEN_KEY, false);
+    writeLocalFlag(TAILNET_PAUSED_KEY, true);
+  }
 
-  const bootstrapCredential = urlCredential ?? getDesktopBootstrapCredential();
+  const givenCredential = urlCredential ?? getDesktopBootstrapCredential();
+  const bootstrapCredential = givenCredential ?? (await fetchTailnetCredential());
   if (!bootstrapCredential) {
     return {
       status: "requires-auth",
@@ -325,12 +375,19 @@ async function bootstrapServerAuth(urlCredential: string | null): Promise<Server
   try {
     await exchangeBootstrapCredential(bootstrapCredential);
     await waitForAuthenticatedSessionAfterBootstrap();
+    writeLocalFlag(SESSION_SEEN_KEY, true);
+    if (givenCredential !== null) writeLocalFlag(TAILNET_PAUSED_KEY, false);
     return { status: "authenticated" };
   } catch (error) {
     return {
       status: "requires-auth",
       auth: currentSession.auth,
-      errorMessage: error instanceof Error ? error.message : "Authentication failed.",
+      // A tailnet credential nobody typed in fails quietly, back to the normal sign-in.
+      ...(givenCredential === null
+        ? {}
+        : {
+            errorMessage: error instanceof Error ? error.message : "Authentication failed.",
+          }),
     };
   }
 }
@@ -347,6 +404,8 @@ export async function submitServerAuthCredential(credential: string): Promise<vo
   await exchangeBootstrapCredential(trimmedCredential);
   await waitForAuthenticatedSessionAfterBootstrap();
   resolvedAuthenticatedGateState = { status: "authenticated" };
+  writeLocalFlag(SESSION_SEEN_KEY, true);
+  writeLocalFlag(TAILNET_PAUSED_KEY, false);
   bootstrapPromise = null;
   explicitPairingRequested = false;
   stripPairingTokenFromUrl();

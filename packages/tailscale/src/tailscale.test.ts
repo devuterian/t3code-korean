@@ -15,13 +15,18 @@ import * as HostProcess from "@t3tools/shared/HostProcess";
 import {
   ensureTailscaleServe,
   parseTailscaleExitNode,
+  parseTailscalePeers,
+  parseTailscaleWhois,
   parseTailscaleServeRootHolders,
   parseTailscaleServeRoutesTo,
   parseTailscaleSshEnabled,
   parseTailscaleStatus,
   probeTailscaleHttpsEndpoint,
+  readTailscalePeers,
   readTailscaleSshEnabled,
   readTailscaleStatus,
+  readTailscaleWhois,
+  tailscaleExecutablesForPlatform,
   TailscaleCommandExitError,
   TailscaleCommandSpawnError,
   TailscaleStatusParseError,
@@ -102,6 +107,15 @@ function layerMockSpawner(
 }
 
 describe("tailscale", () => {
+  it("tries the macOS app's bundled CLI after tailscale, and only on a Mac", () => {
+    assert.deepEqual(tailscaleExecutablesForPlatform("darwin"), [
+      "tailscale",
+      "/Applications/Tailscale.app/Contents/MacOS/Tailscale",
+    ]);
+    assert.deepEqual(tailscaleExecutablesForPlatform("linux"), ["tailscale"]);
+    assert.deepEqual(tailscaleExecutablesForPlatform("win32"), ["tailscale.exe"]);
+  });
+
   it.effect("does not treat a non-T3 response on the HTTPS probe path as reachable", () =>
     Effect.gen(function* () {
       for (const [body, status] of [
@@ -347,6 +361,28 @@ describe("tailscale", () => {
     });
   });
 
+  it.effect("runs the macOS app's CLI when tailscale cannot be spawned on a Mac", () => {
+    const app = "/Applications/Tailscale.app/Contents/MacOS/Tailscale";
+    const tried: Array<string> = [];
+    const layer = Layer.merge(
+      Layer.succeed(
+        ChildProcessSpawner.ChildProcessSpawner,
+        ChildProcessSpawner.make((command) => {
+          const name = (command as unknown as { readonly command: string }).command;
+          tried.push(name);
+          return name === app
+            ? Effect.succeed(mockHandle({ stdout: tailscaleStatusJson }))
+            : Effect.die(new Error("spawn tailscale ENOENT"));
+        }),
+      ),
+      Layer.succeed(HostProcess.Platform, "darwin"),
+    );
+    return Effect.gen(function* () {
+      yield* readTailscaleStatus.pipe(Effect.provide(layer));
+      assert.deepEqual(tried, ["tailscale", app]);
+    });
+  });
+
   it.effect("turns spawn defects into typed spawn failures", () => {
     // A non-directory entry on PATH makes node's spawn throw ENOTDIR
     // synchronously. The platform spawner calls `NodeChildProcess.spawn` from
@@ -495,4 +531,101 @@ describe("tailscale", () => {
       assert.deepEqual(killGraces, [500, 500, 500, 500]);
     });
   });
+
+  // Shapes taken from `tailscale status --json` and `tailscale whois --json` against Headscale,
+  // with keys, endpoints and unrelated fields removed.
+  const headscaleStatusJson = JSON.stringify({
+    BackendState: "Running",
+    Self: {
+      HostName: "mac",
+      DNSName: "mac.tail.example.",
+      OS: "macOS",
+      UserID: 4,
+      TailscaleIPs: ["100.64.0.17", "fd7a:115c:a1e0::11"],
+      Online: true,
+    },
+    Peer: {
+      "nodekey:a": {
+        HostName: "server",
+        DNSName: "server.tail.example.",
+        OS: "linux",
+        UserID: 2147455555,
+        Tags: ["tag:auth-13"],
+        TailscaleIPs: ["100.64.0.16", "fd7a:115c:a1e0::10"],
+        Online: true,
+      },
+      "nodekey:b": {
+        HostName: "phone",
+        DNSName: "phone.tail.example.",
+        OS: "android",
+        UserID: 4,
+        TailscaleIPs: ["100.64.0.21", "fd7a:115c:a1e0::15"],
+        Online: false,
+      },
+    },
+  });
+
+  it.effect("reads the own user and the peers from status", () =>
+    Effect.gen(function* () {
+      const result = yield* parseTailscalePeers(headscaleStatusJson);
+      assert.isTrue(result.running);
+      assert.strictEqual(result.selfUserId, 4);
+      assert.deepEqual(result.selfIpv4Addresses, ["100.64.0.17"]);
+      const server = result.peers.find((peer) => peer.hostName === "server");
+      assert.isTrue(server?.tagged);
+      const phone = result.peers.find((peer) => peer.hostName === "phone");
+      assert.deepEqual(phone, {
+        hostName: "phone",
+        dnsName: "phone.tail.example",
+        tailnetIpv4Addresses: ["100.64.0.21"],
+        userId: 4,
+        online: false,
+        tagged: false,
+        os: "android",
+      });
+      const failure = yield* Effect.flip(parseTailscalePeers("not json"));
+      assert.instanceOf(failure, TailscaleStatusParseError);
+    }),
+  );
+
+  it.effect("parses whois for a user node and a tagged node", () =>
+    Effect.gen(function* () {
+      const user = yield* parseTailscaleWhois(
+        JSON.stringify({
+          Node: { Name: "phone.tail.example.", User: 4, Tags: null },
+          UserProfile: { ID: 4, LoginName: "auth-13", DisplayName: "auth-13" },
+        }),
+      );
+      assert.deepEqual(user, {
+        nodeName: "phone.tail.example",
+        tagged: false,
+        user: { id: 4, loginName: "auth-13" },
+      });
+      const tagged = yield* parseTailscaleWhois(
+        JSON.stringify({ Node: { Name: "box.tail.example.", Tags: ["tag:x"] } }),
+      );
+      assert.deepEqual(tagged, { nodeName: "box.tail.example", tagged: true, user: null });
+    }),
+  );
+
+  it.effect("runs whois only for IP literals and fails closed on CLI errors", () =>
+    Effect.gen(function* () {
+      const calls: Array<ReadonlyArray<string>> = [];
+      const layer = layerMockSpawner((_command, args) => {
+        calls.push(args);
+        return args[0] === "whois"
+          ? { stdout: JSON.stringify({ UserProfile: { ID: 4, LoginName: "a" } }) }
+          : { stdout: headscaleStatusJson };
+      });
+      const whois = yield* readTailscaleWhois("100.64.0.21").pipe(Effect.provide(layer));
+      assert.strictEqual(whois.user?.id, 4);
+      assert.deepEqual(calls[0], ["whois", "--json", "100.64.0.21"]);
+      yield* Effect.flip(readTailscaleWhois("--help").pipe(Effect.provide(layer)));
+      assert.lengthOf(calls, 1);
+      const failing = layerMockSpawner(() => ({ code: 1, stderr: "no match" }));
+      yield* Effect.flip(readTailscaleWhois("100.64.0.21").pipe(Effect.provide(failing)));
+      const peers = yield* readTailscalePeers.pipe(Effect.provide(layer));
+      assert.strictEqual(peers.selfUserId, 4);
+    }),
+  );
 });

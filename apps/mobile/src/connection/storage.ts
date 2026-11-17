@@ -15,6 +15,8 @@ import {
   ProfileStore,
   PullRequestRoutingPermissions,
   makePullRequestRoutingPermissions,
+  makeTailnetDismissals,
+  TailnetDismissals,
 } from "@t3tools/client-runtime/connection";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
@@ -46,6 +48,17 @@ export const layer = Layer.effectContext(
       read: catalog.read.pipe(Effect.map((document) => document.githubRoutingPermissions ?? [])),
       write: (githubRoutingPermissions) =>
         catalog.update((document) => ({ ...document, githubRoutingPermissions })),
+    });
+
+    const tailnetDismissals = makeTailnetDismissals({
+      read: catalog.read.pipe(
+        Effect.map((document) => document.tailnetDismissedEnvironmentIds ?? []),
+        Effect.orElseSucceed(() => []),
+      ),
+      write: (tailnetDismissedEnvironmentIds) =>
+        catalog
+          .update((document) => ({ ...document, tailnetDismissedEnvironmentIds }))
+          .pipe(Effect.ignore),
     });
 
     const targetStore = Persistence.ConnectionTargetStore.of({
@@ -160,6 +173,7 @@ export const layer = Layer.effectContext(
     });
     return Context.make(Persistence.ConnectionTargetStore, targetStore).pipe(
       Context.add(PullRequestRoutingPermissions, githubRoutingPermissions),
+      Context.add(TailnetDismissals, tailnetDismissals),
       Context.add(Persistence.ConnectionRegistrationStore, registrationStore),
       Context.add(ProfileStore.ConnectionProfileStore, profileStore),
       Context.add(CredentialStore.ConnectionCredentialStore, credentialStore),

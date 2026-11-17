@@ -475,6 +475,39 @@ function CloudLinkSwitch({
   );
 }
 
+/** Korean fork: lets this server trust devices on its own Tailscale account without a pairing code. */
+export function TailnetAutoConnectRow({
+  environmentId,
+  enabled,
+  canManage,
+}: {
+  readonly environmentId: EnvironmentId;
+  readonly enabled: boolean;
+  readonly canManage: boolean;
+}) {
+  const t = useTranslate();
+  const updateEnvironmentSettings = useUpdateEnvironmentSettings(environmentId);
+  return (
+    <SettingsRow
+      title={t("Tailnet auto-connect")}
+      description={t(
+        "Any device signed in to this computer's Tailscale account, including apps running on it, connects without a pairing code, and your other T3 servers are found automatically.",
+      )}
+      control={
+        <CloudLinkSwitch
+          ariaLabel="Tailnet auto-connect"
+          checked={enabled}
+          disabled={!canManage}
+          disabledReason={
+            canManage ? null : t("Your session does not have permission to manage access.")
+          }
+          onCheckedChange={(next) => updateEnvironmentSettings({ tailnetAutoConnect: next })}
+        />
+      }
+    />
+  );
+}
+
 /** Tunnel meter, plus the upgrade prompt after the relay refuses a tunnel at the cap. */
 function T3ConnectTunnelUsage({ tunnelLimit }: { readonly tunnelLimit: number | null }) {
   const t = useTranslate();
