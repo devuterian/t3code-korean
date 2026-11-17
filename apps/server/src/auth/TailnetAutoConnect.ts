@@ -266,20 +266,26 @@ export const makeTailnetAutoConnect = Effect.fn("TailnetAutoConnect.make")(funct
         peer.userId === selfUserId &&
         peer.tailnetIpv4Addresses.length > 0,
     );
+    // Peers usually run on the default port even when this server does not.
+    const ports = [...new Set([deps.port, ServerConfig.DEFAULT_PORT])];
+    const probeOne = (peer: (typeof candidates)[number], port: number) => {
+      const ip = peer.tailnetIpv4Addresses[0]!;
+      return deps.probe(`http://${ip}:${port}/.well-known/t3/environment`).pipe(
+        Effect.map(
+          Option.map((descriptor): AuthTailnetPeer => ({
+            httpBaseUrl: `http://${peer.dnsName ?? ip}:${port}`,
+            environmentId: descriptor.environmentId,
+            label: descriptor.label,
+          })),
+        ),
+      );
+    };
     const probed = yield* Effect.forEach(
       candidates,
-      (peer) => {
-        const ip = peer.tailnetIpv4Addresses[0]!;
-        return deps.probe(`http://${ip}:${deps.port}/.well-known/t3/environment`).pipe(
-          Effect.map(
-            Option.map((descriptor): AuthTailnetPeer => ({
-              httpBaseUrl: `http://${peer.dnsName ?? ip}:${deps.port}`,
-              environmentId: descriptor.environmentId,
-              label: descriptor.label,
-            })),
-          ),
-        );
-      },
+      (peer) =>
+        Effect.forEach(ports, (port) => probeOne(peer, port)).pipe(
+          Effect.map((found) => Option.firstSomeOf(found)),
+        ),
       { concurrency: PEER_PROBE_CONCURRENCY },
     );
     return probed.flatMap((peer) => (Option.isSome(peer) ? [peer.value] : []));
