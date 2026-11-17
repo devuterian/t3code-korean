@@ -170,15 +170,21 @@ const isLoopbackIpAddress = (address: string): boolean =>
   (NodeNet.isIPv4(address) && address.startsWith("127.")) || address === "::1";
 
 // A loopback peer is a local reverse proxy (Tailscale Serve); trust only the entry it appended.
-export function resolveClientIpAddress(
-  request: HttpServerRequest.HttpServerRequest,
-): string | undefined {
+function resolveClientIpAddress(request: HttpServerRequest.HttpServerRequest): string | undefined {
   const peer = readRemoteAddressFromSource(request.source);
   if (!peer || !isLoopbackIpAddress(peer)) {
     return peer;
   }
   const forwarded = normalizeIpAddress(request.headers["x-forwarded-for"]?.split(",").at(-1));
   return forwarded && NodeNet.isIP(forwarded) !== 0 ? forwarded : peer;
+}
+
+/** The TCP peer address, never a forwarded header; undefined for loopback peers. */
+export function readNonLoopbackSocketAddress(
+  request: HttpServerRequest.HttpServerRequest,
+): string | undefined {
+  const peer = readRemoteAddressFromSource(request.source);
+  return peer !== undefined && !isLoopbackIpAddress(peer) ? peer : undefined;
 }
 
 export function deriveAuthClientMetadata(input: {

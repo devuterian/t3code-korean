@@ -47,6 +47,7 @@ import {
   failEnvironmentInternal,
 } from "./auth/http.ts";
 import * as ServerEnvironment from "./environment/ServerEnvironment.ts";
+import * as ServerSettings from "./serverSettings.ts";
 import { WEBHOOK_ROUTE_PREFIX } from "./scheduledTasks/ScheduledTaskService.ts";
 import {
   browserApiCorsAllowedHeaders,
@@ -326,11 +327,18 @@ export const layerServerEnvironmentHttpApi = HttpApiBuilder.group(
   "metadata",
   Effect.fnUntraced(function* (handlers) {
     const serverEnvironment = yield* ServerEnvironment.ServerEnvironment;
+    const settings = yield* ServerSettings.ServerSettingsService;
     return handlers.handle(
       "descriptor",
       Effect.fn("environment.metadata.descriptor")(function* (args) {
         yield* annotateEnvironmentRequest(args.endpoint.name);
-        return yield* serverEnvironment.getDescriptor;
+        const descriptor = yield* serverEnvironment.getDescriptor;
+        // Read per request so clients stop calling the tailnet routes as soon as it is turned off.
+        const tailnetAutoConnect = yield* settings.getSettings.pipe(
+          Effect.map((value) => value.tailnetAutoConnect),
+          Effect.orElseSucceed(() => false),
+        );
+        return { ...descriptor, tailnetAutoConnect };
       }, traceRelayRequest),
     );
   }),

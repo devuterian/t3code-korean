@@ -26,6 +26,7 @@ import {
   readTailscaleSshEnabled,
   readTailscaleStatus,
   readTailscaleWhois,
+  tailscaleExecutablesForPlatform,
   TailscaleCommandExitError,
   TailscaleCommandSpawnError,
   TailscaleStatusParseError,
@@ -106,6 +107,15 @@ function layerMockSpawner(
 }
 
 describe("tailscale", () => {
+  it("tries the macOS app's bundled CLI after tailscale, and only on a Mac", () => {
+    assert.deepEqual(tailscaleExecutablesForPlatform("darwin"), [
+      "tailscale",
+      "/Applications/Tailscale.app/Contents/MacOS/Tailscale",
+    ]);
+    assert.deepEqual(tailscaleExecutablesForPlatform("linux"), ["tailscale"]);
+    assert.deepEqual(tailscaleExecutablesForPlatform("win32"), ["tailscale.exe"]);
+  });
+
   it.effect("does not treat a non-T3 response on the HTTPS probe path as reachable", () =>
     Effect.gen(function* () {
       for (const [body, status] of [
@@ -348,6 +358,28 @@ describe("tailscale", () => {
       assert.isFalse(yield* parseTailscaleSshEnabled("{}"));
       const error = yield* parseTailscaleSshEnabled("{not-json").pipe(Effect.flip);
       assert.instanceOf(error, TailscaleStatusParseError);
+    });
+  });
+
+  it.effect("runs the macOS app's CLI when tailscale cannot be spawned on a Mac", () => {
+    const app = "/Applications/Tailscale.app/Contents/MacOS/Tailscale";
+    const tried: Array<string> = [];
+    const layer = Layer.merge(
+      Layer.succeed(
+        ChildProcessSpawner.ChildProcessSpawner,
+        ChildProcessSpawner.make((command) => {
+          const name = (command as unknown as { readonly command: string }).command;
+          tried.push(name);
+          return name === app
+            ? Effect.succeed(mockHandle({ stdout: tailscaleStatusJson }))
+            : Effect.die(new Error("spawn tailscale ENOENT"));
+        }),
+      ),
+      Layer.succeed(HostProcess.Platform, "darwin"),
+    );
+    return Effect.gen(function* () {
+      yield* readTailscaleStatus.pipe(Effect.provide(layer));
+      assert.deepEqual(tried, ["tailscale", app]);
     });
   });
 

@@ -38,7 +38,7 @@ import * as EnvironmentAuth from "./EnvironmentAuth.ts";
 import * as SessionStore from "./SessionStore.ts";
 import * as TailnetAutoConnect from "./TailnetAutoConnect.ts";
 import { traceAuthenticatedRelayRequest, traceRelayRequest } from "../cloud/traceRelayRequest.ts";
-import { deriveAuthClientMetadata, resolveClientIpAddress } from "./utils.ts";
+import { deriveAuthClientMetadata, readNonLoopbackSocketAddress } from "./utils.ts";
 import { checkRequestDpopProof } from "./dpop.ts";
 import { requestUrl } from "../requestUrl.ts";
 
@@ -575,8 +575,9 @@ export const layer = HttpApiBuilder.group(
             yield* annotateEnvironmentRequest(args.endpoint.name);
             const request = yield* HttpServerRequest.HttpServerRequest;
             yield* appendCredentialResponseHeaders;
+            // Raw socket peer only: X-Forwarded-For is client-controlled and would spoof whois.
             return yield* tailnet.issueCredential(
-              resolveClientIpAddress(request),
+              readNonLoopbackSocketAddress(request),
               request.headers["origin"],
             );
           },

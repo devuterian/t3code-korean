@@ -157,19 +157,61 @@ it.layer(layerEnvironmentAuth)("TailnetAutoConnect", (it) => {
 
   it.effect("refuses web pages from outside this tailnet user", () =>
     Effect.gen(function* () {
-      const { service } = yield* makeService({});
-      const refusal = (origin: string) => refusalOf(service.issueCredential("100.64.0.21", origin));
+      const { service } = yield* makeService({
+        peers: peersOf([
+          peerOf("laptop", "100.64.0.21"),
+          peerOf("friend", "100.64.0.99", { userId: 9 }),
+        ]),
+      });
+      // Each call uses its own caller address so the rate limit never interferes.
+      let caller = 100;
+      const refusal = (origin: string) =>
+        refusalOf(service.issueCredential(`100.64.1.${caller++}`, origin));
       assert.strictEqual(yield* refusal("https://evil.example"), "untrusted_origin");
       assert.strictEqual(
         yield* refusal("http://suwon.tail.example.evil.example"),
         "untrusted_origin",
       );
       assert.strictEqual(yield* refusal("null"), "untrusted_origin");
-      // The desktop renderer, loopback, tailnet addresses and this machine's own name are fine.
+      // Another user's tailnet address, and other ports on this host, are not this app.
+      assert.strictEqual(yield* refusal("http://100.64.0.99:3773"), "untrusted_origin");
+      assert.strictEqual(yield* refusal("http://100.64.0.22:3773"), "untrusted_origin");
+      assert.strictEqual(yield* refusal("http://localhost:5173"), "untrusted_origin");
+      assert.strictEqual(yield* refusal("http://suwon.tail.example:8080"), "untrusted_origin");
+      // The desktop renderer, loopback, same-user addresses and this machine's own name are fine.
       yield* service.issueCredential("100.64.0.21", "t3code://app");
       yield* service.issueCredential("100.64.0.21", "http://localhost:3773");
       yield* service.issueCredential("100.64.0.21", "http://100.64.0.21:3773");
+      yield* service.issueCredential("100.64.0.21", "http://100.64.0.17:3773");
       yield* service.issueCredential("100.64.0.21", "http://suwon.tail.example:3773");
+    }),
+  );
+
+  it.effect("limits requests before it asks the Tailscale CLI", () =>
+    Effect.gen(function* () {
+      let cliReads = 0;
+      const auth = yield* EnvironmentAuth.EnvironmentAuth;
+      const service = yield* TailnetAutoConnect.makeTailnetAutoConnect({
+        isEnabled: Effect.succeed(true),
+        port: 3773,
+        whois: () => Effect.succeed(whoisOf()),
+        readPeers: Effect.sync(() => {
+          cliReads++;
+          return peersOf([]);
+        }),
+        probe: () => Effect.succeedNone,
+        createPairingLink: auth.createPairingLink,
+      });
+      for (let attempt = 0; attempt < 10; attempt++) {
+        yield* refusalOf(service.issueCredential("100.64.0.21", "http://100.64.0.22:3773"));
+      }
+      // Ten refusals read the host list once (cached), and the eleventh never reaches it.
+      assert.strictEqual(cliReads, 1);
+      assert.strictEqual(
+        yield* refusalOf(service.issueCredential("100.64.0.21", "http://100.64.0.22:3773")),
+        "rate_limited",
+      );
+      assert.strictEqual(cliReads, 1);
     }),
   );
 

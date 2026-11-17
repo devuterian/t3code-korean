@@ -616,7 +616,7 @@ function ServerSettingsDetail(props: { readonly page: SettingsPage }) {
                         "tailnetAutoConnect",
                         projectSelected
                           ? "Environment-wide setting. Select All projects to change it."
-                          : "Devices signed in to this computer's Tailscale account connect without a pairing code, and find your other T3 servers.",
+                          : "Any device signed in to this computer's Tailscale account, including apps running on it, connects without a pairing code, and your other T3 servers are found automatically.",
                       )}
                       value={uniform("tailnetAutoConnect")}
                       disabled={

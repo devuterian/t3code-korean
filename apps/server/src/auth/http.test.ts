@@ -266,3 +266,59 @@ it.live("checks token-endpoint DPoP proofs without writing replay state", () =>
     );
   }).pipe(Effect.provide(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))),
 );
+
+it.effect("reads the tailnet caller from the socket, never from X-Forwarded-For", () =>
+  Effect.gen(function* () {
+    const random = yield* SecureRandom.SecureRandom;
+    const unusedSecretStore = ServerSecretStore.ServerSecretStore.of({
+      get: () => Effect.succeedNone,
+      set: () => Effect.void,
+      create: () => Effect.void,
+      getOrCreateRandom: () => Effect.die("Not used by these routes."),
+      remove: () => Effect.void,
+    });
+    const seen: Array<string | undefined> = [];
+    const recording = TailnetAutoConnect.TailnetAutoConnect.of({
+      issueCredential: (clientIp) => {
+        seen.push(clientIp);
+        return Effect.fail(
+          new TailnetAutoConnect.TailnetAutoConnectRefusedError({ reason: "not_tailnet_address" }),
+        );
+      },
+      listPeers: () => Effect.succeed([]),
+    });
+    const routes = HttpApiBuilder.layer(AuthTestApi).pipe(
+      Layer.provide(
+        AuthHttp.layer.pipe(
+          Layer.provide(Layer.succeed(TailnetAutoConnect.TailnetAutoConnect, recording)),
+        ),
+      ),
+      Layer.provide(AuthHttp.layerAuthenticatedAuth),
+      Layer.provideMerge(layerEnvironmentAuth),
+      Layer.provide(layerConfig),
+      Layer.provideMerge(
+        HttpPlatform.layer.pipe(
+          Layer.provideMerge(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer)),
+          Layer.provideMerge(Etag.layerWeak),
+        ),
+      ),
+      Layer.provide(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer)),
+    );
+    return yield* Effect.acquireUseRelease(
+      Effect.sync(() => HttpRouter.toWebHandler(routes, { disableLogger: true })),
+      (environment) =>
+        Effect.promise(async () => {
+          // A web Request has no socket, like a loopback peer: the spoofed header must not count.
+          const response = await environment.handler(
+            postJson("/api/auth/tailnet-credential", {}, { "x-forwarded-for": "100.64.0.21" }),
+            Context.make(SecureRandom.SecureRandom, random).pipe(
+              Context.add(ServerSecretStore.ServerSecretStore, unusedSecretStore),
+            ),
+          );
+          expect(response.status).toBe(403);
+          expect(seen).toEqual([undefined]);
+        }),
+      (environment) => Effect.promise(() => environment.dispose()),
+    );
+  }).pipe(Effect.provide(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))),
+);

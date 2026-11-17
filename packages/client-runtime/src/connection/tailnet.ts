@@ -11,6 +11,7 @@ import { BearerConnectionProfile } from "./catalog.ts";
 import { BearerConnectionTarget } from "./model.ts";
 import * as ConnectionOnboarding from "./onboarding.ts";
 import * as EnvironmentRegistry from "./registry.ts";
+import { TailnetDismissals } from "./tailnetDismissals.ts";
 import { connectionRoutes, findRouteToSameAddress } from "./routes.ts";
 import { requestTailnetCredential, TAILNET_REQUEST_TIMEOUT_MS } from "./tailnetCredential.ts";
 
@@ -41,20 +42,22 @@ function peerRoute(peer: AuthTailnetPeer, httpBaseUrl: string) {
 
 /**
  * Pairs with each listed peer this client does not already reach at that address. A peer saved
- * under another address is added as an extra route; a switched-off one is left alone. Every
- * failure is swallowed: a peer that refuses, times out, or is a different machine is skipped.
+ * under another address is added as an extra route; a switched-off one, one the user removed, and
+ * this client's own primary environment are left alone. Every failure is swallowed: a peer that refuses, times out, or is a different machine is skipped.
  */
 export const connectTailnetPeers = Effect.fn("clientRuntime.connection.connectTailnetPeers")(
   function* (peers: ReadonlyArray<AuthTailnetPeer>) {
     const registry = yield* EnvironmentRegistry.EnvironmentRegistry;
     const onboarding = yield* ConnectionOnboarding.ConnectionOnboarding;
+    const dismissed = yield* (yield* TailnetDismissals).list;
     for (const peer of peers) {
       yield* Effect.gen(function* () {
         const httpBaseUrl = normalizeHttpBaseUrl(peer.httpBaseUrl);
         const environmentId = EnvironmentId.make(peer.environmentId);
+        if (dismissed.has(environmentId)) return;
         const saved = (yield* SubscriptionRef.get(registry.entries)).get(environmentId);
         if (saved !== undefined) {
-          if (!saved.enabled) return;
+          if (!saved.enabled || saved.target._tag === "PrimaryConnectionTarget") return;
           if (
             findRouteToSameAddress(connectionRoutes(saved), peerRoute(peer, httpBaseUrl)) !==
             undefined
@@ -72,6 +75,18 @@ export const connectTailnetPeers = Effect.fn("clientRuntime.connection.connectTa
       }).pipe(Effect.ignore);
     }
   },
+);
+
+/** Runs inside a connected environment: whether its descriptor says tailnet auto-connect is on. */
+const tailnetEnabledOnConnected = executeConnectedEnvironmentHttpRequest({
+  group: "metadata",
+  method: "GET",
+  url: (urls) => urls.descriptor(),
+  timeoutMs: TAILNET_REQUEST_TIMEOUT_MS,
+  request: ({ client }) => client.descriptor(),
+}).pipe(
+  Effect.map((descriptor) => descriptor.tailnetAutoConnect === true),
+  Effect.orElseSucceed(() => false),
 );
 
 /** Runs inside a connected environment: that server's tailnet peers, or `None` when it has the feature off. */
@@ -130,7 +145,16 @@ export const watchTailnetPeers = Effect.fn("clientRuntime.connection.watchTailne
       Stream.runForEach((environmentId) =>
         Effect.gen(function* () {
           if (!gate.tryBegin(environmentId, yield* Clock.currentTimeMillis)) return;
-          const peers = yield* registry.run(environmentId, fetchTailnetPeers);
+          const peers = yield* registry.run(
+            environmentId,
+            tailnetEnabledOnConnected.pipe(
+              Effect.flatMap((enabled) =>
+                enabled
+                  ? fetchTailnetPeers
+                  : Effect.succeed(Option.none<ReadonlyArray<AuthTailnetPeer>>()),
+              ),
+            ),
+          );
           if (Option.isSome(peers) && peers.value.length > 0) {
             yield* connectTailnetPeers(peers.value);
           }

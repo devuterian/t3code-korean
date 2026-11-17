@@ -69,7 +69,7 @@ export class TailnetAutoConnect extends Context.Service<
   TailnetAutoConnect,
   {
     /**
-     * `clientIp` is the caller's address as `resolveClientIpAddress` read it; `origin` is the
+     * `clientIp` is the raw socket address of the caller; `origin` is the
      * request's Origin header, absent for native clients.
      */
     readonly issueCredential: (
@@ -113,25 +113,27 @@ const isTailnetAddress = (address: string): boolean => {
 
 const LOOPBACK_HOSTNAMES = new Set(["localhost", "127.0.0.1", "[::1]"]);
 
+/** Origin pieces that can be judged without asking the Tailscale CLI. */
+type OriginVerdict = "trusted" | "refused" | "needs_hosts";
+
 /**
  * Wildcard CORS would let any web page on the user's devices mint a credential (whois proves only
- * the device), so browser Origins must be the desktop app, loopback, or this tailnet user's hosts.
+ * the device), so browser Origins must be the desktop app, or this server's own port on loopback
+ * or on a host of this tailnet user.
  */
-const isTrustedCredentialOrigin = (
-  origin: string | undefined,
-  tailnetHostnames: ReadonlySet<string>,
-): boolean => {
-  if (origin === undefined) return true;
-  if ((DESKTOP_RENDERER_ORIGINS as ReadonlyArray<string>).includes(origin)) return true;
-  let hostname: string;
+const classifyCredentialOrigin = (origin: string | undefined, port: number): OriginVerdict => {
+  if (origin === undefined) return "trusted";
+  if ((DESKTOP_RENDERER_ORIGINS as ReadonlyArray<string>).includes(origin)) return "trusted";
+  let url: URL;
   try {
-    hostname = new URL(origin).hostname.toLowerCase();
+    url = new URL(origin);
   } catch {
-    return false;
+    return "refused";
   }
-  if (LOOPBACK_HOSTNAMES.has(hostname)) return true;
-  const bare = hostname.startsWith("[") ? hostname.slice(1, -1) : hostname;
-  return isTailnetAddress(bare) || tailnetHostnames.has(hostname);
+  if (url.protocol !== "http:" && url.protocol !== "https:") return "refused";
+  const originPort = url.port === "" ? (url.protocol === "https:" ? 443 : 80) : Number(url.port);
+  if (originPort !== port) return "refused";
+  return LOOPBACK_HOSTNAMES.has(url.hostname.toLowerCase()) ? "trusted" : "needs_hosts";
 };
 
 const hostLabel = (nodeName: string | null): string => {
@@ -144,6 +146,7 @@ export const makeTailnetAutoConnect = Effect.fn("TailnetAutoConnect.make")(funct
 ) {
   const rateLimit = yield* Ref.make(new Map<string, { count: number; windowEnds: number }>());
   const selfUser = yield* Ref.make<{ id: number; expiresAt: number } | null>(null);
+  const ownHosts = yield* Ref.make<{ hosts: ReadonlySet<string>; expiresAt: number } | null>(null);
   const peersCache = yield* Ref.make<{
     peers: ReadonlyArray<AuthTailnetPeer>;
     expiresAt: number;
@@ -193,20 +196,27 @@ export const makeTailnetAutoConnect = Effect.fn("TailnetAutoConnect.make")(funct
     return status.value.selfUserId;
   });
 
-  /** MagicDNS names of this machine and the same user's peers, for the Origin check. */
-  const readOwnHostnames = deps.readPeers.pipe(
-    Effect.map((status) => {
-      const names = new Set<string>();
-      if (status.selfDnsName !== null) names.add(status.selfDnsName.toLowerCase());
-      for (const peer of status.peers) {
-        if (peer.dnsName !== null && !peer.tagged && peer.userId === status.selfUserId) {
-          names.add(peer.dnsName.toLowerCase());
+  /** Tailnet IPs and MagicDNS names of this machine and the same user's peers, cached. */
+  const readOwnHosts = Effect.gen(function* () {
+    const now = yield* Clock.currentTimeMillis;
+    const cached = yield* Ref.get(ownHosts);
+    if (cached !== null && cached.expiresAt > now) return cached.hosts;
+    const hosts = yield* deps.readPeers.pipe(
+      Effect.map((status) => {
+        const names = new Set<string>(status.selfIpv4Addresses);
+        if (status.selfDnsName !== null) names.add(status.selfDnsName.toLowerCase());
+        for (const peer of status.peers) {
+          if (peer.tagged || peer.userId !== status.selfUserId) continue;
+          for (const ip of peer.tailnetIpv4Addresses) names.add(ip);
+          if (peer.dnsName !== null) names.add(peer.dnsName.toLowerCase());
         }
-      }
-      return names as ReadonlySet<string>;
-    }),
-    Effect.orElseSucceed((): ReadonlySet<string> => new Set()),
-  );
+        return names as ReadonlySet<string>;
+      }),
+      Effect.orElseSucceed((): ReadonlySet<string> => new Set()),
+    );
+    yield* Ref.set(ownHosts, { hosts, expiresAt: now + Duration.toMillis(SELF_USER_CACHE_TTL) });
+    return hosts;
+  });
 
   const issueCredential: TailnetAutoConnect["Service"]["issueCredential"] = Effect.fn(
     "TailnetAutoConnect.issueCredential",
@@ -215,11 +225,16 @@ export const makeTailnetAutoConnect = Effect.fn("TailnetAutoConnect.make")(funct
     if (clientIp === undefined || !isTailnetAddress(clientIp)) {
       return yield* refuse("not_tailnet_address");
     }
-    if (origin !== undefined && !isTrustedCredentialOrigin(origin, yield* readOwnHostnames)) {
-      return yield* refuse("untrusted_origin");
-    }
+    // Rate limit first so a flood cannot reach the Tailscale CLI.
     if (!(yield* allowRequest(clientIp))) {
       return yield* refuse("rate_limited");
+    }
+    const verdict = classifyCredentialOrigin(origin, deps.port);
+    if (verdict === "refused") return yield* refuse("untrusted_origin");
+    if (verdict === "needs_hosts") {
+      const hostname = new URL(origin!).hostname.toLowerCase();
+      const bare = hostname.startsWith("[") ? hostname.slice(1, -1) : hostname;
+      if (!(yield* readOwnHosts).has(bare)) return yield* refuse("untrusted_origin");
     }
     const whois = yield* deps.whois(clientIp).pipe(Effect.option);
     if (Option.isNone(whois)) return yield* refuse("identity_unavailable");

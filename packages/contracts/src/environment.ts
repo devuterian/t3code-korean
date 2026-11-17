@@ -223,6 +223,8 @@ export const ExecutionEnvironmentDescriptor = Schema.Struct({
   /** Highest migration this server's database holds; absent on older servers. */
   databaseMigration: Schema.optionalKey(Schema.Int),
   capabilities: ExecutionEnvironmentCapabilities,
+  /** Whether the server hands out tailnet credentials and peers; absent on older servers. */
+  tailnetAutoConnect: Schema.optionalKey(Schema.Boolean),
 });
 export type ExecutionEnvironmentDescriptor = typeof ExecutionEnvironmentDescriptor.Type;
 

@@ -7,10 +7,11 @@ import * as SubscriptionRef from "effect/SubscriptionRef";
 
 import * as RpcHttp from "../rpc/http.ts";
 import { BearerConnectionProfile, type ConnectionCatalogEntry } from "./catalog.ts";
-import { BearerConnectionTarget } from "./model.ts";
+import { BearerConnectionTarget, PrimaryConnectionTarget } from "./model.ts";
 import * as ConnectionOnboarding from "./onboarding.ts";
 import type { PairingConnectionInput } from "./onboarding.ts";
 import * as EnvironmentRegistry from "./registry.ts";
+import { makeTailnetDismissals, TailnetDismissals } from "./tailnetDismissals.ts";
 import { connectTailnetPeers, makeTailnetDiscoveryGate } from "./tailnet.ts";
 import { withTailnetCredential } from "./tailnetCredential.ts";
 
@@ -41,14 +42,21 @@ function savedEntry(
   };
 }
 
-/** Credential requests land here; `refuse` hosts answer 403 like a server with the feature off. */
+/** Every request lands here; `refuse` hosts describe themselves as having the feature off. */
 function layerTailnetHttp(requests: string[], refuse: ReadonlyArray<string> = []) {
   const fetchFn = ((input) => {
     const url = String(input);
     requests.push(url);
-    if (refuse.some((host) => url.startsWith(host))) {
+    if (url.endsWith("/.well-known/t3/environment")) {
       return Promise.resolve(
-        Response.json({ _tag: "EnvironmentHttpForbiddenError", message: "off" }, { status: 403 }),
+        Response.json({
+          environmentId: "peer",
+          label: "Peer",
+          platform: { os: "linux", arch: "x64" },
+          serverVersion: "1.0.0",
+          capabilities: {},
+          tailnetAutoConnect: !refuse.some((host) => url.startsWith(host)),
+        }),
       );
     }
     return Promise.resolve(
@@ -66,9 +74,17 @@ function layerPeers(
   registered: PairingConnectionInput[],
   requests: string[],
   refuse?: ReadonlyArray<string>,
+  dismissed: ReadonlyArray<string> = [],
 ) {
   return Layer.mergeAll(
     layerTailnetHttp(requests, refuse),
+    Layer.succeed(
+      TailnetDismissals,
+      makeTailnetDismissals({
+        read: Effect.succeed(dismissed.map(envId)),
+        write: () => Effect.void,
+      }),
+    ),
     Layer.effect(
       EnvironmentRegistry.EnvironmentRegistry,
       Effect.gen(function* () {
@@ -102,7 +118,7 @@ describe("tailnet peer discovery", () => {
         { httpBaseUrl: "http://fresh.tail:3773", environmentId: "fresh", label: "Fresh" },
         // Saved but switched off: the user's choice stands.
         { httpBaseUrl: "http://off.tail:3773", environmentId: "off", label: "Off" },
-        // Refuses with 403: skipped without failing the rest.
+        // Its descriptor says the feature is off: skipped without failing the rest.
         { httpBaseUrl: "http://nope.tail:3773", environmentId: "nope", label: "Nope" },
       ]);
       expect(registered).toEqual([
@@ -132,6 +148,32 @@ describe("tailnet peer discovery", () => {
     );
   });
 
+  it.effect("leaves out removed environments and this client's own primary environment", () => {
+    const registered: PairingConnectionInput[] = [];
+    const requests: string[] = [];
+    const primary: ConnectionCatalogEntry = {
+      target: new PrimaryConnectionTarget({
+        environmentId: envId("self"),
+        label: "Self",
+        httpBaseUrl: "http://localhost:3773",
+        wsBaseUrl: "ws://localhost:3773",
+      }),
+      profile: Option.none(),
+      enabled: true,
+    };
+    return Effect.gen(function* () {
+      yield* connectTailnetPeers([
+        { httpBaseUrl: "http://gone.tail:3773", environmentId: "gone", label: "Gone" },
+        { httpBaseUrl: "http://self.tail:3773", environmentId: "self", label: "Self" },
+        { httpBaseUrl: "http://fresh.tail:3773", environmentId: "fresh", label: "Fresh" },
+      ]);
+      expect(registered.map((input) => input.host)).toEqual(["http://fresh.tail:3773"]);
+      expect(requests.some((url) => url.includes("gone.tail") || url.includes("self.tail"))).toBe(
+        false,
+      );
+    }).pipe(Effect.provide(layerPeers([primary], registered, requests, [], ["gone"])));
+  });
+
   it("asks an environment again only after the interval", () => {
     const gate = makeTailnetDiscoveryGate(1_000);
     const id = envId("a");
@@ -151,17 +193,24 @@ describe("address-only pairing", () => {
         host: "http://100.64.0.9:3773",
         pairingCode: "credential-for-100.64.0.9:3773",
       });
-      expect(requests).toEqual(["http://100.64.0.9:3773/api/auth/tailnet-credential"]);
+      expect(requests).toEqual([
+        "http://100.64.0.9:3773/.well-known/t3/environment",
+        "http://100.64.0.9:3773/api/auth/tailnet-credential",
+      ]);
     }).pipe(Effect.provide(layerTailnetHttp(requests)));
   });
 
-  it.effect("keeps the code-required behaviour when the server refuses", () => {
-    const requests: string[] = [];
-    return Effect.gen(function* () {
-      const original = { host: "100.64.0.9:3773", pairingCode: "" };
-      expect(yield* withTailnetCredential(original)).toBe(original);
-    }).pipe(Effect.provide(layerTailnetHttp(requests, ["http://100.64.0.9"])));
-  });
+  it.effect(
+    "keeps the code-required behaviour and asks nothing more when the feature is off",
+    () => {
+      const requests: string[] = [];
+      return Effect.gen(function* () {
+        const original = { host: "100.64.0.9:3773", pairingCode: "" };
+        expect(yield* withTailnetCredential(original)).toBe(original);
+        expect(requests).toEqual(["http://100.64.0.9:3773/.well-known/t3/environment"]);
+      }).pipe(Effect.provide(layerTailnetHttp(requests, ["http://100.64.0.9"])));
+    },
+  );
 
   it.effect("does not ask when a code or a pairing link is given", () => {
     const requests: string[] = [];
@@ -171,4 +220,17 @@ describe("address-only pairing", () => {
       expect(requests).toEqual([]);
     }).pipe(Effect.provide(layerTailnetHttp(requests)));
   });
+});
+
+describe("removed environments", () => {
+  it.effect("are remembered until forgotten, and the default store holds them in memory", () =>
+    Effect.gen(function* () {
+      const dismissals = yield* TailnetDismissals;
+      yield* dismissals.add(envId("gone"));
+      yield* dismissals.add(envId("gone"));
+      expect([...(yield* dismissals.list)]).toEqual(["gone"]);
+      yield* dismissals.forget(envId("gone"));
+      expect((yield* dismissals.list).size).toBe(0);
+    }),
+  );
 });
