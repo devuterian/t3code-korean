@@ -176,5 +176,11 @@
     "asked": "2026-11-16",
     "decision": "yes",
     "answered": "2026-11-17"
+  },
+  "24128": {
+    "title": "fix(server): show limits for Claude setup-token accounts",
+    "asked": "2026-11-17",
+    "decision": "yes",
+    "answered": "2026-11-17"
   }
 }
