@@ -28,6 +28,7 @@ import {
   type ResponseStreamingMode,
   type QuitConfirmationMode,
   SidebarProjectSortOrder,
+  SidebarWorkingShelfPosition,
   type ThreadAutoSwitchMode,
   ScreenReaderAnnouncements,
   ToolCallVisibility,
@@ -154,6 +155,12 @@ const SIDEBAR_PROJECT_SORT_ORDER_LABELS: Record<SidebarProjectSortOrder, string>
   manual: "Manual",
 };
 const isSidebarProjectSortOrder = Schema.is(SidebarProjectSortOrder);
+
+const SIDEBAR_WORKING_SHELF_POSITION_LABELS: Record<SidebarWorkingShelfPosition, string> = {
+  top: "Top",
+  bottom: "Bottom",
+};
+const isSidebarWorkingShelfPosition = Schema.is(SidebarWorkingShelfPosition);
 
 const TIMESTAMP_FORMAT_LABELS = {
   locale: "System default",
@@ -538,6 +545,10 @@ export function useSettingsRestore(onRestored?: () => void) {
     ...(settings.sidebarWorkingShelfEnabled !== DEFAULT_UNIFIED_SETTINGS.sidebarWorkingShelfEnabled
       ? ["Working section"]
       : []),
+    ...(settings.sidebarWorkingShelfPosition !==
+    DEFAULT_UNIFIED_SETTINGS.sidebarWorkingShelfPosition
+      ? ["Working section position"]
+      : []),
     ...(settings.sidebarAutoSettleAfterDays !== DEFAULT_UNIFIED_SETTINGS.sidebarAutoSettleAfterDays
       ? ["Auto-settle inactive threads"]
       : []),
@@ -727,6 +738,7 @@ export function useSettingsRestore(onRestored?: () => void) {
       sidebarProjectGroupingMode: DEFAULT_UNIFIED_SETTINGS.sidebarProjectGroupingMode,
       sidebarProjectSortOrder: DEFAULT_UNIFIED_SETTINGS.sidebarProjectSortOrder,
       sidebarWorkingShelfEnabled: DEFAULT_UNIFIED_SETTINGS.sidebarWorkingShelfEnabled,
+      sidebarWorkingShelfPosition: DEFAULT_UNIFIED_SETTINGS.sidebarWorkingShelfPosition,
       sidebarAutoSettleAfterDays: DEFAULT_UNIFIED_SETTINGS.sidebarAutoSettleAfterDays,
       sidebarAutoSettleKeepPullRequests: DEFAULT_UNIFIED_SETTINGS.sidebarAutoSettleKeepPullRequests,
       sidebarAutoSettleOnMerge: DEFAULT_UNIFIED_SETTINGS.sidebarAutoSettleOnMerge,
@@ -1021,6 +1033,52 @@ export function GeneralSettingsPanel() {
               }
               aria-label={t("Working section")}
             />
+          }
+        />
+        <SettingsRow
+          {...searchableSetting("working-shelf-position")}
+          description="Choose where the Working section appears in the thread list."
+          resetAction={
+            settings.sidebarWorkingShelfPosition !==
+            DEFAULT_UNIFIED_SETTINGS.sidebarWorkingShelfPosition ? (
+              <SettingResetButton
+                label="working section position"
+                onClick={() =>
+                  updateSettings({
+                    sidebarWorkingShelfPosition:
+                      DEFAULT_UNIFIED_SETTINGS.sidebarWorkingShelfPosition,
+                  })
+                }
+              />
+            ) : null
+          }
+          control={
+            <Select
+              value={settings.sidebarWorkingShelfPosition}
+              onValueChange={(value) => {
+                if (isSidebarWorkingShelfPosition(value)) {
+                  updateSettings({ sidebarWorkingShelfPosition: value });
+                }
+              }}
+            >
+              <SelectTrigger
+                size="sm"
+                className="w-full sm:w-44"
+                disabled={!settings.sidebarWorkingShelfEnabled}
+                aria-label={t("Working section position")}
+              >
+                <SelectValue>
+                  {t(SIDEBAR_WORKING_SHELF_POSITION_LABELS[settings.sidebarWorkingShelfPosition])}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectPopup align="end" alignItemWithTrigger={false}>
+                {SidebarWorkingShelfPosition.literals.map((position) => (
+                  <SelectItem hideIndicator key={position} value={position}>
+                    {t(SIDEBAR_WORKING_SHELF_POSITION_LABELS[position])}
+                  </SelectItem>
+                ))}
+              </SelectPopup>
+            </Select>
           }
         />
       </SettingsSection>

@@ -34,7 +34,10 @@ import {
   sortSettledThreads,
 } from "@t3tools/client-runtime/state/thread-sort";
 import { isListedThreadLineage, type EnvironmentId, type ProjectId } from "@t3tools/contracts";
-import type { SnoozePresetSetting } from "@t3tools/contracts/settings";
+import type {
+  SidebarWorkingShelfPosition as WorkingShelfPosition,
+  SnoozePresetSetting,
+} from "@t3tools/contracts/settings";
 import type { MenuAction } from "@react-native-menu/menu";
 
 import type { ThreadListProvider } from "../../state/thread-list-environments";
@@ -580,6 +583,8 @@ export function buildThreadListV2ListItems(input: {
   readonly workingCount?: number;
   readonly workingShelfExpanded?: boolean;
   readonly workingShelfHeaderIndex?: number | null;
+  /** Whether the Working shelf leads the list or follows the active threads. Defaults to top. */
+  readonly workingShelfPosition?: WorkingShelfPosition;
   readonly snoozedCount?: number;
   readonly snoozedShelfExpanded?: boolean;
   readonly snoozedShelfHeaderIndex?: number | null;
@@ -644,8 +649,9 @@ export function buildThreadListV2ListItems(input: {
   const activeEnd = workingShelfHeaderIndex ?? workingEnd;
   const result: ThreadListV2ListItem[] = [...pendingItems];
   const shelfDisabled = input.shelfPreferencesLoading === true;
-  // Fork: the Working shelf leads the list, so a thread you just started stays in view.
-  if (workingShelfHeaderIndex !== null && workingCount > 0) {
+  // Fork: the Working shelf leads the list by default, so a thread you just started stays in view.
+  const pushWorkingShelf = () => {
+    if (workingShelfHeaderIndex === null || workingCount === 0) return;
     result.push({
       type: "v2-working-shelf",
       key: "v2-working-shelf",
@@ -654,8 +660,11 @@ export function buildThreadListV2ListItems(input: {
       disabled: shelfDisabled,
     });
     result.push(...threadItems.slice(workingShelfHeaderIndex, workingEnd));
-  }
+  };
+  const workingOnTop = input.workingShelfPosition !== "bottom";
+  if (workingOnTop) pushWorkingShelf();
   result.push(...threadItems.slice(0, activeEnd));
+  if (!workingOnTop) pushWorkingShelf();
   if (snoozedShelfHeaderIndex !== null && snoozedCount > 0) {
     result.push({
       type: "v2-snoozed-shelf",
