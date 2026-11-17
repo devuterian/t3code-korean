@@ -330,6 +330,7 @@ export const KO_V2_CHAT: Readonly<Record<string, string>> = {
   "Latest turn": "최근 턴",
   Limited: "제한됨",
   Lineage: "계보",
+  "Limits appear after this account's next turn.": "이 계정으로 다음 대화를 하면 한도가 표시돼요.",
   "Linked pull requests": "연결된 풀 리퀘스트",
   Listening: "수신 대기 중",
   "Load earlier turns": "이전 턴 불러오기",

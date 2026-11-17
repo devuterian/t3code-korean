@@ -487,6 +487,7 @@ export const KO_SETTINGS2: Readonly<Record<string, string>> = {
   "Use reset": "초기화 사용",
   "This account has no subscription limits.": "이 계정에는 구독 한도가 없어요.",
   "Could not read limits.": "한도를 읽을 수 없어요.",
+  "Limits appear after this account's next turn.": "이 계정으로 다음 대화를 하면 한도가 표시돼요.",
   "No limits reported.": "보고된 한도가 없어요.",
   "No accounts reported.": "보고된 계정이 없어요.",
   Session: "세션",
