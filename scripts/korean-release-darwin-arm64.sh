@@ -24,7 +24,7 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-export PATH="$REPO_ROOT/node_modules/.bin:/opt/homebrew/bin:$HOME/.cargo/bin:$PATH"
+export PATH="$REPO_ROOT/node_modules/.bin:$PATH:/opt/homebrew/bin:$HOME/.cargo/bin"
 
 USAGE="usage: $0 <version like 0.1.8-ko.1> [output-dir] [--merge-sums <SHA256SUMS>]"
 POSITIONAL=()
