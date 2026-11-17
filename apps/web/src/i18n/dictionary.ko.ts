@@ -39,6 +39,7 @@ import { KO_MERGE_1102_F } from "./ko/merge1102F";
 import { KO_MERGE_1108 } from "./ko/merge1108";
 import { KO_MERGE_1109 } from "./ko/merge1109";
 import { KO_MERGE_1116 } from "./ko/merge1116";
+import { KO_MERGE_1118 } from "./ko/merge1118";
 import { KO_MERGE_1116_B } from "./ko/merge1116b";
 
 /**
@@ -1452,4 +1453,5 @@ export const KO_DICTIONARY: Readonly<Record<string, string>> = {
   ...KO_MERGE_1109,
   ...KO_MERGE_1116,
   ...KO_MERGE_1116_B,
+  ...KO_MERGE_1118,
 };

@@ -28,6 +28,8 @@ import {
   AuthMcpTokenRequest,
   AuthMcpTokenResult,
   AuthPairingCredentialResult,
+  AuthTailnetCredentialResult,
+  AuthTailnetPeersResult,
   AuthRevokeClientSessionInput,
   AuthRevokePairingLinkInput,
   AuthApproveConnectDeviceInput,
@@ -670,6 +672,20 @@ class EnvironmentAuthHttpApi extends HttpApiGroup.make("auth")
       headers: OptionalBearerHeaders,
       success: AuthOtherClientSessionsRevokeResult,
       error: EnvironmentScopedOperationErrors,
+    }).middleware(EnvironmentAuthenticatedAuth),
+  )
+  // Korean fork, tailnet auto-connect. Unauthenticated: the caller's tailnet identity is the proof.
+  .add(
+    HttpApiEndpoint.post("tailnetCredential", "/api/auth/tailnet-credential", {
+      success: AuthTailnetCredentialResult,
+      error: [EnvironmentHttpForbiddenError, EnvironmentInternalError],
+    }),
+  )
+  .add(
+    HttpApiEndpoint.get("tailnetPeers", "/api/auth/tailnet-peers", {
+      headers: OptionalBearerHeaders,
+      success: AuthTailnetPeersResult,
+      error: [EnvironmentHttpForbiddenError, ...EnvironmentScopedOperationErrors],
     }).middleware(EnvironmentAuthenticatedAuth),
   ) {}
 

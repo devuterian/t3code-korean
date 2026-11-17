@@ -321,6 +321,31 @@ export const AuthPairingCredentialResult = Schema.Struct({
 });
 export type AuthPairingCredentialResult = typeof AuthPairingCredentialResult.Type;
 
+/**
+ * Korean fork, tailnet auto-connect: a short-lived one-time credential the server mints for a
+ * caller whose Tailscale identity (whois) is the server's own tailnet user. The client redeems it
+ * like a pairing code. Servers with the `tailnetAutoConnect` setting off answer 403.
+ */
+export const AuthTailnetCredentialResult = Schema.Struct({
+  credential: TrimmedNonEmptyString,
+  expiresAt: Schema.DateTimeUtc,
+});
+export type AuthTailnetCredentialResult = typeof AuthTailnetCredentialResult.Type;
+
+/** Another T3 server on the same tailnet user, as probed by the server listing it. */
+export const AuthTailnetPeer = Schema.Struct({
+  /** Plain HTTP over the tailnet, e.g. `http://suwon.tail.example:3773`. */
+  httpBaseUrl: TrimmedNonEmptyString,
+  environmentId: TrimmedNonEmptyString,
+  label: TrimmedNonEmptyString,
+});
+export type AuthTailnetPeer = typeof AuthTailnetPeer.Type;
+
+export const AuthTailnetPeersResult = Schema.Struct({
+  peers: Schema.Array(AuthTailnetPeer),
+});
+export type AuthTailnetPeersResult = typeof AuthTailnetPeersResult.Type;
+
 const BASE64URL_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
 
 /**

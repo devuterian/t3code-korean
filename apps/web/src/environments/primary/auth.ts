@@ -308,13 +308,31 @@ function isTransportError(error: unknown): boolean {
   return HttpClientError.isHttpClientError(error) && error.reason._tag === "TransportError";
 }
 
+/**
+ * Korean fork, tailnet auto-connect: a server that trusts this device's Tailscale identity hands
+ * out a credential without a pairing link. Any refusal or failure means "sign in the usual way".
+ */
+async function fetchTailnetCredential(): Promise<string | null> {
+  try {
+    const result = await runPrimaryHttp(
+      PrimaryEnvironmentHttpClient.pipe(
+        Effect.flatMap((client) => client.auth.tailnetCredential()),
+      ),
+    );
+    return result.credential;
+  } catch {
+    return null;
+  }
+}
+
 async function bootstrapServerAuth(urlCredential: string | null): Promise<ServerAuthGateState> {
   const currentSession = await fetchSessionState();
   if (currentSession.authenticated && !urlCredential) {
     return { status: "authenticated" };
   }
 
-  const bootstrapCredential = urlCredential ?? getDesktopBootstrapCredential();
+  const givenCredential = urlCredential ?? getDesktopBootstrapCredential();
+  const bootstrapCredential = givenCredential ?? (await fetchTailnetCredential());
   if (!bootstrapCredential) {
     return {
       status: "requires-auth",
@@ -330,7 +348,12 @@ async function bootstrapServerAuth(urlCredential: string | null): Promise<Server
     return {
       status: "requires-auth",
       auth: currentSession.auth,
-      errorMessage: error instanceof Error ? error.message : "Authentication failed.",
+      // A tailnet credential nobody typed in fails quietly, back to the normal sign-in.
+      ...(givenCredential === null
+        ? {}
+        : {
+            errorMessage: error instanceof Error ? error.message : "Authentication failed.",
+          }),
     };
   }
 }

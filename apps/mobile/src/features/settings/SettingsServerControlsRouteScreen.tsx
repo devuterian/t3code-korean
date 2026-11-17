@@ -1,6 +1,6 @@
 import { useNavigation } from "@react-navigation/native";
 import { SettingsRow } from "./components/SettingsRow";
-import { AuthSettingsWriteScope } from "@t3tools/contracts";
+import { AuthAccessWriteScope, AuthSettingsWriteScope } from "@t3tools/contracts";
 import { readEnvironmentScope, useEnvironmentsWithScope } from "../../state/session";
 import { ScreenScrollView as ScrollView } from "../../components/ui/ScreenScrollView";
 import { AppText as Text } from "../../components/ui/AppText";
@@ -186,6 +186,10 @@ function ServerSettingsDetail(props: { readonly page: SettingsPage }) {
   const { selectedTargets, projectGroups, selectedProjectKey } = useSettingsEnvironmentFilter();
   const selectedProject = projectGroups.find((group) => group.key === selectedProjectKey);
   const writableEnvironments = useEnvironmentsWithScope(selectedTargets, AuthSettingsWriteScope);
+  const accessWritableEnvironments = useEnvironmentsWithScope(
+    selectedTargets,
+    AuthAccessWriteScope,
+  );
   const projectSelected = selectedProjectKey !== null;
   const targets = resolveMobileSettingsTargets(
     selectedTargets,
@@ -602,6 +606,26 @@ function ServerSettingsDetail(props: { readonly page: SettingsPage }) {
                       value={uniform("keepAwakeWhileAgentsWork")}
                       disabled={disabledFor("keepAwakeWhileAgentsWork")}
                       onValueChange={(value) => write({ keepAwakeWhileAgentsWork: value })}
+                    />
+                  </View>
+                  <View className="border-t border-border-subtle">
+                    <SettingsSwitchRow
+                      icon="wifi"
+                      label={t("Tailnet auto-connect")}
+                      subtitle={managedSubtitle(
+                        "tailnetAutoConnect",
+                        projectSelected
+                          ? "Environment-wide setting. Select All projects to change it."
+                          : "Devices signed in to this computer's Tailscale account connect without a pairing code, and find your other T3 servers.",
+                      )}
+                      value={uniform("tailnetAutoConnect")}
+                      disabled={
+                        disabledFor("tailnetAutoConnect") ||
+                        !targets.every((target) =>
+                          accessWritableEnvironments.has(target.environment.environmentId),
+                        )
+                      }
+                      onValueChange={(value) => write({ tailnetAutoConnect: value })}
                     />
                   </View>
                 </SettingsSection>

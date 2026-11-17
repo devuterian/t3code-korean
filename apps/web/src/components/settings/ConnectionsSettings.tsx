@@ -141,6 +141,7 @@ import {
   CloudLinkRow,
   CloudRemoteEnvironmentRows,
   SavedBackendListRow,
+  TailnetAutoConnectRow,
 } from "./SavedEnvironmentRows";
 import { AddEnvironmentDialog } from "./AddEnvironmentDialog";
 import {
@@ -1341,6 +1342,13 @@ function ConnectionsSettingsContent({
                 }
               />
             ) : null}
+            {accessServerConfig?.settings.tailnetAutoConnect === undefined ? null : (
+              <TailnetAutoConnectRow
+                environmentId={accessEnvironmentId}
+                enabled={accessServerConfig.settings.tailnetAutoConnect}
+                canManage={canWriteAccess}
+              />
+            )}
             {accessEnvironment ? (
               <details className="group px-3 sm:px-4">
                 <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-md text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring [&::-webkit-details-marker]:hidden">

@@ -33,6 +33,7 @@ import * as Persistence from "../platform/persistence.ts";
 import * as EnvironmentRegistry from "./registry.ts";
 import { orchestrationProtocolCompatibilityError } from "./compatibility.ts";
 import { connectionRoutes, routeEntry, sshTargetKey } from "./routes.ts";
+import { withTailnetCredential } from "./tailnetCredential.ts";
 
 export interface PairingConnectionInput {
   readonly pairingUrl?: string;
@@ -154,7 +155,9 @@ export const preparePairingRegistration = Effect.fn(
 
 const registerPairingConnection = Effect.fn(
   "clientRuntime.connection.onboarding.registerPairingConnection",
-)(function* (input: PairingConnectionInput) {
+)(function* (rawInput: PairingConnectionInput) {
+  // An address with no code asks the server for a tailnet credential first (Korean fork).
+  const input = yield* withTailnetCredential(rawInput);
   const registration = yield* preparePairingRegistration(input);
   const registry = yield* EnvironmentRegistry.EnvironmentRegistry;
   const knownAddressOnly = input.expectedEnvironmentId === undefined;

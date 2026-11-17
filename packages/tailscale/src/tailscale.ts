@@ -33,7 +33,7 @@ const tailscaleCommandForPlatform = (platform: NodeJS.Platform): "tailscale" | "
 
 const TailscaleCommandContext = {
   executable: Schema.Literals(["tailscale", "tailscale.exe"]),
-  subcommand: Schema.Literals(["status", "serve", "debug"]),
+  subcommand: Schema.Literals(["status", "serve", "debug", "whois"]),
   argumentCount: Schema.Number,
 };
 
@@ -242,7 +242,7 @@ export const parseTailscaleStatus = (
   );
 
 const readTailscaleOutput = Effect.fn("tailscale.readTailscaleOutput")(function* (
-  subcommand: "status" | "serve" | "debug",
+  subcommand: "status" | "serve" | "debug" | "whois",
   args: readonly string[],
 ) {
   const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
@@ -358,6 +358,147 @@ export const parseTailscaleExitNode = (
 export const readTailscaleExitNode = readTailscaleOutput("status", ["status", "--json"]).pipe(
   Effect.flatMap(parseTailscaleExitNode),
 );
+
+/**
+ * Korean fork, tailnet auto-connect. `tailscale status --json` as the server's identity source:
+ * `Self.UserID` is the tailnet user this machine belongs to, `Peer` lists the other nodes. Tagged
+ * nodes carry a synthetic UserID, so they never equal a real user's id.
+ */
+const TailscalePeerNodeJson = Schema.Struct({
+  HostName: Schema.optional(Schema.Unknown),
+  DNSName: Schema.optional(Schema.Unknown),
+  TailscaleIPs: Schema.optional(Schema.Unknown),
+  UserID: Schema.optional(Schema.Unknown),
+  Online: Schema.optional(Schema.Unknown),
+  OS: Schema.optional(Schema.Unknown),
+  Tags: Schema.optional(Schema.Unknown),
+});
+
+const TailscalePeersJson = Schema.Struct({
+  BackendState: Schema.optional(Schema.Unknown),
+  Self: Schema.optional(TailscalePeerNodeJson),
+  Peer: Schema.optional(Schema.Record(Schema.String, TailscalePeerNodeJson)),
+});
+
+const decodeTailscalePeersJson = Schema.decodeEffect(Schema.fromJsonString(TailscalePeersJson));
+
+export interface TailscalePeer {
+  readonly hostName: string;
+  /** MagicDNS name without the trailing dot, or null. */
+  readonly dnsName: string | null;
+  readonly tailnetIpv4Addresses: readonly string[];
+  readonly userId: number | null;
+  readonly online: boolean;
+  readonly tagged: boolean;
+  readonly os: string | null;
+}
+
+export interface TailscalePeers {
+  readonly running: boolean;
+  readonly selfUserId: number | null;
+  readonly selfIpv4Addresses: readonly string[];
+  /** This machine's MagicDNS name without the trailing dot, or null. */
+  readonly selfDnsName: string | null;
+  readonly peers: readonly TailscalePeer[];
+}
+
+const nodeUserId = (value: unknown): number | null =>
+  typeof value === "number" && Number.isSafeInteger(value) && value > 0 ? value : null;
+
+const toTailscalePeer = (node: typeof TailscalePeerNodeJson.Type): TailscalePeer => {
+  const dns = typeof node.DNSName === "string" ? node.DNSName.trim().replace(/\.$/u, "") : "";
+  return {
+    hostName: typeof node.HostName === "string" ? node.HostName.trim() : "",
+    dnsName: dns.length > 0 ? dns : null,
+    tailnetIpv4Addresses: Array.isArray(node.TailscaleIPs)
+      ? node.TailscaleIPs.filter(
+          (address): address is string =>
+            typeof address === "string" && isTailscaleIpv4Address(address),
+        )
+      : [],
+    userId: nodeUserId(node.UserID),
+    online: node.Online === true,
+    tagged: Array.isArray(node.Tags) && node.Tags.length > 0,
+    os: typeof node.OS === "string" && node.OS.length > 0 ? node.OS : null,
+  };
+};
+
+export const parseTailscalePeers = (
+  rawStatusJson: string,
+): Effect.Effect<TailscalePeers, TailscaleStatusParseError> =>
+  decodeTailscalePeersJson(rawStatusJson).pipe(
+    Effect.mapError((cause) => new TailscaleStatusParseError({ cause })),
+    Effect.map((parsed) => {
+      const self = parsed.Self === undefined ? undefined : toTailscalePeer(parsed.Self);
+      return {
+        running: parsed.BackendState === "Running",
+        // A tagged Self has no owning user, so it can never match a person.
+        selfUserId: self === undefined || self.tagged ? null : self.userId,
+        selfIpv4Addresses: self?.tailnetIpv4Addresses ?? [],
+        selfDnsName: self?.dnsName ?? null,
+        peers: Object.values(parsed.Peer ?? {}).map(toTailscalePeer),
+      };
+    }),
+  );
+
+export const readTailscalePeers = readTailscaleOutput("status", ["status", "--json"]).pipe(
+  Effect.flatMap(parseTailscalePeers),
+);
+
+const TailscaleWhoisJson = Schema.Struct({
+  Node: Schema.optional(
+    Schema.Struct({
+      Name: Schema.optional(Schema.Unknown),
+      Tags: Schema.optional(Schema.Unknown),
+    }),
+  ),
+  UserProfile: Schema.optional(
+    Schema.Struct({
+      ID: Schema.optional(Schema.Unknown),
+      LoginName: Schema.optional(Schema.Unknown),
+    }),
+  ),
+});
+
+const decodeTailscaleWhoisJson = Schema.decodeEffect(Schema.fromJsonString(TailscaleWhoisJson));
+
+export interface TailscaleWhois {
+  /** The node's MagicDNS name without the trailing dot, or null. */
+  readonly nodeName: string | null;
+  readonly tagged: boolean;
+  /** The owning tailnet user; null for a tagged node or when the CLI omitted the profile. */
+  readonly user: { readonly id: number; readonly loginName: string | null } | null;
+}
+
+export const parseTailscaleWhois = (
+  rawWhoisJson: string,
+): Effect.Effect<TailscaleWhois, TailscaleStatusParseError> =>
+  decodeTailscaleWhoisJson(rawWhoisJson).pipe(
+    Effect.mapError((cause) => new TailscaleStatusParseError({ cause })),
+    Effect.map((parsed) => {
+      const name = typeof parsed.Node?.Name === "string" ? parsed.Node.Name.trim() : "";
+      const userId = nodeUserId(parsed.UserProfile?.ID);
+      const loginName = parsed.UserProfile?.LoginName;
+      return {
+        nodeName: name.length > 0 ? name.replace(/\.$/u, "") : null,
+        tagged: Array.isArray(parsed.Node?.Tags) && parsed.Node.Tags.length > 0,
+        user:
+          userId === null
+            ? null
+            : { id: userId, loginName: typeof loginName === "string" ? loginName : null },
+      };
+    }),
+  );
+
+const isIpLiteral = (value: string) => /^[0-9a-f.:]+$/iu.test(value) && value.length <= 45;
+
+/** Who owns the tailnet address `ip`, as the local tailscaled sees it. Fails on anything unclear. */
+export const readTailscaleWhois = (ip: string) =>
+  isIpLiteral(ip)
+    ? readTailscaleOutput("whois", ["whois", "--json", ip]).pipe(
+        Effect.flatMap(parseTailscaleWhois),
+      )
+    : Effect.fail(new TailscaleStatusParseError({ cause: "not an IP literal" }));
 
 const TailscalePrefsJson = Schema.Struct({
   RunSSH: Schema.optional(Schema.Unknown),

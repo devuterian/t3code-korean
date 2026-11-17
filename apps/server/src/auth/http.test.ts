@@ -27,6 +27,7 @@ import * as EnvironmentAuth from "./EnvironmentAuth.ts";
 import { makeDpopKey } from "./dpop.testkit.ts";
 import * as ServerSecretStore from "./ServerSecretStore.ts";
 import * as AuthHttp from "./http.ts";
+import * as TailnetAutoConnect from "./TailnetAutoConnect.ts";
 import * as ManagedPolicy from "../policy/ManagedPolicy.ts";
 
 const DEV_TOKEN = "reusable-dev-auth-token-that-is-long-enough";
@@ -53,7 +54,7 @@ const layerEnvironmentAuth = EnvironmentAuth.layer.pipe(
   Layer.provide(layerConfig),
 );
 const layerRoutes = HttpApiBuilder.layer(AuthTestApi).pipe(
-  Layer.provide(AuthHttp.layer),
+  Layer.provide(AuthHttp.layer.pipe(Layer.provide(TailnetAutoConnect.layerDisabled))),
   Layer.provide(AuthHttp.layerAuthenticatedAuth),
   Layer.provideMerge(layerEnvironmentAuth),
   Layer.provide(layerConfig),

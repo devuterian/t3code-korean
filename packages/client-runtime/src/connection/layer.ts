@@ -11,6 +11,7 @@ import * as ConnectionDriver from "./driver.ts";
 import * as EnvironmentRegistry from "./registry.ts";
 import * as ConnectionOnboarding from "./onboarding.ts";
 import { connectionRoutes, hasRelayRoute } from "./routes.ts";
+import { watchTailnetPeers } from "./tailnet.ts";
 import * as PlatformConnectionSource from "../platform/source.ts";
 import * as RelayEnvironmentDiscovery from "../relay/discovery.ts";
 import * as RemoteEnvironmentAuthorization from "../authorization/service.ts";
@@ -88,6 +89,7 @@ export function layerWithOptions(options: RpcSession.RpcSessionOptions) {
       const registry = yield* EnvironmentRegistry.EnvironmentRegistry;
       const platformSource = yield* PlatformConnectionSource.PlatformConnectionSource;
       yield* watchDiscoveredCompatibility().pipe(Effect.forkScoped);
+      yield* watchTailnetPeers().pipe(Effect.forkScoped);
       yield* registry.start;
       yield* platformSource.registrations.pipe(
         Stream.runForEach(registry.reconcilePlatform),

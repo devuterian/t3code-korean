@@ -28,6 +28,7 @@ import { decodeRelayJwt, RELAY_LINK_PROOF_TYP, verifyRelayJwt } from "@t3tools/s
 import * as EnvironmentKeys from "./environmentKeys.ts";
 import * as EnvironmentAuth from "../auth/EnvironmentAuth.ts";
 import * as AuthHttp from "../auth/http.ts";
+import * as TailnetAutoConnect from "../auth/TailnetAutoConnect.ts";
 import * as ServerSecretStore from "../auth/ServerSecretStore.ts";
 import * as ServerConfig from "../config.ts";
 import * as ServerEnvironment from "../environment/ServerEnvironment.ts";
@@ -77,7 +78,10 @@ const layerConfig = Layer.effect(
 
 // Real credential issuance, verification, origin checks and signing; no relay or tunnel is started.
 const layerLinkProofRoutes = HttpApiBuilder.layer(LinkProofTestApi).pipe(
-  Layer.provide([AuthHttp.layer, ConnectHttp.layer]),
+  Layer.provide([
+    AuthHttp.layer.pipe(Layer.provide(TailnetAutoConnect.layerDisabled)),
+    ConnectHttp.layer,
+  ]),
   Layer.provide(AuthHttp.layerAuthenticatedAuth),
   Layer.provide(CloudLink.layer),
   Layer.provide(ServerSettings.ServerSettingsService.layerTest()),
