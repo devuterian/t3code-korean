@@ -20,7 +20,7 @@ In zsh, write `"${TAG}:path"`, never `$TAG:path` (`:a`, `:r` are modifiers).
   build Windows on GitHub Actions instead (step 7) and say so in the report.
 - `ssh -o ConnectTimeout=10 instance-20260703-0538 'echo ok'` (Linux arm64
   build host, OCI). If it is down, release without the Linux archive and say so.
-- Track progress: `ID=$(eta start "T3 Code 한국어판 주간 업스트림" --steps "업스트림 머지,충돌 해결,설치·검사,번역,맥 빌드,윈도우 빌드,안드로이드 빌드,리눅스 arm64 빌드,GitHub 릴리즈,폰 서버 교체,PR 후보")`,
+- Track progress: `ID=$(eta start "T3 Code 한국어판 주간 업스트림" --steps "업스트림 머지,충돌 해결,설치·검사,번역,맥 빌드,윈도우 빌드,안드로이드 빌드,리눅스 arm64 빌드,리눅스 x64 빌드,GitHub 릴리즈,폰 서버 교체,PR 후보")`,
   `eta step $ID N`, and always `eta done`/`eta fail` at the end.
 
 ## 1. Find the new upstream nightly
@@ -170,6 +170,22 @@ which briefly edit tracked files), smoke-tests the archive on the host, and writ
 `t3-$VERSION-linux-arm64.tar.gz` plus `SHA256SUMS`. The host keeps its tools and
 checkout under `~/build` between runs; do not touch the other services there.
 
+Linux x64 AppImage (the desktop app on 마리리's Surface Pro 9, Fedora): it is
+built on a GitHub runner, so it needs the commit on `origin`. Run it at the
+start of step 8, right after pushing the branch. The workflow file lives on
+`main`, so dispatch it from `main` and pass the release commit as `ref`:
+
+```sh
+gh workflow run korean-desktop-linux.yml -R devuterian/t3code-korean --ref main -f ref=$(git rev-parse HEAD) -f version=$VERSION
+gh run watch <run id> -R devuterian/t3code-korean --exit-status
+gh run download <run id> -R devuterian/t3code-korean -n t3code-korean-linux-x64 -D release-$VERSION-linux-x64
+```
+
+It writes `T3-Code-Korean-$VERSION-linux-x86_64.AppImage` and
+`latest-linux.yml` (the feed the installed AppImage updates itself from; its
+file name and sha512 must match the AppImage). About 5 minutes. If it fails,
+release the rest anyway and say so in the report.
+
 Mac, Windows, Android and Linux can build at the same time (Windows and Linux
 run on other machines). Give each build its own output dir: the Mac script
 refuses a non-empty one.
@@ -180,11 +196,13 @@ Push the branch and tag `v$VERSION` to `origin` (never to `upstream`). Create
 the release as a draft on `devuterian/t3code-korean`, upload all files (mac:
 dmg, dmg.blockmap, zip, zip.blockmap, latest-mac.yml; Windows: exe,
 exe.blockmap, latest.yml; Android: the arm64 APK; Linux: the arm64 tar.gz and
-`SHA256SUMS`), then publish it as the latest release (not a
+`SHA256SUMS`; Linux x64: the AppImage and `latest-linux.yml`), then publish it as the latest release (not a
 pre-release). Notes in Korean 해요체: what changed for users (from upstream's
 release notes and our changes), install notes per platform, source branch and
-commit. Afterwards download `releases/latest/download/latest-mac.yml` and
-`latest.yml` and check they name `$VERSION`.
+commit. Afterwards download `releases/latest/download/latest-mac.yml`,
+`latest.yml` and `latest-linux.yml` and check they name `$VERSION`.
+The Surface's AppImage updates itself from `latest-linux.yml`; nothing to do
+on the Surface.
 
 Phones follow the newest release that has an APK. Put the Linux archive name and
 its SHA-256 in the release notes and the report: the Z Flip5 server installs it
