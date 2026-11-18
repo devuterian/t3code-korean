@@ -249,7 +249,7 @@ it.layer(layerEnvironmentAuth)("TailnetAutoConnect", (it) => {
       const peers = yield* service.listPeers();
       assert.deepEqual(peers, [
         {
-          httpBaseUrl: "http://laptop.tail.example:3773",
+          httpBaseUrl: "http://100.64.0.30:3773",
           environmentId: "env-laptop",
           label: "Laptop",
         },
