@@ -273,7 +273,8 @@ export const makeTailnetAutoConnect = Effect.fn("TailnetAutoConnect.make")(funct
       return deps.probe(`http://${ip}:${port}/.well-known/t3/environment`).pipe(
         Effect.map(
           Option.map((descriptor): AuthTailnetPeer => ({
-            httpBaseUrl: `http://${peer.dnsName ?? ip}:${port}`,
+            // The IP, not the MagicDNS name: some phones on the tailnet cannot resolve it.
+            httpBaseUrl: `http://${ip}:${port}`,
             environmentId: descriptor.environmentId,
             label: descriptor.label,
           })),
