@@ -1,0 +1,80 @@
+diff --git a/dist/versionId-BDwkPmu8.mjs b/dist/versionId-BDwkPmu8.mjs
+index 48cc2687aec4b8ba06db2295bec60e95dfaf624f..b99c5bdea172909cd1d1b2ef6c270528c013c189 100644
+--- a/dist/versionId-BDwkPmu8.mjs
++++ b/dist/versionId-BDwkPmu8.mjs
+@@ -637,16 +637,34 @@ function resolveCanonicalLocale$1(locale) {
+ /**
+ * Hash a message string
+ */
++const hashMessageCache = /* @__PURE__ */ new Map();
+ function hashMessage(message, options) {
+ 	const metadataOptions = options;
+ 	if (metadataOptions.$_hash != null) return metadataOptions.$_hash;
+-	return hashSource({
++	// Every gt() lookup outside the default locale hashes its source (an ICU parse plus a JS
++	// SHA-256), on every render. Source strings repeat, so remember their hashes.
++	const cacheKey = typeof message === "string" ? [
++		options.$format,
++		metadataOptions.$context,
++		metadataOptions.$maxChars,
++		metadataOptions.$requiresReview === true,
++		message
++	].join("\0") : void 0;
++	const cached = cacheKey === void 0 ? void 0 : hashMessageCache.get(cacheKey);
++	if (cached !== void 0) return cached;
++	const hash = hashSource({
+ 		source: options.$format === "ICU" ? indexVars(message) : message,
+ 		...metadataOptions.$context && { context: metadataOptions.$context },
+ 		...metadataOptions.$maxChars != null && { maxChars: Math.abs(metadataOptions.$maxChars) },
+ 		...metadataOptions.$requiresReview === true && { requiresReview: true },
+ 		dataFormat: options.$format
+ 	});
++	if (cacheKey !== void 0) {
++		// Dynamic messages would grow it without bound.
++		if (hashMessageCache.size >= 1e4) hashMessageCache.clear();
++		hashMessageCache.set(cacheKey, hash);
++	}
++	return hash;
+ }
+ //#endregion
+ //#region src/helpers/versionId.ts
+diff --git a/dist/versionId-WIgaTRdx.cjs b/dist/versionId-WIgaTRdx.cjs
+index 6626b2916861acaf5c2094f88e730feaebacd188..b8f280de4adae5b3d9f64d2e20cc1d01216e8868 100644
+--- a/dist/versionId-WIgaTRdx.cjs
++++ b/dist/versionId-WIgaTRdx.cjs
+@@ -637,16 +637,34 @@ function resolveCanonicalLocale(locale) {
+ /**
+ * Hash a message string
+ */
++const hashMessageCache = /* @__PURE__ */ new Map();
+ function hashMessage(message, options) {
+ 	const metadataOptions = options;
+ 	if (metadataOptions.$_hash != null) return metadataOptions.$_hash;
+-	return (0, generaltranslation_id.hashSource)({
++	// Every gt() lookup outside the default locale hashes its source (an ICU parse plus a JS
++	// SHA-256), on every render. Source strings repeat, so remember their hashes.
++	const cacheKey = typeof message === "string" ? [
++		options.$format,
++		metadataOptions.$context,
++		metadataOptions.$maxChars,
++		metadataOptions.$requiresReview === true,
++		message
++	].join("\0") : void 0;
++	const cached = cacheKey === void 0 ? void 0 : hashMessageCache.get(cacheKey);
++	if (cached !== void 0) return cached;
++	const hash = (0, generaltranslation_id.hashSource)({
+ 		source: options.$format === "ICU" ? (0, generaltranslation_internal.indexVars)(message) : message,
+ 		...metadataOptions.$context && { context: metadataOptions.$context },
+ 		...metadataOptions.$maxChars != null && { maxChars: Math.abs(metadataOptions.$maxChars) },
+ 		...metadataOptions.$requiresReview === true && { requiresReview: true },
+ 		dataFormat: options.$format
+ 	});
++	if (cacheKey !== void 0) {
++		// Dynamic messages would grow it without bound.
++		if (hashMessageCache.size >= 1e4) hashMessageCache.clear();
++		hashMessageCache.set(cacheKey, hash);
++	}
++	return hash;
+ }
+ //#endregion
+ //#region src/helpers/versionId.ts
