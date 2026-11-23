@@ -3118,6 +3118,9 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
     buildConfig.dmg = {
       // Finder caches DMG backgrounds by volume name; give each installer its own.
       title: `${resolveDesktopProductName(version)} ${version} Installer`,
+      // Korean fork: macOS 27.2 on the release Mac no longer attaches HFS+ images, so dmgbuild
+      // fails; every Apple Silicon Mac opens APFS images.
+      filesystem: "APFS",
       background: `dmg/dmg-background-${updateChannel}.png`,
       window: {
         width: 640,
