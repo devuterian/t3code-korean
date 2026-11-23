@@ -2648,7 +2648,7 @@ describe("CodexAdapterV2 post-settle continuation", () => {
                     approvalPolicy: "never",
                     approvalsReviewer: "user",
                     sandboxPolicy: { type: "dangerFullAccess" },
-                    summary: "detailed",
+                    summary: "auto",
                     ...(setupMode === "existing" ? { serviceTier: "priority" } : {}),
                     collaborationMode: { mode: "default", settings: { model: "gpt-5.4" } },
                   },
@@ -5327,6 +5327,7 @@ describe("CodexAdapterV2 post-settle continuation", () => {
       const nativeThreadId = "closing-thread";
       const params = {
         threadId: nativeThreadId,
+        modelProvider: "openai",
         excludeTurns: true,
         cwd: CODEX_TEST_RUNTIME_POLICY.cwd,
         model: CODEX_TEST_MODEL_SELECTION.model,
@@ -12947,6 +12948,7 @@ describe("CodexAdapterV2 post-settle continuation", () => {
                 "thread/resume",
                 {
                   threadId: nativeThreadId,
+                  modelProvider: "openai",
                   excludeTurns: true,
                   config: CodexAdapterV2.CODEX_THREAD_CONFIG,
                 },
