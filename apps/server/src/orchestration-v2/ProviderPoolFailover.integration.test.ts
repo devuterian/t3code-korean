@@ -36,6 +36,7 @@ import * as ProviderAdapterRegistry from "./ProviderAdapterRegistry.ts";
 import { ProviderPoolCatalog } from "./ProviderPoolCatalog.ts";
 import * as ProviderReplayHarness from "./testkit/ProviderReplayHarness.ts";
 import { limitRecoveryCommand } from "./UsageLimitRecoveryWorker.ts";
+import * as ModelManifest from "../provider/ModelManifest.ts";
 import * as ProviderInstanceRegistry from "../provider/ProviderInstanceRegistry.ts";
 import { withProviderPools } from "../provider/providerPoolSnapshot.ts";
 import { checkpointWorkspace } from "@t3tools/provider-testing/replayWorkspace";
@@ -219,7 +220,11 @@ const makeInstance = (
   continuationIdentity: { driverKind: driver, continuationKey },
   displayName: String(adapter.instanceId),
   enabled: true,
-  snapshot: {} as ProviderInstance["snapshot"],
+  // No version, so the registry's broken-runtime check lets the session open.
+  snapshot: {
+    getSnapshot: Effect.succeed({ version: null }),
+    refresh: Effect.succeed({ version: null }),
+  } as unknown as ProviderInstance["snapshot"],
   orchestrationAdapter: adapter,
   textGeneration: {} as ProviderInstance["textGeneration"],
 });
@@ -293,6 +298,7 @@ const makeRegistry = (
         subscribeChanges: Effect.never,
       }),
     ),
+    Layer.provide(ModelManifest.layerTest),
   );
 };
 

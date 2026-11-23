@@ -1,3 +1,4 @@
+import { errorDisplayMessage } from "@t3tools/client-runtime/errors";
 import {
   parsePullRequestAnchor,
   pullRequestAnchorMatchesUrl,
@@ -12,13 +13,13 @@ import {
 } from "@t3tools/client-runtime/state/runtime";
 import { AsyncResult } from "effect/reactivity";
 import { pullRequestConversationThreads, type PullRequestThreadComment } from "@t3tools/contracts";
+import { T, useGT, useMessages } from "gt-react-native";
 import { useRef, useState } from "react";
 import { ScrollView, View, type ScrollViewInstance } from "react-native";
 import { KeyboardAvoidingView, useKeyboardState } from "react-native-keyboard-controller";
 import { NativeScrollViewMarker as ScrollViewMarker } from "../../native/NativeScrollViewMarker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText as Text, AppTextInput as TextInput } from "../../components/ui/AppText";
-import { useTranslate } from "../../i18n/translate";
 import { AppBar } from "../../components/ui/AppBar";
 import { Button } from "../../components/ui/Button";
 import { GlassSurface } from "../../components/ui/GlassSurface";
@@ -34,6 +35,7 @@ import { usePullRequestPermissions } from "./usePullRequestPermissions";
 import { pullRequestReviewKey } from "./pullRequestReviewDrafts";
 import { PullRequestCompletionSuggestions } from "./PullRequestCompletionSuggestions";
 import { usePullRequestCompletions } from "./usePullRequestCompletions";
+import { m } from "../../i18n/messages";
 
 export function PullRequestDiscussionScreen({
   route,
@@ -49,7 +51,8 @@ export function PullRequestDiscussionScreen({
 function Discussion({ params }: { params: PullRequestParams & { readonly discussionId: string } }) {
   const target = pullRequestTarget(params);
   const navigation = useNavigation();
-  const t = useTranslate();
+  const gt = useGT();
+  const messages = useMessages();
   const insets = useSafeAreaInsets();
   const keyboardVisible = useKeyboardState((state) => state.isVisible);
   const bottomInset = keyboardVisible ? 8 : Math.max(insets.bottom, 12);
@@ -104,7 +107,9 @@ function Discussion({ params }: { params: PullRequestParams & { readonly discuss
     if (result && AsyncResult.isFailure(result)) {
       const cause = squashAtomCommandFailure(result);
       setError(
-        cause instanceof Error ? cause.message : t("The provider could not complete this action."),
+        cause instanceof Error
+          ? (errorDisplayMessage(cause, m) ?? cause.message)
+          : gt("The provider could not complete this action."),
       );
     }
   };
@@ -118,7 +123,7 @@ function Discussion({ params }: { params: PullRequestParams & { readonly discuss
       });
       if (AsyncResult.isFailure(response)) return response;
       setBody((current) => (current === submitted ? "" : current));
-      setNotice(t("Reply posted."));
+      setNotice(gt("Reply posted."));
       refresh();
       return response;
     });
@@ -159,7 +164,9 @@ function Discussion({ params }: { params: PullRequestParams & { readonly discuss
       ? resolvePullRequestReviewAnchor(location.anchor, [], [{ comments }])
       : null;
   const canReply = permissions.canReply && Boolean(thread);
-  const resolveLabel = thread?.isResolved ? t("Unresolve") : t("Resolve");
+  const resolveLabel = thread?.isResolved
+    ? gt("Unresolve", { $context: "review thread" })
+    : gt("Resolve", { $context: "review thread" });
   return (
     <PullRequestMarkdownRepository params={params} changeRequest={detail.data}>
       <KeyboardAvoidingView
@@ -172,7 +179,7 @@ function Discussion({ params }: { params: PullRequestParams & { readonly discuss
         }}
       >
         <AppBar
-          title={t("Discussion")}
+          title={gt("Discussion")}
           subtitle={`#${params.number}`}
           onBack={() => navigation.goBack()}
           actions={
@@ -214,12 +221,16 @@ function Discussion({ params }: { params: PullRequestParams & { readonly discuss
                   </Text>
                 )}
                 <Text className="text-xs text-foreground-muted">
-                  {thread.isResolved ? t("Resolved") : t("Unresolved")}
-                  {thread.isOutdated ? ` · ${t("Outdated")}` : ""}
+                  {thread.isResolved
+                    ? gt("Resolved", { $context: "review thread state" })
+                    : gt("Unresolved", { $context: "review thread state" })}
+                  {thread.isOutdated
+                    ? ` · ${gt("Outdated", { $context: "review thread state" })}`
+                    : ""}
                 </Text>
                 {filePath === null ? null : (
                   <Button
-                    label={t("View file diff")}
+                    label={gt("View file diff")}
                     onPress={() =>
                       navigation.navigate("PullRequestFile", { ...params, path: filePath })
                     }
@@ -227,7 +238,9 @@ function Discussion({ params }: { params: PullRequestParams & { readonly discuss
                 )}
               </View>
             ) : !activity.isPending ? (
-              <Text>{t("This discussion is no longer available.")}</Text>
+              <Text>
+                <T>This discussion is no longer available.</T>
+              </Text>
             ) : null}
             {comments.map((comment) => (
               <View
@@ -252,10 +265,10 @@ function Discussion({ params }: { params: PullRequestParams & { readonly discuss
                 <View className="flex-row items-center gap-2">
                   <PullRequestAvatar actor={comment.author} size={28} />
                   <Text className="min-w-0 flex-1 text-sm font-t3-medium">
-                    {comment.author?.login ?? t("Unknown author")}
+                    {comment.author?.login ?? gt("Unknown author")}
                   </Text>
                   <Text className="text-2xs text-foreground-muted">
-                    {relativeTime(comment.createdAt)}
+                    {relativeTime(comment.createdAt, undefined, messages)}
                   </Text>
                 </View>
                 <PullRequestMarkdown markdown={comment.body} />
@@ -273,7 +286,7 @@ function Discussion({ params }: { params: PullRequestParams & { readonly discuss
             ))}
             {nextCursor ? (
               <Button
-                label={busy ? t("Loading…") : t("Load more replies")}
+                label={busy ? gt("Loading…") : gt("Load more replies")}
                 disabled={busy}
                 onPress={() => void more()}
               />
@@ -298,13 +311,13 @@ function Discussion({ params }: { params: PullRequestParams & { readonly discuss
               className="flex-row items-end gap-1 p-1"
             >
               <TextInput
-                accessibilityLabel={t("Discussion reply")}
+                accessibilityLabel={gt("Discussion reply")}
                 selection={completions.selection}
                 onSelectionChange={completions.onSelectionChange}
                 onBlur={completions.onBlur}
                 multiline
                 maxLength={65536}
-                placeholder={t("Reply…")}
+                placeholder={gt("Reply…")}
                 placeholderTextColorClassName="accent-foreground-muted"
                 value={body}
                 onChangeText={setBody}
@@ -313,7 +326,7 @@ function Discussion({ params }: { params: PullRequestParams & { readonly discuss
               />
               <View>
                 <Button
-                  label={busy ? t("Posting…") : t("Reply")}
+                  label={busy ? gt("Posting…") : gt("Reply", { $context: "verb, button" })}
                   tone="contrast"
                   disabled={busy || !body.trim()}
                   onPress={() => void post()}

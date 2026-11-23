@@ -1,15 +1,15 @@
 import { ArrowLeftRightIcon, MinusIcon, PlusIcon } from "lucide-react";
+import { useGT } from "gt-react";
 import { useId, type CSSProperties } from "react";
 
 import { THREAD_WIDTH_STEP, useFitTables, useThreadWidth } from "~/hooks/useThreadWidth";
 import { Switch } from "../ui/switch";
 import { Button } from "../ui/button";
-import { useTranslate } from "../../i18n/translate";
 import { Popover, PopoverPopup, PopoverTitle, PopoverTrigger } from "../ui/popover";
 
 /** Adjust conversation width and optional table wrapping without leaving the thread. */
 export function ThreadWidthControl() {
-  const t = useTranslate();
+  const gt = useGT();
   const [expansion, setExpansion] = useThreadWidth();
   const sliderId = useId();
   const fitId = useId();
@@ -24,19 +24,23 @@ export function ThreadWidthControl() {
       <PopoverTrigger
         data-toolbar-control
         render={
-          <Button size="xs" variant="outline" aria-label={`${t("Thread width")}: ${expansion}%`} />
+          <Button
+            size="xs"
+            variant="outline"
+            aria-label={gt("Thread width: {expansion}%", { expansion })}
+          />
         }
       >
         <ArrowLeftRightIcon aria-hidden="true" className="size-3.5" />
-        <span className="hidden xl:inline">{t("Width")}</span>
+        <span className="hidden xl:inline">{gt("Width")}</span>
         <span className="tabular-nums">{expansion}%</span>
       </PopoverTrigger>
       <PopoverPopup align="end" width="sm">
         <div className="space-y-3">
-          <PopoverTitle>{t("Thread width")}</PopoverTitle>
+          <PopoverTitle>{gt("Thread width")}</PopoverTitle>
           <div className="flex items-center justify-between gap-3">
             <Button
-              aria-label={t("Decrease thread width")}
+              aria-label={gt("Decrease thread width")}
               size="icon-xs"
               variant="outline"
               disabled={expansion === 0}
@@ -48,7 +52,7 @@ export function ThreadWidthControl() {
               {expansion}%
             </output>
             <Button
-              aria-label={t("Increase thread width")}
+              aria-label={gt("Increase thread width")}
               size="icon-xs"
               variant="outline"
               disabled={expansion === 100}
@@ -60,7 +64,7 @@ export function ThreadWidthControl() {
           <div>
             <input
               id={sliderId}
-              aria-label={t("Thread width")}
+              aria-label={gt("Thread width")}
               className="settings-slider block w-full"
               type="range"
               min={0}
@@ -79,7 +83,7 @@ export function ThreadWidthControl() {
             htmlFor={fitId}
             className="flex cursor-pointer items-center justify-between gap-3 border-t border-border pt-3 text-sm"
           >
-            {t("Fit tables")}
+            {gt("Fit tables")}
             <Switch id={fitId} size="sm" checked={fitTables} onCheckedChange={setFitTables} />
           </label>
         </div>

@@ -1,13 +1,13 @@
 import { useAuth } from "@clerk/react";
 import type { EnvironmentId } from "@t3tools/contracts";
 import { Link } from "@tanstack/react-router";
+import { T } from "gt-react";
 import { CheckIcon } from "lucide-react";
 import { type ReactNode, useState } from "react";
 
 import { APP_DISPLAY_NAME, DESKTOP_DOWNLOAD_URL } from "~/branding";
 import { hasCloudPublicConfig } from "~/cloud/publicConfig";
 import { isElectron } from "../env";
-import { useTranslate } from "../i18n/translate";
 import { isLocalEnvironmentDisabled } from "../localEnvironment";
 import { useRelayEnvironmentDiscovery } from "../state/environments";
 import { InstallT3Commands } from "./InstallT3Commands";
@@ -21,7 +21,6 @@ import { WorkspacePageHeader } from "./WorkspacePageHeader";
 
 /** Home screen for the hosted app before any computer is added. */
 export function HostedEmptyState() {
-  const t = useTranslate();
   const cloudEnabled = hasCloudPublicConfig();
   const localEnvironmentOff = isLocalEnvironmentDisabled();
 
@@ -39,20 +38,22 @@ export function HostedEmptyState() {
         <Empty className="flex-1">
           <EmptyHeader>
             <EmptyTitle>
-              {localEnvironmentOff ? t("This computer is off") : t("No computer connected")}
+              {localEnvironmentOff ? <T>This computer is off</T> : <T>No computer connected</T>}
             </EmptyTitle>
             <EmptyDescription>
-              {localEnvironmentOff
-                ? t("Turn it back on, or connect a different computer.")
-                : cloudEnabled
-                  ? t("Your agents run on your computer.")
-                  : t("Your agents run on your computer. Start T3 Code there first.")}
+              {localEnvironmentOff ? (
+                <T>Turn it back on, or connect a different computer.</T>
+              ) : cloudEnabled ? (
+                <T>Your agents run on your computer.</T>
+              ) : (
+                <T>Your agents run on your computer. Start T3 Code there first.</T>
+              )}
             </EmptyDescription>
           </EmptyHeader>
           <EmptyContent>
             {localEnvironmentOff ? (
               <Button render={<Link to="/settings/connections" />} size="sm">
-                {t("Open Environments")}
+                <T>Open Environments</T>
               </Button>
             ) : (
               <ol className="w-full space-y-4 text-left">
@@ -67,7 +68,6 @@ export function HostedEmptyState() {
 }
 
 function T3ConnectSteps() {
-  const t = useTranslate();
   const { isLoaded, isSignedIn } = useAuth({ treatPendingAsSignedOut: false });
   const loadFailed = useClerkLoadFailed();
   const { openAuthPrompt } = useT3ConnectAuthPrompt();
@@ -83,16 +83,16 @@ function T3ConnectSteps() {
       <SetupStep number={1}>
         {loadFailed ? (
           <Button size="sm" onClick={retryClerkLoad}>
-            {t("Retry sign-in")}
+            <T>Retry sign-in</T>
           </Button>
         ) : isSignedIn ? (
           <p className="flex items-center gap-1.5 text-muted-foreground">
             <CheckIcon className="size-4" />
-            {t("Signed in")}
+            <T>Signed in</T>
           </p>
         ) : (
           <Button size="sm" disabled={!isLoaded} onClick={openAuthPrompt}>
-            {t("Sign in")}
+            <T>Sign in</T>
           </Button>
         )}
       </SetupStep>
@@ -116,7 +116,9 @@ function T3ConnectSteps() {
                   }),
               }}
               empty={
-                <p className="text-xs text-muted-foreground">{t("Waiting for your computer…")}</p>
+                <p className="text-xs text-muted-foreground">
+                  <T>Waiting for your computer…</T>
+                </p>
               }
             />
           </div>
@@ -127,7 +129,6 @@ function T3ConnectSteps() {
 }
 
 function PairingSteps() {
-  const t = useTranslate();
   return (
     <>
       <SetupStep number={1}>
@@ -135,7 +136,7 @@ function PairingSteps() {
       </SetupStep>
       <SetupStep number={2}>
         <Button render={<Link to="/settings/connections" />} size="sm">
-          {t("Add pairing link")}
+          <T>Add pairing link</T>
         </Button>
       </SetupStep>
     </>
@@ -158,10 +159,11 @@ function SetupStep({
 }
 
 function RunOnComputer({ command }: { readonly command: string }) {
-  const t = useTranslate();
   return (
     <>
-      <p>{t("Run on your computer:")}</p>
+      <p>
+        <T>Run on your computer:</T>
+      </p>
       <InstallT3Commands command={command} className="mt-2" />
       <a
         className="mt-2 inline-block text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
@@ -169,7 +171,7 @@ function RunOnComputer({ command }: { readonly command: string }) {
         target="_blank"
         rel="noreferrer noopener"
       >
-        {t("Or download the desktop app")}
+        <T>Or download the desktop app</T>
       </a>
     </>
   );

@@ -1,3 +1,4 @@
+import { thrownErrorMessage } from "@t3tools/client-runtime/errors";
 import { useRef, useSyncExternalStore, use } from "react";
 import { useSyncExternalStoreWithSelector } from "use-sync-external-store/with-selector";
 import { RegistryContext, useAtomValue } from "@effect/atom-react";
@@ -54,11 +55,8 @@ import { primaryServerSettingsAtom, serverEnvironment } from "~/state/server";
 import { useEnvironments, usePrimaryEnvironment } from "~/state/environments";
 import { useAtomCommand } from "~/state/use-atom-command";
 import { useTheme } from "./useTheme";
-import {
-  markInterfaceLanguageConfigured,
-  setInterfaceLanguage,
-  translate,
-} from "../i18n/translate";
+import { msg } from "gt-react";
+import { m } from "~/i18n/messages";
 import {
   environmentSession,
   environmentSessionStatesAtom,
@@ -156,12 +154,9 @@ async function hydrateClientSettings(): Promise<void> {
       if (hydrationGeneration !== clientSettingsHydrationGeneration) {
         return;
       }
-      const nextSettings = persistedSettings
-        ? { ...DEFAULT_CLIENT_SETTINGS, ...persistedSettings }
-        : DEFAULT_CLIENT_SETTINGS;
-      replaceClientSettingsSnapshot(nextSettings);
-      setInterfaceLanguage(nextSettings.interfaceLanguage);
-      markInterfaceLanguageConfigured();
+      if (persistedSettings) {
+        replaceClientSettingsSnapshot({ ...DEFAULT_CLIENT_SETTINGS, ...persistedSettings });
+      }
       unsubscribeOtherTabClientSettings ??= subscribeBrowserClientSettingsWrites(
         refreshClientSettingsFromOtherTab,
       );
@@ -192,9 +187,7 @@ function refreshClientSettingsFromOtherTab(): void {
   void enqueueClientSettingsPersistence(async () => {
     const persistedSettings = await ensureLocalApi().persistence.getClientSettings();
     if (persistedSettings) {
-      const nextSettings = { ...DEFAULT_CLIENT_SETTINGS, ...persistedSettings };
-      replaceClientSettingsSnapshot(nextSettings);
-      setInterfaceLanguage(nextSettings.interfaceLanguage);
+      replaceClientSettingsSnapshot({ ...DEFAULT_CLIENT_SETTINGS, ...persistedSettings });
     }
   }).catch((error) => {
     console.error(`${CLIENT_SETTINGS_PERSISTENCE_ERROR_SCOPE} refresh failed`, {
@@ -473,8 +466,8 @@ export function useUpdateEnvironmentModelPreferences(environmentId: EnvironmentI
     } catch {
       toastManager.add({
         type: "error",
-        title: translate("Model preferences not saved"),
-        description: translate("Could not load saved model preferences. Try again."),
+        title: m(msg("Model preferences not saved")),
+        description: m(msg("Could not load saved model preferences. Try again.")),
       });
       return;
     }
@@ -500,8 +493,8 @@ export function useToggleEnvironmentModelFavorite(environmentId: EnvironmentId |
       } catch {
         toastManager.add({
           type: "error",
-          title: translate("Favorites not saved"),
-          description: translate("Could not load saved model preferences. Try again."),
+          title: m(msg("Favorites not saved")),
+          description: m(msg("Could not load saved model preferences. Try again.")),
         });
         return;
       }
@@ -581,8 +574,9 @@ export function usePrimarySettings<T = UnifiedSettings>(
   return useMergedSettings(settings, selector);
 }
 
-export const PRIMARY_SETTINGS_UNAVAILABLE_MESSAGE =
-  "This setting is saved on a server, and the hosted app is not anchored to one. Change it from the desktop app or from the server's own address.";
+export const PRIMARY_SETTINGS_UNAVAILABLE_MESSAGE = msg(
+  "This setting is saved on a server, and the hosted app is not anchored to one. Change it from the desktop app or from the server's own address.",
+);
 
 /** Hosted clients have no primary: usePrimarySettings reads defaults and cannot write. */
 export function usePrimarySettingsAvailable(): boolean {
@@ -609,14 +603,14 @@ function useSharedSettingsSyncTargetIds(includePending = false): ReadonlyArray<E
   });
 }
 
-function couldNotSaveOn(label: string, error: unknown): string {
-  return translate("Could not save on {label}: {message}")
-    .replace("{label}", () => label)
-    .replace("{message}", () =>
-      error instanceof Error
-        ? error.message
-        : translate("The save failed. Try reconnecting and saving again."),
-    );
+function deniedSettingsDescription(environmentLabel: string | null | undefined): string {
+  return environmentLabel == null
+    ? m(msg("This connection lacks permission to change settings on the selected environment."))
+    : m(
+        msg("This connection lacks permission to change settings on {environments}.", {
+          environments: environmentLabel,
+        }),
+      );
 }
 
 function useUpdateSettingsTarget(environmentId: EnvironmentId | null) {
@@ -639,8 +633,15 @@ function useUpdateSettingsTarget(environmentId: EnvironmentId | null) {
       const error = squashAtomCommandFailure(result);
       toastManager.add({
         type: "error",
-        title: translate("Setting not saved"),
-        description: couldNotSaveOn(label, error),
+        title: m(msg("Setting not saved")),
+        description: m(
+          msg("Could not save on {label}: {error}", {
+            label,
+            error:
+              (error instanceof Error ? thrownErrorMessage(error, m) : null) ??
+              m(msg("The save failed. Try reconnecting and saving again.")),
+          }),
+        ),
       });
     }
     return result;
@@ -661,25 +662,20 @@ function useUpdateSettingsTarget(environmentId: EnvironmentId | null) {
       options?.onFailed?.();
       toastManager.add({
         type: "warning",
-        title: translate("Setting not saved"),
-        description: translate(
-          "This connection lacks permission to change settings on {environment}.",
-        ).replace(
-          "{environment}",
-          () =>
-            environments.find((target) => target.environmentId === environmentId)?.label ??
-            translate("the selected environment"),
+        title: m(msg("Setting not saved")),
+        description: deniedSettingsDescription(
+          environments.find((target) => target.environmentId === environmentId)?.label,
         ),
       });
     }
     if (Object.keys(serverPatch).length > 0 && canWriteServerPatch) {
       const { sharedPatch, localPatch } = splitSharedServerPatch(serverPatch);
       // Dropping the write silently leaves the control looking saved.
-      const warnUnsaved = (description = translate(PRIMARY_SETTINGS_UNAVAILABLE_MESSAGE)) => {
+      const warnUnsaved = (description = m(PRIMARY_SETTINGS_UNAVAILABLE_MESSAGE)) => {
         options?.onFailed?.();
         return toastManager.add({
           type: "warning",
-          title: translate("Setting not saved"),
+          title: m(msg("Setting not saved")),
           description,
         });
       };
@@ -731,11 +727,13 @@ function useUpdateSettingsTarget(environmentId: EnvironmentId | null) {
         if (writes.length === 0) {
           warnUnsaved(
             deniedLabels.length > 0
-              ? translate(
-                  "This connection lacks permission to change settings on {environment}.",
-                ).replace("{environment}", () => deniedLabels.join(", "))
+              ? m(
+                  msg("This connection lacks permission to change settings on {environments}.", {
+                    environments: deniedLabels.join(", "),
+                  }),
+                )
               : targets.size > 0
-                ? translate("Update older servers to save this setting.")
+                ? m(msg("Update older servers to save this setting."))
                 : undefined,
           );
         } else {
@@ -756,7 +754,16 @@ function useUpdateSettingsTarget(environmentId: EnvironmentId | null) {
             const failures = outcomes.flatMap(({ label, result }) => {
               if (result._tag !== "Failure" || isAtomCommandInterrupted(result)) return [];
               const error = squashAtomCommandFailure(result);
-              return [couldNotSaveOn(label, error)];
+              return [
+                m(
+                  msg("Could not save on {label}: {error}", {
+                    label,
+                    error:
+                      (error instanceof Error ? thrownErrorMessage(error, m) : null) ??
+                      m(msg("The save failed. Try reconnecting and saving again.")),
+                  }),
+                ),
+              ];
             });
             if (
               deniedLabels.length === 0 &&
@@ -772,16 +779,12 @@ function useUpdateSettingsTarget(environmentId: EnvironmentId | null) {
               type: "error",
               title:
                 saved.length > 0
-                  ? translate("Setting saved on some environments")
-                  : translate("Setting not saved"),
+                  ? m(msg("Setting saved on some environments"))
+                  : m(msg("Setting not saved")),
               description: [
                 ...failures,
                 ...(saved.length > 0
-                  ? [
-                      translate("Saved on {environments}.").replace("{environments}", () =>
-                        saved.join(", "),
-                      ),
-                    ]
+                  ? [m(msg("Saved on {environments}.", { environments: saved.join(", ") }))]
                   : []),
               ].join("\n"),
             });

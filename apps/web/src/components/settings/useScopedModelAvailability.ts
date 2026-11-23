@@ -3,6 +3,7 @@ import {
   textGeneratorForSelection,
   type UnifiedSettings,
 } from "@t3tools/contracts";
+import { useGT } from "gt-react";
 
 import { mergeEnvironmentSettings } from "../../hooks/useSettings";
 import {
@@ -16,16 +17,15 @@ import {
 } from "../../providerInstances";
 import { useEnvironmentProviders, useEnvironments } from "../../state/environments";
 import { useSettingsScope } from "./SettingsScopeContext";
-import { useTranslate } from "../../i18n/translate";
 
 export function useScopedModelDisabledReason(
   settings: UnifiedSettings,
   entries: readonly ProviderInstanceEntry[],
   textGeneration = false,
 ) {
+  const gt = useGT();
   const { targets } = useSettingsScope();
   const { environments } = useEnvironments();
-  const t = useTranslate();
   const providersByEnvironment = useEnvironmentProviders();
   return (instanceId: ProviderInstanceId, model: string): string | null => {
     const sourceEntry = entries.find((entry) => entry.instanceId === instanceId);
@@ -34,9 +34,14 @@ export function useScopedModelDisabledReason(
       const environment = environments.find(
         (entry) => entry.environmentId === candidate.environmentId,
       );
-      const unavailable = `${t("This model is unavailable on")} ${environment?.label ?? t("a selected environment")}${t(
-        ". Select that environment to choose its model separately.",
-      )}`;
+      const unavailable = environment
+        ? gt(
+            "This model is unavailable on {environment}. Select that environment to choose its model separately.",
+            { environment: environment.label },
+          )
+        : gt(
+            "This model is unavailable on a selected environment. Select that environment to choose its model separately.",
+          );
       const generator = textGeneratorForSelection(candidate.settings, instanceId);
       if (shownGenerator !== undefined || generator !== undefined) {
         // Only the shown environment's model list is loaded; elsewhere it must reach the same API.

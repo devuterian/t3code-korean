@@ -10,15 +10,16 @@ import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 import * as Stream from "effect/Stream";
 import { AsyncResult, Atom, AtomRegistry } from "effect/reactivity";
+import { msg } from "gt-react";
 
 import { APP_VERSION } from "~/branding";
 import { environmentCatalog } from "~/connection/catalog";
+import { m } from "~/i18n/messages";
 import { appAtomRegistry } from "~/rpc/atomRegistry";
 import { desktopUpdateStateAtom } from "~/state/desktopUpdate";
 import { serverEnvironment } from "~/state/server";
 import { resolveVersionMismatch } from "~/versionSkew";
 import type { ServerUpdateOutcome, ServerUpdateTarget } from "../ServerUpdateAction";
-import { translate } from "../../i18n/translate";
 import { stackedThreadToast, toastManager } from "../ui/toast";
 import {
   closeFinishedUpdateRun,
@@ -122,7 +123,7 @@ export function retryFailedUpdateRunServers(
           ? providerFailure
           : outcome.status === "failed"
             ? outcome.message
-            : translate("Could not start the update"),
+            : m(msg("Could not start the update")),
         { serverUpdated: outcome.status === "updated" },
       ),
     );
@@ -322,7 +323,7 @@ function followHandedOffServers(servers: ReadonlyArray<HandedOffServer>): void {
       releaseState();
       settleUpdateRunMachine(server.environmentId, failure);
       if (failure === null) updatedServers += 1;
-      else failures.push(`${server.label}: ${failure}`);
+      else failures.push(m(msg("{machine}: {failure}", { machine: server.label, failure })));
       remaining -= 1;
       if (remaining === 0) {
         showUpdateEverythingResult({
@@ -337,9 +338,7 @@ function followHandedOffServers(servers: ReadonlyArray<HandedOffServer>): void {
     const timer = setTimeout(
       () =>
         settle(
-          translate("Not back after {minutes} minutes").replace("{minutes}", () =>
-            String(HANDOFF_TIMEOUT_MS / 60_000),
-          ),
+          m(msg("Not back after {minutes} minutes", { minutes: HANDOFF_TIMEOUT_MS / 60_000 })),
         ),
       server.startedAt + HANDOFF_TIMEOUT_MS - Date.now(),
     );
@@ -351,9 +350,9 @@ function followHandedOffServers(servers: ReadonlyArray<HandedOffServer>): void {
         ).pipe(
           Stream.map((state) => AsyncResult.getOrElse(state, () => AVAILABLE_CONNECTION_STATE)),
         ),
-        retryNow: Effect.promise(() =>
-          environmentCatalog.retryNow.run(appAtomRegistry, server.environmentId),
-        ).pipe(Effect.asVoid),
+        retryNow: environmentCatalog.retryNow
+          .run(appAtomRegistry, server.environmentId)
+          .pipe(Effect.ignoreCause),
       }),
     );
     const unsubscribe = appAtomRegistry.subscribe(
@@ -386,12 +385,13 @@ export function startDesktopUpdateLaunchNotice(): () => void {
       toastManager.add(
         stackedThreadToast({
           type: "error",
-          title: translate("Update did not apply"),
-          description: translate(
-            "T3 Code is still on {current}. Install {version} again from the update button.",
-          )
-            .replace("{current}", () => APP_VERSION)
-            .replace("{version}", () => notAppliedVersion),
+          title: m(msg("Update did not apply")),
+          description: m(
+            msg("T3 Code is still on {current}. Install {version} again from the update button.", {
+              current: APP_VERSION,
+              version: notAppliedVersion,
+            }),
+          ),
         }),
       );
     },

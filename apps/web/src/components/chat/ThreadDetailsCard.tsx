@@ -1,3 +1,4 @@
+import { useGT } from "gt-react";
 import { workspaceAreaProps } from "../../lib/workspaceFocus";
 import {
   useLayoutEffect,
@@ -9,7 +10,6 @@ import {
 import type { ScopedThreadRef } from "@t3tools/contracts";
 import { ScrollArea } from "../ui/scroll-area";
 import { cn } from "../../lib/utils";
-import { useTranslate } from "~/i18n/translate";
 import { Popover, PopoverPopup, PopoverCreateHandle } from "../ui/popover";
 import { selectThreadPanelOpen, useRightPanelStore } from "../../rightPanelStore";
 import { useChatCanvas } from "./ChatCanvasContext";
@@ -36,8 +36,8 @@ export function ThreadDetailsCard({
   onContextMenu?: MouseEventHandler<HTMLDivElement>;
   children: (density: "full" | "compact" | "essential") => ReactNode;
 }) {
-  const t = useTranslate();
-  const detailsArea = workspaceAreaProps("details", 3, t("Thread details"));
+  const gt = useGT();
+  const detailsArea = workspaceAreaProps("details", 3, gt("Thread details"));
   const canvas = useChatCanvas();
   const preferredPlacement = canvas?.preferredDetailsCard ?? null;
   const placement = canvas?.detailsCardPlacement ?? null;

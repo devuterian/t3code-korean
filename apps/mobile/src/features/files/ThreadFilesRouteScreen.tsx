@@ -8,6 +8,7 @@ import {
   usePreventRemove,
   type StaticScreenProps,
 } from "@react-navigation/native";
+import { useGT, useMessages } from "gt-react-native";
 import { type ComponentProps, type ReactNode, useId, useState } from "react";
 import { Platform, View } from "react-native";
 import Svg, { Defs, LinearGradient, Rect, Stop } from "react-native-svg";
@@ -27,6 +28,7 @@ import { AudioFilePreview } from "./AudioFilePreview";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { FilePreviewModal, type FilePreviewSource } from "../../components/ui/FilePreviewModal";
 import { LoadingScreen } from "../../components/LoadingScreen";
+import { ImageCiteProvider } from "../imageCite/ImageCiteProvider";
 import { copyTextWithHaptic } from "../../lib/copyTextWithHaptic";
 import { isPdfFile } from "../../lib/filePreview";
 import { tryOpenExternalUrl } from "../../lib/openExternalUrl";
@@ -45,7 +47,6 @@ import {
   useAdaptiveWorkspaceLayout,
   useWorkspacePaneState,
 } from "../layout/AdaptiveWorkspaceLayout";
-import { ImageCiteProvider } from "../imageCite/ImageCiteProvider";
 import { useAppearancePreferences } from "../settings/appearance/AppearancePreferencesProvider";
 import { ThreadRouteScreen } from "../threads/ThreadRouteScreen";
 import { FilePreviewLoading, FilePreviewNotice } from "./FilePreviewFeedback";
@@ -74,7 +75,6 @@ import {
   needsWorkspaceFileContents,
 } from "./filePath";
 import { useWorkspaceFileAssetUrlState } from "./workspaceFileAssetUrl";
-import { useTranslate } from "../../i18n/translate";
 
 function FilesBrowserHeader(props: {
   readonly projectName: string;
@@ -83,10 +83,10 @@ function FilesBrowserHeader(props: {
   readonly onRefresh: () => void;
   readonly onBack: () => void;
 }) {
-  const t = useTranslate();
+  const gt = useGT();
   return (
     <AppBar
-      title={t("Files")}
+      title={gt("Files", { $context: "screen title, workspace files" })}
       subtitle={props.projectName}
       onBack={props.onBack}
       hideBottomBorder
@@ -94,11 +94,11 @@ function FilesBrowserHeader(props: {
       search={{
         value: props.searchQuery,
         onChangeText: props.onSearchQueryChange,
-        placeholder: t("Search files"),
-        closeAccessibilityLabel: t("Close file search"),
-        clearAccessibilityLabel: t("Clear file search"),
+        placeholder: gt("Search files"),
+        closeAccessibilityLabel: gt("Close file search"),
+        clearAccessibilityLabel: gt("Clear file search"),
       }}
-      refresh={{ accessibilityLabel: t("Refresh files"), onPress: props.onRefresh }}
+      refresh={{ accessibilityLabel: gt("Refresh files"), onPress: props.onRefresh }}
     />
   );
 }
@@ -118,8 +118,8 @@ function FileHeader(props: {
     readonly onPress: () => unknown;
   }>;
 }) {
-  const t = useTranslate();
   const { toggleAuxiliaryPane } = useAdaptiveWorkspaceLayout();
+  const gt = useGT();
   const { panes } = useWorkspacePaneState();
   const modes = props.actions.filter(({ inline }) => inline);
   return (
@@ -131,7 +131,7 @@ function FileHeader(props: {
       backInSplitView={
         props.fileInspectorSupported
           ? {
-              accessibilityLabel: t("Return to chat"),
+              accessibilityLabel: gt("Return to chat"),
               icon: "chevron.left",
               onPress: props.onReturnToThread,
             }
@@ -142,8 +142,8 @@ function FileHeader(props: {
           ? [
               {
                 accessibilityLabel: panes.auxiliaryPaneVisible
-                  ? t("Hide file navigator")
-                  : t("Show file navigator"),
+                  ? gt("Hide file navigator")
+                  : gt("Show file navigator"),
                 icon: "sidebar.right",
                 selected: panes.auxiliaryPaneVisible,
                 onPress: toggleAuxiliaryPane,
@@ -153,7 +153,7 @@ function FileHeader(props: {
       }
       menus={[
         {
-          title: t("File actions"),
+          title: gt("File actions"),
           icon: "ellipsis",
           separateBackground: false,
           items: [
@@ -257,7 +257,7 @@ function FileContent(props: {
   readonly selectable: boolean;
   readonly onRefresh?: () => Promise<void> | void;
 }) {
-  const t = useTranslate();
+  const gt = useGT();
   // Reopening a mutable host file must not reuse a poster from an earlier visit.
   const thumbnailInstanceId = useId();
   const barOverlap = useContentTopInset();
@@ -297,7 +297,7 @@ function FileContent(props: {
 
   if (isAudioFile) {
     return props.previewUri === null ? (
-      <FilePreviewLoading message={t("Loading file...")} />
+      <FilePreviewLoading message={gt("Loading file...")} />
     ) : (
       <AudioFilePreview uri={props.previewUri} onRetry={props.onRetryPreview} />
     );
@@ -323,20 +323,20 @@ function FileContent(props: {
   if (props.fileError && props.fileContents === null) {
     return (
       <View className="flex-1 items-center justify-center bg-sheet px-6">
-        <EmptyState title={t("File unavailable")} detail={props.fileError} />
+        <EmptyState title={gt("File unavailable")} detail={props.fileError} />
       </View>
     );
   }
 
   if (props.fileContents === null) {
-    return <FilePreviewLoading message={t("Loading file...")} />;
+    return <FilePreviewLoading message={gt("Loading file...")} />;
   }
 
   return (
     <View className="flex-1 bg-sheet" style={{ paddingTop: reservedHeaderInset }}>
       {props.truncated ? (
-        <FilePreviewNotice title={t("Partial file")}>
-          {t("Preview limited to the first 1 MB of a truncated file.")}
+        <FilePreviewNotice title={gt("Partial file")}>
+          {gt("Preview limited to the first 1 MB of a truncated file.")}
         </FilePreviewNotice>
       ) : null}
       {props.activeMode === "preview" && delimiter ? (
@@ -388,7 +388,6 @@ function useThreadFilesWorkspace(params: {
   readonly projectName?: string | string[];
   readonly path?: string | string[];
 }) {
-  const t = useTranslate();
   const routeEnvironmentId = firstRouteParam(params.environmentId);
   const routeThreadId = firstRouteParam(params.threadId);
   const routeCwd = firstRouteParam(params.cwd);
@@ -408,7 +407,7 @@ function useThreadFilesWorkspace(params: {
   return {
     cwd: routeCwd ?? selectedThreadCwd ?? project?.workspaceRoot ?? null,
     environmentId,
-    projectName: routeProjectName ?? project?.title ?? t("Files"),
+    projectName: routeProjectName ?? project?.title ?? "Files",
     relativePath: normalizeRoutePath(params.path),
     selectedThread,
     threadId,
@@ -416,21 +415,29 @@ function useThreadFilesWorkspace(params: {
 }
 
 function FilesUnavailable({
-  title = "Files unavailable",
-  detail = "This thread does not have an active workspace path.",
+  title,
+  detail,
   onBack,
 }: {
   title?: string;
   detail?: string;
   onBack: () => void;
 }) {
-  const t = useTranslate();
+  const gt = useGT();
   return (
     <View className="flex-1 bg-sheet">
-      <AppBar title={t("Files")} onBack={onBack} onBackToList={onBack} hideBottomBorder />
+      <AppBar
+        title={gt("Files", { $context: "screen title, workspace files" })}
+        onBack={onBack}
+        onBackToList={onBack}
+        hideBottomBorder
+      />
       <ScreenContent>
         <View className="flex-1 items-center justify-center px-6">
-          <EmptyState title={t(title)} detail={t(detail)} />
+          <EmptyState
+            title={title ?? gt("Files unavailable")}
+            detail={detail ?? gt("This thread does not have an active workspace path.")}
+          />
         </View>
       </ScreenContent>
     </View>
@@ -466,8 +473,8 @@ function FilesToolbarBottomFade() {
 }
 
 export function ThreadFilesTreeScreen(props: ThreadFilesRouteScreenProps) {
-  const t = useTranslate();
   const navigation = useNavigation();
+  const gt = useGT();
   const { fileInspector } = useWorkspacePaneState();
   const [searchQuery, setSearchQuery] = useState("");
   const { themeAppearance: highlightTheme } = useAppearancePreferences();
@@ -475,16 +482,20 @@ export function ThreadFilesTreeScreen(props: ThreadFilesRouteScreenProps) {
     props.route.params,
   );
   const hasFileInspector = fileInspector.supported && threadId !== null;
+  const messages = useMessages();
   const fileAccessSession = useEnvironmentQuery(
     environmentId !== null ? environmentSession.sessionStateAtom(environmentId) : null,
   );
   const fileEnvironment = useEnvironmentPresentation(environmentId);
-  const fileAccess = resolveFilesystemReadAccess({
-    isCatalogReady: fileEnvironment.isReady,
-    connection: fileEnvironment.presentation?.connection ?? null,
-    session: fileAccessSession.data,
-    sessionError: fileAccessSession.error,
-  });
+  const fileAccess = resolveFilesystemReadAccess(
+    {
+      isCatalogReady: fileEnvironment.isReady,
+      connection: fileEnvironment.presentation?.connection ?? null,
+      session: fileAccessSession.data,
+      sessionError: fileAccessSession.error,
+    },
+    messages,
+  );
   const { canReadFiles } = fileAccess;
   const entriesQuery = useFileTreeEntries({
     environmentId,
@@ -556,18 +567,18 @@ export function ThreadFilesTreeScreen(props: ThreadFilesRouteScreenProps) {
         />
       );
     }
-    return <LoadingScreen message={t("Opening files...")} messagePlacement="above-spinner" />;
+    return <LoadingScreen message={gt("Opening files...")} messagePlacement="above-spinner" />;
   }
 
   if (!canReadFiles) {
     if (fileAccess.isPending) {
       return (
-        <LoadingScreen message={t("Checking file access...")} messagePlacement="above-spinner" />
+        <LoadingScreen message={gt("Checking file access...")} messagePlacement="above-spinner" />
       );
     }
     return (
       <FilesUnavailable
-        detail={fileAccess.error ?? t("This connection cannot read host files.")}
+        detail={fileAccess.error ?? gt("This connection cannot read host files.")}
         onBack={handleReturnToThread}
       />
     );
@@ -641,24 +652,28 @@ export function ThreadFileScreen(props: ThreadFileRouteScreenProps) {
 }
 
 function ThreadFileScreenContent(props: ThreadFileRouteScreenProps) {
-  const t = useTranslate();
   const navigation = useNavigation();
+  const gt = useGT();
   const { fileInspector } = useWorkspacePaneState();
   const { appearance, setCodeWordBreak } = useAppearancePreferences();
   const params = props.route.params;
   const targetLine = normalizeRouteLine(firstRouteParam(params.line));
   const { cwd, environmentId, projectName, relativePath, selectedThread, threadId } =
     useThreadFilesWorkspace(props.route.params);
+  const messages = useMessages();
   const fileAccessSession = useEnvironmentQuery(
     environmentId !== null ? environmentSession.sessionStateAtom(environmentId) : null,
   );
   const fileEnvironment = useEnvironmentPresentation(environmentId);
-  const fileAccess = resolveFilesystemReadAccess({
-    isCatalogReady: fileEnvironment.isReady,
-    connection: fileEnvironment.presentation?.connection ?? null,
-    session: fileAccessSession.data,
-    sessionError: fileAccessSession.error,
-  });
+  const fileAccess = resolveFilesystemReadAccess(
+    {
+      isCatalogReady: fileEnvironment.isReady,
+      connection: fileEnvironment.presentation?.connection ?? null,
+      session: fileAccessSession.data,
+      sessionError: fileAccessSession.error,
+    },
+    messages,
+  );
   const { canReadFiles } = fileAccess;
   const targetPath =
     cwd !== null && relativePath !== null ? resolveWorkspaceFilePath(cwd, relativePath) : null;
@@ -847,7 +862,9 @@ function ThreadFileScreenContent(props: ThreadFileRouteScreenProps) {
       canToggleMode
         ? ({
             id: "preview",
-            title: filePreviewDelimiter({ name: relativePath }) ? t("Table") : t("Preview"),
+            title: filePreviewDelimiter({ name: relativePath })
+              ? gt("Table", { $context: "file view mode" })
+              : gt("Preview", { $context: "file view mode" }),
             icon: filePreviewDelimiter({ name: relativePath }) ? "tablecells" : "eye",
             inline: true,
             onPress: () => setModeOverride({ path: relativePath, mode: "preview" }),
@@ -856,7 +873,7 @@ function ThreadFileScreenContent(props: ThreadFileRouteScreenProps) {
       canToggleMode
         ? ({
             id: "source",
-            title: t("Source"),
+            title: gt("Source", { $context: "file view mode, raw source text" }),
             icon: "doc.text",
             inline: true,
             onPress: () => setModeOverride({ path: relativePath, mode: "source" }),
@@ -865,7 +882,7 @@ function ThreadFileScreenContent(props: ThreadFileRouteScreenProps) {
       resolvedActiveMode === "source"
         ? ({
             id: "word-wrap",
-            title: appearance.codeWordBreak ? t("Disable word wrap") : t("Enable word wrap"),
+            title: appearance.codeWordBreak ? gt("Disable word wrap") : gt("Enable word wrap"),
             icon: "text.alignleft",
             inline: false,
             onPress: () => setCodeWordBreak(!appearance.codeWordBreak),
@@ -874,7 +891,7 @@ function ThreadFileScreenContent(props: ThreadFileRouteScreenProps) {
       canSelectText
         ? ({
             id: "select-text",
-            title: selectingText ? "Done selecting" : "Select text",
+            title: selectingText ? gt("Done selecting") : gt("Select text"),
             icon: "character.cursor.ibeam",
             inline: false,
             onPress: () => setTextSelectionPath(selectingText ? null : relativePath),
@@ -894,7 +911,7 @@ function ThreadFileScreenContent(props: ThreadFileRouteScreenProps) {
         : [
             {
               id: "copy-path",
-              title: t("Copy path"),
+              title: gt("Copy path"),
               icon: "doc.on.doc",
               inline: false,
               onPress: () =>
@@ -909,7 +926,7 @@ function ThreadFileScreenContent(props: ThreadFileRouteScreenProps) {
       fileData?.contents != null
         ? ({
             id: "copy-contents",
-            title: fileData.truncated ? t("Copy preview") : t("Copy contents"),
+            title: fileData.truncated ? gt("Copy preview") : gt("Copy contents"),
             icon: "doc.on.doc",
             inline: false,
             onPress: () => copyTextWithHaptic(fileData.contents),
@@ -918,7 +935,7 @@ function ThreadFileScreenContent(props: ThreadFileRouteScreenProps) {
       isPdfFile({ name: relativePath }) && previewUri !== null
         ? ({
             id: "open-pdf",
-            title: t("Open PDF"),
+            title: gt("Open PDF"),
             icon: "arrow.up.left.and.arrow.down.right",
             inline: false,
             onPress: () =>
@@ -942,7 +959,7 @@ function ThreadFileScreenContent(props: ThreadFileRouteScreenProps) {
       isBrowserFile && typeof assetPreviewUri === "string"
         ? ({
             id: "open-browser",
-            title: Platform.OS === "ios" ? t("Open in Safari") : t("Open in browser"),
+            title: Platform.OS === "ios" ? gt("Open in Safari") : gt("Open in browser"),
             icon: "safari",
             inline: false,
             onPress: () => tryOpenExternalUrl(assetPreviewUri, "file-preview"),
@@ -952,7 +969,7 @@ function ThreadFileScreenContent(props: ThreadFileRouteScreenProps) {
       (isBrowserFile || isImageFile || isVideoFile || isAudioFile)
         ? ({
             id: "refresh",
-            title: t("Refresh"),
+            title: gt("Refresh", { $context: "verb, reloads the file" }),
             icon: "arrow.clockwise",
             inline: false,
             onPress: async () => {
@@ -984,19 +1001,19 @@ function ThreadFileScreenContent(props: ThreadFileRouteScreenProps) {
 
   if (environmentId === null || (threadId !== null && selectedThread === null)) {
     return withInspector(
-      <LoadingScreen message={t("Opening file...")} messagePlacement="above-spinner" />,
+      <LoadingScreen message={gt("Opening file...")} messagePlacement="above-spinner" />,
     );
   }
 
   if (!canReadFiles) {
     if (fileAccess.isPending) {
       return withInspector(
-        <LoadingScreen message={t("Checking file access...")} messagePlacement="above-spinner" />,
+        <LoadingScreen message={gt("Checking file access...")} messagePlacement="above-spinner" />,
       );
     }
     return withInspector(
       <FilesUnavailable
-        detail={fileAccess.error ?? t("This connection cannot read host files.")}
+        detail={fileAccess.error ?? gt("This connection cannot read host files.")}
         onBack={handleBack}
       />,
     );
@@ -1008,8 +1025,8 @@ function ThreadFileScreenContent(props: ThreadFileRouteScreenProps) {
   if (relativePath === null) {
     return withInspector(
       <FilesUnavailable
-        title="File unavailable"
-        detail="This file path is invalid."
+        title={gt("File unavailable")}
+        detail={gt("This file path is invalid.")}
         onBack={handleBack}
       />,
     );
@@ -1017,7 +1034,7 @@ function ThreadFileScreenContent(props: ThreadFileRouteScreenProps) {
 
   if (metadataPending) {
     return withInspector(
-      <LoadingScreen message={t("Opening file...")} messagePlacement="above-spinner" />,
+      <LoadingScreen message={gt("Opening file...")} messagePlacement="above-spinner" />,
     );
   }
   if (directoryPath !== null) {

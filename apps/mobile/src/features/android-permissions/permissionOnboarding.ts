@@ -1,11 +1,9 @@
 import type { AndroidPermissionsOnboardingPreferences } from "../../persistence/mobile-preferences";
 
 /**
- * Permissions the Android app actually uses. Microphone is absent on purpose:
- * voice input is iOS-only (on-device transcription), and the Android build
- * does not declare RECORD_AUDIO. Photos go through the system photo picker,
- * which needs no permission. Nothing runs in the background, so battery
- * optimization stays untouched.
+ * Permissions the Android app actually uses. Microphone is absent on purpose: voice input is
+ * iOS-only and the build does not declare RECORD_AUDIO. Photos use the system picker, and
+ * nothing runs in the background, so no battery-optimization permission either.
  */
 export type AndroidPermissionId = "notifications" | "camera" | "installPackages";
 

@@ -10,7 +10,6 @@ import {
   saveRecentThreadShortcuts,
   type RecentThreadShortcut,
 } from "../../persistence/imperative";
-import { subscribeInterfaceLanguage } from "../../i18n/translate";
 import { appAtomRegistry } from "../../state/atom-registry";
 import { environmentThreadShells } from "../../state/threads";
 import {
@@ -40,12 +39,6 @@ export function createRecentThreadShortcuts(dependencies: RecentThreadShortcutsD
   // Serialize saves so older lists cannot overwrite newer ones.
   let saveQueue: Promise<unknown> = Promise.resolve();
 
-  const publish = (next: ReadonlyArray<RecentThreadShortcut>) => {
-    void dependencies.publish(next).catch((error: unknown) => {
-      console.warn("[app-shortcuts] failed to update launcher shortcuts", error);
-    });
-  };
-
   const commit = (next: ReadonlyArray<RecentThreadShortcut>) => {
     recents = next;
     if (persistable) {
@@ -58,6 +51,12 @@ export function createRecentThreadShortcuts(dependencies: RecentThreadShortcutsD
       );
     }
     publish(next);
+  };
+
+  const publish = (list: ReadonlyArray<RecentThreadShortcut>) => {
+    void dependencies.publish(list).catch((error: unknown) => {
+      console.warn("[app-shortcuts] failed to update launcher shortcuts", error);
+    });
   };
 
   const isSaved = (thread: RecentThreadShortcut) =>
@@ -83,10 +82,6 @@ export function createRecentThreadShortcuts(dependencies: RecentThreadShortcutsD
 
   return {
     loaded,
-    /** Re-publishes the launcher shortcuts, whose titles are localized, after a language change. */
-    republish(): void {
-      if (recents !== null) publish(recents);
-    },
     /** Resolves once every save issued so far has finished. */
     saved: () => saveQueue,
     recordActiveThread(next: RecentThreadShortcut | null): void {
@@ -101,7 +96,17 @@ export function createRecentThreadShortcuts(dependencies: RecentThreadShortcutsD
       const kept = recents.filter(isSaved);
       if (kept.length !== recents.length) commit(kept);
     },
+    /** Publishes the current list again, for titles that follow the UI language. */
+    republish(): void {
+      if (recents !== null) publish(recents);
+    },
   };
+}
+
+let installedRecents: ReturnType<typeof createRecentThreadShortcuts> | null = null;
+
+export function republishAppShortcuts(): void {
+  installedRecents?.republish();
 }
 
 const activeThreadRefAtom = Atom.make<ScopedThreadRef | null>(null).pipe(
@@ -157,12 +162,12 @@ export function installAppShortcuts(navigate: (href: string) => void): () => voi
     save: saveRecentThreadShortcuts,
     publish: (list) => QuickActions.setItems(buildShortcutActions(list)),
   });
+  installedRecents = recents;
   const unsubscribe = appAtomRegistry.subscribe(
     activeThreadShortcutAtom,
     (active) => recents.recordActiveThread(active),
     { immediate: true },
   );
-  const stopLanguageSync = subscribeInterfaceLanguage(() => recents.republish());
   const unsubscribeCatalog = appAtomRegistry.subscribe(
     environmentCatalog.catalogValueAtom,
     (catalog) => {
@@ -171,9 +176,9 @@ export function installAppShortcuts(navigate: (href: string) => void): () => voi
     { immediate: true },
   );
   return () => {
+    if (installedRecents === recents) installedRecents = null;
     subscription.remove();
     unsubscribe();
-    stopLanguageSync();
     unsubscribeCatalog();
   };
 }

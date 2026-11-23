@@ -3,13 +3,13 @@ import { EnvironmentId, ThreadId, TurnItemId } from "@t3tools/contracts";
 import type { EnvironmentThreadShell } from "@t3tools/client-runtime/state/shell";
 import { turnItemDetailRevision } from "@t3tools/client-runtime/work-log/item-detail";
 import { mcpAppFromToolItem } from "@t3tools/shared/toolOutput";
+import { T, useGT } from "gt-react-native";
 import { useEffect, useRef, useState } from "react";
 import { View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppText as Text } from "../../components/ui/AppText";
 import { AppBar } from "../../components/ui/AppBar";
-import { useTranslate } from "../../i18n/translate";
 import { orchestrationEnvironment } from "../../state/orchestration";
 import { scopeThreadRef } from "@t3tools/client-runtime/environment";
 import { useThreadShell, useThreadShells } from "../../state/entities";
@@ -57,18 +57,20 @@ function descendsFrom(
 
 /** Resolve apps from stored tool calls so links cannot supply apps the call never produced. */
 export function McpAppFullscreenScreen({ route }: McpAppFullscreenScreenProps) {
-  const t = useTranslate();
+  const gt = useGT();
   const navigation = useNavigation();
   const { environmentId, threadId, itemId } = route.params;
   if (!environmentId?.trim() || !threadId?.trim() || !itemId?.trim()) {
     return (
       <View className="flex-1 bg-screen">
         <AppBar
-          title={t("App")}
+          title={gt("App")}
           onClose={() => navigation.goBack()}
-          closeAccessibilityLabel={t("Exit full screen")}
+          closeAccessibilityLabel={gt("Exit full screen")}
         />
-        <Text className="m-6 text-sm text-foreground-muted">{t("This app cannot be shown.")}</Text>
+        <Text className="m-6 text-sm text-foreground-muted">
+          <T>This app cannot be shown.</T>
+        </Text>
       </View>
     );
   }
@@ -93,7 +95,7 @@ function McpAppFullscreen({
   readonly threadId: ThreadId;
   readonly itemId: TurnItemId;
 }) {
-  const t = useTranslate();
+  const gt = useGT();
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   // Wait for focus before goBack; an exit under another screen must not pop that screen.
@@ -144,9 +146,9 @@ function McpAppFullscreen({
   return (
     <View className="flex-1 bg-screen">
       <AppBar
-        title={app?.server ?? t("App")}
+        title={app?.server ?? gt("App")}
         onClose={onClose}
-        closeAccessibilityLabel={t("Exit full screen")}
+        closeAccessibilityLabel={gt("Exit full screen")}
       />
       <View
         className="flex-1"
@@ -161,7 +163,7 @@ function McpAppFullscreen({
         {app === undefined ? (
           detail.data === undefined ? null : (
             <Text className="m-6 text-sm text-foreground-muted">
-              {t("This app cannot be shown.")}
+              <T>This app cannot be shown.</T>
             </Text>
           )
         ) : size.width > 0 ? (

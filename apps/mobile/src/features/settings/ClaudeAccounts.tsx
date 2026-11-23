@@ -1,3 +1,5 @@
+import { errorDisplayMessage } from "@t3tools/client-runtime/errors";
+import { useGT } from "gt-react-native";
 import type { MenuAction } from "@react-native-menu/menu";
 import {
   isAtomCommandInterrupted,
@@ -11,13 +13,13 @@ import {
 } from "@t3tools/contracts";
 import { useRef, useState } from "react";
 import { TextInput, View } from "react-native";
+import { m } from "../../i18n/messages";
 
 import * as Dialog from "../../components/ui/Dialog";
 import { AppText as Text } from "../../components/ui/AppText";
 import { ControlPill } from "../../components/ui/ControlPill";
 import { ListActionRow } from "../../components/ui/ListActionRow";
 import { Menu } from "../../components/ui/Menu";
-import { translate, useTranslate } from "../../i18n/translate";
 import { serverEnvironment } from "../../state/server";
 import { useAtomCommand } from "../../state/use-atom-command";
 import {
@@ -29,6 +31,7 @@ import {
 import type { SettingsTarget } from "./settings-environment-filter";
 
 function useProviderInstanceMutation(environment: SettingsTarget) {
+  const gt = useGT();
   const mutate = useAtomCommand(serverEnvironment.mutateProviderInstance, {
     reportFailure: false,
     reportDefect: false,
@@ -52,8 +55,8 @@ function useProviderInstanceMutation(environment: SettingsTarget) {
       const failure = squashAtomCommandFailure(result);
       setError(
         failure instanceof Error
-          ? failure.message
-          : translate("Could not save the Claude account."),
+          ? (errorDisplayMessage(failure, m) ?? failure.message)
+          : gt("Could not save the {provider} account.", { provider: "Claude" }),
       );
     }
     return false;
@@ -68,20 +71,20 @@ export function ClaudeAccount({
   readonly environment: SettingsTarget;
   readonly provider: ServerProvider;
 }) {
-  const t = useTranslate();
+  const gt = useGT();
   const [editing, setEditing] = useState(false);
   const { run, pending, error } = useProviderInstanceMutation(environment);
   const instance = environment.serverConfig.settings.providerInstances[provider.instanceId];
   const configDir = claudeConfigDir(instance);
   const name = provider.displayName ?? "Claude";
   const status = !provider.enabled
-    ? t("Turned off")
+    ? gt("Turned off")
     : provider.auth.status === "authenticated"
-      ? t("Signed in")
+      ? gt("Signed in")
       : provider.auth.status === "unauthenticated"
-        ? t("Not signed in")
+        ? gt("Not signed in")
         : !provider.installed
-          ? t("Not installed")
+          ? gt("Not installed")
           : null;
   const removable =
     provider.instanceId !== DEFAULT_CLAUDE_INSTANCE_ID &&
@@ -90,12 +93,12 @@ export function ClaudeAccount({
       `providerInstances.${provider.instanceId}`,
     );
   const actions: MenuAction[] = [
-    { id: "edit", title: t("Edit"), image: "pencil" },
+    { id: "edit", title: gt("Edit"), image: "pencil" },
     ...(removable
       ? [
           {
             id: "remove",
-            title: t("Remove"),
+            title: gt("Remove"),
             image: "trash",
             attributes: { destructive: true },
           } satisfies MenuAction,
@@ -104,15 +107,15 @@ export function ClaudeAccount({
   ];
   function remove() {
     Dialog.alert(
-      t("Remove {name}?", { name }),
-      t(
+      gt("Remove {account}?", { account: name }),
+      gt(
         "It leaves the model picker on {environment}. The config folder and its sign-in stay on the server.",
         { environment: environment.label },
       ),
       [
-        { text: t("Cancel"), style: "cancel" },
+        { text: gt("Cancel"), style: "cancel" },
         {
-          text: t("Remove"),
+          text: gt("Remove"),
           style: "destructive",
           onPress: () => {
             void run({ operation: "remove", instanceId: provider.instanceId });
@@ -129,14 +132,14 @@ export function ClaudeAccount({
             {name}
           </Text>
           <Text textRole="footnote" className="text-foreground-muted" numberOfLines={2}>
-            {[status, configDir || t("Default config folder")].filter(Boolean).join(" · ")}
+            {[status, configDir || gt("Default config folder")].filter(Boolean).join(" · ")}
           </Text>
         </View>
         {editing ? null : (
           <Menu
             accessible
             accessibilityRole="button"
-            accessibilityLabel={t("{name} options", { name })}
+            accessibilityLabel={gt("{account} options", { account: name })}
             title={name}
             actions={actions}
             onPressAction={({ nativeEvent }) => {
@@ -147,7 +150,7 @@ export function ClaudeAccount({
           >
             <ControlPill
               icon="ellipsis"
-              accessibilityLabel={t("{name} options", { name })}
+              accessibilityLabel={gt("{account} options", { account: name })}
               disabled={pending}
             />
           </Menu>
@@ -170,7 +173,7 @@ export function ClaudeAccount({
 }
 
 export function AddClaudeAccount({ environment }: { readonly environment: SettingsTarget }) {
-  const t = useTranslate();
+  const gt = useGT();
   const [adding, setAdding] = useState(false);
   return (
     <View className="border-t border-border-subtle">
@@ -184,8 +187,11 @@ export function AddClaudeAccount({ environment }: { readonly environment: Settin
       ) : (
         <ListActionRow
           icon="plus"
-          label={t("Add Claude account")}
-          description={t("Use a Claude config folder that is already signed in on this server.")}
+          label={gt("Add {provider} account", { provider: "Claude" })}
+          description={gt(
+            "Use a {provider} config folder that is already signed in on this server.",
+            { provider: "Claude" },
+          )}
           onPress={() => setAdding(true)}
         />
       )}
@@ -204,7 +210,7 @@ function ClaudeAccountForm({
   readonly initial: ClaudeAccountDraft;
   readonly onDone: () => void;
 }) {
-  const t = useTranslate();
+  const gt = useGT();
   const [draft, setDraft] = useState(initial);
   const { run, pending, error, setError } = useProviderInstanceMutation(environment);
   function save() {
@@ -240,23 +246,32 @@ function ClaudeAccountForm({
   return (
     <View className="gap-2 px-4 py-3">
       <Text textRole="footnote" className="text-foreground-muted">
-        {t(
-          "Point at a CLAUDE_CONFIG_DIR folder on {environment} where Claude Code is already signed in. Sign in there with the Claude CLI first.",
-          { environment: environment.label },
+        {gt(
+          "Point at a {variable} folder on {environment} where {product} is already signed in. Sign in there with the {cli} first.",
+          {
+            variable: "CLAUDE_CONFIG_DIR",
+            environment: environment.label,
+            product: "Claude Code",
+            cli: "Claude CLI",
+          },
         )}
       </Text>
-      {field("name", t("Account name"), t("Name, e.g. Work"))}
-      {field("configDir", t("Claude config folder"), t("Config folder, e.g. ~/.claude-work"))}
+      {field("name", gt("Account name"), gt("Name, e.g. Work"))}
+      {field(
+        "configDir",
+        gt("{provider} config folder", { provider: "Claude" }),
+        gt("Config folder, e.g. {path}", { path: "~/.claude-work" }),
+      )}
       {error ? (
         <Text accessibilityRole="alert" className="text-danger-foreground">
           {error}
         </Text>
       ) : null}
       <View className="flex-row justify-end gap-2">
-        <ControlPill variant="pill" label={t("Cancel")} disabled={pending} onPress={onDone} />
+        <ControlPill variant="pill" label={gt("Cancel")} disabled={pending} onPress={onDone} />
         <ControlPill
           variant="primary"
-          label={instanceId === null ? t("Add") : t("Save")}
+          label={instanceId === null ? gt("Add") : gt("Save")}
           disabled={pending}
           onPress={save}
         />

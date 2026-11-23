@@ -10,6 +10,7 @@ import {
   type ServerSettings,
 } from "@t3tools/contracts";
 import * as Equal from "effect/Equal";
+import { useGT } from "gt-react";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { createContext, type ComponentPropsWithoutRef, type ReactNode, useContext } from "react";
 
@@ -17,7 +18,6 @@ import {
   PRIMARY_SETTINGS_UNAVAILABLE_MESSAGE,
   usePrimarySettingsAvailable,
 } from "../../hooks/useSettings";
-import { useTranslate } from "../../i18n/translate";
 import { cn } from "../../lib/utils";
 import { WorkspacePageContainer, type WorkspacePageWidth } from "../WorkspacePageContainer";
 import { Button } from "../ui/button";
@@ -190,7 +190,7 @@ export const SETTINGS_PICKER_TRIGGER_CLASSNAME =
   "min-w-0 max-w-none shrink-0 border-input bg-background font-normal text-foreground shadow-xs/5 hover:bg-accent/50 dark:bg-input/32 [&_svg[data-composer-control-chevron]]:stroke-[1.75] [&_svg[data-composer-control-chevron]]:opacity-70";
 
 export function PolicyTooltip({ children }: { readonly children: string }) {
-  const t = useTranslate();
+  const gt = useGT();
   return (
     <Tooltip>
       <TooltipTrigger
@@ -199,13 +199,13 @@ export function PolicyTooltip({ children }: { readonly children: string }) {
           <Button
             size="icon-micro"
             variant="ghost-muted"
-            aria-label={t("Background policy details")}
+            aria-label={gt("Background policy details")}
           >
             <InfoIcon className="size-3.5" />
           </Button>
         }
       />
-      <TooltipPopup side="top">{t(children)}</TooltipPopup>
+      <TooltipPopup side="top">{children}</TooltipPopup>
     </Tooltip>
   );
 }
@@ -230,7 +230,6 @@ export function SettingsSection({
   children: ReactNode;
 }) {
   const targetRef = useSettingsSearchTarget<HTMLElement>(sectionProps.id);
-  const t = useTranslate();
 
   return (
     <section
@@ -240,7 +239,7 @@ export function SettingsSection({
       className={cn(!hideTitle && "space-y-2.5", className)}
     >
       {hideTitle ? (
-        <h2 className="sr-only">{typeof title === "string" ? t(title) : title}</h2>
+        <h2 className="sr-only">{title}</h2>
       ) : (
         <div
           data-settings-scroll-target
@@ -249,7 +248,7 @@ export function SettingsSection({
           <div className="flex min-w-0 items-center gap-1">
             <h2 className="flex min-h-7 items-center gap-2 text-base font-semibold text-foreground">
               {icon}
-              {typeof title === "string" ? t(title) : title}
+              {title}
             </h2>
             {titleAction}
           </div>
@@ -345,8 +344,8 @@ export function SettingsRow({
   managed?: string | undefined;
   children?: ReactNode;
 }) {
+  const gt = useGT();
   const targetRef = useSettingsSearchTarget<HTMLDivElement>(rowProps.id);
-  const t = useTranslate();
   const primarySettingsAvailable = usePrimarySettingsAvailable();
   const context = useOptionalSettingsScope();
   const primaryEnvironmentId = usePrimaryEnvironmentId();
@@ -395,8 +394,8 @@ export function SettingsRow({
     source === "environment" && context?.scope.environmentIds.length === 1
       ? (context.environments.find(
           (environment) => environment.environmentId === context.scope.environmentIds[0],
-        )?.label ?? "environment")
-      : "environment";
+        )?.label ?? null)
+      : null;
   const environmentSettingsById = new Map(
     (context?.connectedEnvironments ?? []).flatMap((environment) =>
       environment.serverConfig
@@ -412,8 +411,12 @@ export function SettingsRow({
     managed !== undefined ? null : isProjectScope && scopedKeys.length > 0 ? (
       source === "project" || source === "mixed" ? (
         <SettingResetButton
-          label={typeof title === "string" ? title : "override"}
-          tooltip="Reset to inherited value"
+          ariaLabel={
+            typeof title === "string"
+              ? gt("Reset {title} to default", { title })
+              : gt("Reset override to default")
+          }
+          tooltip={gt("Reset to inherited value")}
           onClick={() => (onResetOverride ? onResetOverride() : clearOverrides(scopedKeys))}
         />
       ) : null
@@ -437,35 +440,41 @@ export function SettingsRow({
           {control}
         </div>
       </TooltipTrigger>
-      <TooltipPopup side="top">{t(message)}</TooltipPopup>
+      <TooltipPopup side="top">{message}</TooltipPopup>
     </Tooltip>
   );
+  const lackingPermissionMessage = () => {
+    const environments = context
+      ? context.connectedEnvironments
+          .filter((target) => !writableIds.has(target.environmentId))
+          .map((target) => target.label)
+          .join(", ")
+      : primaryEnvironment?.label;
+    return environments
+      ? gt("This connection lacks permission to change settings on {environments}.", {
+          environments,
+        })
+      : context
+        ? gt("This connection lacks permission to change settings on the selected environment.")
+        : gt("This connection lacks permission to change settings on the primary environment.");
+  };
   const renderedControl =
     managed !== undefined && control
       ? inertControl(managed)
       : managedBy !== undefined && control
-        ? inertControl(t("Managed by {organization}.").replace("{organization}", () => managedBy))
+        ? inertControl(gt("Managed by {organization}.", { organization: managedBy }))
         : unavailable && control
           ? inertControl(
               !canWriteSettings
-                ? t(
-                    "This connection lacks permission to change settings on {environments}.",
-                  ).replace("{environments}", () =>
-                    context
-                      ? context.connectedEnvironments
-                          .filter((target) => !writableIds.has(target.environmentId))
-                          .map((target) => target.label)
-                          .join(", ") || t("the selected environment")
-                      : (primaryEnvironment?.label ?? t("the primary environment")),
-                  )
+                ? lackingPermissionMessage()
                 : context
-                  ? t("Reconnect the selected environment to change this setting.")
+                  ? gt("Reconnect the selected environment to change this setting.")
                   : PRIMARY_SETTINGS_UNAVAILABLE_MESSAGE,
             )
           : environmentWide && control
-            ? inertControl("Environment-wide setting. Select an environment to change it.")
+            ? inertControl(gt("Environment-wide setting. Select an environment to change it."))
             : deviceReadOnly && control
-              ? inertControl("Saved on this device. Select All projects to change it.")
+              ? inertControl(gt("Saved on this device. Select All projects to change it."))
               : control;
   const customized =
     context !== null &&
@@ -479,22 +488,22 @@ export function SettingsRow({
       }),
     );
   const inheritance: { state: SettingInheritanceState; summary: string } = mixed
-    ? { state: "mixed", summary: "Mixed across selected environments" }
+    ? { state: "mixed", summary: gt("Mixed across selected environments") }
     : source === "project"
-      ? { state: "overridden", summary: "Overridden for this project" }
+      ? { state: "overridden", summary: gt("Overridden for this project") }
       : source === "t3.json"
-        ? { state: "inherited", summary: "Inherited from the repository's t3.json" }
+        ? { state: "inherited", summary: gt("Inherited from the repository's t3.json") }
         : source === "environment" && scopedKeys.length > 0
           ? {
               state: "inherited",
               summary:
-                inheritedFrom === "environment"
-                  ? "Inherited from environment"
-                  : t("Inherited from {environment}").replace("{environment}", () => inheritedFrom),
+                inheritedFrom === null
+                  ? gt("Inherited from environment")
+                  : gt("Inherited from {environment}", { environment: inheritedFrom }),
             }
           : customized
-            ? { state: "environment", summary: "Set on the environment" }
-            : { state: "default", summary: "Built-in default" };
+            ? { state: "environment", summary: gt("Set on the environment") }
+            : { state: "default", summary: gt("Built-in default") };
   const renderedInheritance =
     context && serverScoped && settingKeys.length > 0 ? (
       <SettingInheritance
@@ -512,13 +521,13 @@ export function SettingsRow({
           : {})}
       />
     ) : null;
-  const renderedStatus = typeof status === "string" ? t(status) : status;
+  const renderedStatus = status;
 
   return (
     <div
       {...rowProps}
       ref={targetRef}
-      tabIndex={rowProps.id ? -1 : rowProps.tabIndex}
+      tabIndex={rowProps.tabIndex ?? -1}
       data-slot="settings-row"
       className={cn(
         "group/settings-row @container/settings-row rounded-xl px-3 sm:px-4 aria-disabled:opacity-64 aria-disabled:[&_*]:text-muted-foreground",
@@ -529,9 +538,7 @@ export function SettingsRow({
       <div className="flex flex-col gap-3 @min-[32rem]/settings-row:grid @min-[32rem]/settings-row:grid-cols-[minmax(0,1fr)_auto] @min-[32rem]/settings-row:items-center @min-[32rem]/settings-row:gap-8">
         <div className="min-w-0 flex-1 space-y-1">
           <div className="flex min-h-5 items-center gap-1.5">
-            <h3 className="text-sm font-medium text-foreground">
-              {typeof title === "string" ? t(title) : title}
-            </h3>
+            <h3 className="text-sm font-medium text-foreground">{title}</h3>
             {renderedInheritance ? (
               <span
                 className={cn(
@@ -551,7 +558,7 @@ export function SettingsRow({
           </div>
           {description ? (
             <p className="max-w-2xl text-pretty text-xs leading-normal text-muted-foreground">
-              {typeof description === "string" ? t(description) : description}
+              {description}
             </p>
           ) : null}
           {renderedStatus ? (
@@ -576,17 +583,17 @@ export function SettingsRow({
 }
 
 export function SettingResetButton({
-  label,
-  tooltip = "Reset to default",
+  ariaLabel,
+  tooltip,
   disabled = false,
   onClick,
 }: {
-  label: string;
+  ariaLabel: string;
   tooltip?: string;
   disabled?: boolean;
   onClick: () => void;
 }) {
-  const t = useTranslate();
+  const gt = useGT();
   return (
     <Tooltip>
       <TooltipTrigger
@@ -594,10 +601,15 @@ export function SettingResetButton({
           <Button
             size="icon-micro"
             variant="ghost-muted"
-            aria-label={`${t("Reset")} ${t(label)} ${t("to default")}`}
+            aria-label={ariaLabel}
             disabled={disabled}
             onClick={(event) => {
               event.stopPropagation();
+              // A reset usually unmounts this button. Keep focus beside the setting, or focus
+              // recovery sends it to the area's default control and scrolls that into view.
+              event.currentTarget.parentElement
+                ?.closest<HTMLElement>("[tabindex]")
+                ?.focus({ preventScroll: true });
               onClick();
             }}
           >
@@ -605,7 +617,7 @@ export function SettingResetButton({
           </Button>
         }
       />
-      <TooltipPopup side="top">{t(tooltip)}</TooltipPopup>
+      <TooltipPopup side="top">{tooltip ?? gt("Reset to default")}</TooltipPopup>
     </Tooltip>
   );
 }

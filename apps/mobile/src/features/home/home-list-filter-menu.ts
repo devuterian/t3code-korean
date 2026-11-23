@@ -1,13 +1,31 @@
 import { ACTIVE_THREAD_SORT_OPTIONS } from "@t3tools/client-runtime/state/shared-settings";
 import type { ActiveThreadSortOrder } from "@t3tools/contracts/settings";
 import type { EnvironmentId } from "@t3tools/contracts";
-import { translate } from "../../i18n/translate";
+import * as Arr from "effect/Array";
+import * as Order from "effect/Order";
+
+import { msg } from "gt-react-native";
 
 import type { AppBarMenuItem } from "../../components/ui/AppBar.types";
+import { m, type MessageResolver } from "../../i18n/messages";
+import type { WorkspaceEnvironment } from "../../state/workspaceModel";
 
 export interface HomeListFilterMenuEnvironment {
   readonly environmentId: EnvironmentId;
   readonly label: string;
+}
+
+export function homeListFilterEnvironments(environments: ReadonlyArray<WorkspaceEnvironment>) {
+  return Arr.sort(
+    environments
+      .filter((environment) => environment.isEnabled)
+      .map((environment) => ({
+        environmentId: environment.environmentId,
+        label: environment.environmentLabel,
+        connectionState: environment.connectionState,
+      })),
+    Order.mapInput(Order.String, (environment: { readonly label: string }) => environment.label),
+  );
 }
 
 export interface HomeListFilterMenuProject {
@@ -15,31 +33,36 @@ export interface HomeListFilterMenuProject {
   readonly label: string;
 }
 
+export const ACTIVE_THREAD_SORT_LABELS: Record<ActiveThreadSortOrder, string> = {
+  manual: msg("Configured order"),
+  last_message: msg("Last message"),
+};
+
 /** Shared sorting is offered only when a connected environment can persist the preference. */
-export function buildHomeListFilterMenuItems(props: {
-  readonly environments: ReadonlyArray<HomeListFilterMenuEnvironment>;
-  readonly projects: ReadonlyArray<HomeListFilterMenuProject>;
-  readonly selectedEnvironmentId: EnvironmentId | null;
-  readonly selectedProjectKey: string | null;
-  readonly onEnvironmentChange: (environmentId: EnvironmentId | null) => void;
-  readonly onProjectChange: (projectKey: string | null) => void;
-  readonly activeThreadSort?: {
-    order: ActiveThreadSortOrder;
-    onChange: (order: ActiveThreadSortOrder) => void;
-  };
-  /** Language-bound translator from useTranslate, so memoized menus follow language changes. */
-  readonly t?: (source: string) => string;
-}): AppBarMenuItem[] {
-  const t = props.t ?? ((source: string) => translate(source));
+export function buildHomeListFilterMenuItems(
+  props: {
+    readonly environments: ReadonlyArray<HomeListFilterMenuEnvironment>;
+    readonly projects: ReadonlyArray<HomeListFilterMenuProject>;
+    readonly selectedEnvironmentId: EnvironmentId | null;
+    readonly selectedProjectKey: string | null;
+    readonly onEnvironmentChange: (environmentId: EnvironmentId | null) => void;
+    readonly onProjectChange: (projectKey: string | null) => void;
+    readonly activeThreadSort?: {
+      order: ActiveThreadSortOrder;
+      onChange: (order: ActiveThreadSortOrder) => void;
+    };
+  },
+  resolve: MessageResolver = m,
+): AppBarMenuItem[] {
   const items: AppBarMenuItem[] = [
     {
       id: "environment",
-      title: t("Environment"),
+      title: resolve(msg("Environment", { $context: "filter menu heading" })),
       items: [
         {
           id: "environment:all",
-          title: t("All environments"),
-          subtitle: t("Show threads from every environment"),
+          title: resolve(msg("All environments")),
+          subtitle: resolve(msg("Show threads from every environment")),
           selected: props.selectedEnvironmentId === null,
           onPress: () => props.onEnvironmentChange(null),
         },
@@ -56,12 +79,12 @@ export function buildHomeListFilterMenuItems(props: {
   if (props.projects.length > 0) {
     items.push({
       id: "project",
-      title: t("Project"),
+      title: resolve(msg("Project", { $context: "filter menu heading" })),
       items: [
         {
           id: "project:all",
-          title: t("All projects"),
-          subtitle: t("Show threads from every project"),
+          title: resolve(msg("All projects")),
+          subtitle: resolve(msg("Show threads from every project")),
           selected: props.selectedProjectKey === null,
           onPress: () => props.onProjectChange(null),
         },
@@ -79,10 +102,10 @@ export function buildHomeListFilterMenuItems(props: {
     const sort = props.activeThreadSort;
     items.push({
       id: "active-sort",
-      title: t("Sort active threads"),
+      title: resolve(msg("Sort active threads")),
       items: ACTIVE_THREAD_SORT_OPTIONS.map((option) => ({
         id: `active-sort:${option.value}`,
-        title: t(option.label),
+        title: resolve(ACTIVE_THREAD_SORT_LABELS[option.value]),
         selected: sort.order === option.value,
         onPress: () => sort.onChange(option.value),
       })),

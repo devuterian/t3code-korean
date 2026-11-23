@@ -18,6 +18,8 @@ import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
 import * as Schema from "effect/Schema";
 import type { Atom } from "effect/reactivity";
+import { mFallback, msg } from "gt-i18n";
+import type { MFunctionType } from "gt-i18n/types";
 
 import type { EnvironmentConnectionPhase } from "../connection/presentation.ts";
 import * as EnvironmentRegistry from "../connection/registry.ts";
@@ -65,7 +67,9 @@ export type ProviderAccountSyncCell = CellKey &
     | {
         readonly status: "failed";
         readonly stage: "export" | "import";
-        /** Safe text from the typed error. */
+        /** `error` carries safe text from a typed error; the others are client copy. */
+        readonly failure: "interrupted" | "unknown" | "error";
+        /** English text; clients resolve `failure` with {@link providerAccountSyncFailureMessage}. */
         readonly message: string;
       }
   );
@@ -101,6 +105,18 @@ const isNotRegistered = Schema.is(EnvironmentRegistry.EnvironmentNotRegisteredEr
 const isSetupError = Schema.is(ProviderSetupError);
 const isSettingsError = Schema.is(ServerSettingsError);
 
+/** The text of a failed cell; `error` failures keep the typed error's own message. */
+export function providerAccountSyncFailureMessage(
+  failure: "interrupted" | "unknown",
+  stage: "export" | "import",
+  resolve: MFunctionType = mFallback,
+): string {
+  if (failure === "unknown") return resolve(msg("Couldn't sync this account. Try again."));
+  return stage === "export"
+    ? resolve(msg("The connection to the source device was interrupted. Sync again."))
+    : resolve(msg("The connection to the destination device was interrupted. Sync again."));
+}
+
 function cellFromFailure(
   key: CellKey,
   stage: "export" | "import",
@@ -114,7 +130,8 @@ function cellFromFailure(
       ...key,
       status: "failed",
       stage,
-      message: `The connection to the ${end} device was interrupted. Sync again.`,
+      failure: "interrupted",
+      message: providerAccountSyncFailureMessage("interrupted", stage),
     };
   const error = Cause.squash(cause);
   if (isAuthorizationError(error))
@@ -122,8 +139,14 @@ function cellFromFailure(
   if (isUnavailable(error) || isNotRegistered(error))
     return { ...key, status: "skipped", end, reason: "not-connected" };
   if (isProviderAccountTransferError(error) || isSetupError(error) || isSettingsError(error))
-    return { ...key, status: "failed", stage, message: error.message };
-  return { ...key, status: "failed", stage, message: "Couldn't sync this account. Try again." };
+    return { ...key, status: "failed", stage, failure: "error", message: error.message };
+  return {
+    ...key,
+    status: "failed",
+    stage,
+    failure: "unknown",
+    message: providerAccountSyncFailureMessage("unknown", stage),
+  };
 }
 
 // A failed decode echoes the payload, and the payload is plaintext.

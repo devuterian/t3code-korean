@@ -2,7 +2,6 @@ import { TimelinePendingApprovalRow } from "./TimelinePendingApprovalRow";
 import { WorkLogButton, WorkLogList, WorkLogRow } from "./WorkLog";
 import type { WorktreeSetupSnapshot } from "@t3tools/contracts";
 import { type ToolActivityIcon } from "@t3tools/contracts";
-import { getQuestionTextPreview } from "@t3tools/client-runtime/work-log/user-input";
 import {
   liveThoughtLine,
   resolveViewedImageAsset,
@@ -13,6 +12,7 @@ import { useAssetUrls } from "~/assets/assetUrls";
 import { observeResize } from "~/lib/observeResize";
 import { tickTextContent } from "~/lib/tickTextContent";
 import { observeVisibleAnimation } from "../../lib/visibleAnimation";
+import { T, useGT, useMessages } from "gt-react";
 import { memo, use, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { LegendList, type LegendListRef } from "@legendapp/list/react";
 import { workEntryDisplayIndicatesToolFailure } from "../../session-logic";
@@ -54,15 +54,14 @@ import {
   ThreadReadLabel,
   ReasoningTraceContent,
   SimpleWorkEntryRow,
-  reasoningPreviewPlugins,
 } from "./TimelineWorkEntryRow";
 import {
+  thoughtPreviewMarkdown,
   THOUGHT_PREVIEW_SOURCE_MAX_LENGTH,
   toolGroupSummaryIconName,
   workEntryIconName,
 } from "./TimelineWorkEntryRow.logic";
 import { formatWorkingTimerNow } from "./TimelineWorkGroupRows.logic";
-import { useTranslate } from "~/i18n/translate";
 
 export const WorkGroupSection = memo(function WorkGroupSection({
   anchorKey,
@@ -77,7 +76,6 @@ export const WorkGroupSection = memo(function WorkGroupSection({
   isExpandedToolGroup: boolean;
   displayLabel?: string | undefined;
 }) {
-  const t = useTranslate();
   const {
     workspaceRoot,
     routeThreadKey,
@@ -85,6 +83,7 @@ export const WorkGroupSection = memo(function WorkGroupSection({
     onWorkEntryContentReady,
     pendingApprovals,
   } = use(TimelineRowCtx);
+  const gt = useGT();
   const nonEmptyEntries = groupedEntries.filter((entry) => {
     const item = entry.projectedItem?.item;
     return (
@@ -111,7 +110,7 @@ export const WorkGroupSection = memo(function WorkGroupSection({
   }
 
   return (
-    <section aria-label={t("Activity")}>
+    <section aria-label={gt("Activity")}>
       {nonEmptyEntries.map((workEntry) => (
         <SimpleWorkEntryRow
           key={workEntry.id}
@@ -146,6 +145,8 @@ function useWorkGroupViewedImages(
   groupedEntries: ReadonlyArray<TimelineWorkEntry>,
 ): ReadonlyArray<WorkGroupViewedImage> {
   const { threadRef, workspaceRoot, activeThreadEnvironmentId } = use(TimelineRowCtx);
+  const gt = useGT();
+  const fallbackName = gt("image", { $context: "fallback name of an image without alt text" });
   const viewed = threadRef
     ? workEntriesViewedImagePaths(groupedEntries).flatMap((path) => {
         const asset = resolveViewedImageAsset(path, {
@@ -164,7 +165,7 @@ function useWorkGroupViewedImages(
     const url = urls[index];
     if (!url) return { path, item: null };
     const src = url + asset.srcFragment;
-    const name = asset.alt.trim() || "image";
+    const name = asset.alt.trim() || fallbackName;
     return {
       path,
       item: {
@@ -174,7 +175,7 @@ function useWorkGroupViewedImages(
           environmentId,
           resource: asset.resource,
           kind: "image",
-          name: asset.alt || "image",
+          name: asset.alt || fallbackName,
           src,
           workspaceRoot,
         }),
@@ -196,12 +197,12 @@ function ExpandedWorkGroupEntries({
   groupedEntries: ReadonlyArray<TimelineWorkEntry>;
   workspaceRoot: string | undefined;
 }) {
-  const t = useTranslate();
   const {
     workGroupViewState: viewState,
     onToggleWorkEntry,
     onWorkEntryContentReady,
   } = use(TimelineRowCtx);
+  const gt = useGT();
   const [initialScrollIndex] = useState(() =>
     resolveWorkGroupScrollIndex(entries, viewState.scrollPositions.get(anchorKey)),
   );
@@ -332,7 +333,7 @@ function ExpandedWorkGroupEntries({
           onItemSizeChanged={updateExpandedContentHeight}
           tabIndex={0}
           role="region"
-          aria-label={t("Tool calls")}
+          aria-label={gt("Tool calls")}
           data-tool-group-scroll
           style={{ maxHeight: `calc(min(18rem, 50dvh) + ${expandedContentHeight}px)` }}
           className={cn(
@@ -348,25 +349,24 @@ function ExpandedWorkGroupEntries({
 const workEntryKey = (entry: TimelineWorkEntry) => entry.id;
 
 export function WorkingTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "working" }> }) {
-  const t = useTranslate();
   const { isCompacting, isPreparingWorktree, backgroundWorktreeSetup } =
     use(TimelineRowActivityCtx);
   const compacting = row.compacting === true || isCompacting;
   const shimmer = isPreparingWorktree || compacting;
   const label = isPreparingWorktree ? (
-    t("Setting up worktree…")
+    <T>Setting up worktree…</T>
   ) : compacting ? (
     <CompactingLabel createdAt={row.createdAt} />
   ) : row.createdAt ? (
-    <>
-      {t("Working for")} <WorkingTimer createdAt={row.createdAt} />
-    </>
+    <T>
+      Working for <WorkingTimer createdAt={row.createdAt} />
+    </T>
   ) : (
-    t("Working...")
+    <T>Working...</T>
   );
   return (
     <div className="border-b border-border/60 pb-2 pt-1">
-      <div className="flex min-h-6 min-w-0 items-baseline gap-2 px-1 text-sm leading-relaxed text-muted-foreground tabular-nums">
+      <div className="flex h-6 min-w-0 items-baseline gap-2 px-1 text-sm leading-relaxed text-muted-foreground tabular-nums">
         <span
           ref={shimmer ? observeVisibleAnimation : undefined}
           className="relative shrink-0 overflow-hidden whitespace-nowrap"
@@ -383,12 +383,12 @@ export function WorkingTimelineRow({ row }: { row: Extract<TimelineRow, { kind: 
 }
 
 function BackgroundWorktreeSetupChip({ snapshot }: { snapshot: WorktreeSetupSnapshot }) {
-  const t = useTranslate();
   const ctx = use(TimelineRowCtx);
+  const gt = useGT();
   const terminalId = snapshot.setupScript?.terminalId ?? null;
   const openTerminal = ctx.onOpenWorktreeSetupTerminal;
   const onOpenTerminal = openTerminal && terminalId ? () => openTerminal(terminalId) : null;
-  const scriptName = snapshot.setupScript?.name ?? t("Setup script");
+  const scriptName = snapshot.setupScript?.name ?? gt("Setup script");
   return (
     <Popover>
       <PopoverTrigger
@@ -397,14 +397,17 @@ function BackgroundWorktreeSetupChip({ snapshot }: { snapshot: WorktreeSetupSnap
             variant="ghost-muted"
             size="micro"
             className="ml-auto min-w-0 shrink-0"
-            aria-label={t(
-              "Background setup is still running: {name}. Show setup progress.",
-            ).replace("{name}", () => scriptName)}
+            aria-label={gt(
+              "Background setup is still running: {scriptName}. Show setup progress.",
+              { scriptName },
+            )}
           />
         }
       >
         <Spinner className="size-3 shrink-0" />
-        <span className="truncate">{t("Background setup")}</span>
+        <span className="truncate">
+          <T>Background setup</T>
+        </span>
       </PopoverTrigger>
       <PopoverPopup side="bottom" align="end" width="lg" padding="compact">
         <WorktreeSetupCard
@@ -420,33 +423,39 @@ function BackgroundWorktreeSetupChip({ snapshot }: { snapshot: WorktreeSetupSnap
 }
 
 function CompactingLabel({ createdAt }: { createdAt: string | null }) {
-  const t = useTranslate();
   return (
     <span className="inline-flex items-center gap-1.5">
       <Minimize2Icon aria-hidden="true" className="size-3" />
       {createdAt ? (
         <span>
-          {t("Compacting for")} <WorkingTimer createdAt={createdAt} />
+          <T>
+            Compacting for <WorkingTimer createdAt={createdAt} />
+          </T>
         </span>
       ) : (
-        t("Compacting…")
+        <T>Compacting…</T>
       )}
     </span>
   );
 }
 
 export function ThinkingTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "thinking" }> }) {
-  const t = useTranslate();
   const ctx = use(TimelineRowCtx);
+  const gt = useGT();
+  const m = useMessages();
   const { isCompacting, isPreparingWorktree, liveAnswerPreview, providerStartingLabel } =
     use(TimelineRowActivityCtx);
   if (isPreparingWorktree || isCompacting) return <WorkLogRow label="" />;
   // A failed group keeps this disclosure while an approval waits, but nothing is thinking then.
   const live = ctx.pendingApprovals.size === 0;
-  const startingLabel = providerStartingLabel ?? row.label ?? null;
   const activity = (
     <LiveActivityRow
-      label={startingLabel !== null ? t(startingLabel) : (liveAnswerPreview ?? t("Thinking"))}
+      label={
+        (providerStartingLabel === null ? null : m(providerStartingLabel)) ??
+        row.label ??
+        liveAnswerPreview ??
+        gt("Thinking")
+      }
       iconName="brain"
       active={live}
       shimmer={live}
@@ -522,7 +531,7 @@ function LiveActivityContent({
   active?: boolean;
   highlighted?: boolean;
 }) {
-  const t = useTranslate();
+  const gt = useGT();
   const showTrailingFailureMark =
     failed && iconName !== undefined && !toolIconAcceptsTint(toolIcon);
 
@@ -540,7 +549,7 @@ function LiveActivityContent({
                   : "text-icon-muted",
             )}
             role={announceFailure ? "img" : undefined}
-            aria-label={announceFailure ? t("Tool call failed") : undefined}
+            aria-label={announceFailure ? gt("Tool call failed") : undefined}
           >
             <ToolActivityIconView
               icon={toolIcon}
@@ -576,16 +585,12 @@ export function LiveWorkEntryTimelineRow({
 }: {
   row: Extract<TimelineRow, { kind: "work-live" }>;
 }) {
-  const t = useTranslate();
   const ctx = use(TimelineRowCtx);
+  const gt = useGT();
+  const m = useMessages();
   const threadTarget = useThreadReadTarget(row.entry, ctx.activeThreadEnvironmentId);
-  const questionHeading = row.entry.questionAnswer
-    ? getQuestionTextPreview(row.entry.questionAnswer)
-    : "";
-  const sourceLabel = liveWorkEntryLabel(row.entry, ctx.workspaceRoot, row.active);
-  const label = questionHeading || t(sourceLabel);
-  // The thread-read prefix is parsed from the English source label.
-  const threadLabel = threadReadLabel(questionHeading || sourceLabel, threadTarget);
+  const label = liveWorkEntryLabel(row.entry, ctx.workspaceRoot, row.active, m);
+  const threadLabel = threadReadLabel(label, row.entry, threadTarget, m);
 
   const item = row.entry.projectedItem?.item;
   const pendingApproval =
@@ -608,9 +613,9 @@ export function LiveWorkEntryTimelineRow({
       )}
       aria-label={
         failed
-          ? t(
-              `${thoughtLine ? `${thoughtLine} ` : ""}${threadLabel?.text ?? label}, tool call failed`,
-            )
+          ? gt("{label}, tool call failed", {
+              label: `${thoughtLine ? `${thoughtLine} ` : ""}${threadLabel?.text ?? label}`,
+            })
           : undefined
       }
       aria-expanded={row.expanded}
@@ -635,7 +640,7 @@ export function LiveWorkEntryTimelineRow({
                 text={thoughtLine}
                 cwd={ctx.markdownCwd}
                 parseRawHtml={false}
-                extraRemarkPlugins={reasoningPreviewPlugins(t("Thought"))}
+                extensions={thoughtPreviewMarkdown(gt("Thought"))}
               />
             </span>
           }
@@ -646,9 +651,9 @@ export function LiveWorkEntryTimelineRow({
         label={
           thoughtIsStatus ? (
             row.active ? (
-              t("Thinking")
+              gt("Thinking")
             ) : (
-              t("Thought")
+              gt("Thought")
             )
           ) : row.entry.itemType === "reasoning" ? (
             <ChatMarkdown
@@ -656,9 +661,11 @@ export function LiveWorkEntryTimelineRow({
               text={(row.entry.detail ?? label).slice(0, THOUGHT_PREVIEW_SOURCE_MAX_LENGTH)}
               cwd={ctx.markdownCwd}
               parseRawHtml={false}
-              extraRemarkPlugins={reasoningPreviewPlugins(
-                row.active ? t("Thinking") : t("Thought"),
-              )}
+              extensions={
+                row.active
+                  ? thoughtPreviewMarkdown(gt("Thinking"))
+                  : thoughtPreviewMarkdown(gt("Thought"))
+              }
             />
           ) : threadLabel ? (
             <ThreadReadLabel
@@ -684,11 +691,10 @@ export function WorkGroupToggleTimelineRow({
 }: {
   row: Extract<TimelineRow, { kind: "work-toggle" }>;
 }) {
-  const t = useTranslate();
   const ctx = use(TimelineRowCtx);
   return (
     <WorkGroupHeader
-      label={t(row.summary)}
+      label={row.summary}
       iconName={row.toolSurface ?? toolGroupSummaryIconName(row.summaryKind)}
       toolIcon={row.toolIcon}
       failed={row.hasFailure}
@@ -710,10 +716,12 @@ function WorkGroupHeader(props: {
   timestampFormat: TimestampFormat;
   onToggle: () => void;
 }) {
-  const t = useTranslate();
+  const gt = useGT();
   return (
     <WorkLogButton
-      aria-label={props.failed ? t(`${props.label}, tool call failed`) : props.label}
+      aria-label={
+        props.failed ? gt("{label}, tool call failed", { label: props.label }) : props.label
+      }
       aria-expanded={props.expanded}
       onClick={props.onToggle}
       icon={

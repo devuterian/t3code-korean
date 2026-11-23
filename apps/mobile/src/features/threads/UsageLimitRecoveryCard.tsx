@@ -1,4 +1,5 @@
 import { squashAtomCommandFailure } from "@t3tools/client-runtime/state/runtime";
+import { errorDisplayMessage } from "@t3tools/client-runtime/errors";
 import { AsyncResult } from "effect/reactivity";
 import type { EnvironmentThreadShell } from "@t3tools/client-runtime/state/shell";
 import { limitRecoveryOwnsSnooze } from "@t3tools/client-runtime/state/thread-execution";
@@ -10,11 +11,13 @@ import {
   CHATGPT_WORKSPACE_USAGE_LIMIT_CODE,
 } from "@t3tools/shared/usageLimits";
 import * as Clipboard from "expo-clipboard";
+import { T, useGT } from "gt-react-native";
+import { m } from "../../i18n/messages";
 import { useState } from "react";
-import { Linking, Pressable, View } from "react-native";
+import { Pressable, View } from "react-native";
+import { tryOpenExternalUrl } from "../../lib/openExternalUrl";
 import { ProviderIcon } from "../../components/ProviderIcon";
 import { AppText as Text } from "../../components/ui/AppText";
-import { getFormattingLocale, useTranslate } from "../../i18n/translate";
 import { useDeadlinePassed } from "../../lib/clock";
 import { threadEnvironment } from "../../state/threads";
 import { useAtomCommand } from "../../state/use-atom-command";
@@ -26,7 +29,7 @@ export function UsageLimitRecoveryCard({
   thread: EnvironmentThreadShell;
   environmentId: EnvironmentId;
 }) {
-  const t = useTranslate();
+  const gt = useGT();
   const updateMetadata = useAtomCommand(threadEnvironment.updateMetadata);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,6 +51,7 @@ export function UsageLimitRecoveryCard({
     Date.parse(thread.snoozedUntil) > Date.parse(resetAt)
       ? thread.snoozedUntil
       : resetAt;
+  const displayPassed = useDeadlinePassed(displayAt === null ? null : Date.parse(displayAt));
   const [copied, setCopied] = useState(false);
   const [actionPending, setActionPending] = useState(false);
   const code = thread.runtime?.lastErrorCode;
@@ -61,16 +65,25 @@ export function UsageLimitRecoveryCard({
     !runId
   )
     return null;
-  const resetText = displayAt
-    ? t(canSchedule && scheduled ? "Resumes {time}." : "Resets {time}.", {
-        time: new Date(displayAt).toLocaleString(getFormattingLocale(), {
-          month: "short",
-          day: "numeric",
-          hour: "numeric",
-          minute: "2-digit",
-        }),
+  const resumes = canSchedule && scheduled;
+  const resumesUpcoming = resumes && !displayPassed;
+  const shownAt = resumesUpcoming ? displayAt : resetAt;
+  const resetDate = shownAt
+    ? new Date(shownAt).toLocaleString(undefined, {
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
       })
     : null;
+  const resetText =
+    resetDate === null
+      ? null
+      : resumesUpcoming
+        ? gt("Resumes {date}.", { date: resetDate })
+        : resetPassed
+          ? gt("Reset {date}.", { date: resetDate })
+          : gt("Resets {date}.", { date: resetDate });
   const snoozed =
     limitRecoveryOwnsSnooze({
       runId,
@@ -81,7 +94,7 @@ export function UsageLimitRecoveryCard({
   async function toggle(action: "resume" | "snooze") {
     if (!resetAt || !runId || !canSchedule) return;
     if (action === "snooze" && !snoozed && Date.parse(resetAt) <= Date.now()) {
-      setError(t("The reset time has passed. Retry the thread manually."));
+      setError(gt("The reset time has passed. Retry the thread manually."));
       return;
     }
     setPending(true);
@@ -100,12 +113,12 @@ export function UsageLimitRecoveryCard({
     setPending(false);
     if (AsyncResult.isFailure(result)) {
       const cause = squashAtomCommandFailure(result);
-      setError(cause instanceof Error ? cause.message : t("Could not change limit recovery."));
+      setError(errorDisplayMessage(cause, m) ?? gt("Could not change limit recovery."));
     }
   }
   const action = workspaceLimit
     ? {
-        label: t("Copy request for admin"),
+        label: gt("Copy request for admin"),
         role: "button" as const,
         run: () => {
           setError(null);
@@ -114,21 +127,22 @@ export function UsageLimitRecoveryCard({
           void Clipboard.setStringAsync(CHATGPT_WORKSPACE_ADMIN_REQUEST)
             .then(
               () => setCopied(true),
-              () => setError(t("Could not copy the request. Try again.")),
+              () => setError(gt("Could not copy the request. Try again.")),
             )
             .finally(() => setActionPending(false));
         },
       }
     : {
-        label: t("Manage usage"),
+        label: gt("Manage usage"),
         role: "link" as const,
         run: () => {
           setError(null);
           setActionPending(true);
-          void Linking.openURL(CHATGPT_USAGE_URL)
-            .catch(() =>
-              setError(t("Could not open ChatGPT. Go to chatgpt.com → Settings → Usage.")),
-            )
+          void tryOpenExternalUrl(CHATGPT_USAGE_URL)
+            .then((opened) => {
+              if (!opened)
+                setError(gt("Could not open ChatGPT. Go to chatgpt.com → Settings → Usage."));
+            })
             .finally(() => setActionPending(false));
         },
       };
@@ -145,7 +159,7 @@ export function UsageLimitRecoveryCard({
       <View className="min-w-0 flex-1 gap-1">
         {chatGptLimit ? (
           <Text className="text-sm font-t3-medium text-foreground">
-            {t("ChatGPT usage limit reached")}
+            <T>ChatGPT usage limit reached</T>
           </Text>
         ) : null}
         <Text
@@ -155,15 +169,19 @@ export function UsageLimitRecoveryCard({
         >
           {workspaceLimit
             ? copied
-              ? t("Request copied. Send it to your workspace admin.")
-              : t(
+              ? gt("Request copied. Send it to your workspace admin.")
+              : gt(
                   "You've reached your workspace's limit for using your ChatGPT plan in other apps. Copy a request to ask your workspace admin for increased usage limits.",
                 )
             : chatGptLimit
-              ? (resetText ?? t("Review your usage settings in ChatGPT."))
-              : resetText
-                ? t("Usage limit reached. {reset}", { reset: resetText })
-                : t(
+              ? (resetText ?? gt("Review your usage settings in ChatGPT."))
+              : resetDate !== null
+                ? resumesUpcoming
+                  ? gt("Usage limit reached. Resumes {date}.", { date: resetDate })
+                  : resetPassed
+                    ? gt("Usage limit reached. Reset {date}.", { date: resetDate })
+                    : gt("Usage limit reached. Resets {date}.", { date: resetDate })
+                : gt(
                     "Usage limit reached. The provider did not report a reset time. Retry manually when your limit is available.",
                   )}
         </Text>
@@ -181,12 +199,18 @@ export function UsageLimitRecoveryCard({
             {canSchedule ? (
               <>
                 <RecoveryAction
-                  label={scheduled ? t("Cancel auto-resume") : t("Resume at reset")}
+                  label={
+                    scheduled
+                      ? gt("Cancel auto-resume")
+                      : resetPassed
+                        ? gt("Resume now")
+                        : gt("Resume at reset")
+                  }
                   disabled={pending}
                   onPress={() => void toggle("resume")}
                 />
                 <RecoveryAction
-                  label={snoozed ? t("Wake now") : t("Snooze until reset")}
+                  label={snoozed ? gt("Wake now") : gt("Snooze until reset")}
                   disabled={pending || (!snoozed && resetPassed)}
                   onPress={() => void toggle("snooze")}
                 />

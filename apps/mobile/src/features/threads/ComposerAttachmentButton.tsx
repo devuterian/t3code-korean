@@ -1,10 +1,15 @@
 import type { MenuAction } from "@react-native-menu/menu";
+import { msg, useGT, useMessages } from "gt-react-native";
 import { Pressable } from "react-native";
 
 import { useAndroidControlSizing } from "../../components/ui/useAndroidControlSizing";
 import { SymbolView } from "../../components/ui/AppSymbol";
 import { Menu } from "../../components/ui/Menu";
-import { useTranslate } from "../../i18n/translate";
+
+const ATTACHMENT_MENU_ACTIONS: MenuAction[] = [
+  { id: "photos", title: msg("Photo Library"), image: "photo" },
+  { id: "files", title: msg("Choose Files"), image: "folder" },
+];
 
 export function ComposerAttachmentButton(props: {
   readonly disabled?: boolean;
@@ -13,15 +18,12 @@ export function ComposerAttachmentButton(props: {
   readonly onPickMedia: () => Promise<void>;
   readonly onPickFiles: () => Promise<void>;
 }) {
-  const t = useTranslate();
+  const gt = useGT();
+  const m = useMessages();
   const { scale } = useAndroidControlSizing();
-  const attachmentMenuActions: MenuAction[] = [
-    { id: "photos", title: t("Photo Library"), image: "photo" },
-    { id: "files", title: t("Choose Files"), image: "folder" },
-  ];
   const button = (
     <Pressable
-      accessibilityLabel={t("Add attachment")}
+      accessibilityLabel={gt("Add attachment")}
       accessibilityRole="button"
       accessibilityState={{ disabled: props.disabled }}
       className="size-[44px] shrink-0 items-center justify-center rounded-full active:opacity-70 disabled:opacity-50"
@@ -45,9 +47,9 @@ export function ComposerAttachmentButton(props: {
   return (
     <Menu
       accessible
-      accessibilityLabel={t("Add attachment")}
+      accessibilityLabel={gt("Add attachment")}
       accessibilityRole="button"
-      actions={attachmentMenuActions}
+      actions={ATTACHMENT_MENU_ACTIONS.map((action) => ({ ...action, title: m(action.title) }))}
       onPressAction={({ nativeEvent }) => {
         if (nativeEvent.event === "photos") {
           void props.onPickMedia();

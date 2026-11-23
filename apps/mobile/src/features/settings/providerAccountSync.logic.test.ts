@@ -165,7 +165,13 @@ describe("syncResultRow", () => {
     expect(
       syncResultRow({
         ...base,
-        cell: { ...key, status: "failed", stage: "import", message: "Disk is full." },
+        cell: {
+          ...key,
+          status: "failed",
+          stage: "import",
+          failure: "error",
+          message: "Disk is full.",
+        },
       }),
     ).toMatchObject({ description: "Disk is full.", tone: "danger" });
   });

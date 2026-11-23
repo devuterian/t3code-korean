@@ -2,6 +2,7 @@ import type { DeviceHubAccess } from "@t3tools/client-runtime/state/deviceHubAcc
 import type { DevicePermission, DeviceSummary, DeviceTextSize } from "@t3tools/contracts";
 import { ChevronDown, X } from "lucide-react";
 import { useAtomValue } from "@effect/atom-react";
+import { msg, T, useGT, useMessages } from "gt-react";
 import { useState } from "react";
 
 import { Button } from "~/components/ui/button";
@@ -18,63 +19,66 @@ import { Spinner } from "~/components/ui/spinner";
 import { Switch } from "~/components/ui/switch";
 import { Toggle, ToggleGroup } from "~/components/ui/toggle-group";
 import { cn } from "~/lib/utils";
-import { useTranslate } from "~/i18n/translate";
 import type { DeviceControls } from "./useDeviceControls";
 import { deviceEventLogAtom } from "./deviceHubAtoms";
 
 const TEXT_SIZES: ReadonlyArray<{ value: DeviceTextSize; label: string }> = [
-  { value: "small", label: "Small" },
-  { value: "default", label: "Default" },
-  { value: "large", label: "Large" },
-  { value: "extra-large", label: "Extra large" },
+  { value: "small", label: msg("Small") },
+  { value: "default", label: msg("Default") },
+  { value: "large", label: msg("Large") },
+  { value: "extra-large", label: msg("Extra large") },
 ];
 
 const COLOR_FILTERS = [
-  { value: "none", label: "None" },
-  { value: "grayscale", label: "Grayscale" },
-  { value: "red-green", label: "Red / green (protanopia)" },
-  { value: "green-red", label: "Green / red (deuteranopia)" },
-  { value: "blue-yellow", label: "Blue / yellow (tritanopia)" },
+  { value: "none", label: msg("None") },
+  { value: "grayscale", label: msg("Grayscale") },
+  { value: "red-green", label: msg("Red / green (protanopia)") },
+  { value: "green-red", label: msg("Green / red (deuteranopia)") },
+  { value: "blue-yellow", label: msg("Blue / yellow (tritanopia)") },
 ] as const;
 
 const ORIENTATIONS = [
-  { value: "portrait", label: "Portrait" },
-  { value: "landscape_left", label: "Landscape left" },
-  { value: "portrait_upside_down", label: "Upside down" },
-  { value: "landscape_right", label: "Landscape right" },
+  { value: "portrait", label: msg("Portrait") },
+  { value: "landscape_left", label: msg("Landscape left") },
+  { value: "portrait_upside_down", label: msg("Upside down") },
+  { value: "landscape_right", label: msg("Landscape right") },
 ] as const;
 
 const IOS_PERMISSIONS: ReadonlyArray<{ value: DevicePermission; label: string }> = [
-  { value: "camera", label: "Camera" },
-  { value: "microphone", label: "Microphone" },
-  { value: "photos", label: "Photos" },
-  { value: "contacts", label: "Contacts" },
-  { value: "calendar", label: "Calendar" },
-  { value: "reminders", label: "Reminders" },
-  { value: "location", label: "Location" },
-  { value: "notifications", label: "Notifications" },
-  { value: "motion", label: "Motion" },
-  { value: "media-library", label: "Media library" },
-  { value: "faceid", label: "Face ID" },
+  { value: "camera", label: msg("Camera") },
+  { value: "microphone", label: msg("Microphone") },
+  { value: "photos", label: msg("Photos") },
+  { value: "contacts", label: msg("Contacts") },
+  { value: "calendar", label: msg("Calendar") },
+  { value: "reminders", label: msg("Reminders") },
+  { value: "location", label: msg("Location") },
+  { value: "notifications", label: msg("Notifications") },
+  { value: "motion", label: msg("Motion") },
+  { value: "media-library", label: msg("Media library") },
+  { value: "faceid", label: msg("Face ID") },
 ];
 
 const ANDROID_PERMISSIONS: ReadonlyArray<{ value: DevicePermission; label: string }> = [
-  { value: "camera", label: "Camera" },
-  { value: "microphone", label: "Microphone" },
-  { value: "photos", label: "Photos" },
-  { value: "contacts", label: "Contacts" },
-  { value: "calendar", label: "Calendar" },
-  { value: "location", label: "Location" },
-  { value: "notifications", label: "Notifications" },
-  { value: "motion", label: "Physical activity" },
+  { value: "camera", label: msg("Camera") },
+  { value: "microphone", label: msg("Microphone") },
+  { value: "photos", label: msg("Photos") },
+  { value: "contacts", label: msg("Contacts") },
+  { value: "calendar", label: msg("Calendar") },
+  { value: "location", label: msg("Location") },
+  { value: "notifications", label: msg("Notifications") },
+  { value: "motion", label: msg("Physical activity") },
 ];
 
 const LOCATION_PRESETS = [
-  { label: "San Francisco", latitude: 37.7749, longitude: -122.4194 },
-  { label: "New York", latitude: 40.7128, longitude: -74.006 },
-  { label: "London", latitude: 51.5074, longitude: -0.1278 },
-  { label: "Stockholm", latitude: 59.3293, longitude: 18.0686 },
-  { label: "Tokyo", latitude: 35.6762, longitude: 139.6503 },
+  {
+    label: msg("San Francisco", { $context: "city name" }),
+    latitude: 37.7749,
+    longitude: -122.4194,
+  },
+  { label: msg("New York", { $context: "city name" }), latitude: 40.7128, longitude: -74.006 },
+  { label: msg("London", { $context: "city name" }), latitude: 51.5074, longitude: -0.1278 },
+  { label: msg("Stockholm", { $context: "city name" }), latitude: 59.3293, longitude: 18.0686 },
+  { label: msg("Tokyo", { $context: "city name" }), latitude: 35.6762, longitude: 139.6503 },
 ] as const;
 
 export function DeviceToolsPanel(props: {
@@ -87,23 +91,25 @@ export function DeviceToolsPanel(props: {
   readonly onClose: () => void;
   readonly className?: string;
 }) {
-  const t = useTranslate();
   const { device, controls } = props;
   const { detail, pending, error, foregroundApp, disabled, act } = controls;
   const settings = detail?.settings;
   const isIos = device.platform === "ios";
+  const gt = useGT();
 
   return (
     <div
       className={cn("flex min-h-0 flex-col border-border bg-background text-sm", props.className)}
     >
       <div className="flex h-9 shrink-0 items-center gap-2 border-b px-3">
-        <span className="font-medium">{t("Tools")}</span>
+        <span className="font-medium">
+          <T>Tools</T>
+        </span>
         {pending ? <Spinner size="sm" /> : null}
         <Button
           size="icon-xs"
           variant="ghost-muted"
-          aria-label={t("Close tools")}
+          aria-label={gt("Close tools")}
           className="ml-auto"
           onClick={props.onClose}
         >
@@ -116,20 +122,20 @@ export function DeviceToolsPanel(props: {
         ) : null}
         {detail === null && !error ? (
           <div className="flex items-center gap-2 px-3 py-3 text-xs text-muted-foreground">
-            <Spinner size="sm" /> {t("Reading device settings…")}
+            <Spinner size="sm" /> <T>Reading device settings…</T>
           </div>
         ) : null}
 
         {props.hostDiagnostics ? (
-          <Section title={t("Host diagnostics")}>
+          <Section title={gt("Host diagnostics")}>
             <p className="whitespace-pre-line text-xs text-muted-foreground">
               {props.hostDiagnostics}
             </p>
           </Section>
         ) : null}
 
-        <Section title={t("App")}>
-          <Row label={t("Foreground")}>
+        <Section title={gt("App", { $context: "section heading for the foreground app" })}>
+          <Row label={gt("Foreground", { $context: "the app currently in the foreground" })}>
             <span className="truncate font-mono text-xs">{foregroundApp?.id ?? "-"}</span>
           </Row>
           {foregroundApp ? (
@@ -140,7 +146,7 @@ export function DeviceToolsPanel(props: {
                 disabled={disabled}
                 onClick={() => void act({ type: "terminateApp", appId: foregroundApp.id })}
               >
-                {t("Terminate")}
+                <T>Terminate</T>
               </Button>
               <Button
                 size="xs"
@@ -148,28 +154,28 @@ export function DeviceToolsPanel(props: {
                 disabled={disabled}
                 onClick={() => void act({ type: "launchApp", appId: foregroundApp.id })}
               >
-                {t("Relaunch")}
+                <T>Relaunch</T>
               </Button>
             </div>
           ) : null}
           <SubmitRow
-            placeholder="https://… or myapp://"
-            action="Open"
+            placeholder={gt("https://… or myapp://")}
+            action={gt("Open", { $context: "verb, opens a URL" })}
             disabled={disabled}
             onSubmit={(url) => act({ type: "openUrl", url })}
           />
           <SubmitRow
-            placeholder={isIos ? "Bundle ID to launch" : "Package name to launch"}
-            action="Launch"
+            placeholder={isIos ? gt("Bundle ID to launch") : gt("Package name to launch")}
+            action={gt("Launch", { $context: "verb, launches an app" })}
             disabled={disabled}
             onSubmit={(appId) => act({ type: "launchApp", appId })}
           />
         </Section>
 
-        <Section title={isIos ? "Simulator" : "Emulator"}>
-          <Row label={t("Appearance")}>
+        <Section title={isIos ? gt("Simulator") : gt("Emulator")}>
+          <Row label={gt("Appearance")}>
             <ToggleGroup
-              aria-label={t("Appearance")}
+              aria-label={gt("Appearance")}
               value={settings?.appearance ? [settings.appearance] : []}
               disabled={disabled}
               onValueChange={(value) => {
@@ -178,13 +184,17 @@ export function DeviceToolsPanel(props: {
                   void act({ type: "setAppearance", value: next });
               }}
             >
-              <Toggle value="light">{t("Light")}</Toggle>
-              <Toggle value="dark">{t("Dark")}</Toggle>
+              <Toggle value="light">
+                <T context="appearance mode">Light</T>
+              </Toggle>
+              <Toggle value="dark">
+                <T context="appearance mode">Dark</T>
+              </Toggle>
             </ToggleGroup>
           </Row>
-          <Row label={t("Text size")}>
+          <Row label={gt("Text size")}>
             <ChoiceSelect
-              ariaLabel="Text size"
+              ariaLabel={gt("Text size")}
               value={settings?.textSize ?? null}
               options={TEXT_SIZES}
               disabled={disabled}
@@ -195,7 +205,7 @@ export function DeviceToolsPanel(props: {
             <>
               <Row label="Liquid Glass">
                 <ToggleGroup
-                  aria-label={t("Liquid Glass")}
+                  aria-label="Liquid Glass"
                   value={settings?.liquidGlass ? [settings.liquidGlass] : []}
                   disabled={disabled || settings?.liquidGlass === undefined}
                   onValueChange={(value) => {
@@ -205,13 +215,17 @@ export function DeviceToolsPanel(props: {
                     }
                   }}
                 >
-                  <Toggle value="clear">{t("Clear")}</Toggle>
-                  <Toggle value="tinted">{t("Tinted")}</Toggle>
+                  <Toggle value="clear">
+                    <T context="Liquid Glass style">Clear</T>
+                  </Toggle>
+                  <Toggle value="tinted">
+                    <T context="Liquid Glass style">Tinted</T>
+                  </Toggle>
                 </ToggleGroup>
               </Row>
-              <Row label={t("Color filter")}>
+              <Row label={gt("Color filter")}>
                 <ChoiceSelect
-                  ariaLabel="Color filter"
+                  ariaLabel={gt("Color filter")}
                   value={settings?.colorFilter ?? null}
                   options={COLOR_FILTERS}
                   disabled={disabled}
@@ -220,11 +234,11 @@ export function DeviceToolsPanel(props: {
               </Row>
             </>
           ) : (
-            <Row label={t("Orientation")}>
+            <Row label={gt("Orientation")}>
               <ChoiceSelect
-                ariaLabel="Orientation"
+                ariaLabel={gt("Orientation")}
                 value={null}
-                placeholder={t("Rotate to…")}
+                placeholder={gt("Rotate to…")}
                 options={ORIENTATIONS}
                 disabled={disabled}
                 onChange={(value) => act({ type: "setOrientation", value })}
@@ -232,7 +246,7 @@ export function DeviceToolsPanel(props: {
             </Row>
           )}
           <SwitchRow
-            label={t("Reduce Motion")}
+            label={gt("Reduce Motion")}
             checked={settings?.reduceMotion}
             disabled={disabled}
             onChange={(value) => act({ type: "setToggle", setting: "reduceMotion", value })}
@@ -240,13 +254,13 @@ export function DeviceToolsPanel(props: {
           {isIos ? (
             <>
               <SwitchRow
-                label={t("Increase Contrast")}
+                label={gt("Increase Contrast")}
                 checked={settings?.increaseContrast}
                 disabled={disabled}
                 onChange={(value) => act({ type: "setToggle", setting: "increaseContrast", value })}
               />
               <SwitchRow
-                label={t("Reduce Transparency")}
+                label={gt("Reduce Transparency")}
                 checked={settings?.reduceTransparency}
                 disabled={disabled}
                 onChange={(value) =>
@@ -254,7 +268,7 @@ export function DeviceToolsPanel(props: {
                 }
               />
               <SwitchRow
-                label={t("Show Borders")}
+                label={gt("Show Borders")}
                 checked={settings?.showBorders}
                 disabled={disabled}
                 onChange={(value) => act({ type: "setToggle", setting: "showBorders", value })}
@@ -268,7 +282,7 @@ export function DeviceToolsPanel(props: {
             </>
           ) : (
             <SwitchRow
-              label={t("Network")}
+              label={gt("Network")}
               checked={settings?.networkEnabled}
               disabled={disabled}
               onChange={(value) => act({ type: "setToggle", setting: "networkEnabled", value })}
@@ -276,9 +290,9 @@ export function DeviceToolsPanel(props: {
           )}
         </Section>
 
-        <Section title={t("Accessibility")}>
+        <Section title={gt("Accessibility")}>
           <SwitchRow
-            label={t("Overlay element frames")}
+            label={gt("Overlay element frames")}
             checked={props.axOverlay}
             disabled={props.access === null}
             onChange={(value) => {
@@ -306,10 +320,10 @@ export function DeviceToolsPanel(props: {
         />
 
         {isIos ? (
-          <Section title={t("Push notification")}>
+          <Section title={gt("Push notification")}>
             <SubmitRow
-              placeholder={t("Alert text")}
-              action="Send"
+              placeholder={gt("Alert text")}
+              action={gt("Send", { $context: "verb, sends a push notification" })}
               disabled={disabled || !foregroundApp}
               onSubmit={(payload) =>
                 foregroundApp
@@ -318,7 +332,9 @@ export function DeviceToolsPanel(props: {
               }
             />
             {!foregroundApp ? (
-              <p className="text-xs text-muted-foreground">{t("Open an app first.")}</p>
+              <p className="text-xs text-muted-foreground">
+                <T>Open an app first.</T>
+              </p>
             ) : null}
           </Section>
         ) : null}
@@ -330,20 +346,18 @@ export function DeviceToolsPanel(props: {
 }
 
 function Section(props: { readonly title: string; readonly children: React.ReactNode }) {
-  const t = useTranslate();
   return (
     <section className="flex flex-col gap-2 border-b px-3 py-2.5 last:border-b-0">
-      <h3 className="text-xs font-medium text-muted-foreground">{t(props.title)}</h3>
+      <h3 className="text-xs font-medium text-muted-foreground">{props.title}</h3>
       {props.children}
     </section>
   );
 }
 
 function Row(props: { readonly label: string; readonly children: React.ReactNode }) {
-  const t = useTranslate();
   return (
     <div className="flex min-h-7 items-center justify-between gap-3">
-      <span className="shrink-0 text-xs text-muted-foreground">{t(props.label)}</span>
+      <span className="shrink-0 text-xs text-muted-foreground">{props.label}</span>
       <div className="flex min-w-0 items-center justify-end">{props.children}</div>
     </div>
   );
@@ -355,12 +369,11 @@ function SwitchRow(props: {
   readonly disabled: boolean;
   readonly onChange: (value: boolean) => Promise<unknown>;
 }) {
-  const t = useTranslate();
   return (
     <Row label={props.label}>
       <Switch
         size="sm"
-        aria-label={t(props.label)}
+        aria-label={props.label}
         checked={props.checked ?? false}
         disabled={props.disabled || props.checked === undefined}
         onCheckedChange={(checked) => void props.onChange(checked)}
@@ -377,7 +390,8 @@ function ChoiceSelect<V extends string>(props: {
   readonly placeholder?: string;
   readonly onChange: (value: V) => Promise<unknown>;
 }) {
-  const t = useTranslate();
+  const gt = useGT();
+  const m = useMessages();
   const current = props.options.find((option) => option.value === props.value);
   return (
     <Select
@@ -387,21 +401,19 @@ function ChoiceSelect<V extends string>(props: {
         if (value !== null && value !== props.value) void props.onChange(value as V);
       }}
     >
-      <SelectTrigger size="xs" className="w-40" aria-label={t(props.ariaLabel)}>
+      <SelectTrigger size="xs" className="w-40" aria-label={props.ariaLabel}>
         <SelectValue>
           {current ? (
-            t(current.label)
+            m(current.label)
           ) : (
-            <span className="text-muted-foreground">
-              {props.placeholder ? t(props.placeholder) : t("Unknown")}
-            </span>
+            <span className="text-muted-foreground">{props.placeholder ?? gt("Unknown")}</span>
           )}
         </SelectValue>
       </SelectTrigger>
       <SelectPopup align="end" alignItemWithTrigger={false}>
         {props.options.map((option) => (
           <SelectItem key={option.value} value={option.value}>
-            {t(option.label)}
+            {m(option.label)}
           </SelectItem>
         ))}
       </SelectPopup>
@@ -415,7 +427,6 @@ function SubmitRow(props: {
   readonly disabled: boolean;
   readonly onSubmit: (value: string) => Promise<boolean>;
 }) {
-  const t = useTranslate();
   const [value, setValue] = useState("");
   const submit = () => {
     const trimmed = value.trim();
@@ -436,7 +447,7 @@ function SubmitRow(props: {
         size="compact"
         font="mono"
         className="min-w-0 flex-1"
-        placeholder={t(props.placeholder)}
+        placeholder={props.placeholder}
         value={value}
         disabled={props.disabled}
         onChange={(event) => setValue(event.target.value)}
@@ -447,7 +458,7 @@ function SubmitRow(props: {
         variant="outline"
         disabled={props.disabled || value.trim().length === 0}
       >
-        {t(props.action)}
+        {props.action}
       </Button>
     </form>
   );
@@ -459,7 +470,8 @@ function LocationSection(props: {
   readonly onSet: (latitude: number, longitude: number) => Promise<unknown>;
   readonly onClear: () => Promise<unknown>;
 }) {
-  const t = useTranslate();
+  const gt = useGT();
+  const m = useMessages();
   const [latitude, setLatitude] = useState("");
   const [longitude, setLongitude] = useState("");
   const parsed = { latitude: Number(latitude), longitude: Number(longitude) };
@@ -469,13 +481,13 @@ function LocationSection(props: {
     Math.abs(parsed.latitude) <= 90 &&
     Math.abs(parsed.longitude) <= 180;
   return (
-    <Section title={t("Location")}>
+    <Section title={gt("Location")}>
       <div className="flex gap-1.5">
         <Input
           size="compact"
           font="mono"
           className="min-w-0 flex-1"
-          placeholder={t("Latitude")}
+          placeholder={gt("Latitude")}
           inputMode="decimal"
           value={latitude}
           disabled={props.disabled}
@@ -485,7 +497,7 @@ function LocationSection(props: {
           size="compact"
           font="mono"
           className="min-w-0 flex-1"
-          placeholder={t("Longitude")}
+          placeholder={gt("Longitude")}
           inputMode="decimal"
           value={longitude}
           disabled={props.disabled}
@@ -504,15 +516,17 @@ function LocationSection(props: {
             void props.onSet(preset.latitude, preset.longitude);
           }}
         >
-          <SelectTrigger size="xs" className="w-32" aria-label={t("Location preset")}>
+          <SelectTrigger size="xs" className="w-32" aria-label={gt("Location preset")}>
             <SelectValue>
-              <span className="text-muted-foreground">{t("Preset…")}</span>
+              <span className="text-muted-foreground">
+                <T>Preset…</T>
+              </span>
             </SelectValue>
           </SelectTrigger>
           <SelectPopup align="start" alignItemWithTrigger={false}>
             {LOCATION_PRESETS.map((preset) => (
               <SelectItem key={preset.label} value={preset.label}>
-                {t(preset.label)}
+                {m(preset.label)}
               </SelectItem>
             ))}
           </SelectPopup>
@@ -523,7 +537,7 @@ function LocationSection(props: {
           disabled={props.disabled || !valid}
           onClick={() => void props.onSet(parsed.latitude, parsed.longitude)}
         >
-          {t("Set")}
+          <T context="verb, applies the location">Set</T>
         </Button>
         {props.canClear ? (
           <Button
@@ -536,7 +550,7 @@ function LocationSection(props: {
               void props.onClear();
             }}
           >
-            {t("Clear")}
+            <T context="verb, clears the location">Clear</T>
           </Button>
         ) : null}
       </div>
@@ -555,25 +569,25 @@ function PermissionsSection(props: {
     decision: "grant" | "revoke" | "reset",
   ) => Promise<unknown>;
 }) {
-  const t = useTranslate();
+  const gt = useGT();
   const [appId, setAppId] = useState("");
   const [permission, setPermission] = useState<DevicePermission>("camera");
   const resolvedAppId = appId.trim() || props.defaultAppId;
   const decide = (decision: "grant" | "revoke" | "reset") =>
     void props.onDecide(resolvedAppId, permission, decision);
   return (
-    <Section title={t("Permissions")}>
+    <Section title={gt("Permissions")}>
       <Input
         size="compact"
         font="mono"
-        placeholder={props.defaultAppId || t("App ID")}
+        placeholder={props.defaultAppId || gt("App ID")}
         value={appId}
         disabled={props.disabled}
         onChange={(event) => setAppId(event.target.value)}
       />
       <div className="flex flex-wrap items-center gap-1.5">
         <ChoiceSelect
-          ariaLabel="Permission"
+          ariaLabel={gt("Permission")}
           value={permission}
           options={props.permissions}
           disabled={props.disabled}
@@ -588,7 +602,7 @@ function PermissionsSection(props: {
           disabled={props.disabled || !resolvedAppId}
           onClick={() => decide("grant")}
         >
-          {t("Grant")}
+          <T>Grant</T>
         </Button>
         <Button
           size="xs"
@@ -596,7 +610,7 @@ function PermissionsSection(props: {
           disabled={props.disabled || !resolvedAppId}
           onClick={() => decide("revoke")}
         >
-          {t("Revoke")}
+          <T>Revoke</T>
         </Button>
         {props.canReset ? (
           <Button
@@ -605,7 +619,7 @@ function PermissionsSection(props: {
             disabled={props.disabled || !resolvedAppId}
             onClick={() => decide("reset")}
           >
-            {t("Reset")}
+            <T context="verb, resets the permission">Reset</T>
           </Button>
         ) : null}
       </div>
@@ -617,13 +631,12 @@ function EventLogSection(props: {
   readonly access: DeviceHubAccess;
   readonly device: DeviceSummary;
 }) {
-  const t = useTranslate();
   const [open, setOpen] = useState(false);
 
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
       <CollapsibleTrigger className="flex w-full items-center gap-1.5 border-b px-3 py-2.5 text-left text-xs font-medium text-muted-foreground">
-        {t("Event log")}
+        <T>Event log</T>
         <ChevronDown
           className={cn("ml-auto size-3.5 transition-transform", open && "rotate-180")}
         />
@@ -640,7 +653,6 @@ function EventLogEntries(props: {
   readonly access: DeviceHubAccess;
   readonly device: DeviceSummary;
 }) {
-  const t = useTranslate();
   const entries = useAtomValue(
     deviceEventLogAtom({
       access: props.access,
@@ -651,7 +663,9 @@ function EventLogEntries(props: {
   return (
     <ol className="max-h-64 overflow-y-auto px-3 py-2 font-mono text-2xs leading-relaxed">
       {entries.length === 0 ? (
-        <li className="text-muted-foreground">{t("No events yet.")}</li>
+        <li className="text-muted-foreground">
+          <T>No events yet.</T>
+        </li>
       ) : (
         entries.map((entry) => (
           <li key={entry.id} className="flex gap-2">

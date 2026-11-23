@@ -12,14 +12,14 @@ import {
   type ProviderAccountSyncCell,
   type ProviderAccountSyncPlan,
   type ProviderAccountSyncReport,
+  providerAccountSyncFailureMessage,
   supportsProviderAccountSync,
   syncedAccountState,
 } from "@t3tools/client-runtime/state/provider-account-sync";
 import { Atom } from "effect/reactivity";
+import { useGT, useMessages } from "gt-react";
 import { ArrowLeftRightIcon } from "lucide-react";
 import { useState } from "react";
-
-import { translate, useTranslate } from "../../i18n/translate";
 
 import { environmentAtomList, environmentIdsKey } from "../../state/environmentAtomList";
 import { type EnvironmentPresentation, useEnvironments } from "../../state/environments";
@@ -31,7 +31,7 @@ import { Dialog } from "../ui/dialog";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import { WizardFooter, WizardHeader, WizardPanel, WizardPopup } from "../ui/wizard";
 import { SettingsRow, SettingsSearchTarget } from "./settingsLayout";
-import { searchableSetting } from "./settingsSearch";
+import { useSearchableSetting } from "./settingsSearch";
 
 const accountSyncStatesAtom = environmentAtomList(
   "web-provider-account-sync",
@@ -68,28 +68,25 @@ function useAccountSyncEnvironments(sourceEnvironmentId: EnvironmentId) {
   };
 }
 
-function blockNote(reason: AccountSyncBlockReason, device: string): string {
+type Gt = ReturnType<typeof useGT>;
+
+function blockNote(gt: Gt, reason: AccountSyncBlockReason, device: string): string {
   switch (reason) {
     case "same-environment":
-      return translate("This is the source device.");
+      return gt("This is the source device.");
     case "not-connected":
-      return translate("{device} isn't connected.").replace("{device}", () => device);
+      return gt("{device} isn't connected.", { device });
     case "update-required":
-      return translate("Update {device} to sync accounts.").replace("{device}", () => device);
+      return gt("Update {device} to sync accounts.", { device });
     case "permission-required":
-      return translate("This connection can't manage providers on {device}.").replace(
-        "{device}",
-        () => device,
-      );
+      return gt("This connection can't manage providers on {device}.", { device });
     case "instance-id-conflict":
-      return translate("{device} uses this account's ID for another provider.").replace(
-        "{device}",
-        () => device,
-      );
+      return gt("{device} uses this account's ID for another provider.", { device });
   }
 }
 
 function omittedNote(
+  gt: Gt,
   omitted: ReadonlyArray<ProviderAccountOmission>,
   sourceLabel: string,
   destinationLabel: string,
@@ -99,22 +96,34 @@ function omittedNote(
       .filter((omission) => omission.reason === reason)
       .map(({ setting }) => (setting._tag === "ConfigField" ? setting.field : setting.name));
   const parts: Array<string> = [];
-  const note = (template: string, device: string, settings: ReadonlyArray<string>) =>
-    translate(template)
-      .replace("{device}", () => device)
-      .replace("{settings}", () => settings.join(", "));
   const local = names("machine-local");
-  if (local.length > 0) parts.push(note("Stays on {device}: {settings}.", sourceLabel, local));
-  const unsupported = names("unsupported-here");
-  if (unsupported.length > 0)
+  if (local.length > 0) {
     parts.push(
-      note("Not supported on {device}, update it: {settings}.", destinationLabel, unsupported),
+      gt("Stays on {device}: {settings}.", { device: sourceLabel, settings: local.join(", ") }),
     );
+  }
+  const unsupported = names("unsupported-here");
+  if (unsupported.length > 0) {
+    parts.push(
+      gt("Not supported on {device}, update it: {settings}.", {
+        device: destinationLabel,
+        settings: unsupported.join(", "),
+      }),
+    );
+  }
   const missing = names("missing-on-source");
-  if (missing.length > 0)
-    parts.push(note("No value on {device}: {settings}.", sourceLabel, missing));
+  if (missing.length > 0) {
+    parts.push(
+      gt("No value on {device}: {settings}.", {
+        device: sourceLabel,
+        settings: missing.join(", "),
+      }),
+    );
+  }
   const oversized = names("too-large");
-  if (oversized.length > 0) parts.push(note("Too large to copy: {settings}.", "", oversized));
+  if (oversized.length > 0) {
+    parts.push(gt("Too large to copy: {settings}.", { settings: oversized.join(", ") }));
+  }
   return parts.length === 0 ? null : parts.join(" ");
 }
 
@@ -138,18 +147,23 @@ function SyncedAccountRow({
   readonly destinationLabel: string;
   readonly onOpen: () => void;
 }) {
-  const t = useTranslate();
+  const gt = useGT();
+  const m = useMessages();
   const providers =
     useAtomValue(serverEnvironment.providersValueAtom(cell.destinationEnvironmentId)) ??
     EMPTY_SERVER_PROVIDERS;
-  const withDevice = (template: string) => t(template).replace("{device}", () => destinationLabel);
-  const title = withDevice("{account} on {device}").replace("{account}", () => accountLabel);
+  const device = destinationLabel;
+  const title = gt("{account} on {device}", { account: accountLabel, device });
   if (cell.status === "skipped") {
-    const device = cell.end === "source" ? sourceLabel : destinationLabel;
-    return <SettingsRow title={title} description={blockNote(cell.reason, device)} />;
+    const blockedDevice = cell.end === "source" ? sourceLabel : destinationLabel;
+    return <SettingsRow title={title} description={blockNote(gt, cell.reason, blockedDevice)} />;
   }
   if (cell.status === "failed") {
-    return <SettingsRow title={title} description={cell.message} />;
+    const description =
+      cell.failure === "error"
+        ? cell.message
+        : providerAccountSyncFailureMessage(cell.failure, cell.stage, m);
+    return <SettingsRow title={title} description={description} />;
   }
   const state = syncedAccountState(
     providers.find((candidate) => candidate.instanceId === cell.instanceId),
@@ -158,32 +172,29 @@ function SyncedAccountRow({
     switch (state.kind) {
       case "ready":
         return state.signedInAs
-          ? t("Ready, signed in as {account}.").replace("{account}", () => state.signedInAs ?? "")
-          : t("Ready.");
+          ? gt("Ready, signed in as {account}.", { account: state.signedInAs })
+          : gt("Ready.");
       case "starting":
-        return withDevice("Starting on {device}.");
+        return gt("Starting on {device}.", { device });
       case "disabled":
-        return withDevice("Turned off on {device}.");
+        return gt("Turned off on {device}.", { device });
       case "error":
         return state.message
-          ? withDevice("Problem on {device}: {message}").replace(
-              "{message}",
-              () => state.message ?? "",
-            )
-          : withDevice("Problem on {device}.");
+          ? gt("Problem on {device}: {message}", { device, message: state.message })
+          : gt("Problem on {device}.", { device });
       case "needs-sign-in":
-        return withDevice("Sign in on {device} to finish.");
+        return gt("Sign in on {device} to finish.", { device });
       case "needs-host-setup":
-        return withDevice("Sign in on {device} with the provider's own tool.");
+        return gt("Sign in on {device} with the provider's own tool.", { device });
     }
   })();
   const openLabel =
     state.kind === "needs-sign-in" || state.kind === "needs-host-setup"
-      ? withDevice("Sign in on {device}")
+      ? gt("Sign in on {device}", { device })
       : state.kind === "disabled" || state.kind === "error"
-        ? withDevice("Open on {device}")
+        ? gt("Open on {device}", { device })
         : null;
-  const note = omittedNote(cell.omitted, sourceLabel, destinationLabel);
+  const note = omittedNote(gt, cell.omitted, sourceLabel, destinationLabel);
   return (
     <SettingsRow
       title={title}
@@ -230,12 +241,13 @@ function ChoiceRow({
 }
 
 function destinationNote(
+  gt: Gt,
   plan: ProviderAccountSyncPlan,
   destination: ProviderAccountSyncPlan["destinations"][number],
   sourceLabel: string,
 ): string | null {
-  if (destination.block !== null) return blockNote(destination.block, destination.label);
-  if (plan.sourceBlock !== null) return blockNote(plan.sourceBlock, sourceLabel);
+  if (destination.block !== null) return blockNote(gt, destination.block, destination.label);
+  if (plan.sourceBlock !== null) return blockNote(gt, plan.sourceBlock, sourceLabel);
   const notes = plan.cells.flatMap((cell) => {
     if (cell.destinationEnvironmentId !== destination.environmentId) return [];
     const account =
@@ -243,19 +255,17 @@ function destinationNote(
       cell.instanceId;
     switch (cell.action) {
       case "create":
-        return [translate("Adds {account}").replace("{account}", () => account)];
+        return [gt("Adds {account}", { account })];
       case "update":
         return [
-          (cell.signedInAs
-            ? translate("Updates {account} (signed in as {email})").replace(
-                "{email}",
-                () => cell.signedInAs ?? "",
-              )
-            : translate("Updates {account}")
-          ).replace("{account}", () => account),
+          cell.signedInAs
+            ? gt("Updates {account} (signed in as {email})", { account, email: cell.signedInAs })
+            : gt("Updates {account}", { account }),
         ];
       case "blocked":
-        return [`${account}: ${blockNote(cell.reason, destination.label)}`];
+        return [
+          gt("{account}: {note}", { account, note: blockNote(gt, cell.reason, destination.label) }),
+        ];
     }
   });
   return notes.length === 0 ? null : notes.join(". ");
@@ -267,7 +277,7 @@ function SyncProviderAccountsDialog(props: {
   readonly sourceEnvironmentId: EnvironmentId;
   readonly initialInstanceIds: ReadonlyArray<ProviderInstanceId>;
 }) {
-  const t = useTranslate();
+  const gt = useGT();
   const { source, destinations } = useAccountSyncEnvironments(props.sourceEnvironmentId);
   const [instanceIds, setInstanceIds] = useState<ReadonlySet<ProviderInstanceId>>(
     () => new Set(props.initialInstanceIds),
@@ -315,13 +325,14 @@ function SyncProviderAccountsDialog(props: {
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
       <WizardPopup size="wide">
         <WizardHeader
-          title={t("Sync accounts")}
+          title={gt("Sync accounts")}
           description={
             report === null
-              ? t(
+              ? gt(
                   "Settings and API keys are copied from {device}. Sign-ins are not: each device signs in on its own, and a Cursor sign-in travels as an API key. Paths stay on {device}.",
-                ).replaceAll("{device}", () => source.label)
-              : t("Sync again at any time; it updates the copies without duplicating them.")
+                  { device: source.label },
+                )
+              : gt("Sync again at any time; it updates the copies without duplicating them.")
           }
         />
         <WizardPanel>
@@ -329,14 +340,13 @@ function SyncProviderAccountsDialog(props: {
             <>
               <div className="space-y-1">
                 <p className="text-sm font-medium text-foreground">
-                  {t("Accounts on {device}").replace("{device}", () => source.label)}
+                  {gt("Accounts on {device}", { device: source.label })}
                 </p>
                 {accounts.length === 0 ? (
                   <p className="text-sm text-muted-foreground">
-                    {t("No configured or signed-in accounts on {device}.").replace(
-                      "{device}",
-                      () => source.label,
-                    )}
+                    {gt("No configured or signed-in accounts on {device}.", {
+                      device: source.label,
+                    })}
                   </p>
                 ) : (
                   accounts.map((account) => (
@@ -346,10 +356,7 @@ function SyncProviderAccountsDialog(props: {
                       title={account.label}
                       description={
                         account.signedInAs
-                          ? t("Signed in as {account}").replace(
-                              "{account}",
-                              () => account.signedInAs ?? "",
-                            )
+                          ? gt("Signed in as {account}", { account: account.signedInAs })
                           : null
                       }
                       onCheckedChange={(checked) =>
@@ -360,10 +367,10 @@ function SyncProviderAccountsDialog(props: {
                 )}
               </div>
               <div className="space-y-1">
-                <p className="text-sm font-medium text-foreground">{t("Copy to")}</p>
+                <p className="text-sm font-medium text-foreground">{gt("Copy to")}</p>
                 {plan.destinations.length === 0 ? (
                   <p className="text-sm text-muted-foreground">
-                    {t("Connect another device to sync accounts to it.")}
+                    {gt("Connect another device to sync accounts to it.")}
                   </p>
                 ) : (
                   plan.destinations.map((destination) => (
@@ -372,7 +379,7 @@ function SyncProviderAccountsDialog(props: {
                       checked={destinationIds.has(destination.environmentId)}
                       disabled={destination.block !== null || plan.sourceBlock !== null}
                       title={destination.label}
-                      description={destinationNote(plan, destination, source.label)}
+                      description={destinationNote(gt, plan, destination, source.label)}
                       onCheckedChange={(checked) =>
                         setDestinationIds((current) =>
                           toggled(current, destination.environmentId, checked),
@@ -400,10 +407,10 @@ function SyncProviderAccountsDialog(props: {
           {report === null ? (
             <>
               <Button size="sm" variant="ghost" onClick={() => props.onOpenChange(false)}>
-                {t("Cancel")}
+                {gt("Cancel")}
               </Button>
               <Button size="sm" disabled={!canRun} onClick={() => void runSync()}>
-                {running ? t("Syncing…") : t("Sync")}
+                {running ? gt("Syncing…") : gt("Sync")}
               </Button>
             </>
           ) : (
@@ -415,11 +422,11 @@ function SyncProviderAccountsDialog(props: {
                   disabled={running}
                   onClick={() => void runSync()}
                 >
-                  {t("Retry")}
+                  {gt("Retry")}
                 </Button>
               ) : null}
               <Button size="sm" onClick={() => props.onOpenChange(false)}>
-                {t("Done")}
+                {gt("Done")}
               </Button>
             </>
           )}
@@ -438,7 +445,8 @@ export function SyncProviderAccountsAction({
   readonly readOnly: boolean;
   readonly instanceIds?: ReadonlyArray<ProviderInstanceId>;
 }) {
-  const t = useTranslate();
+  const gt = useGT();
+  const searchableSetting = useSearchableSetting();
   const [open, setOpen] = useState(false);
   const { environments } = useEnvironments();
   const canExport = useAtomValue(providerAccountSync.canExportAtom(sourceEnvironmentId));
@@ -475,13 +483,13 @@ export function SyncProviderAccountsAction({
                 size="icon-xs"
                 variant="ghost"
                 onClick={() => setOpen(true)}
-                aria-label={t("Sync this account to another device")}
+                aria-label={gt("Sync this account to another device")}
               >
                 <ArrowLeftRightIcon />
               </Button>
             }
           />
-          <TooltipPopup side="top">{t("Sync to…")}</TooltipPopup>
+          <TooltipPopup side="top">{gt("Sync to…")}</TooltipPopup>
         </Tooltip>
         {dialog}
       </>
@@ -493,7 +501,7 @@ export function SyncProviderAccountsAction({
       <SettingsSearchTarget id={search.id} className="inline-flex">
         <Button size="xs" variant="ghost-muted" onClick={() => setOpen(true)}>
           <ArrowLeftRightIcon />
-          <span className="hidden sm:inline">{t("Sync accounts")}</span>
+          <span className="hidden sm:inline">{gt("Sync accounts")}</span>
         </Button>
       </SettingsSearchTarget>
       {dialog}

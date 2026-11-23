@@ -1,3 +1,4 @@
+import { useGT } from "gt-react";
 import { MoonIcon, SunIcon } from "lucide-react";
 import type { CSSProperties } from "react";
 import {
@@ -12,7 +13,6 @@ import {
   type ThemeAppearance,
   type ThemeDefinition,
 } from "../../themePalette";
-import { useTranslate } from "../../i18n/translate";
 
 const THEME_PREVIEW_ROLES = [
   "sidebar",
@@ -160,7 +160,7 @@ export function ThemePreviewCircles({
   onSelectMode: (mode: ThemeMode) => void;
   previews: ThemeCardDefinition["previews"];
 }) {
-  const t = useTranslate();
+  const gt = useGT();
   return (
     <div className="flex min-h-16 items-center justify-center gap-2.5 px-3 pt-3">
       {previews.map((preview) => {
@@ -171,7 +171,11 @@ export function ThemePreviewCircles({
             <TooltipTrigger
               render={
                 <button
-                  aria-label={`${t("Use")} ${label} ${t(mode === "light" ? "light mode" : "dark mode")}`}
+                  aria-label={
+                    mode === "light"
+                      ? gt("Use {label} light mode", { label })
+                      : gt("Use {label} dark mode", { label })
+                  }
                   aria-pressed={isPicked}
                   className={cn(
                     "relative flex size-[68px] shrink-0 transform-gpu cursor-pointer items-center justify-center rounded-full p-1.5 outline-none transition-transform hover:scale-105 focus-visible:outline-2 focus-visible:outline-solid focus-visible:-outline-offset-5 focus-visible:outline-foreground/60",
@@ -207,7 +211,7 @@ export function ThemePreviewCircles({
               }
             />
             <TooltipPopup>
-              {t(mode === "light" ? "Use for light mode only" : "Use for dark mode only")}
+              {mode === "light" ? gt("Use for light mode only") : gt("Use for dark mode only")}
             </TooltipPopup>
           </Tooltip>
         );

@@ -187,11 +187,9 @@ export type RoutedSelection =
   | { readonly type: "no_eligible_member"; readonly pool: ServerProvider };
 
 /**
- * The one routing entry for every place a selection enters a thread. A
- * selection naming a pool or any of its members routes: pooling an account
- * declares it interchangeable. A dangling pool id (pool off or deleted)
- * resolves to the thread's current same-driver instance, else the driver's
- * default, so drafts and scheduled tasks never strand.
+ * The one routing entry for every place a selection enters a thread. A selection naming a pool
+ * or any of its members routes. A dangling pool id (pool off or deleted) resolves to the
+ * thread's current same-driver instance, else the driver's default, so nothing strands.
  */
 export function routeModelSelection(input: {
   readonly selection: ModelSelection;

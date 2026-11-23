@@ -9,6 +9,9 @@ import type {
   PullRequestRef,
 } from "@t3tools/contracts";
 
+import { msg } from "gt-react";
+
+import { m } from "~/i18n/messages";
 import { appAtomRegistry } from "~/rpc/atomRegistry";
 import {
   pullRequestEnvironment,
@@ -24,7 +27,6 @@ import {
   type FileViewedOverlay,
   type FileViewedPress,
 } from "./pullRequestFilesViewed.logic";
-import { translate } from "~/i18n/translate";
 
 export interface FilesViewedTarget {
   readonly environmentId: EnvironmentId;
@@ -245,7 +247,7 @@ const filesViewedStore = createFilesViewedStore({
     ),
   refresh: (target) => appAtomRegistry.refresh(filesViewedAtom(target)),
   reportFailure: () =>
-    toastManager.add({ type: "error", title: translate("Could not update viewed files") }),
+    toastManager.add({ type: "error", title: m(msg("Could not update viewed files")) }),
 });
 
 export function filesViewedScope(target: FilesViewedTarget): FilesViewedScopeHandle {

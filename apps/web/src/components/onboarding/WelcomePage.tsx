@@ -37,6 +37,7 @@ import {
   SmartphoneIcon,
   TerminalIcon,
 } from "lucide-react";
+import { msg, T, useGT, useLocale, useMessages, Var } from "gt-react";
 import { useEffect, useEffectEvent, useRef, useState, type ReactNode } from "react";
 
 import { TYPOGRAPHY_ADVANCED_STORAGE_KEY } from "../../appearanceFonts";
@@ -115,18 +116,11 @@ import { toastManager } from "../ui/toast";
 import { WorkspacePageHeader } from "../WorkspacePageHeader";
 import { cn } from "../../lib/utils";
 import { formatRelativeTime } from "../../timestampFormat";
-import { getInterfaceLanguage, translate, useTranslate } from "../../i18n/translate";
 
 const AGENT_ONBOARDING_THREAD_ID = ThreadId.make("onboarding-agent-setup");
-const SCAN_LIMIT_MESSAGE = "Scan limit reached. Some projects or conversations may be missing.";
-
-// Fills the `{count}` placeholder of an already translated string.
-const formatCount = (text: string, count: number) => text.replace("{count}", () => String(count));
-// Fills `{action}` and `{name}` of an accessible label such as "Turn on: Codex".
-const actionLabel = (t: (source: string) => string, action: string, name: string) =>
-  t("{action}: {name}")
-    .replace("{action}", () => action)
-    .replace("{name}", () => name);
+const SCAN_LIMIT_MESSAGE = msg(
+  "Scan limit reached. Some projects or conversations may be missing.",
+);
 
 /**
  * First-run page for one computer: its agents, the projects found in agent history, and the
@@ -139,11 +133,11 @@ export function WelcomePage({
   readonly environmentId: EnvironmentId;
   readonly onDone: (projectRef?: ScopedProjectRef) => void | Promise<void>;
 }) {
-  const t = useTranslate();
   const { environments } = useEnvironments();
+  const gt = useGT();
   const label =
     environments.find((environment) => environment.environmentId === environmentId)?.label ??
-    t("this computer");
+    gt("this computer");
   const agentReady = useWelcomeAgents(environmentId).readyCount > 0;
   // The phone and `t3` on PATH belong to the primary computer, so only it offers them.
   const isPrimary = usePrimaryEnvironmentId() === environmentId;
@@ -177,8 +171,8 @@ export function WelcomePage({
       toastManager.add({
         id: "welcome-finishing",
         type: "info",
-        title: t("Finishing setup"),
-        description: t("One moment."),
+        title: gt("Finishing setup"),
+        description: gt("One moment."),
       });
       return true;
     },
@@ -214,16 +208,16 @@ export function WelcomePage({
         if (importWarning) {
           toastManager.add({
             type: "warning",
-            title: t("Some history was not imported"),
+            title: gt("Some history was not imported"),
             description: importWarning,
             timeout: 0,
           });
         } else if (importedThreadCount > 0) {
           toastManager.add({
             type: "success",
-            title: formatCount(
-              t(importedThreadCount === 1 ? "Imported {count} thread" : "Imported {count} threads"),
-              importedThreadCount,
+            title: gt(
+              "{count, plural, one {Imported {count} thread} other {Imported {count} threads}}",
+              { count: importedThreadCount },
             ),
           });
         }
@@ -233,8 +227,8 @@ export function WelcomePage({
         holdPageRef.current = false;
         const errorToast = {
           type: "error",
-          title: t("Could not finish setup"),
-          description: t("Your settings could not be saved. Try again."),
+          title: gt("Could not finish setup"),
+          description: gt("Your settings could not be saved. Try again."),
         } as const;
         if (completionErrorToastIdRef.current === null) {
           completionErrorToastIdRef.current = toastManager.add(errorToast);
@@ -274,11 +268,9 @@ export function WelcomePage({
     void projectImport.runImport(selected);
   };
 
-  const [settingUpBefore = "", settingUpAfter = ""] = t("Setting up {label}.").split("{label}");
-
   return (
     <SidebarInset
-      {...workspaceAreaProps("home", 1, t("Welcome"))}
+      {...workspaceAreaProps("home", 1, gt("Welcome"))}
       role="main"
       className="h-dvh min-h-0 overflow-hidden overscroll-y-none"
     >
@@ -288,12 +280,16 @@ export function WelcomePage({
         <div className="min-h-0 flex-1 overflow-y-auto scrollbar-gutter-both">
           <div className="mx-auto flex min-h-full w-full max-w-3xl flex-col px-6 pt-12 pb-8 sm:pt-20">
             <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-              {t("Welcome to T3 Code")}
+              <T>Welcome to T3 Code</T>
             </h1>
             <p className="mt-1.5 text-sm text-muted-foreground">
-              {settingUpBefore}
-              <span className="text-foreground">{label}</span>
-              {settingUpAfter}
+              <T>
+                Setting up{" "}
+                <span className="text-foreground">
+                  <Var>{label}</Var>
+                </span>
+                .
+              </T>
             </p>
             <div className="mt-10 border-t border-border/60">
               <AgentsSection
@@ -314,32 +310,28 @@ export function WelcomePage({
                 <span />
               ) : (
                 <Button variant="ghost-muted" disabled={isImporting} onClick={start}>
-                  {t("Start without an agent")}
+                  <T>Start without an agent</T>
                 </Button>
               )}
               <div className="flex items-center gap-3">
                 {agentReady ? null : (
                   <span className="text-xs text-muted-foreground">
-                    {t("Set up one agent to start.")}
+                    <T>Set up one agent to start.</T>
                   </span>
                 )}
                 <Button disabled={!agentReady || isImporting} onClick={start}>
                   {isImporting
                     ? selected.length > 0
-                      ? t("Importing…")
-                      : t("Starting…")
+                      ? gt("Importing…")
+                      : gt("Starting…")
                     : newCount > 0
-                      ? formatCount(
-                          t(
-                            newCount === 1
-                              ? "Import {count} project and start"
-                              : "Import {count} projects and start",
-                          ),
-                          newCount,
+                      ? gt(
+                          "{count, plural, one {Import {count} project and start} other {Import {count} projects and start}}",
+                          { count: newCount },
                         )
                       : selected.length > 0
-                        ? t("Import threads and start")
-                        : t("Start")}
+                        ? gt("Import threads and start")
+                        : gt("Start", { $context: "verb, finishes setup" })}
                 </Button>
               </div>
             </div>
@@ -352,23 +344,40 @@ export function WelcomePage({
 }
 
 function TelemetryNotice({ environmentId }: { readonly environmentId: EnvironmentId }) {
-  const t = useTranslate();
-  const telemetryOff = managedTelemetryOffMessage(useManagedPolicy(environmentId));
+  const messages = useMessages();
+  const telemetryOff = managedTelemetryOffMessage(useManagedPolicy(environmentId), messages);
   return (
     <p className="mt-auto pt-12 text-2xs leading-relaxed text-muted-foreground/70">
-      {telemetryOff === undefined
-        ? t("T3 Code collects anonymous usage data to improve the app.")
-        : t(telemetryOff)}{" "}
-      {telemetryOff === undefined ? t("To opt out, see the") : t("See the")}{" "}
-      <a
-        className="underline decoration-current/40 underline-offset-2 hover:text-muted-foreground"
-        href={PRIVACY_POLICY_URL}
-        target="_blank"
-        rel="noreferrer noopener"
-      >
-        {t("privacy policy")}
-      </a>
-      .
+      {telemetryOff === undefined ? (
+        <T>
+          T3 Code collects anonymous usage data to improve the app. To opt out, see the{" "}
+          <a
+            className="underline decoration-current/40 underline-offset-2 hover:text-muted-foreground"
+            href={PRIVACY_POLICY_URL}
+            target="_blank"
+            rel="noreferrer noopener"
+          >
+            privacy policy
+          </a>
+          .
+        </T>
+      ) : (
+        <>
+          {telemetryOff}{" "}
+          <T>
+            See the{" "}
+            <a
+              className="underline decoration-current/40 underline-offset-2 hover:text-muted-foreground"
+              href={PRIVACY_POLICY_URL}
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              privacy policy
+            </a>
+            .
+          </T>
+        </>
+      )}
     </p>
   );
 }
@@ -445,8 +454,8 @@ function AgentsSection({
   // The project scan only reads agents that are on, so turning one on can find more history.
   readonly onImportSourceEnabled: () => void;
 }) {
-  const t = useTranslate();
   const { providers, serverConfig, checking, found, available } = useWelcomeAgents(environmentId);
+  const gt = useGT();
   const refreshProviders = useAtomCommand(serverEnvironment.refreshProviders, {
     reportFailure: false,
   });
@@ -549,7 +558,7 @@ function AgentsSection({
         const cause = squashAtomCommandFailure(result);
         toastManager.add({
           type: "error",
-          title: t("Could not turn on {name}").replace("{name}", () => agentName(provider)),
+          title: gt("Could not turn on {agent}", { agent: agentName(provider) }),
           ...(cause instanceof Error ? { description: cause.message } : {}),
         });
       }
@@ -563,11 +572,11 @@ function AgentsSection({
   const actionFor = (provider: ServerProvider) => {
     const state = stateOf(provider);
     const name = agentName(provider);
-    const settingsAction = (action: string) => (
+    const settingsAction = (actionLabel: string) => (
       <Button
         size="xs"
         variant="outline"
-        aria-label={actionLabel(t, action, name)}
+        aria-label={gt("{action}: {agent}", { action: actionLabel, agent: name })}
         render={
           <Link
             to="/settings/providers"
@@ -575,7 +584,7 @@ function AgentsSection({
           />
         }
       >
-        {action}
+        {actionLabel}
       </Button>
     );
     if (state === "disabled") {
@@ -583,27 +592,28 @@ function AgentsSection({
         <Button
           size="xs"
           variant="outline"
-          aria-label={actionLabel(t, t("Turn on"), name)}
+          aria-label={gt("Turn on: {agent}", { agent: name })}
           disabled={!canManageProviders || serverConfig === null}
           onClick={() => void turnOn(provider)}
         >
-          {t("Turn on")}
+          <T>Turn on</T>
         </Button>
       );
     }
     // Settings updates a broken CLI the way it was installed, including a custom binary path.
-    if (isBrokenVersion(provider)) return settingsAction(t("Update"));
+    if (isBrokenVersion(provider))
+      return settingsAction(gt("Update", { $context: "verb, updates an agent CLI" }));
     if (serverConfig !== null && codexNeedsSetup(provider, serverConfig.settings)) {
       const open = codexSetupId === provider.instanceId;
       return (
         <Button
           size="xs"
           variant="outline"
-          aria-label={actionLabel(t, t("Set up"), name)}
+          aria-label={gt("Set up: {agent}", { agent: name })}
           aria-expanded={open}
           onClick={() => setCodexSetupId(open ? null : provider.instanceId)}
         >
-          {t("Set up")}
+          <T>Set up</T>
         </Button>
       );
     }
@@ -622,7 +632,7 @@ function AgentsSection({
       );
     }
     return settingsAction(
-      state === "signIn" ? t("Sign in") : state === "attention" ? t("Details") : t("Set up"),
+      state === "signIn" ? gt("Sign in") : state === "attention" ? gt("Details") : gt("Set up"),
     );
   };
 
@@ -632,7 +642,7 @@ function AgentsSection({
       (provider) =>
         needsInstallOrSignIn(provider) || codexNeedsSetup(provider, serverConfig?.settings),
     )
-      ? t("This connection cannot control terminals.")
+      ? gt("This connection cannot control terminals.")
       : null,
     !canManageProviders &&
     (acpAllowed ||
@@ -640,12 +650,12 @@ function AgentsSection({
         (provider) =>
           stateOf(provider) === "disabled" || codexNeedsSetup(provider, serverConfig?.settings),
       ))
-      ? t("This connection cannot manage agents.")
+      ? gt("This connection cannot manage agents.")
       : null,
   ].filter((note) => note !== null);
 
   return (
-    <WelcomeSection title={t("Agents")}>
+    <WelcomeSection title={gt("Agents")}>
       {found.map((provider) => (
         <AgentRow
           key={provider.instanceId}
@@ -656,7 +666,9 @@ function AgentsSection({
       ))}
       {checking && found.length === 0 ? (
         <p className="text-sm leading-10 text-muted-foreground">
-          {t("Checking {label}…").replace("{label}", () => label)}
+          <T>
+            Checking <Var>{label}</Var>…
+          </T>
         </p>
       ) : null}
       {notes.map((note) => (
@@ -675,7 +687,7 @@ function AgentsSection({
               found.length > 0 ? "text-muted-foreground" : "text-foreground",
             )}
           >
-            {found.length > 0 ? t("Add more agents") : t("Set up an agent")}
+            {found.length > 0 ? gt("Add more agents") : gt("Set up an agent")}
           </span>
           {showMore ? null : <AgentLogoStack providers={available} acp={acpAllowed} />}
           <ChevronDownIcon className="ml-auto size-4 text-muted-foreground group-data-panel-open:rotate-180" />
@@ -698,7 +710,7 @@ function AgentsSection({
                 <ACPRegistryIcon className="size-4" />
               </RowIcon>
               <span className="min-w-0 flex-1 text-sm text-muted-foreground">
-                {t("More agents in the ACP Registry")}
+                <T>More agents in the ACP Registry</T>
               </span>
               <Button
                 size="xs"
@@ -706,7 +718,7 @@ function AgentsSection({
                 disabled={!canManageProviders}
                 onClick={() => setAddingProvider(true)}
               >
-                {t("Browse")}
+                <T>Browse</T>
               </Button>
             </div>
           ) : null}
@@ -792,7 +804,9 @@ function ProjectsSection({
   readonly projectImport: ReturnType<typeof useProjectImport>;
   readonly isImporting: boolean;
 }) {
-  const t = useTranslate();
+  const gt = useGT();
+  const m = useMessages();
+  const importSourcesLabel = useImportSourcesLabel();
   const [reviewing, setReviewing] = useState(false);
   const {
     canWrite,
@@ -807,31 +821,28 @@ function ProjectsSection({
   if (scan === undefined) return null;
   if (scan.isPending && candidates.length === 0) {
     return (
-      <WelcomeSection title={t("Projects")}>
+      <WelcomeSection title={gt("Projects")}>
         <p className="text-sm leading-10 text-muted-foreground">
-          {t("Looking for projects in your {sources} history…").replace(
-            "{sources}",
-            importSourcesLabel,
-          )}
+          <T>
+            Looking for projects in your <Var>{importSourcesLabel}</Var> history…
+          </T>
         </p>
       </WelcomeSection>
     );
   }
   const retry = (
     <Button variant="ghost" size="sm" onClick={scan.refresh}>
-      {t("Retry")}
+      <T>Retry</T>
     </Button>
   );
   if (scan.error !== null && candidates.length === 0) {
     return (
-      <WelcomeSection title={t("Projects")}>
+      <WelcomeSection title={gt("Projects")}>
         <div
           role="alert"
           className="flex min-h-10 items-center justify-between gap-3 text-sm text-muted-foreground"
         >
-          <span>
-            {t("Could not check projects. {error}").replace("{error}", () => scan.error ?? "")}
-          </span>
+          <span>{gt("Could not check projects. {error}", { error: scan.error })}</span>
           {retry}
         </div>
       </WelcomeSection>
@@ -839,9 +850,9 @@ function ProjectsSection({
   }
   if (candidates.length === 0) {
     return scan.data?.truncated ? (
-      <WelcomeSection title={t("Projects")}>
+      <WelcomeSection title={gt("Projects")}>
         <p className="text-xs leading-10 text-muted-foreground" role="status">
-          {t(SCAN_LIMIT_MESSAGE)}
+          {m(SCAN_LIMIT_MESSAGE)}
         </p>
       </WelcomeSection>
     ) : null;
@@ -858,7 +869,7 @@ function ProjectsSection({
     selected.length < candidates.length &&
     !(selected.length === defaultKeys.length && defaultKeys.every((key) => selectedKeys.has(key)));
   return (
-    <WelcomeSection title={t("Projects")}>
+    <WelcomeSection title={gt("Projects")}>
       <div className="flex min-h-10 items-center gap-3 py-1">
         <label className="flex min-w-0 flex-1 items-center gap-3">
           <RowIcon>
@@ -874,18 +885,16 @@ function ProjectsSection({
           <span className="min-w-0 flex-1">
             <span className="block text-sm font-medium text-foreground">
               {canWrite && selected.length > 0
-                ? formatCount(
-                    t(
-                      selected.length === 1
-                        ? "Import {count} project and their threads"
-                        : "Import {count} projects and their threads",
-                    ),
-                    selected.length,
+                ? gt(
+                    "{count, plural, one {Import {count} project and their threads} other {Import {count} projects and their threads}}",
+                    { count: selected.length },
                   )
-                : t("Import projects and their threads")}
+                : gt("Import projects and their threads")}
             </span>
             <span className="block text-xs text-muted-foreground">
-              {t("From your {sources} history").replace("{sources}", importSourcesLabel)}
+              <T>
+                From your <Var>{importSourcesLabel}</Var> history
+              </T>
             </span>
           </span>
         </label>
@@ -896,7 +905,11 @@ function ProjectsSection({
             aria-expanded={reviewing}
             onClick={() => setReviewing((open) => !open)}
           >
-            {reviewing ? t("Hide") : formatCount(t("Review all {count}"), candidates.length)}
+            {reviewing
+              ? gt("Hide")
+              : gt("{count, plural, one {Review all {count}} other {Review all {count}}}", {
+                  count: candidates.length,
+                })}
             <ChevronDownIcon className={cn("size-3.5", reviewing && "rotate-180")} />
           </Button>
         ) : null}
@@ -906,9 +919,13 @@ function ProjectsSection({
         <fieldset className="-mx-1.5 mt-1 min-w-0" disabled={isImporting}>
           <div className="flex items-center justify-between gap-3 px-2 text-xs text-muted-foreground">
             <span role="status">
-              {t("{selected} of {total} selected")
-                .replace("{selected}", () => String(selected.length))
-                .replace("{total}", () => String(candidates.length))}
+              {gt(
+                "{selected, plural, one {{selected} of {total} selected} other {{selected} of {total} selected}}",
+                {
+                  selected: selected.length,
+                  total: candidates.length,
+                },
+              )}
             </span>
             <div className="flex items-center gap-1">
               <Button
@@ -917,7 +934,7 @@ function ProjectsSection({
                 disabled={selected.length === candidates.length}
                 onClick={() => setSelectedKeys(new Set(allKeys))}
               >
-                {t("Select all")}
+                <T>Select all</T>
               </Button>
               <Button
                 variant="ghost"
@@ -925,7 +942,7 @@ function ProjectsSection({
                 disabled={selected.length === 0}
                 onClick={() => setSelectedKeys(new Set())}
               >
-                {t("Select none")}
+                <T>Select none</T>
               </Button>
             </div>
           </div>
@@ -942,7 +959,7 @@ function ProjectsSection({
       ) : null}
       {scan.data?.truncated ? (
         <p className="pl-8 text-xs text-muted-foreground" role="status">
-          {t(SCAN_LIMIT_MESSAGE)}
+          {m(SCAN_LIMIT_MESSAGE)}
         </p>
       ) : null}
       {scan.error !== null ? (
@@ -950,37 +967,32 @@ function ProjectsSection({
           role="alert"
           className="flex items-center justify-between gap-3 pl-8 text-sm text-muted-foreground"
         >
-          <span>
-            {t("Could not check projects again. {error}").replace(
-              "{error}",
-              () => scan.error ?? "",
-            )}
-          </span>
+          <span>{gt("Could not check projects again. {error}", { error: scan.error })}</span>
           {retry}
         </div>
       ) : null}
       {visibleImportError ? (
-        <p className="pt-1 pl-8 text-sm text-destructive">{visibleImportError}</p>
+        <p className="pt-1 pl-8 text-sm text-destructive">{m(visibleImportError)}</p>
       ) : null}
     </WelcomeSection>
   );
 }
 
 function PhoneSection({ environmentId }: { readonly environmentId: EnvironmentId }) {
-  const t = useTranslate();
+  const gt = useGT();
   const [open, setOpen] = useState(false);
   return (
-    <WelcomeSection title={t("Phone")}>
+    <WelcomeSection title={gt("Phone")}>
       <Collapsible open={open} onOpenChange={setOpen}>
         <div className="flex min-h-10 items-center gap-3 py-1">
           <RowIcon>
             <SmartphoneIcon className="size-4" />
           </RowIcon>
           <span className="min-w-0 flex-1 text-sm font-medium text-foreground">
-            {t("Use T3 Code on your phone")}
+            <T>Use T3 Code on your phone</T>
           </span>
           <CollapsibleTrigger render={<Button variant="ghost-muted" size="xs" />}>
-            {open ? t("Hide") : t("Set up")}
+            {open ? gt("Hide") : gt("Set up")}
             <ChevronDownIcon className={cn("size-3.5", open && "rotate-180")} />
           </CollapsibleTrigger>
         </div>
@@ -989,7 +1001,7 @@ function PhoneSection({ environmentId }: { readonly environmentId: EnvironmentId
             <ol className="min-w-0 flex-1 space-y-5">
               <PhoneStep step={1}>
                 <p className="text-sm text-foreground">
-                  {t("Scan with your phone to get the app.")}
+                  <T>Scan with your phone to get the app.</T>
                 </p>
               </PhoneStep>
               <PhoneStep step={2}>
@@ -1003,7 +1015,7 @@ function PhoneSection({ environmentId }: { readonly environmentId: EnvironmentId
                 size={124}
                 level="M"
                 marginSize={2}
-                title={t("T3 Code app for iPhone and Android")}
+                title={gt("T3 Code app for iPhone and Android")}
               />
             </div>
           </div>
@@ -1023,8 +1035,8 @@ function PhoneStep({ step, children }: { readonly step: number; readonly childre
 }
 
 function PhoneConnectLink({ environmentId }: { readonly environmentId: EnvironmentId }) {
-  const t = useTranslate();
   const { isLoaded, isSignedIn, userId } = useAuth({ treatPendingAsSignedOut: false });
+  const gt = useGT();
   const loadFailed = useClerkLoadFailed();
   const { openAuthPrompt } = useT3ConnectAuthPrompt();
   const linkState = useCloudLinkState(environmentId);
@@ -1051,13 +1063,19 @@ function PhoneConnectLink({ environmentId }: { readonly environmentId: Environme
     </Button>
   );
   if (isSignedIn && link === null && linkState.isPending) {
-    return <p className="text-sm text-muted-foreground">{t("Checking T3 Connect…")}</p>;
+    return (
+      <p className="text-sm text-muted-foreground">
+        <T>Checking T3 Connect…</T>
+      </p>
+    );
   }
   if (isSignedIn && linkState.error !== null) {
     return (
       <>
-        <p className="text-sm text-foreground">{t("Could not check T3 Connect.")}</p>
-        {settingsLink(t("Check T3 Connect"))}
+        <p className="text-sm text-foreground">
+          <T>Could not check T3 Connect.</T>
+        </p>
+        {settingsLink(gt("Check T3 Connect"))}
       </>
     );
   }
@@ -1065,14 +1083,14 @@ function PhoneConnectLink({ environmentId }: { readonly environmentId: Environme
     return (
       <p className="flex gap-1.5 text-sm text-foreground">
         <CheckIcon className="mt-0.5 size-4 shrink-0 text-success-foreground" />
-        {t("Your phone can reach this computer. Sign in to the app with the same account.")}
+        <T>Your phone can reach this computer. Sign in to the app with the same account.</T>
       </p>
     );
   }
   if (isSignedIn && shared && reachability === undefined) {
     return (
       <p className="text-sm text-foreground">
-        {t("T3 Connect is on for this computer. Sign in to the app with the same account.")}
+        <T>T3 Connect is on for this computer. Sign in to the app with the same account.</T>
       </p>
     );
   }
@@ -1082,25 +1100,25 @@ function PhoneConnectLink({ environmentId }: { readonly environmentId: Environme
       <>
         <p className="text-sm text-foreground">
           {shared
-            ? t("T3 Connect is on, but the app cannot reach this computer.")
-            : t("Signed in. Share this computer so the app can reach it.")}
+            ? gt("T3 Connect is on, but the app cannot reach this computer.")
+            : gt("Signed in. Share this computer so the app can reach it.")}
         </p>
-        {settingsLink(shared ? t("Check T3 Connect") : t("Set up T3 Connect"))}
+        {settingsLink(shared ? gt("Check T3 Connect") : gt("Set up T3 Connect"))}
       </>
     );
   }
   return (
     <>
       <p className="text-sm text-foreground">
-        {t("Sign in to T3 Connect here, then in the app with the same account.")}
+        <T>Sign in to T3 Connect here, then in the app with the same account.</T>
       </p>
       {loadFailed ? (
         <Button variant="outline" size="xs" onClick={retryClerkLoad}>
-          {t("Retry sign-in")}
+          <T>Retry sign-in</T>
         </Button>
       ) : (
         <Button variant="outline" size="xs" disabled={!isLoaded} onClick={openAuthPrompt}>
-          {t("Sign in to T3 Connect")}
+          <T>Sign in to T3 Connect</T>
         </Button>
       )}
     </>
@@ -1120,7 +1138,7 @@ function OnboardingCodexSetup({
   // True asks for the CLI's install or sign-in terminal once Codex has checked the CLI.
   readonly onUseCliChange: (useCli: boolean) => void;
 }) {
-  const t = useTranslate();
+  const gt = useGT();
   const canManageProviders = useEnvironmentScope(environmentId, AuthProvidersManageScope);
   const canOperateTerminal = useEnvironmentScope(environmentId, AuthTerminalOperateScope);
   const persistProviderInstance = usePersistEnvironmentProviderInstanceMutation(environmentId);
@@ -1149,7 +1167,7 @@ function OnboardingCodexSetup({
           const cause = squashAtomCommandFailure(result);
           toastManager.add({
             type: "error",
-            title: t("Could not save Codex setup"),
+            title: gt("Could not save Codex setup"),
             ...(cause instanceof Error ? { description: cause.message } : {}),
           });
         }
@@ -1184,13 +1202,13 @@ function TerminalAction({
   readonly disabled: boolean;
   readonly onClick: () => void;
 }) {
-  const t = useTranslate();
-  const label = signIn ? t("Sign in") : t("Install");
+  const gt = useGT();
+  const label = signIn ? gt("Sign in") : gt("Install");
   return (
     <Button
       size="xs"
       variant="outline"
-      aria-label={actionLabel(t, label, name)}
+      aria-label={gt("{action}: {agent}", { action: label, agent: name })}
       disabled={disabled}
       onClick={onClick}
     >
@@ -1212,8 +1230,9 @@ function AgentRow({
   // A row in the "Add more agents" grid: the button carries the state, so no detail line.
   readonly compact?: boolean;
 }) {
-  const t = useTranslate();
   const name = agentName(provider);
+  const gt = useGT();
+  const messages = useMessages();
   // Claude Code and Codex tiles show Install or Set up; other agents that are on say why not.
   const brokenMessage = isBrokenVersion(provider)
     ? (provider.compatibilityAdvisory?.message ?? null)
@@ -1222,15 +1241,15 @@ function AgentRow({
     state === "install"
       ? isInstallableDriver(provider.driver)
         ? null
-        : t("Not installed")
+        : gt("Not installed")
       : compact || state === "ready" || state === "checking"
         ? null
         : state === "attention"
           ? (provider.unavailableReason ??
             brokenMessage ??
             provider.message ??
-            t(getProviderSummary(provider).headline))
-          : (brokenMessage ?? t(getProviderSummary(provider).headline));
+            getProviderSummary(provider, messages).headline)
+          : (brokenMessage ?? getProviderSummary(provider, messages).headline);
   return (
     <div className={cn("flex items-center gap-3", compact ? "min-h-9" : "min-h-10 py-1")}>
       <RowIcon>
@@ -1254,10 +1273,12 @@ function AgentRow({
         {state === "ready" ? (
           <span className="inline-flex items-center gap-1.5 text-xs font-medium text-success-foreground">
             <CheckIcon className="size-3.5" />
-            {t("Ready")}
+            <T context="agent status">Ready</T>
           </span>
         ) : state === "checking" ? (
-          <span className="text-xs text-muted-foreground">{t("Checking…")}</span>
+          <span className="text-xs text-muted-foreground">
+            <T>Checking…</T>
+          </span>
         ) : (
           action
         )}
@@ -1275,10 +1296,9 @@ function AgentInstallTerminal({
   readonly onCommandFinished: () => void;
   readonly onClose: () => void;
 }) {
-  const t = useTranslate();
   const { command, cwd, driver, environmentId, keybindings, providerInstanceId } = session;
-  const [runBefore = "", runAfter = ""] = t("Run {command} in this terminal.").split("{command}");
   const canOperateTerminal = useEnvironmentScope(environmentId, AuthTerminalOperateScope);
+  const gt = useGT();
   const [advancedTypography] = useLocalStorage(
     TYPOGRAPHY_ADVANCED_STORAGE_KEY,
     false,
@@ -1392,19 +1412,21 @@ function AgentInstallTerminal({
       <div className="flex items-center justify-between border-b border-border/60 bg-background/60 px-3 py-1.5">
         <span className="text-2xs font-medium text-muted-foreground">
           {!canOperateTerminal ? (
-            t("This connection cannot control terminals.")
+            gt("This connection cannot control terminals.")
           ) : setupState === "writeFailed" ? (
-            <>
-              {runBefore}
-              <code className="rounded bg-muted px-1 font-mono">{command}</code>
-              {runAfter}
-            </>
+            <T>
+              Run{" "}
+              <code className="rounded bg-muted px-1 font-mono">
+                <Var>{command}</Var>
+              </code>{" "}
+              in this terminal.
+            </T>
           ) : setupState === "ready" ? (
-            t("Review the command, then press Enter to run it.")
+            gt("Review the command, then press Enter to run it.")
           ) : setupState === "openFailed" ? (
-            t("Could not open the setup terminal.")
+            gt("Could not open the setup terminal.")
           ) : (
-            t("Preparing command...")
+            gt("Preparing command...")
           )}
         </span>
         <div className="flex items-center gap-1">
@@ -1419,11 +1441,11 @@ function AgentInstallTerminal({
                 }
               }}
             >
-              {t("Retry")}
+              <T>Retry</T>
             </Button>
           ) : null}
           <Button size="xs" variant="ghost-muted" onClick={onClose}>
-            {t("Close")}
+            <T>Close</T>
           </Button>
         </div>
       </div>
@@ -1433,7 +1455,7 @@ function AgentInstallTerminal({
             threadRef={threadRef}
             threadId={AGENT_ONBOARDING_THREAD_ID}
             terminalId={terminalId}
-            terminalLabel={t("Install {driver}").replace("{driver}", () => driver)}
+            terminalLabel={gt("Install {agent}", { agent: driver })}
             cwd={cwd}
             providerInstanceId={providerInstanceId}
             advancedTypography={advancedTypography}
@@ -1448,22 +1470,7 @@ function AgentInstallTerminal({
   );
 }
 
-const IMPORT_PERMISSION_MESSAGE = "This connection cannot import projects or thread history.";
-
-const importedSentence = (count: number) =>
-  formatCount(
-    translate(count === 1 ? "Imported {count} thread." : "Imported {count} threads."),
-    count,
-  );
-const skippedSentence = (count: number) =>
-  formatCount(
-    translate(
-      count === 1
-        ? "{count} thread could not be imported."
-        : "{count} threads could not be imported.",
-    ),
-    count,
-  );
+const IMPORT_PERMISSION_MESSAGE = msg("This connection cannot import projects or thread history.");
 
 // Creates the selected projects, then imports each one's agent history. Owns retry state so a
 // second Start resumes instead of recreating projects.
@@ -1490,6 +1497,7 @@ function useProjectImport({
   ) => Promise<boolean>;
 }) {
   const writableEnvironments = useEnvironmentsWithScope(scans, AuthOrchestrationOperateScope);
+  const gt = useGT();
   const createProject = useAtomCommand(projectEnvironment.create, { reportFailure: false });
   const importThreads = useAtomCommand(agentSessionImport, { reportFailure: false });
   const importWarningRef = useRef("");
@@ -1548,7 +1556,7 @@ function useProjectImport({
   const canImport = selected.every((candidate) =>
     writableEnvironments.has(candidate.environmentId),
   );
-  const visibleImportError = canWrite && canImport ? "" : translate(IMPORT_PERMISSION_MESSAGE);
+  const visibleImportError = canWrite && canImport ? "" : IMPORT_PERMISSION_MESSAGE;
 
   const importedThreadTotal = () =>
     lastImportSelectionRef.current.reduce(
@@ -1701,13 +1709,25 @@ function useProjectImport({
     const importedThreadCount = importedThreadTotal();
     if (importedProjectsCount < selection.length) {
       if (importedThreadCount > 0 && skippedThreadCount > 0) {
-        importWarningRef.current = `${importedSentence(importedThreadCount)} ${skippedSentence(skippedThreadCount)}`;
+        importWarningRef.current = `${gt(
+          "{count, plural, one {Imported {count} thread.} other {Imported {count} threads.}}",
+          { count: importedThreadCount },
+        )} ${gt(
+          "{count, plural, one {{count} thread could not be imported.} other {{count} threads could not be imported.}}",
+          { count: skippedThreadCount },
+        )}`;
       } else if (skippedThreadCount > 0) {
-        importWarningRef.current = skippedSentence(skippedThreadCount);
+        importWarningRef.current = gt(
+          "{count, plural, one {{count} thread could not be imported.} other {{count} threads could not be imported.}}",
+          { count: skippedThreadCount },
+        );
       } else if (importedThreadCount > 0) {
-        importWarningRef.current = `${importedSentence(importedThreadCount)} ${translate("Some thread history could not be imported.")}`;
+        importWarningRef.current = gt(
+          "{count, plural, one {Imported {count} thread. Some thread history could not be imported.} other {Imported {count} threads. Some thread history could not be imported.}}",
+          { count: importedThreadCount },
+        );
       } else {
-        importWarningRef.current = translate("Could not import thread history.");
+        importWarningRef.current = gt("Could not import thread history.");
       }
     }
     finishAfterImport();
@@ -1741,7 +1761,6 @@ function ImportCandidateList({
   readonly selectedKeys: ReadonlySet<string>;
   readonly onSelectionChange: (next: ReadonlySet<string>) => void;
 }) {
-  const t = useTranslate();
   const { repositories, other } = groupOnboardingProjects(candidates);
   const setKeys = (keys: ReadonlyArray<string>, checked: boolean) => {
     const next = new Set(selectedKeys);
@@ -1752,6 +1771,7 @@ function ImportCandidateList({
     onSelectionChange(next);
   };
   const otherSelected = other.filter((candidate) => selectedKeys.has(candidate.key)).length;
+  const gt = useGT();
 
   return (
     <>
@@ -1778,12 +1798,13 @@ function ImportCandidateList({
             />
             <CollapsibleTrigger className="group flex min-w-0 flex-1 items-center gap-1.5 text-left">
               <ChevronRightIcon className="size-3.5 shrink-0 text-muted-foreground transition-transform group-data-panel-open:rotate-90" />
-              <span className="truncate text-sm text-muted-foreground">{t("Other folders")}</span>
+              <span className="truncate text-sm text-muted-foreground">
+                <T>Other folders</T>
+              </span>
               <span className="ml-auto shrink-0 text-xs text-muted-foreground tabular-nums">
-                {formatCount(
-                  t(other.length === 1 ? "{count} folder" : "{count} folders"),
-                  other.length,
-                )}
+                {gt("{count, plural, one {{count} folder} other {{count} folders}}", {
+                  count: other.length,
+                })}
               </span>
             </CollapsibleTrigger>
           </div>
@@ -1932,10 +1953,11 @@ const IMPORT_SOURCE_NAMES: Record<AgentSessionSource, string> = {
   codex: "Codex",
   pi: "Pi",
 };
-const importSourcesLabel = () =>
-  new Intl.ListFormat(getInterfaceLanguage(), { type: "conjunction" }).format(
+function useImportSourcesLabel() {
+  return new Intl.ListFormat(useLocale(), { type: "conjunction" }).format(
     AgentSessionSource.literals.map((source) => IMPORT_SOURCE_NAMES[source]),
   );
+}
 
 function ImportRowMeta({
   sources,
@@ -1946,9 +1968,16 @@ function ImportRowMeta({
   readonly threadCount: number;
   readonly lastActiveAt: string | null;
 }) {
-  const t = useTranslate();
-  const relative = lastActiveAt === null ? null : formatRelativeTime(lastActiveAt);
-  const age = relative === null ? "" : relative.suffix === null ? t("now") : relative.value;
+  const gt = useGT();
+  const messages = useMessages();
+  const relative =
+    lastActiveAt === null ? null : formatRelativeTime(lastActiveAt, undefined, messages);
+  const age =
+    relative === null
+      ? ""
+      : relative.suffix === null
+        ? gt("now", { $context: "relative time" })
+        : relative.value;
   return (
     <span className="ml-auto grid shrink-0 grid-cols-[1rem_1rem_1rem_2.5rem_2.25rem] items-center gap-x-1 text-xs text-muted-foreground tabular-nums">
       {AgentSessionSource.literals.map((source) => (
@@ -1972,30 +2001,30 @@ function ImportRowMeta({
 
 /** The desktop app links `t3` on a fresh install; this puts its folder on PATH when it is not. */
 function CliPathSetup() {
-  const t = useTranslate();
   const { state, busy, run } = useDesktopCliCommand();
   const setup = state?.pathSetup;
   if (!setup) return null;
-  const [before = "", after = ""] = t(
-    setup.added
-      ? "Added to {file}. Open a new terminal to use {command}."
-      : "Use {command} from any terminal. Adds one line to {file}.",
-  )
-    .replace("{file}", () => setup.file)
-    .split("{command}");
   return (
     <div className="flex min-h-10 items-center gap-3">
       <RowIcon>
         <TerminalIcon className="size-4" />
       </RowIcon>
       <p className="min-w-0 flex-1 text-sm text-muted-foreground">
-        {before}
-        <code className="font-mono">t3</code>
-        {after}
+        {setup.added ? (
+          <T>
+            Added to <Var>{setup.file}</Var>. Open a new terminal to use{" "}
+            <code className="font-mono">t3</code>.
+          </T>
+        ) : (
+          <T>
+            Use <code className="font-mono">t3</code> from any terminal. Adds one line to{" "}
+            <Var>{setup.file}</Var>.
+          </T>
+        )}
       </p>
       {setup.added ? null : (
         <Button size="xs" variant="outline" disabled={busy} onClick={() => run("addToPath")}>
-          {t("Add to PATH")}
+          <T>Add to PATH</T>
         </Button>
       )}
     </div>

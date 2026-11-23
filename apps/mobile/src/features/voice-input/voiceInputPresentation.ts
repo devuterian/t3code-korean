@@ -1,6 +1,7 @@
 import type { VoiceInputState } from "@t3tools/client-runtime/voice-input";
+import { msg } from "gt-react-native";
 
-import { translate } from "../../i18n/translate";
+import { m, type MessageResolver } from "../../i18n/messages";
 
 export type VoiceComposerPresentation = {
   readonly leadingAction: "cancel" | null;
@@ -14,6 +15,7 @@ export type VoiceComposerPresentation = {
 export function resolveVoiceComposerPresentation(
   state: VoiceInputState,
   elapsedSeconds: number,
+  resolve: MessageResolver = m,
 ): VoiceComposerPresentation {
   switch (state.phase) {
     case "idle":
@@ -31,7 +33,7 @@ export function resolveVoiceComposerPresentation(
         trailingAction: "mic",
         showsSend: true,
         statusKind: "error",
-        statusLabel: state.error === null ? null : translate(state.error),
+        statusLabel: state.error,
         confirmationEnabled: false,
       };
     case "preparing":
@@ -40,7 +42,7 @@ export function resolveVoiceComposerPresentation(
         trailingAction: "confirm",
         showsSend: false,
         statusKind: "active",
-        statusLabel: translate("Preparing"),
+        statusLabel: resolve(msg("Preparing", { $context: "voice input status" })),
         confirmationEnabled: false,
       };
     case "recording": {
@@ -50,9 +52,11 @@ export function resolveVoiceComposerPresentation(
         trailingAction: "confirm",
         showsSend: false,
         statusKind: "active",
-        statusLabel: translate("Recording {time}", {
-          time: `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`,
-        }),
+        statusLabel: resolve(
+          msg("Recording {time}", {
+            time: `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`,
+          }),
+        ),
         confirmationEnabled: true,
       };
     }
@@ -63,7 +67,7 @@ export function resolveVoiceComposerPresentation(
         trailingAction: "confirm",
         showsSend: false,
         statusKind: "active",
-        statusLabel: translate("Transcribing"),
+        statusLabel: resolve(msg("Transcribing", { $context: "voice input status" })),
         confirmationEnabled: false,
       };
   }

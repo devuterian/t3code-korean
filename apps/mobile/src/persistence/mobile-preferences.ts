@@ -5,8 +5,12 @@ import * as Option from "effect/Option";
 import * as Ref from "effect/Ref";
 import * as Schema from "effect/Schema";
 import * as Semaphore from "effect/Semaphore";
+import { SavedViewIdentity } from "@t3tools/client-runtime/saved-views";
 import {
   EnvironmentId,
+  IssueInvolvement,
+  IssueListSort,
+  IssueListState,
   PullRequestInvolvement,
   PullRequestListFilters,
   PullRequestListState,
@@ -19,10 +23,6 @@ import { SidebarWorkingShelfPosition, ToolCallVisibility } from "@t3tools/contra
 import type { AndroidNavigationStyle } from "../lib/androidNavigationStyle";
 import type { ComposerEnterBehavior } from "../lib/composerEnterBehavior";
 import type { FollowUpBehavior } from "../lib/followUpBehavior";
-import {
-  isMobileInterfaceLanguage,
-  type MobileInterfaceLanguagePreference,
-} from "../i18n/language";
 import { isMicrophoneKind, type MicrophoneEntry } from "../lib/microphonePriority";
 import { MOBILE_THEME_IDS, type MobileThemeId, type MobileThemeMode } from "../lib/mobileTheme";
 import * as MobileDatabase from "./mobile-database";
@@ -42,6 +42,29 @@ export const PullRequestListControls = Schema.Struct({
   sort: Schema.Literals(["updated", "created", "oldest"]),
 });
 export type PullRequestListControls = typeof PullRequestListControls.Type;
+
+export const PullRequestSavedView = Schema.Struct({
+  ...SavedViewIdentity.fields,
+  environmentId: Schema.NullOr(Schema.String),
+  controls: PullRequestListControls,
+  query: Schema.String,
+});
+export type PullRequestSavedView = typeof PullRequestSavedView.Type;
+const isPullRequestSavedView = Schema.is(PullRequestSavedView);
+
+export const IssueSavedView = Schema.Struct({
+  ...SavedViewIdentity.fields,
+  query: Schema.String,
+  state: IssueListState,
+  involvement: IssueInvolvement,
+  sort: IssueListSort,
+  labels: Schema.Array(Schema.String),
+  assignee: Schema.NullOr(
+    Schema.Struct({ login: Schema.String, name: Schema.NullOr(Schema.String) }),
+  ),
+});
+export type IssueSavedView = typeof IssueSavedView.Type;
+const isIssueSavedView = Schema.is(IssueSavedView);
 
 const ThreadListFilters = Schema.Struct({
   environmentId: Schema.NullOr(EnvironmentId),
@@ -77,6 +100,17 @@ const WorkspaceSelections = Schema.Struct({
       key: Schema.optional(Schema.String),
     }),
   ),
+  issues: Schema.optional(
+    Schema.Struct({
+      environmentId: Schema.String,
+      projectId: Schema.String,
+      tracker: Schema.String,
+      host: Schema.optional(Schema.String),
+      scope: Schema.String,
+      issueKey: Schema.String,
+      key: Schema.optional(Schema.String),
+    }),
+  ),
   settings: Schema.optional(Schema.String),
   settingsKey: Schema.optional(Schema.String),
   /** A draft the threads tab showed after its last chat; only meaningful in its session. */
@@ -103,6 +137,8 @@ const isThreadProject = Schema.is(ThreadProject);
 export interface Preferences {
   readonly navigationTabOrder?: readonly string[];
   readonly hiddenNavigationTabs?: readonly string[];
+  /** Whether pull requests or issues last held the tab bar slot they share. */
+  readonly sharedSlotTab?: "pullRequests" | "issues";
   readonly pullRequestHideTestFiles?: boolean;
   /** Which hidden-by-default PR activity is shown: bot comments and resolved or dismissed ones. */
   readonly pullRequestActivityVisibility?: PullRequestActivityVisibility;
@@ -129,7 +165,7 @@ export interface Preferences {
   readonly followUpBehavior?: FollowUpBehavior;
   /** Device-local mirror of web's `composerUsageLimitsDisplay`: limits text beside send. */
   readonly composerUsageLimitsDisplay?: ComposerUsageLimitsDisplay;
-  /** The client `language` setting: a locale code or "system". Unset means English. */
+  /** The client `language` setting: a locale code or "system". Unset follows the device (fork default). */
   readonly language?: string;
   readonly microphones?: ReadonlyArray<MicrophoneEntry>;
   readonly projectGroupingEnabled?: boolean;
@@ -147,8 +183,6 @@ export interface Preferences {
   readonly threadListSettledShelfExpanded?: boolean;
   readonly threadListSnoozedShelfExpanded?: boolean;
   readonly threadListWorkingShelfExpanded?: boolean;
-  /** UI language choice. Absent or "system" follows the device locale. */
-  readonly interfaceLanguage?: MobileInterfaceLanguagePreference;
   /** Korean fork Android updater: last GitHub check, its ETag, and the user's skip. */
   readonly androidUpdate?: AndroidUpdatePreferences;
   /** Korean fork Android permissions screen: when it was last dismissed and what was granted. */
@@ -156,6 +190,8 @@ export interface Preferences {
   readonly threadListFilters?: ThreadListFilters;
   readonly pullRequestListFilters?: PullRequestListPreferences;
   readonly workspaceSelections?: WorkspaceSelections;
+  readonly pullRequestSavedViews?: ReadonlyArray<PullRequestSavedView>;
+  readonly issueSavedViews?: ReadonlyArray<IssueSavedView>;
 }
 
 /** The newest installable Korean fork release, small enough to persist between checks. */
@@ -228,6 +264,7 @@ function sanitizePreferences(parsed: Preferences): Preferences {
   const preferences: {
     navigationTabOrder?: readonly string[];
     hiddenNavigationTabs?: readonly string[];
+    sharedSlotTab?: "pullRequests" | "issues";
     pullRequestHideTestFiles?: boolean;
     pullRequestActivityVisibility?: PullRequestActivityVisibility;
     pullRequestMergeMethod?: PullRequestMergeMethod;
@@ -263,12 +300,13 @@ function sanitizePreferences(parsed: Preferences): Preferences {
     threadListSettledShelfExpanded?: boolean;
     threadListSnoozedShelfExpanded?: boolean;
     threadListWorkingShelfExpanded?: boolean;
-    interfaceLanguage?: MobileInterfaceLanguagePreference;
     androidUpdate?: AndroidUpdatePreferences;
     androidPermissionsOnboarding?: AndroidPermissionsOnboardingPreferences;
     threadListFilters?: ThreadListFilters;
     pullRequestListFilters?: PullRequestListPreferences;
     workspaceSelections?: WorkspaceSelections;
+    pullRequestSavedViews?: ReadonlyArray<PullRequestSavedView>;
+    issueSavedViews?: ReadonlyArray<IssueSavedView>;
   } = {};
 
   if (Array.isArray(parsed.hiddenNavigationTabs)) {
@@ -281,6 +319,10 @@ function sanitizePreferences(parsed: Preferences): Preferences {
     preferences.navigationTabOrder = parsed.navigationTabOrder.filter(
       (tab): tab is string => typeof tab === "string",
     );
+  }
+
+  if (parsed.sharedSlotTab === "pullRequests" || parsed.sharedSlotTab === "issues") {
+    preferences.sharedSlotTab = parsed.sharedSlotTab;
   }
 
   if (typeof parsed.pullRequestHideTestFiles === "boolean") {
@@ -370,7 +412,12 @@ function sanitizePreferences(parsed: Preferences): Preferences {
   ) {
     preferences.composerUsageLimitsDisplay = parsed.composerUsageLimitsDisplay;
   }
+  // Korean fork before v0.1.12 stored the UI language as `interfaceLanguage`; read only to seed `language`.
+  const legacyLanguage = (parsed as { readonly interfaceLanguage?: unknown }).interfaceLanguage;
   if (typeof parsed.language === "string") preferences.language = parsed.language;
+  else if (legacyLanguage === "system" || legacyLanguage === "en" || legacyLanguage === "ko") {
+    preferences.language = legacyLanguage;
+  }
   if (Array.isArray(parsed.microphones)) {
     preferences.microphones = parsed.microphones.flatMap((entry): MicrophoneEntry[] => {
       if (typeof entry !== "object" || entry === null || !isMicrophoneKind(entry.kind)) return [];
@@ -425,12 +472,6 @@ function sanitizePreferences(parsed: Preferences): Preferences {
   if (typeof parsed.threadListWorkingShelfExpanded === "boolean") {
     preferences.threadListWorkingShelfExpanded = parsed.threadListWorkingShelfExpanded;
   }
-  if (
-    parsed.interfaceLanguage === "system" ||
-    isMobileInterfaceLanguage(parsed.interfaceLanguage)
-  ) {
-    preferences.interfaceLanguage = parsed.interfaceLanguage;
-  }
   const androidUpdate = sanitizeAndroidUpdate(parsed.androidUpdate);
   if (androidUpdate) preferences.androidUpdate = androidUpdate;
   const onboarding = parsed.androidPermissionsOnboarding;
@@ -453,6 +494,12 @@ function sanitizePreferences(parsed: Preferences): Preferences {
   }
   if (isWorkspaceSelections(parsed.workspaceSelections)) {
     preferences.workspaceSelections = parsed.workspaceSelections;
+  }
+  if (Array.isArray(parsed.pullRequestSavedViews)) {
+    preferences.pullRequestSavedViews = parsed.pullRequestSavedViews.filter(isPullRequestSavedView);
+  }
+  if (Array.isArray(parsed.issueSavedViews)) {
+    preferences.issueSavedViews = parsed.issueSavedViews.filter(isIssueSavedView);
   }
   return preferences;
 }

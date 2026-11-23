@@ -1,6 +1,7 @@
 import type { ContextMenuItem } from "@t3tools/contracts";
+import { msg } from "gt-react";
 
-import { translate } from "~/i18n/translate";
+import { m } from "../../i18n/messages";
 
 type ExternalLinkContextMenuAction =
   | "open-in-preview"
@@ -26,9 +27,9 @@ const FAILURE_OPERATION_BY_ACTION = {
 } as const satisfies Record<ExternalLinkContextMenuAction, ExternalLinkContextMenuFailureOperation>;
 
 const EXTERNAL_LINK_CONTEXT_MENU_ITEMS = [
-  { id: "open-in-preview", label: "Open in integrated browser" },
-  { id: "open-external", label: "Open in system browser" },
-  { id: "copy-link", label: "Copy Link" },
+  { id: "open-in-preview", label: msg("Open in integrated browser") },
+  { id: "open-external", label: msg("Open in system browser") },
+  { id: "copy-link", label: msg("Copy Link") },
 ] as const satisfies readonly ContextMenuItem<ExternalLinkContextMenuAction>[];
 
 function externalLinkContextMenuItems(options: {
@@ -39,14 +40,15 @@ function externalLinkContextMenuItems(options: {
     options.canOpenInPreview
       ? EXTERNAL_LINK_CONTEXT_MENU_ITEMS
       : EXTERNAL_LINK_CONTEXT_MENU_ITEMS.filter((item) => item.id !== "open-in-preview")
-  ).map((item) => ({ ...item, label: translate(item.label) }));
+  ).map((item) => ({ id: item.id, label: m(item.label) }));
   if (options.threadLinkAction === undefined) return items;
   return [
     {
       id: options.threadLinkAction,
-      label: translate(
-        options.threadLinkAction === "link-to-thread" ? "Link to thread" : "Unlink from thread",
-      ),
+      label:
+        options.threadLinkAction === "link-to-thread"
+          ? m(msg("Link to thread"))
+          : m(msg("Unlink from thread")),
     },
     ...items,
   ];

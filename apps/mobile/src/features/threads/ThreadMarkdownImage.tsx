@@ -1,10 +1,10 @@
 import { useAtomValue } from "@effect/atom-react";
-import { MISSING_FILE_ACCESS_MESSAGE } from "@t3tools/client-runtime/state/assets";
 import type { AssetResource, EnvironmentId } from "@t3tools/contracts";
 import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
 import { AsyncResult, Atom } from "effect/reactivity";
 import { Image } from "expo-image";
+import { T, useGT } from "gt-react-native";
 import { createContext, useContext, useId, useState } from "react";
 import { fetch } from "expo/fetch";
 import { parse, SvgAst, type JsxAST } from "react-native-svg";
@@ -15,7 +15,6 @@ import { useFilePreviewGallery } from "../../components/ui/FilePreviewGallery";
 import { AppText as Text } from "../../components/ui/AppText";
 import type { FilePreviewSource } from "../../components/ui/FilePreviewModal";
 import { MediaActionsMenu } from "../../components/MediaActionsMenu";
-import { useTranslate } from "../../i18n/translate";
 import { PresentationSource } from "../../components/ui/NativePresentation";
 import { useMediaActions } from "../../state/mediaActions";
 import type { MediaActionsSource } from "../../lib/mediaActionsSource";
@@ -103,7 +102,7 @@ export function ThreadMarkdownImageView(props: {
   readonly actionsSource?: MediaActionsSource;
   readonly onPressPreview: (source: FilePreviewSource) => void;
 }) {
-  const t = useTranslate();
+  const gt = useGT();
   const withGallery = useFilePreviewGallery();
   const localSourceIdentifier = useId();
   const sourceIdentifier = props.sourceIdentifier ?? localSourceIdentifier;
@@ -152,9 +151,9 @@ export function ThreadMarkdownImageView(props: {
         <MediaActionsMenu media={mediaActions}>
           <Pressable
             accessibilityRole="imagebutton"
-            accessibilityLabel={props.alt ?? t("Markdown image")}
+            accessibilityLabel={props.alt ?? gt("Markdown image")}
             accessibilityHint={
-              mediaActions.actions.length > 0 ? t("Touch and hold for media actions") : undefined
+              mediaActions.actions.length > 0 ? gt("Touch and hold for media actions") : undefined
             }
             className="items-center justify-center rounded-[10px] bg-md-code-bg"
             style={frameStyle}
@@ -162,8 +161,8 @@ export function ThreadMarkdownImageView(props: {
             {failed ? (
               <Text className="px-3 text-center text-xs text-foreground-muted">
                 {props.unavailableDetail
-                  ? t("Image unavailable. {detail}", { detail: t(props.unavailableDetail) })
-                  : t("Image unavailable")}
+                  ? gt("Image unavailable. {detail}", { detail: props.unavailableDetail })
+                  : gt("Image unavailable")}
               </Text>
             ) : (
               <AppActivityIndicator />
@@ -176,16 +175,16 @@ export function ThreadMarkdownImageView(props: {
             <ZoomableImagePressable
               key={props.sourceKey}
               accessibilityRole="imagebutton"
-              accessibilityLabel={props.alt ?? t("Markdown image")}
+              accessibilityLabel={props.alt ?? gt("Markdown image")}
               accessibilityHint={
-                mediaActions.actions.length > 0 ? t("Touch and hold for media actions") : undefined
+                mediaActions.actions.length > 0 ? gt("Touch and hold for media actions") : undefined
               }
               onPress={() =>
                 props.onPressPreview(
                   withGallery({
                     kind: "image",
                     uri: props.uri!,
-                    name: props.actionsSource?.name ?? props.alt ?? t("Image"),
+                    name: props.actionsSource?.name ?? props.alt ?? gt("Image"),
                     sourceIdentifier,
                     actionsSource: props.actionsSource,
                   }),
@@ -254,13 +253,14 @@ function ThreadMarkdownImageRequest(props: {
 }
 
 function ThreadMarkdownImageLoading() {
-  const t = useTranslate();
   return (
     <View
       pointerEvents="none"
       style={[StyleSheet.absoluteFill, { alignItems: "center", justifyContent: "center" }]}
     >
-      <Text className="text-xs text-foreground-muted">{t("Loading image…")}</Text>
+      <Text className="text-xs text-foreground-muted">
+        <T>Loading image…</T>
+      </Text>
     </View>
   );
 }
@@ -284,6 +284,7 @@ export function ThreadMarkdownImage(props: {
   readonly actionsSource?: MediaActionsSource;
   readonly onPressPreview: (source: FilePreviewSource) => void;
 }) {
+  const gt = useGT();
   const withGallery = useFilePreviewGallery();
   const workspaceMutationId = useContext(WorkspaceMutationIdContext);
   const assetUrl = useAssetUrlState(
@@ -321,7 +322,7 @@ export function ThreadMarkdownImage(props: {
       unavailable={assetUrl._tag === "Failure"}
       unavailableDetail={
         assetUrl._tag === "Failure" && assetUrl.reason === "missing-file-access"
-          ? MISSING_FILE_ACCESS_MESSAGE
+          ? gt("This connection cannot read host files. Pair again with a new link to view it.")
           : undefined
       }
       knownSize={assetUrl._tag === "Success" ? assetUrl.imageDimensions : undefined}
@@ -341,6 +342,7 @@ export function ThreadMarkdownImage(props: {
             gallery: undefined,
             environmentId: props.environmentId,
             resource: props.resource,
+            ...(props.srcFragment === undefined ? {} : { srcFragment: props.srcFragment }),
           }),
         );
       }}

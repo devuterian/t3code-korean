@@ -1,3 +1,4 @@
+import { msg } from "gt-react-native";
 import { Alert } from "react-native";
 import { AsyncResult } from "effect/reactivity";
 import { useAtomValue } from "@effect/atom-react";
@@ -7,7 +8,7 @@ import { resolveActiveThreadSortOrder } from "@t3tools/client-runtime/state/shar
 import { environmentServerConfigsAtom, serverEnvironment } from "../../state/server";
 import { useEnvironments } from "../../state/environments";
 import { useAtomCommand } from "../../state/use-atom-command";
-import { translate } from "../../i18n/translate";
+import { m } from "../../i18n/messages";
 
 /** Reads the shared sort preference and writes changes to connected capable servers.
  * With no live target, cached settings preserve the visible order but saving is disabled.
@@ -39,8 +40,8 @@ export function useActiveThreadSort() {
       ).then((results) => {
         if (results.some((result) => !AsyncResult.isSuccess(result))) {
           Alert.alert(
-            translate("Thread order not saved"),
-            translate("Could not save to all environments. Try again."),
+            m(msg("Thread order not saved")),
+            m(msg("Could not save to all environments. Try again.")),
           );
         }
       });

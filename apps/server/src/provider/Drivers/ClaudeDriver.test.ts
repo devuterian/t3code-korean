@@ -64,6 +64,14 @@ const layerTest = Layer.effect(
     const config = yield* ServerConfig.ServerConfig;
     const settings = yield* ServerSettings.ServerSettingsService;
     return ProviderHost.ProviderHost.of({
+      compatibility: (driver, version) =>
+        Effect.succeed(
+          ModelManifest.providerCompatibility(
+            ModelManifest.BUNDLED_MODEL_MANIFEST,
+            driver,
+            version,
+          ),
+        ),
       paths: config,
       settings: {
         get: settings.getSettings,

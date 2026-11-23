@@ -1,4 +1,6 @@
 import { compareSemverVersions } from "@t3tools/shared/semver";
+import { errorDisplayMessage } from "@t3tools/client-runtime/errors";
+import { T, useGT, Var } from "gt-react-native";
 import * as Dialog from "../../components/ui/Dialog";
 import {
   isAtomCommandInterrupted,
@@ -13,8 +15,10 @@ import {
 } from "@t3tools/contracts";
 import { useAtomValue } from "@effect/atom-react";
 import { useEffect, useRef, useState } from "react";
-import { Linking, Pressable, ScrollView, TextInput, useWindowDimensions, View } from "react-native";
+import { Pressable, ScrollView, TextInput, useWindowDimensions, View } from "react-native";
+import { tryOpenExternalUrl } from "../../lib/openExternalUrl";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { m } from "../../i18n/messages";
 
 import type { MenuAction } from "@react-native-menu/menu";
 
@@ -36,17 +40,16 @@ import { ProviderAccountSync } from "./ProviderAccountSync";
 import { AddClaudeAccount, ClaudeAccount } from "./ClaudeAccounts";
 import { CLAUDE_DRIVER } from "./claude-accounts";
 import { useSettingsEnvironmentFilter, type SettingsTarget } from "./settings-environment-filter";
-import { useTranslate } from "../../i18n/translate";
 
 export function SettingsProviderAccountsRouteScreen() {
-  const t = useTranslate();
+  const gt = useGT();
   const environmentMenu = useSettingsEnvironmentMenu();
   const { selectedTargets } = useSettingsEnvironmentFilter();
   const permittedEnvironments = useEnvironmentsWithScope(selectedTargets, AuthProvidersManageScope);
   const providersByEnvironment = useAtomValue(environmentPresentations.providersByEnvironmentAtom);
   const insets = useSafeAreaInsets();
   return (
-    <SettingsScreen title={t("Providers")} menus={[environmentMenu]}>
+    <SettingsScreen title={gt("Providers")} menus={[environmentMenu]}>
       <ScreenScrollView
         className="flex-1"
         contentInsetAdjustmentBehavior="automatic"
@@ -54,16 +57,20 @@ export function SettingsProviderAccountsRouteScreen() {
         contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 18) + 18 }}
       >
         {selectedTargets.length === 0 ? (
-          <Text className="text-foreground-muted">{t("Select a connected environment.")}</Text>
+          <Text className="text-foreground-muted">
+            <T>Select a connected environment.</T>
+          </Text>
         ) : (
           selectedTargets.map((environment) => (
             <SettingsSection key={environment.environmentId} title={environment.label}>
               {!permittedEnvironments.has(environment.environmentId) ? (
                 <View className="gap-1 p-4">
-                  <Text className="text-base text-foreground">{t("Limited permissions")}</Text>
+                  <Text className="text-base text-foreground">
+                    <T>Limited permissions</T>
+                  </Text>
                   <Text className="text-sm text-foreground-muted">
-                    {t(
-                      "This session can view {environment}'s providers but can't change their settings.",
+                    {gt(
+                      "This session can view {environment}''s providers but can't change their settings.",
                       { environment: environment.label },
                     )}
                   </Text>
@@ -89,7 +96,6 @@ function EnvironmentProviders({
   readonly environment: SettingsTarget;
   readonly providers: ReadonlyArray<ServerProvider>;
 }) {
-  const t = useTranslate();
   const accounts = providers.filter(canManageProvider);
   // Claude has no in-app sign-in; each account is its own instance on a signed-in config folder.
   const claudeAccounts = providers.filter(
@@ -111,7 +117,7 @@ function EnvironmentProviders({
       ))}
       {accounts.length === 0 ? (
         <Text className="p-4 text-foreground-muted">
-          {t("Configure a provider with in-app sign-in in web or desktop Settings.")}
+          <T>Configure a provider with in-app sign-in in web or desktop Settings.</T>
         </Text>
       ) : null}
       {claudeAccounts.map((provider) => (
@@ -149,7 +155,7 @@ function ProviderAccount({
   readonly provider: ServerProvider;
   readonly divider: boolean;
 }) {
-  const t = useTranslate();
+  const gt = useGT();
   const environmentId = environment.environmentId;
   const instanceId = provider.instanceId;
   const target = { environmentId, input: { instanceId } };
@@ -242,7 +248,7 @@ function ProviderAccount({
 
   async function run(
     command: () => Promise<AtomCommandResult<unknown, unknown>>,
-    failureMessage = "Could not update provider sign-in.",
+    failureMessage = gt("Could not update provider sign-in."),
   ) {
     if (pendingRef.current) return false;
     pendingRef.current = true;
@@ -254,7 +260,11 @@ function ProviderAccount({
     if (result._tag === "Success") return true;
     if (!isAtomCommandInterrupted(result)) {
       const failure = squashAtomCommandFailure(result);
-      setError(failure instanceof Error ? failure.message : t(failureMessage));
+      setError(
+        failure instanceof Error
+          ? (errorDisplayMessage(failure, m) ?? failure.message)
+          : failureMessage,
+      );
     }
     return false;
   }
@@ -314,18 +324,18 @@ function ProviderAccount({
     active || state?.phase === "failed" || state?.phase === "cancelled"
       ? state.message
       : !provider.enabled
-        ? t("Turned off")
+        ? gt("Turned off")
         : signedIn
-          ? t("Signed in")
+          ? gt("Signed in")
           : isDiscovering
-            ? t("Discovering sign-in methods…")
+            ? gt("Discovering sign-in methods…")
             : needsExternalSetup
-              ? t("No in-app sign-in advertised. Follow the provider's docs to finish setup.")
+              ? gt("No in-app sign-in advertised. Follow the provider's docs to finish setup.")
               : !provider.installed
-                ? t("Not installed")
+                ? gt("Not installed")
                 : usesCredentials
-                  ? t("Connect to load models")
-                  : t("Not signed in");
+                  ? gt("Connect to load models")
+                  : gt("Not signed in");
   // A provider with several sign-in methods picks one from a menu on the same control.
   const methodActions: MenuAction[] = methods.map((method) => ({
     id: `method:${method.id}`,
@@ -336,7 +346,7 @@ function ProviderAccount({
     ? [
         {
           id: "remove",
-          title: t("Remove incomplete connection"),
+          title: gt("Remove incomplete connection"),
           attributes: { disabled: disabled || active || !canRemoveMethod },
           subactions: removableMethods.map((method) => ({
             id: `remove:${method.id}`,
@@ -352,39 +362,39 @@ function ProviderAccount({
   const installDescription =
     installation?.phase === "downloading"
       ? installation.totalBytes === null
-        ? t("Downloading Codex CLI ({downloaded} MB).", {
+        ? gt("Downloading Codex CLI ({downloaded} MB).", {
             downloaded: (installation.downloadedBytes / 1_000_000).toFixed(1),
           })
-        : t("Downloading Codex CLI ({downloaded} MB of {total} MB).", {
+        : gt("Downloading Codex CLI ({downloaded} MB of {total} MB).", {
             downloaded: (installation.downloadedBytes / 1_000_000).toFixed(1),
             total: (installation.totalBytes / 1_000_000).toFixed(1),
           })
       : installation?.phase === "extracting"
-        ? t("Extracting Codex CLI.")
+        ? gt("Extracting Codex CLI.")
         : installation?.phase === "verifying"
-          ? t("Checking Codex CLI.")
+          ? gt("Checking Codex CLI.")
           : installation?.phase === "succeeded" && installation.source === "local"
-            ? t(
+            ? gt(
                 "This provider cannot use the environment's Codex executable. Install Codex CLI for this provider.",
               )
             : installation?.phase === "succeeded"
-              ? t("Codex CLI is installed. Checking whether this provider can run it.")
+              ? gt("Codex CLI is installed. Checking whether this provider can run it.")
               : installation?.phase === "failed" || installation?.phase === "cancelled"
-                ? (installation.message ?? t("Codex CLI installation failed."))
-                : t("Install Codex CLI on {environment} before signing in.", {
+                ? (installation.message ?? gt("Codex CLI installation failed."))
+                : gt("Install Codex CLI on {environment} before signing in.", {
                     environment: environment.label,
                   });
   function signOut() {
     Dialog.alert(
-      t("Sign out?"),
-      t(
+      gt("Sign out?"),
+      gt(
         "Running threads sharing this sign-in on {environment} will stop. Thread history is kept.",
         { environment: environment.label },
       ),
       [
-        { text: t("Cancel"), style: "cancel" },
+        { text: gt("Cancel"), style: "cancel" },
         {
-          text: t("Sign out"),
+          text: gt("Sign out"),
           style: "destructive",
           onPress: () => {
             void run(() => logout(target));
@@ -411,7 +421,7 @@ function ProviderAccount({
       ? [
           {
             id: "change",
-            title: t("Change account"),
+            title: gt("Change account"),
             image: "person.crop.circle",
             attributes: { disabled: signInDisabled },
             ...(methodActions.length > 1
@@ -429,7 +439,7 @@ function ProviderAccount({
       ? [
           {
             id: "signOut",
-            title: t("Sign out"),
+            title: gt("Sign out"),
             image: "rectangle.portrait.and.arrow.right",
             attributes: { destructive: true, disabled: disabled || state === null },
           },
@@ -443,18 +453,18 @@ function ProviderAccount({
   ) : needsExternalSetup && provider.setup?.documentationUrl ? (
     <ControlPill
       variant="pill"
-      label={t("Docs")}
+      label={gt("Docs")}
       onPress={() => {
-        void Linking.openURL(provider.setup!.documentationUrl!).catch(() =>
-          setError(t("Could not open the provider docs.")),
-        );
+        void tryOpenExternalUrl(provider.setup!.documentationUrl!).then((opened) => {
+          if (!opened) setError(gt("Could not open the provider docs."));
+        });
       }}
     />
   ) : active && state?.flowId ? (
     <ControlPill
       variant="pill"
-      label={t("Cancel")}
-      accessibilityLabel={t("Cancel {name} sign-in", { name })}
+      label={gt("Cancel")}
+      accessibilityLabel={gt("Cancel {provider} sign-in", { provider: name })}
       disabled={disabled}
       onPress={() => {
         void run(() => cancel({ environmentId, input: { instanceId, flowId: state.flowId! } }));
@@ -464,34 +474,39 @@ function ProviderAccount({
     <Menu
       accessible
       accessibilityRole="button"
-      accessibilityLabel={t("{name} account options", { name })}
+      accessibilityLabel={gt("{provider} account options", { provider: name })}
       title={name}
       actions={accountActions}
       onPressAction={({ nativeEvent }) => onMenuAction(nativeEvent.event)}
     >
-      <ControlPill icon="ellipsis" accessibilityLabel={t("{name} account options", { name })} />
+      <ControlPill
+        icon="ellipsis"
+        accessibilityLabel={gt("{provider} account options", { provider: name })}
+      />
     </Menu>
   ) : canSignIn && !signedIn && methodActions.length > 1 && !signInDisabled ? (
     <Menu
       accessible
       accessibilityRole="button"
-      accessibilityLabel={t("Sign in to {name}", { name })}
-      title={t("Sign in with")}
+      accessibilityLabel={gt("Sign in to {provider}", { provider: name })}
+      title={gt("Sign in with")}
       actions={[...methodActions, ...removeActions]}
       onPressAction={({ nativeEvent }) => onMenuAction(nativeEvent.event)}
     >
       <ControlPill
         variant="primary"
-        label={t("Sign in")}
-        accessibilityLabel={t("Sign in to {name}", { name })}
+        label={gt("Sign in")}
+        accessibilityLabel={gt("Sign in to {provider}", { provider: name })}
       />
     </Menu>
   ) : canSignIn && !signedIn ? (
     <ControlPill
       variant="primary"
-      label={usesCredentials ? t("Connect") : t("Sign in")}
+      label={usesCredentials ? gt("Connect") : gt("Sign in")}
       accessibilityLabel={
-        usesCredentials ? t("Connect to {name}", { name }) : t("Sign in to {name}", { name })
+        usesCredentials
+          ? gt("Connect to {provider}", { provider: name })
+          : gt("Sign in to {provider}", { provider: name })
       }
       disabled={signInDisabled}
       onPress={() => startSignIn()}
@@ -514,16 +529,16 @@ function ProviderAccount({
           icon="arrow.down.circle"
           label={
             installActive
-              ? t("Cancel installation")
+              ? gt("Cancel installation")
               : updateAvailable
-                ? t("Update Codex CLI")
+                ? gt("Update Codex CLI")
                 : installation?.phase === "succeeded"
                   ? installation.source === "local"
-                    ? t("Install Codex CLI")
-                    : t("Refresh provider status")
+                    ? gt("Install Codex CLI")
+                    : gt("Refresh provider status")
                   : installation?.phase === "failed" || installation?.phase === "cancelled"
-                    ? t("Retry installation")
-                    : t("Install Codex CLI")
+                    ? gt("Retry installation")
+                    : gt("Install Codex CLI")
           }
           description={
             installationQuery.error ??
@@ -531,7 +546,7 @@ function ProviderAccount({
             !installActive &&
             installation.phase !== "failed" &&
             installation.phase !== "cancelled"
-              ? t("Codex {version} is available.", { version: installation.version })
+              ? gt("Codex {version} is available.", { version: installation.version })
               : installDescription)
           }
           disabled={(installActive ? cancelInstallDisabled : installDisabled) || active}
@@ -544,7 +559,7 @@ function ProviderAccount({
                     environmentId,
                     input: { instanceId, operationId: installation.operationId! },
                   }),
-                "Could not cancel Codex installation. Try again.",
+                gt("Could not cancel Codex installation. Try again."),
               );
             } else if (
               !updateAvailable &&
@@ -553,7 +568,7 @@ function ProviderAccount({
             ) {
               void refreshProviders({ environmentId, input: { instanceId } });
             } else {
-              void run(() => startInstall(target), "Could not install Codex CLI. Try again.");
+              void run(() => startInstall(target), gt("Could not install Codex CLI. Try again."));
             }
           }}
         />
@@ -568,7 +583,9 @@ function ProviderAccount({
         <View className="gap-2 px-4 pb-3">
           {interaction?.type === "deviceCode" ? (
             <Text selectable className="text-foreground">
-              {t("Enter code {code} on the sign-in page.", { code: interaction.userCode })}
+              <T>
+                Enter code <Var>{interaction.userCode}</Var> on the sign-in page.
+              </T>
             </Text>
           ) : null}
           {interaction?.type === "terminal" ? (
@@ -578,10 +595,10 @@ function ProviderAccount({
                   {interaction.output.replace(/\x1b\[[0-?]*[ -/]*[@-~]/g, "")}
                 </Text>
               </ScrollView>
-              {field("input", t("Terminal response"), true)}
+              {field("input", gt("Terminal response"), true)}
               <SettingsActionRow
                 icon="arrow.up"
-                label={t("Send response")}
+                label={gt("Send response")}
                 disabled={disabled}
                 onPress={() => {
                   void send({ type: "terminal", data: `${values.input ?? ""}\r` }).then((sent) => {
@@ -598,7 +615,7 @@ function ProviderAccount({
               ))}
               <SettingsActionRow
                 icon="person.crop.circle"
-                label={t("Connect")}
+                label={gt("Connect")}
                 disabled={disabled}
                 onPress={() => {
                   void send({ type: "credentials", values }).then((sent) => {
@@ -612,12 +629,12 @@ function ProviderAccount({
             <>
               {field(
                 "callback",
-                acceptsCode ? t("Paste the code from Claude") : t("Final localhost URL"),
+                acceptsCode ? gt("Paste the code from Claude") : gt("Final localhost URL"),
                 false,
               )}
               <SettingsActionRow
                 icon="arrow.right"
-                label={t("Continue")}
+                label={gt("Continue")}
                 disabled={disabled || !values.callback?.trim()}
                 onPress={() => {
                   if (!state?.flowId) return;
@@ -643,7 +660,7 @@ function ProviderAccount({
       {url ? (
         <SettingsActionRow
           icon="globe"
-          label={t("Open sign-in page")}
+          label={gt("Open sign-in page")}
           disabled={disabled}
           onPress={() => {
             void (async () => {
@@ -653,8 +670,9 @@ function ProviderAccount({
                 !(await send({ type: "browser", action: "accept" }))
               )
                 return;
-              await Linking.openURL(url);
-            })().catch(() => setError(t("Could not open the sign-in page.")));
+              if (!(await tryOpenExternalUrl(url, "provider-auth")))
+                setError(gt("Could not open the sign-in page."));
+            })().catch(() => setError(gt("Could not open the sign-in page.")));
           }}
         />
       ) : null}
@@ -676,7 +694,7 @@ function ProviderAccountSummary({
   readonly status: string | null | undefined;
   readonly email: string | undefined;
 }) {
-  const t = useTranslate();
+  const gt = useGT();
   const [revealed, setRevealed] = useState(false);
   const content = (
     <>
@@ -703,7 +721,7 @@ function ProviderAccountSummary({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={[name, status, revealed ? email : null].filter(Boolean).join(", ")}
-      accessibilityHint={revealed ? t("Hides the account email") : t("Reveals the account email")}
+      accessibilityHint={revealed ? gt("Hides the account email") : gt("Reveals the account email")}
       onPress={() => setRevealed((value) => !value)}
       className="min-w-0 shrink grow gap-0.5"
     >

@@ -1,16 +1,17 @@
-import type { StatusTone } from "../../components/StatusPill";
-import type { connectionStatusText } from "@t3tools/client-runtime/connection";
+import { msg } from "gt-react-native";
 
-import { translate } from "../../i18n/translate";
+import type { StatusTone } from "../../components/StatusPill";
+import { m, type MessageResolver } from "../../i18n/messages";
 import type { RemoteClientConnectionState } from "../../lib/connection";
 
 export function connectionTone(
   state: RemoteClientConnectionState,
   awaitingApproval?: boolean,
+  resolve: MessageResolver = m,
 ): StatusTone {
   if (state === "reconnecting" && awaitingApproval) {
     return {
-      label: translate("Waiting for approval"),
+      label: resolve(msg("Waiting for approval")),
       pillClassName: "bg-update",
       textClassName: "text-update-foreground",
     };
@@ -18,81 +19,45 @@ export function connectionTone(
   switch (state) {
     case "connected":
       return {
-        label: translate("Connected"),
+        label: resolve(msg("Connected", { $context: "connection status" })),
         pillClassName: "bg-adaptive-emerald-500-a12-a16",
         textClassName: "text-adaptive-emerald-700-300",
       };
     case "reconnecting":
       return {
-        label: translate("Reconnecting"),
+        label: resolve(msg("Reconnecting", { $context: "connection status" })),
         pillClassName: "bg-warning",
         textClassName: "text-warning-foreground",
       };
     case "connecting":
       return {
-        label: translate("Connecting"),
+        label: resolve(msg("Connecting", { $context: "connection status" })),
         pillClassName: "bg-update",
         textClassName: "text-update-foreground",
       };
     case "unsupported":
       return {
-        label: translate("Client not supported"),
+        label: resolve(msg("Client not supported")),
         pillClassName: "bg-subtle",
         textClassName: "text-foreground-secondary",
       };
     case "error":
       return {
-        label: translate("Connection failed"),
+        label: resolve(msg("Connection failed")),
         pillClassName: "bg-danger",
         textClassName: "text-danger-foreground",
       };
     case "offline":
       return {
-        label: translate("Offline"),
+        label: resolve(msg("Offline", { $context: "connection status" })),
         pillClassName: "bg-danger",
         textClassName: "text-danger-foreground",
       };
     case "available":
       return {
-        label: translate("Available"),
+        label: resolve(msg("Available", { $context: "connection status" })),
         pillClassName: "bg-subtle",
         textClassName: "text-foreground-secondary",
       };
-  }
-}
-
-/**
- * Localized counterpart of `connectionStatusText` from client-runtime. English
- * output is byte-identical; other languages go through the mobile dictionary.
- */
-export function localizedConnectionStatusText(
-  connection: Parameters<typeof connectionStatusText>[0],
-): string {
-  switch (connection.phase) {
-    case "available":
-      return translate("Available");
-    case "offline":
-      return translate("Offline");
-    case "connecting":
-      return translate("Connecting...");
-    case "reconnecting":
-      if (connection.awaitingApproval) {
-        return connection.error
-          ? translate(connection.error)
-          : translate("Waiting for approval on the host");
-      }
-      return connection.error
-        ? translate("Failed to connect. Reconnecting... Reason: {reason}", {
-            reason: connection.error,
-          })
-        : translate("Reconnecting...");
-    case "connected":
-      return translate("Connected");
-    case "unsupported":
-      return translate("Client not supported");
-    case "error":
-      return connection.error
-        ? translate("Connection failed. Reason: {reason}", { reason: connection.error })
-        : translate("Connection failed");
   }
 }

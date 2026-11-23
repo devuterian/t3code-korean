@@ -50,23 +50,37 @@ and commit `Merge upstream ${TAG} into the Korean fork`.
 
 ## 3. Install and typecheck
 
-`pnpm install`, then `vp run typecheck`. Fix every error (fork features adapt to
-upstream's APIs; upstream wins on structure). For many errors, hand them to one
-Opus subagent with the logs. Run tests next to changed files with
-`vp test run <files>`, never repo-wide.
+`pnpm install`, then `vp run --concurrency-limit 2 typecheck` (the default 4
+parallel checks get OOM-killed, exit 137, on this Mac; if web or mobile still
+dies, run `effect-tsgo tsrs --noEmit` in that app alone). Fix every error (fork
+features adapt to upstream's APIs; upstream wins on structure). For many errors,
+hand them to one Opus subagent with the logs. Run tests next to changed files
+with `vp test run <files>`, never repo-wide. Before committing, `vp lint` the
+files that differ from the upstream tag; upstream keeps adding rules that fork
+code trips.
 
 ## 4. Korean copy
 
+Since v0.1.12 the fork uses upstream's General Translation setup
+(`docs/internals/i18n.md`): fork code wraps copy with `<T>`, `useGT()`/`gt()`,
+`msg()` + `useMessages()`/`m()` exactly like upstream, and all Korean lives in
+`apps/{web,mobile,desktop}/src/i18n/translations/ko.json`, keyed by a hash of
+the English text. There are no fork dictionaries any more, so a merge conflict
+that is only `gt()` versus a fork wrapper no longer happens; take upstream.
+
 ```sh
-bun scripts/korean-i18n-missing.mjs --json /tmp/t3k-missing.json   # wrapped, no Korean
-bun scripts/korean-i18n-missing.mjs --unwrapped "${PREV}"          # English JSX not wrapped
+(cd apps/web && vp run i18n:generate); (cd apps/mobile && vp run i18n:generate); (cd apps/desktop && vp run i18n:generate)
+node scripts/korean-i18n-missing.mjs --json /tmp/t3k-missing.json   # English left in ko.json, or 합쇼체
+node scripts/i18n-check.ts                                          # catalogs match the source
 ```
 
-Wrap new user-visible English with `t()`/`translate()` like neighbouring code
-and add Korean to a new dictionary file per run
-(`apps/web/src/i18n/ko/mergeYYMMDD.ts`, `apps/mobile/src/i18n/ko/mergeYYMMDD.ts`)
-registered last in that app's `dictionary.ko.ts`. Remaining "untranslated" keys
-that are product names (`Nightly`, `Markdown`, `T3 Connect`, `URL`, …) are fine.
+Upstream ships its own `ko.json` in 합쇼체, so every merge brings new upstream
+Korean to rewrite as well as new English to translate. Hand the JSON from the
+missing script to Sonnet subagents (about 250 entries each) with the Copy rules
+below; they return `{key: Korean}` and you write it into `ko.json` (JSX entries
+keep their exact structure; check that ICU variables match the English).
+Product names and pure variable strings that stay English are skipped by the
+script.
 
 ### Copy
 
@@ -78,7 +92,7 @@ thread 스레드, project 프로젝트, worktree 워크트리, environment 환�
 provider 프로바이더, agent 에이전트, subagent 서브에이전트, diff 변경 사항,
 pull request 풀 리퀘스트, archive 보관, settle 정리, snooze 미루기,
 composer 입력창, side chat 사이드 채팅. Check with
-`git grep -nE "(합니다|습니다|십시오|하시겠|해 주세요)" -- apps/web/src/i18n apps/mobile/src/i18n`
+`git grep -nE "(합니다|습니다|십시오|하시겠|해 주세요)" -- apps/web/src/i18n apps/mobile/src/i18n apps/desktop/src/i18n`
 (must print nothing).
 
 ## 5. Commit

@@ -12,7 +12,9 @@ import {
 import { resolveProviderInstanceDisplayName } from "@t3tools/client-runtime/state/provider-instance-display";
 
 import type { TimestampFormat } from "@t3tools/contracts/settings";
+import { msg } from "gt-react";
 
+import { m, type MessageResolver } from "../../i18n/messages";
 import { formatUpcomingTimestamp } from "../../timestampFormat";
 import { getProviderSummary } from "./providerStatus";
 
@@ -20,11 +22,16 @@ export function limitedUntilLabel(
   provider: Pick<ServerProvider, "limitedUntil">,
   nowMs: number,
   timestampFormat: TimestampFormat,
+  resolve: MessageResolver = m,
 ): string | null {
   if (provider.limitedUntil === undefined || providerLimitedUntilMs(provider, nowMs) === null) {
     return null;
   }
-  return `Limited until ${formatUpcomingTimestamp(provider.limitedUntil, timestampFormat, nowMs)}`;
+  return resolve(
+    msg("Limited until {time}", {
+      time: formatUpcomingTimestamp(provider.limitedUntil, timestampFormat, nowMs),
+    }),
+  );
 }
 
 export function resolveProviderPoolName(
@@ -44,6 +51,7 @@ export function resolveProviderPoolName(
 function continuationHint(
   provider: ServerProvider,
   siblings: ReadonlyArray<ServerProvider>,
+  resolve: MessageResolver,
 ): string | null {
   const groupKey = provider.continuation?.groupKey;
   if (groupKey === undefined) return null;
@@ -52,10 +60,14 @@ function continuationHint(
       candidate.instanceId !== provider.instanceId && candidate.continuation?.groupKey === groupKey,
   );
   if (sharing.length > 0) {
-    return `Continues the same conversations as ${sharing.map(resolveProviderInstanceDisplayName).join(", ")}`;
+    return resolve(
+      msg("Continues the same conversations as {accounts}", {
+        accounts: sharing.map(resolveProviderInstanceDisplayName).join(", "),
+      }),
+    );
   }
   return siblings.some((candidate) => candidate.continuation?.groupKey !== undefined)
-    ? "Own conversation history, so switching to or from it uses a summary"
+    ? resolve(msg("Own conversation history, so switching to or from it uses a summary"))
     : null;
 }
 
@@ -63,6 +75,7 @@ function continuationHint(
 function sameLoginHint(
   provider: ServerProvider,
   siblings: ReadonlyArray<ServerProvider>,
+  resolve: MessageResolver,
 ): string | null {
   const email = provider.auth.email?.trim().toLowerCase();
   if (!email) return null;
@@ -72,7 +85,11 @@ function sameLoginHint(
       candidate.auth.email?.trim().toLowerCase() === email,
   );
   return sharing.length > 0
-    ? `Same login as ${sharing.map(resolveProviderInstanceDisplayName).join(", ")}`
+    ? resolve(
+        msg("Same login as {accounts}", {
+          accounts: sharing.map(resolveProviderInstanceDisplayName).join(", "),
+        }),
+      )
     : null;
 }
 
@@ -98,6 +115,7 @@ export interface ProviderPoolCard {
 export function buildProviderPoolCards(
   providers: ReadonlyArray<ServerProvider>,
   providerPools: ProviderPoolSettings,
+  resolve: MessageResolver = m,
 ): ReadonlyArray<ProviderPoolCard> {
   const accounts = providers.filter((provider) => provider.pool?.role !== "pool");
   const drivers = [...new Set(accounts.map((provider) => provider.driver))].filter(
@@ -120,8 +138,8 @@ export function buildProviderPoolCards(
           displayName: resolveProviderInstanceDisplayName(provider),
           status: getProviderSummary(provider).headline,
           ticked: ticked.has(provider.instanceId),
-          continuationHint: continuationHint(provider, siblings),
-          sameLoginHint: sameLoginHint(provider, siblings),
+          continuationHint: continuationHint(provider, siblings, resolve),
+          sameLoginHint: sameLoginHint(provider, siblings, resolve),
           provider,
         })),
         enabled: config?.enabled ?? false,
@@ -138,10 +156,22 @@ export function buildProviderPoolCards(
   });
 }
 
-export function modelCoverageLabel(coverage: { available: number; total: number }): string {
+export function modelCoverageLabel(
+  coverage: { available: number; total: number },
+  resolve: MessageResolver = m,
+): string {
   return coverage.available === coverage.total
-    ? `All ${coverage.total} models are available with the same options in every ticked account`
-    : `${coverage.available} of ${coverage.total} models are available with the same options in every ticked account`;
+    ? resolve(
+        msg("All {total} models are available with the same options in every ticked account", {
+          total: coverage.total,
+        }),
+      )
+    : resolve(
+        msg(
+          "{available} of {total} models are available with the same options in every ticked account",
+          { available: coverage.available, total: coverage.total },
+        ),
+      );
 }
 
 export type ProviderPoolChange =

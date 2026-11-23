@@ -88,6 +88,7 @@ export function useCycleSwitcherController() {
     setStepOffset((offset) => offset + commandInfo.direction);
   });
 
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- Subscribes to window keydown events.
   useEffect(() => {
     window.addEventListener("keydown", handleKeyDown, true);
     return () => window.removeEventListener("keydown", handleKeyDown, true);
@@ -146,6 +147,7 @@ export function useCycleSwitcherSession({
 
   // Install synchronously so a modifier released in the same frame as the
   // opening keydown cannot land before the listener exists.
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- Subscribes to window keyup and blur events.
   useLayoutEffect(() => {
     window.addEventListener("keyup", handleKeyUp, true);
     window.addEventListener("blur", handleWindowBlur);

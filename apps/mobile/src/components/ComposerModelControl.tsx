@@ -1,9 +1,9 @@
 import type { ModelSelection, ProviderDriverKind } from "@t3tools/contracts";
+import { useGT, useMessages } from "gt-react-native";
 import {
   buildTraitsTriggerDisplay,
   getPromptControlledTraits,
 } from "@t3tools/client-runtime/model-traits";
-import { useTranslate } from "../i18n/translate";
 import type { ModelOption } from "../lib/modelOptions";
 import { resolveProviderOptionDescriptors } from "../lib/providerOptions";
 import { AppText as Text } from "./ui/AppText";
@@ -22,23 +22,27 @@ export function ComposerModelControl(props: {
   readonly iconOnly?: boolean;
   readonly onPress: () => void;
 }) {
-  const t = useTranslate();
+  const gt = useGT();
+  const m = useMessages();
   const descriptors = resolveProviderOptionDescriptors({
     capabilities: props.modelOption?.capabilities,
     selections: props.selection?.options,
   });
   const promptTraits = getPromptControlledTraits(descriptors, props.prompt);
   const summary = props.provider
-    ? buildTraitsTriggerDisplay({
-        descriptors,
-        primarySelectDescriptorId: promptTraits.primarySelectDescriptor?.id ?? null,
-        ultrathinkPromptControlled: promptTraits.ultrathinkPromptControlled,
-        modelSelection: props.selection,
-        reportedModelSelection: props.reportedSelection,
-      }).label
+    ? buildTraitsTriggerDisplay(
+        {
+          descriptors,
+          primarySelectDescriptorId: promptTraits.primarySelectDescriptor?.id ?? null,
+          ultrathinkPromptControlled: promptTraits.ultrathinkPromptControlled,
+          modelSelection: props.selection,
+          reportedModelSelection: props.reportedSelection,
+        },
+        m,
+      ).label
     : "";
   const badge = props.modelOption?.providerBadge;
-  const label = props.modelOption?.label ?? props.selection?.model ?? t("Choose model");
+  const label = props.modelOption?.label ?? props.selection?.model ?? gt("Choose model");
   const providerNameLabel = badge
     ? providerInstanceNameLabel({
         provider: props.modelOption?.providerDriver,
@@ -51,7 +55,7 @@ export function ComposerModelControl(props: {
   return (
     <ComposerInlineControl
       accessibilityLabel={[
-        t("Model and reasoning settings"),
+        gt("Model and reasoning settings"),
         label,
         badge?.showBadge ? badge.displayName : null,
         summary,

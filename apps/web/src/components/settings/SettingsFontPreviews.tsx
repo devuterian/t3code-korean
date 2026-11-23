@@ -2,6 +2,7 @@ import type { ServerProviderSkill } from "@t3tools/contracts";
 import { preloadPatchFile } from "@pierre/diffs/ssr";
 import { useAtomValue } from "@effect/atom-react";
 import * as Effect from "effect/Effect";
+import { useGT } from "gt-react";
 import { AsyncResult, Atom } from "effect/reactivity";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -15,7 +16,6 @@ import { DEFAULT_COMPOSER_PLACEHOLDER } from "../../composerPlaceholder";
 import { resolveDiffThemeName, type DiffThemeName } from "../../lib/diffRendering";
 import { PREFERRED_HIGHLIGHTER } from "../../lib/syntaxHighlighting";
 import { GhosttyTerminalSurface } from "~/terminal/ghostty/surface";
-import { useTranslate } from "../../i18n/translate";
 
 const PREVIEW_SKILLS: ReadonlyArray<ServerProviderSkill> = [
   { name: "frontend-design", path: ".agents/skills/frontend-design/SKILL.md", enabled: true },
@@ -29,7 +29,7 @@ const PROMPT_PREVIEW_TEXT =
 function noop() {}
 
 export function PromptFontPreview() {
-  const t = useTranslate();
+  const gt = useGT();
   const editorRef = useRef<ComposerPromptEditorHandle>(null);
   const [prompt, setPrompt] = useState(PROMPT_PREVIEW_TEXT);
   const [cursor, setCursor] = useState(PROMPT_PREVIEW_TEXT.length);
@@ -40,14 +40,14 @@ export function PromptFontPreview() {
   return (
     <div className="mt-1 mb-2 rounded-lg border border-border bg-background px-3 py-2">
       <ComposerPromptEditor
-        ariaLabel={t("Prompt font preview")}
+        ariaLabel={gt("Prompt font preview")}
         editorRef={editorRef}
         value={prompt}
         cursor={cursor}
         contextRecords={EMPTY_COMPOSER_CONTEXT_RECORDS}
         skills={PREVIEW_SKILLS}
         disabled={false}
-        placeholder={t(DEFAULT_COMPOSER_PLACEHOLDER)}
+        placeholder={DEFAULT_COMPOSER_PLACEHOLDER}
         className="max-h-42"
         onChange={onChange}
         onPaste={noop}
@@ -155,7 +155,7 @@ function previewTerminalFont(family: string, size: number): { family?: string; s
 }
 
 export function TerminalFontPreview({ family, size }: { family: string; size: number }) {
-  const t = useTranslate();
+  const gt = useGT();
   const mountRef = useRef<HTMLDivElement>(null);
   const [surface, setSurface] = useState<GhosttyTerminalSurface | null>(null);
   const [initialFont] = useState(() => previewTerminalFont(family, size));
@@ -245,7 +245,7 @@ export function TerminalFontPreview({ family, size }: { family: string; size: nu
     <div
       ref={mountSurface}
       className="relative mt-1 mb-2 h-52 overflow-hidden rounded-lg border border-border"
-      aria-label={t("Terminal font preview")}
+      aria-label={gt("Terminal font preview")}
     />
   );
 }

@@ -1,3 +1,4 @@
+import { useGT } from "gt-react";
 import { memo, useRef } from "react";
 import { CheckIcon, CopyIcon, type LucideIcon } from "lucide-react";
 import { Button } from "../ui/button";
@@ -7,11 +8,10 @@ import {
   showAnchoredCopyErrorToast,
 } from "../ui/anchoredCopyToast";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
-import { useTranslate } from "~/i18n/translate";
 
 export const MessageCopyButton = memo(function MessageCopyButton({
   text,
-  label = "Copy message",
+  label: labelProp,
   icon: Icon = CopyIcon,
   extraFlavors,
   size = "xs",
@@ -26,7 +26,8 @@ export const MessageCopyButton = memo(function MessageCopyButton({
   variant?: "outline" | "ghost";
   className?: string;
 }) {
-  const t = useTranslate();
+  const gt = useGT();
+  const label = labelProp ?? gt("Copy message");
   const ref = useRef<HTMLButtonElement>(null);
   const { copyToClipboard, isCopied } = useCopyToClipboard<void>({
     onError: (error: Error) => showAnchoredCopyErrorToast(ref, error),
@@ -39,7 +40,7 @@ export const MessageCopyButton = memo(function MessageCopyButton({
       <TooltipTrigger
         render={
           <Button
-            aria-label={t(label)}
+            aria-label={label}
             disabled={isCopied}
             onClick={() => copyToClipboard(text)}
             ref={ref}
@@ -53,7 +54,7 @@ export const MessageCopyButton = memo(function MessageCopyButton({
         {isCopied ? <CheckIcon className="size-3 text-primary" /> : <Icon className="size-3" />}
       </TooltipTrigger>
       <TooltipPopup>
-        <p>{t(label)}</p>
+        <p>{label}</p>
       </TooltipPopup>
     </Tooltip>
   );

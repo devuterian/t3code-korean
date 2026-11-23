@@ -1,13 +1,14 @@
+import { msg } from "gt-react";
 import { toastManager } from "../components/ui/toast";
-import { translate } from "../i18n/translate";
+import { m } from "../i18n/messages";
 import { AsyncResult } from "effect/reactivity";
 import { useAtomValue } from "@effect/atom-react";
-import { useCallback, useMemo } from "react";
 import type { ActiveThreadSortOrder } from "@t3tools/contracts/settings";
 import { resolveActiveThreadSortOrder } from "@t3tools/client-runtime/state/shared-settings";
 import { environmentServerConfigsAtom, serverEnvironment } from "../state/server";
 import { useEnvironments } from "../state/environments";
 import { useAtomCommand } from "../state/use-atom-command";
+import { useStableCallback } from "./useStableCallback";
 
 /** Reads the shared sort preference and writes changes to connected capable servers.
  * With no live target, cached settings preserve the visible order but saving is disabled.
@@ -17,37 +18,30 @@ export function useActiveThreadSort() {
   const configs = useAtomValue(environmentServerConfigsAtom);
   const { environments } = useEnvironments();
   const updateSettings = useAtomCommand(serverEnvironment.updateSettings, "thread sort setting");
-  const targets = useMemo(
-    () =>
-      new Map(
-        environments.flatMap((environment) => {
-          const config = configs.get(environment.environmentId);
-          return environment.connection.phase === "connected" &&
-            config?.environment.capabilities.threadSortOrder === true
-            ? [[environment.environmentId, config] as const]
-            : [];
-        }),
+  const targets = new Map(
+    environments.flatMap((environment) => {
+      const config = configs.get(environment.environmentId);
+      return environment.connection.phase === "connected" &&
+        config?.environment.capabilities.threadSortOrder === true
+        ? [[environment.environmentId, config] as const]
+        : [];
+    }),
+  );
+  const setOrder = useStableCallback((activeThreadSortOrder: ActiveThreadSortOrder) => {
+    void Promise.all(
+      [...targets.keys()].map((environmentId) =>
+        updateSettings({ environmentId, input: { patch: { activeThreadSortOrder } } }),
       ),
-    [configs, environments],
-  );
-  const setOrder = useCallback(
-    (activeThreadSortOrder: ActiveThreadSortOrder) => {
-      void Promise.all(
-        [...targets.keys()].map((environmentId) =>
-          updateSettings({ environmentId, input: { patch: { activeThreadSortOrder } } }),
-        ),
-      ).then((results) => {
-        if (results.some((result) => !AsyncResult.isSuccess(result))) {
-          toastManager.add({
-            type: "error",
-            title: translate("Thread order not saved"),
-            description: translate("Could not save to all environments. Try again."),
-          });
-        }
-      });
-    },
-    [targets, updateSettings],
-  );
+    ).then((results) => {
+      if (results.some((result) => !AsyncResult.isSuccess(result))) {
+        toastManager.add({
+          type: "error",
+          title: m(msg("Thread order not saved")),
+          description: m(msg("Could not save to all environments. Try again.")),
+        });
+      }
+    });
+  });
   return {
     order: resolveActiveThreadSortOrder(targets.size > 0 ? targets : configs),
     setOrder,

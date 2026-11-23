@@ -1,113 +1,73 @@
-// Lists UI strings the Korean dictionaries miss: `bun scripts/korean-i18n-missing.mjs [--json out]`.
-// `--unwrapped <ref>` instead lists English JSX text in .tsx files changed since <ref>.
-// Runs with Bun, which resolves the apps' extensionless TypeScript imports.
+// Lists Korean catalog entries that still need work: `node scripts/korean-i18n-missing.mjs [--json out]`.
+// An entry needs work when ko.json still holds the English text (new key from `gt generate`) or
+// uses 합쇼체. Product names and pure variable strings that stay English are skipped.
 import * as NodeFS from "node:fs";
 import * as NodePath from "node:path";
 
-const { readdirSync, readFileSync, statSync, writeFileSync } = NodeFS;
-const { join, relative } = NodePath;
+const ROOT = NodePath.join(import.meta.dirname, "..");
+const APPS = ["web", "mobile", "desktop"];
+const FORMAL = /(합니다|습니다|십시오|하시겠|해 주세요|주십시오|습니까|십니까)/;
+const KEEP_ENGLISH = new Set([
+  "CPU",
+  "Conventional Commits",
+  "Dev",
+  "Face ID",
+  "Git URL",
+  "HTML",
+  "Linux/WSL",
+  "Nightly",
+  "PAIRCODE",
+  "PDF",
+  "PID",
+  "T3 Connect",
+  "Tailscale HTTPS",
+  "URL",
+  "zen",
+]);
 
-const ROOT = join(import.meta.dir, "..");
+const text = (value) =>
+  typeof value === "string"
+    ? value
+    : Array.isArray(value)
+      ? value.map(text).join(" ")
+      : value && typeof value === "object"
+        ? Object.values(value).map(text).join(" ")
+        : "";
 
-const CALL = /\b(?:t|translate|translateText)\(\s*(["'`])((?:\\.|(?!\1)[^\\])*?)\1\s*[,)]/gs;
+// Units, abbreviations and GT's JSX markers read the same in Korean.
+const NEUTRAL_WORDS = new Set(["KB", "MB", "GB", "ms", "PR", "vs", "span"]);
+// Strips ICU arguments so "{label}: {value}" count as having no words.
+const words = (value) =>
+  (
+    text(value)
+      .replace(/\{[^{}]*\}/g, "")
+      .replace(/_gt_value_\d+/g, "")
+      .match(/[A-Za-z]{2,}/g) ?? []
+  ).filter((word) => !NEUTRAL_WORDS.has(word));
 
-function walk(dir, out) {
-  for (const name of readdirSync(dir)) {
-    if (name === "node_modules" || name === "i18n" || name.startsWith(".")) continue;
-    const path = join(dir, name);
-    if (statSync(path).isDirectory()) walk(path, out);
-    else if (/\.(tsx?|mts)$/.test(name) && !/\.(test|spec|browser\.test|stories)\./.test(name)) {
-      out.push(path);
+const report = {};
+for (const app of APPS) {
+  const dir = NodePath.join(ROOT, "apps", app, "src/i18n/translations");
+  const en = JSON.parse(NodeFS.readFileSync(NodePath.join(dir, "en.json"), "utf8"));
+  const ko = JSON.parse(NodeFS.readFileSync(NodePath.join(dir, "ko.json"), "utf8"));
+  report[app] = [];
+  for (const [key, source] of Object.entries(en)) {
+    const value = ko[key];
+    const untranslated =
+      JSON.stringify(value) === JSON.stringify(source) &&
+      !KEEP_ENGLISH.has(text(source)) &&
+      words(source).length > 0;
+    if (untranslated || FORMAL.test(text(value))) {
+      report[app].push({ key, en: source, ko: untranslated ? null : value });
     }
   }
-  return out;
 }
 
-function unescape(raw) {
-  return raw.replace(/\\(["'`\\])/g, "$1").replace(/\\n/g, "\n");
+const jsonIndex = process.argv.indexOf("--json");
+if (jsonIndex !== -1) {
+  NodeFS.writeFileSync(process.argv[jsonIndex + 1], `${JSON.stringify(report, null, 2)}\n`);
 }
-
-function collect(srcDir) {
-  const keys = new Map();
-  for (const file of walk(srcDir, [])) {
-    const text = readFileSync(file, "utf8");
-    for (const match of text.matchAll(CALL)) {
-      const [, quote, raw] = match;
-      if (quote === "`" && raw.includes("${")) continue;
-      const key = unescape(raw);
-      if (!/[A-Za-z]{2}/.test(key)) continue;
-      const where = relative(ROOT, file);
-      const list = keys.get(key) ?? [];
-      if (!list.includes(where)) list.push(where);
-      keys.set(key, list);
-    }
-  }
-  return keys;
-}
-
-const web = await import(join(ROOT, "apps/web/src/i18n/translate.ts"));
-const mobile = await import(join(ROOT, "apps/mobile/src/i18n/translate.ts"));
-
-const report = { web: [], mobile: [] };
-for (const [app, srcDir, tr] of [
-  ["web", "apps/web/src", (s) => web.translate(s, "ko")],
-  ["mobile", "apps/mobile/src", (s) => mobile.translate(s, undefined, "ko")],
-]) {
-  for (const [key, files] of collect(join(ROOT, srcDir))) {
-    if (tr(key) === key) report[app].push({ key, files });
-  }
-  report[app].sort((a, b) => a.files[0].localeCompare(b.files[0]));
-}
-
-// --unwrapped <git-ref>: in .tsx files changed since <git-ref> (usually the last
-// merged upstream tag), list English JSX text and string props that never reach
-// t()/translate(). Heuristic: expect some false positives (code samples, names).
-const unwrappedAt = process.argv.indexOf("--unwrapped");
-if (unwrappedAt !== -1) {
-  const ref = process.argv[unwrappedAt + 1];
-  const changed = Bun.spawnSync(
-    [
-      "git",
-      "diff",
-      "--name-only",
-      "--diff-filter=AM",
-      `${ref}..HEAD`,
-      "--",
-      "apps/web/src/**/*.tsx",
-      "apps/mobile/src/**/*.tsx",
-    ],
-    { cwd: ROOT },
-  )
-    .stdout.toString()
-    .split("\n")
-    .filter((f) => f && !/\.(test|browser\.test|stories)\./.test(f));
-  const JSX_TEXT = />\s*([A-Z][A-Za-z'’,.?!: -]*[a-z][A-Za-z'’,.?!: -]*)\s*</g;
-  const PROP =
-    /\b(?:title|label|placeholder|aria-label|description|tooltip|emptyText|confirmLabel|cancelLabel)=\s*"([A-Z][^"]*[a-z][^"]*)"/g;
-  let total = 0;
-  for (const file of changed) {
-    let text;
-    try {
-      text = readFileSync(join(ROOT, file), "utf8");
-    } catch {
-      continue;
-    }
-    const hits = new Set();
-    for (const m of text.matchAll(JSX_TEXT)) if (m[1].trim().length > 1) hits.add(m[1].trim());
-    for (const m of text.matchAll(PROP)) hits.add(m[1]);
-    if (hits.size === 0) continue;
-    total += hits.size;
-    console.log(`${file}: ${[...hits].map((h) => JSON.stringify(h)).join(", ")}`);
-  }
-  console.log(`unwrapped candidates: ${total} in ${changed.length} changed .tsx files`);
-  process.exit(0);
-}
-
-const jsonAt = process.argv.indexOf("--json");
-if (jsonAt !== -1 && process.argv[jsonAt + 1]) {
-  writeFileSync(process.argv[jsonAt + 1], JSON.stringify(report, null, 2));
-}
-for (const app of ["web", "mobile"]) {
-  console.log(`${app}: ${report[app].length} untranslated`);
-  for (const { key, files } of report[app]) console.log(`  ${JSON.stringify(key)}  ${files[0]}`);
+for (const app of APPS) {
+  console.log(`${app}: ${report[app].length} to translate`);
+  for (const entry of report[app].slice(0, 20)) console.log(`  ${entry.key} ${text(entry.en)}`);
 }

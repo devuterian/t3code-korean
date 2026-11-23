@@ -1,5 +1,6 @@
+import { useGT } from "gt-react";
+
 import { cn } from "../lib/utils";
-import { useTranslate } from "../i18n/translate";
 import {
   CYCLE_SWITCHER_MODE,
   resolveCycleSwitcherOffsetForIndex,
@@ -9,11 +10,8 @@ import { useCycleSwitcherController, useCycleSwitcherSession } from "./useCycleS
 import { useCycleSwitcherEntries } from "./useCycleSwitcherEntries";
 
 /**
- * Hold-to-cycle switcher for the OS-style overlay. `Option+Tab` cycles whole
- * projects and `Ctrl+Tab` cycles threads within the current project; each
- * further Tab steps, Shift+Tab reverses, and releasing the modifier opens the
- * highlighted item. Both lists are ordered like the sidebar with the current
- * item first.
+ * Hold-to-cycle overlay: `Option+Tab` cycles projects, `Ctrl+Tab` cycles threads in the current
+ * project, Shift+Tab reverses, and releasing the modifier opens the highlighted item.
  */
 export function CycleSwitcher() {
   const controller = useCycleSwitcherController();
@@ -51,7 +49,7 @@ function OpenCycleSwitcher({
   closeSwitcher,
   commitModifiersReleased,
 }: OpenCycleSwitcherProps) {
-  const t = useTranslate();
+  const gt = useGT();
   const liveEntries = useCycleSwitcherEntries(mode);
   const { entries, activeIndex } = useCycleSwitcherSession({
     liveEntries,
@@ -67,7 +65,7 @@ function OpenCycleSwitcher({
 
   return (
     <div
-      aria-label={isThreadMode ? t("Switch thread") : t("Switch project")}
+      aria-label={isThreadMode ? gt("Switch thread") : gt("Switch project")}
       className="fixed inset-0 z-100 flex flex-col items-center justify-center gap-3 p-6"
       data-cycle-switcher={mode}
       onMouseDown={(event) => {
@@ -78,8 +76,8 @@ function OpenCycleSwitcher({
       role="dialog"
     >
       <div className="max-w-[92vw] truncate rounded-full bg-popover/95 px-3.5 py-1 text-xs font-medium text-popover-foreground shadow-lg backdrop-blur-md">
-        {activeEntry ? activeEntry.label : t("Nothing to switch to")}
-        {activeEntry?.isCurrent ? ` · ${t("Current")}` : ""}
+        {activeEntry ? activeEntry.label : gt("Nothing to switch to")}
+        {activeEntry?.isCurrent ? ` · ${gt("Current")}` : ""}
       </div>
       <div
         className={cn(
@@ -95,7 +93,7 @@ function OpenCycleSwitcher({
       >
         {entries.length === 0 ? (
           <p className="px-6 py-4 text-sm text-muted-foreground">
-            {isThreadMode ? t("No active threads in this project.") : t("No projects yet.")}
+            {isThreadMode ? gt("No active threads in this project.") : gt("No projects yet.")}
           </p>
         ) : (
           entries.map((entry, index) => {
@@ -142,7 +140,7 @@ function OpenCycleSwitcher({
                     </span>
                     {entry.isCurrent ? (
                       <span className="text-3xs shrink-0 rounded-full bg-foreground/10 px-1.5 py-0.5 font-medium uppercase tracking-wide">
-                        {t("Current")}
+                        {gt("Current")}
                       </span>
                     ) : null}
                   </>
@@ -161,7 +159,9 @@ function OpenCycleSwitcher({
           })
         )}
       </div>
-      <div className="text-2xs text-muted-foreground">{t("Release to switch · Esc to cancel")}</div>
+      <div className="text-2xs text-muted-foreground">
+        {gt("Release to switch · Esc to cancel")}
+      </div>
     </div>
   );
 }

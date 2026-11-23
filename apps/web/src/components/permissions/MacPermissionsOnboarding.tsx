@@ -1,6 +1,7 @@
 import type { MacPermissionId, MacPermissionStatuses } from "@t3tools/contracts";
 import { useLocation } from "@tanstack/react-router";
 import { BellIcon, CameraIcon, CircleCheckIcon, HardDriveIcon, MicIcon } from "lucide-react";
+import { msg, useGT, useMessages } from "gt-react";
 import { useEffect, useEffectEvent, useRef, useState, type ReactNode } from "react";
 
 import { APP_VERSION } from "../../branding";
@@ -10,7 +11,6 @@ import {
   useClientSettingsHydrated,
   updateClientSettings,
 } from "../../hooks/useSettings";
-import { useTranslate } from "../../i18n/translate";
 import { MacAccessibilityIcon, MacScreenRecordingIcon } from "../Icons";
 import { Button } from "../ui/button";
 import { Dialog } from "../ui/dialog";
@@ -33,33 +33,33 @@ const PERMISSION_COPY: Record<
   { readonly title: string; readonly description: string; readonly icon: ReactNode }
 > = {
   notifications: {
-    title: "Notifications",
-    description: "Get an alert when a turn finishes or a thread needs you.",
+    title: msg("Notifications"),
+    description: msg("Get an alert when a turn finishes or a thread needs you."),
     icon: <BellIcon className={LUCIDE_ICON_CLASS} aria-hidden="true" />,
   },
   microphone: {
-    title: "Microphone",
-    description: "Dictate messages by voice.",
+    title: msg("Microphone"),
+    description: msg("Dictate messages by voice."),
     icon: <MicIcon className={LUCIDE_ICON_CLASS} aria-hidden="true" />,
   },
   camera: {
-    title: "Camera",
-    description: "Let device and preview tools use the camera.",
+    title: msg("Camera"),
+    description: msg("Let device and preview tools use the camera."),
     icon: <CameraIcon className={LUCIDE_ICON_CLASS} aria-hidden="true" />,
   },
   "screen-recording": {
-    title: "Screen Recording",
-    description: "Capture other app windows with the window capture shortcut.",
+    title: msg("Screen Recording"),
+    description: msg("Capture other app windows with the window capture shortcut."),
     icon: <MacScreenRecordingIcon className={ICON_CLASS} />,
   },
   accessibility: {
-    title: "Accessibility",
-    description: "Include on-screen text in captures and let agents control apps.",
+    title: msg("Accessibility"),
+    description: msg("Include on-screen text in captures and let agents control apps."),
     icon: <MacAccessibilityIcon className={ICON_CLASS} />,
   },
   "full-disk-access": {
-    title: "Full Disk Access",
-    description: "Let agents read and edit files anywhere, including protected folders.",
+    title: msg("Full Disk Access"),
+    description: msg("Let agents read and edit files anywhere, including protected folders."),
     icon: <HardDriveIcon className={LUCIDE_ICON_CLASS} aria-hidden="true" />,
   },
 };
@@ -113,6 +113,7 @@ export function MacPermissionsOnboardingHost() {
     if (autoReason) setOpen({ reason: autoReason, statuses });
   });
 
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- Subscribes to open requests from outside the React tree.
   useEffect(() => {
     if (!canShowMacPermissionsOnboarding()) return;
     const listener = () => void openWith("manual");
@@ -122,10 +123,12 @@ export function MacPermissionsOnboardingHost() {
     };
   }, []);
 
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- Runs the one-time first-launch permission check once settings hydrate.
   useEffect(() => {
     if (!hydrated || autoChecked.current || pathname === "/welcome") return;
     if (!canShowMacPermissionsOnboarding()) return;
     autoChecked.current = true;
+    // oxlint-disable-next-line react/set-state-in-effect -- Opens the dialog once, after the native permission statuses resolve.
     void openWith("auto");
   }, [hydrated, pathname]);
 
@@ -148,7 +151,8 @@ function MacPermissionsOnboardingDialog({
   readonly initialStatuses: MacPermissionStatuses;
   readonly onClose: () => void;
 }) {
-  const t = useTranslate();
+  const gt = useGT();
+  const m = useMessages();
   const notificationMode = useClientSettings((settings) => settings.notificationMode);
   const permission = usePermissionStatus(async () => {
     const statuses = await window.desktopBridge?.getMacPermissions?.();
@@ -172,8 +176,8 @@ function MacPermissionsOnboardingDialog({
     if (typeof Notification === "undefined") return;
     // The first notification triggers macOS's own Allow prompt.
     if ((await Notification.requestPermission()) !== "granted") return;
-    const notification = new Notification(t("T3 Code notifications are on"), {
-      body: t("You'll get an alert like this when a turn finishes."),
+    const notification = new Notification(gt("T3 Code notifications are on"), {
+      body: gt("You'll get an alert like this when a turn finishes."),
       silent: true,
     });
     notification.addEventListener("click", () => window.focus());
@@ -221,6 +225,7 @@ function MacPermissionsOnboardingDialog({
     if (!SETTINGS_PANE_PERMISSIONS.has(current)) await advanceFrom(nextAsked);
   };
 
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- Advances the permission walk when macOS reports a grant.
   useEffect(() => {
     if (walk?.current && statuses[walk.current] === "granted") void advance(walk.asked);
   }, [statuses, walk]);
@@ -252,12 +257,16 @@ function MacPermissionsOnboardingDialog({
     >
       <WizardPopup>
         <WizardHeader
-          title={t("Allow T3 Code permissions")}
-          description={t(
+          title={gt("Allow T3 Code permissions")}
+          description={
             reason === "lost"
-              ? "Some permissions were turned off, often after an app update. Allow them again to keep everything working."
-              : "Allow these now so agents and capture don't stop to ask later. You can change them anytime in System Settings.",
-          )}
+              ? gt(
+                  "Some permissions were turned off, often after an app update. Allow them again to keep everything working.",
+                )
+              : gt(
+                  "Allow these now so agents and capture don't stop to ask later. You can change them anytime in System Settings.",
+                )
+          }
         />
         <WizardPanel>
           <div className="space-y-2 text-sm">
@@ -268,24 +277,24 @@ function MacPermissionsOnboardingDialog({
                 <div key={id} className="flex items-center gap-3 rounded-lg border px-3 py-2">
                   {copy.icon}
                   <div className="min-w-0 flex-1">
-                    <p className="font-medium">{t(copy.title)}</p>
+                    <p className="font-medium">{m(copy.title)}</p>
                     <p className="text-xs text-muted-foreground">
-                      {t(
-                        waitingOn === id
-                          ? "Drag T3 Code into the list in System Settings, or turn on its switch."
-                          : copy.description,
-                      )}
+                      {waitingOn === id
+                        ? gt(
+                            "Drag T3 Code into the list in System Settings, or turn on its switch.",
+                          )
+                        : m(copy.description)}
                     </p>
                   </div>
                   {status === "granted" ? (
                     id === "notifications" ? (
                       <Button size="xs" variant="ghost" onClick={() => void request(id)}>
-                        {t("Open settings")}
+                        {gt("Open settings")}
                       </Button>
                     ) : (
                       <span role="status" className="flex items-center gap-1 text-xs text-success">
                         <CircleCheckIcon className="size-4" aria-hidden="true" />
-                        {t("Allowed")}
+                        {gt("Allowed")}
                       </span>
                     )
                   ) : (
@@ -295,7 +304,7 @@ function MacPermissionsOnboardingDialog({
                       disabled={busy !== null}
                       onClick={() => void request(id)}
                     >
-                      {t(status === "denied" ? "Open settings" : "Allow")}
+                      {status === "denied" ? gt("Open settings") : gt("Allow")}
                     </Button>
                   )}
                 </div>
@@ -303,7 +312,7 @@ function MacPermissionsOnboardingDialog({
             })}
             {permission.error ? (
               <p role="status" className="text-xs text-muted-foreground">
-                {t(permission.error)}
+                {permission.error}
               </p>
             ) : null}
           </div>
@@ -312,18 +321,18 @@ function MacPermissionsOnboardingDialog({
           leading={
             allGranted ? null : (
               <Button variant="ghost" onClick={close}>
-                {t("Later")}
+                {gt("Later")}
               </Button>
             )
           }
         >
           {allGranted ? (
-            <Button onClick={close}>{t("Done")}</Button>
+            <Button onClick={close}>{gt("Done")}</Button>
           ) : waitingOn ? (
-            <Button onClick={() => walk && void advance(walk.asked)}>{t("Next")}</Button>
+            <Button onClick={() => walk && void advance(walk.asked)}>{gt("Next")}</Button>
           ) : (
             <Button disabled={busy !== null} onClick={() => void advance(new Set())}>
-              {t("Allow all")}
+              {gt("Allow all")}
             </Button>
           )}
         </WizardFooter>

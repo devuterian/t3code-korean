@@ -1,6 +1,8 @@
+import { msg, T, useGT, useMessages } from "gt-react-native";
 import { NativeScrollView } from "../../native/NativeScrollViewMarker";
 import { LegendList } from "@legendapp/list/react-native";
 import { useNavigation } from "@react-navigation/native";
+import { scheduledTaskWorktreeBaseRef } from "@t3tools/client-runtime/scheduled-task-worktree";
 import { isListedThreadLineage } from "@t3tools/contracts";
 import * as Haptics from "expo-haptics";
 import { useMemo, useState } from "react";
@@ -21,7 +23,6 @@ import { useDebouncedValue, usePaginatedBranches, useThreadSearch } from "../../
 import { BranchPickerScreen } from "../threads/NewTaskContextPickerScreens";
 import { ThreadSettingsPickerScreen } from "../threads/ThreadSettingsSheet";
 import { SettingsScreen } from "./components/SettingsScreen";
-import { useTranslate } from "../../i18n/translate";
 import {
   NEW_THREAD_DESTINATION_LABEL,
   useScheduledTaskDestinationLabel,
@@ -30,11 +31,11 @@ import {
 import { moveDraftToThread, unbindDraftFromThread } from "./scheduledTaskDraft";
 
 function MissingTaskDraft() {
-  const t = useTranslate();
+  const gt = useGT();
   return (
-    <SettingsScreen title={t("Scheduled task")}>
+    <SettingsScreen title={gt("Scheduled task")}>
       <Text className="p-5 text-base text-foreground-muted">
-        {t("Open a scheduled task form first.")}
+        <T>Open a scheduled task form first.</T>
       </Text>
     </SettingsScreen>
   );
@@ -126,7 +127,7 @@ export function ScheduledTaskModelPickerRouteScreen() {
 }
 
 export function ScheduledTaskBranchPickerRouteScreen() {
-  const t = useTranslate();
+  const gt = useGT();
   const navigation = useNavigation();
   const { editor, setEditor } = useScheduledTaskEditor();
   const projects = useProjects();
@@ -150,16 +151,20 @@ export function ScheduledTaskBranchPickerRouteScreen() {
 
   return (
     <BranchPickerScreen
-      title={t("Base branch")}
+      title={gt("Base branch")}
       project={project}
       branches={visibleBranches}
-      selectedBranchName={editor.draft.baseRef}
+      selectedBranchName={
+        editor.draft.baseRef.trim() || debouncedQuery.trim() || branches.data === null
+          ? editor.draft.baseRef
+          : scheduledTaskWorktreeBaseRef("", branches.refs)
+      }
       query={query}
       onQueryChange={setQuery}
       loading={
         query.trim() !== debouncedQuery.trim() || (branches.isPending && branches.data === null)
       }
-      error={project ? branches.error : t("This project is no longer available.")}
+      error={project ? branches.error : gt("This project is no longer available.")}
       refreshing={branches.isFetchingNextPage}
       hasMore={branches.data?.nextCursor != null}
       onRefresh={branches.refresh}
@@ -187,9 +192,11 @@ export function ScheduledTaskBranchPickerRouteScreen() {
   );
 }
 
-const THREAD_SEARCH_PLACEHOLDER = "Search threads, including older ones";
+const THREAD_SEARCH_PLACEHOLDER = msg("Search threads, including older ones");
 
 export function ScheduledTaskThreadPickerRouteScreen() {
+  const gt = useGT();
+  const m = useMessages();
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const { editor, setEditor } = useScheduledTaskEditor();
@@ -199,13 +206,12 @@ export function ScheduledTaskThreadPickerRouteScreen() {
   const currentLabel = useScheduledTaskDestinationLabel(environmentId, threadId);
   const shells = useVisibleThreadShells();
   const [query, setQuery] = useState("");
-  const t = useTranslate();
   const search = {
     value: query,
     onChangeText: setQuery,
-    placeholder: t(THREAD_SEARCH_PLACEHOLDER),
-    accessibilityLabel: t("Search threads"),
-    clearAccessibilityLabel: t("Clear thread search"),
+    placeholder: m(THREAD_SEARCH_PLACEHOLDER),
+    accessibilityLabel: gt("Search threads"),
+    clearAccessibilityLabel: gt("Clear thread search"),
     mode: "inline" as const,
     compactToolbar: true,
   };
@@ -223,7 +229,7 @@ export function ScheduledTaskThreadPickerRouteScreen() {
   const rows = [
     ...(needle
       ? []
-      : [{ key: "new-thread", title: t(NEW_THREAD_DESTINATION_LABEL), thread: null }]),
+      : [{ key: "new-thread", title: m(NEW_THREAD_DESTINATION_LABEL), thread: null }]),
     ...(threadId !== null && currentLabel.toLocaleLowerCase().includes(needle)
       ? [{ key: threadId, title: currentLabel, thread: null }]
       : []),
@@ -240,14 +246,14 @@ export function ScheduledTaskThreadPickerRouteScreen() {
       .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
       .map((thread) => ({
         key: thread.id,
-        title: thread.title.trim() || t("Untitled thread"),
+        title: thread.title.trim() || gt("Untitled thread"),
         thread,
       })),
   ];
   const selectedKey = threadId ?? (editor.draft.threadMode === "new_thread" ? "new-thread" : null);
 
   return (
-    <SettingsScreen title={t("Destination")} search={search}>
+    <SettingsScreen title={gt("Destination")} search={search}>
       <LegendList
         renderScrollComponent={NativeScrollView}
         data={rows}
@@ -268,10 +274,9 @@ export function ScheduledTaskThreadPickerRouteScreen() {
             ? searchToolbarInset + 16
             : Math.max(insets.bottom, 16) + 16,
         }}
-
         ListEmptyComponent={
           <Text className="p-5 text-center text-sm text-foreground-muted">
-            {t("No matching threads")}
+            <T>No matching threads</T>
           </Text>
         }
         renderItem={({ item, index }) => (

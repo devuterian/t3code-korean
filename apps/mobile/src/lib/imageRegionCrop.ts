@@ -1,8 +1,9 @@
 import { imageRegionPixels, type ImageRegion } from "@t3tools/client-runtime/image-region-citation";
 import { PROVIDER_SEND_TURN_MAX_IMAGE_BYTES } from "@t3tools/contracts";
 import type { ImageRef } from "expo-image-manipulator";
+import { msg } from "gt-react-native";
 
-import { translate } from "../i18n/translate";
+import { m } from "../i18n/messages";
 import { estimateBase64ByteSize } from "./base64";
 import type { DraftComposerImageAttachment } from "./composerImages";
 import { uuidv4 } from "./uuid";
@@ -44,7 +45,7 @@ export async function cropImageRegionAttachment(input: {
   return savePngAttachment(
     crop,
     input.name,
-    translate("The region is too large to attach. Select a smaller region."),
+    m(msg("The region is too large to attach. Select a smaller region.")),
   );
 }
 
@@ -76,7 +77,7 @@ export async function imagePointAttachment(input: {
   return savePngAttachment(
     image,
     input.name,
-    translate("The image is too large to attach. Select a region instead."),
+    m(msg("The image is too large to attach. Select a region instead.")),
   );
 }
 
@@ -88,7 +89,7 @@ async function savePngAttachment(
   const { SaveFormat } = await import("expo-image-manipulator");
   try {
     const saved = await image.saveAsync({ format: SaveFormat.PNG, base64: true });
-    if (!saved.base64) throw new Error(translate("The cropped region has no bytes."));
+    if (!saved.base64) throw new Error(m(msg("The cropped region has no bytes.")));
     const sizeBytes = estimateBase64ByteSize(saved.base64);
     if (sizeBytes <= 0 || sizeBytes > PROVIDER_SEND_TURN_MAX_IMAGE_BYTES) {
       throw new Error(tooLargeMessage);

@@ -1,10 +1,11 @@
 import type { ChatFileAttachment } from "@t3tools/contracts";
 import type { Directory } from "expo-file-system";
 import type { SharingOptions } from "expo-sharing";
+import { msg } from "gt-react-native";
 
+import { m } from "../i18n/messages";
 import { beginForegroundHandoff } from "./foreground-handoff";
 import { uuidv4 } from "./uuid";
-import { translate } from "../i18n/translate";
 
 const ATTACHMENT_DOWNLOAD_DIRECTORY = "t3-attachment-downloads";
 const DOWNLOAD_RETENTION_MS = 24 * 60 * 60_000;
@@ -68,7 +69,7 @@ async function availableSharing(signal: AbortSignal) {
   const canShare = await Sharing.isAvailableAsync();
   if (signal.aborted) return null;
   if (!canShare) {
-    throw new Error(translate("Saving and sharing files is unavailable on this device."));
+    throw new Error(m(msg("Saving and sharing files is unavailable on this device.")));
   }
   return Sharing;
 }
@@ -141,7 +142,7 @@ async function createCachedAttachmentFile(attachment: AttachmentFileMetadata) {
           shared = true;
         } catch (cause) {
           if (!signal.aborted) {
-            throw new Error(translate("Could not open the share sheet. Try again."), { cause });
+            throw new Error(m(msg("Could not open the share sheet. Try again.")), { cause });
           }
         } finally {
           endHandoff();
@@ -164,10 +165,8 @@ async function createCachedAttachmentFile(attachment: AttachmentFileMetadata) {
 export function nativeViewerErrorMessage(cause: unknown): string {
   const text = cause instanceof Error ? cause.message : String(cause);
   return /ActivityNotFound|cannot be previewed/i.test(text)
-    ? translate(
-        "No app on this device can show this format. Save or share it to open it elsewhere.",
-      )
-    : translate("The file could not be opened. Check the connection and try again.");
+    ? m(msg("No app on this device can show this format. Save or share it to open it elsewhere."))
+    : m(msg("The file could not be opened. Check the connection and try again."));
 }
 
 export async function openAttachmentInViewer(input: {
@@ -228,8 +227,10 @@ export async function downloadAttachmentForPreview(input: {
     cached.preview.dispose();
     if (input.signal.aborted) return null;
     throw new Error(
-      translate("Could not download the attachment. Check the connection and try again."),
-      { cause },
+      m(msg("Could not download the attachment. Check the connection and try again.")),
+      {
+        cause,
+      },
     );
   }
 }
@@ -265,7 +266,7 @@ export async function shareLocalAttachment(input: {
       await new File(input.uri).copy(cached.file);
     } catch (cause) {
       if (input.signal.aborted) return;
-      throw new Error(translate("Could not prepare the attachment for sharing."), { cause });
+      throw new Error(m(msg("Could not prepare the attachment for sharing.")), { cause });
     }
     if (!input.signal.aborted) {
       await cached.preview.share(input.signal, input.sourceIdentifier);

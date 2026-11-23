@@ -13,6 +13,7 @@ import {
 import { vi } from "vite-plus/test";
 import * as Effect from "effect/Effect";
 import * as Deferred from "effect/Deferred";
+import * as Fiber from "effect/Fiber";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import * as References from "effect/References";
@@ -157,10 +158,9 @@ const makeHarness = Effect.fn("makeProviderAccountSyncHarness")(function* (
   }
   const command = createProviderAccountSyncCommand(runtime);
   const sync = (request: ProviderAccountSyncRequest) =>
-    Effect.promise(() => command.run(registry, request)).pipe(
-      Effect.map((result) => {
-        if (!AsyncResult.isSuccess(result)) throw new Error("sync must settle every cell");
-        return result.value.cells.map((cell) => {
+    command.run(registry, request).pipe(
+      Effect.map((report) => {
+        return report.cells.map((cell) => {
           const key = `${cell.instanceId}->${cell.destinationEnvironmentId}`;
           switch (cell.status) {
             case "synced":
@@ -218,15 +218,29 @@ describe("providerAccountSync command", () => {
   it.effect("coalesces an identical double submit but runs a different request on its own", () =>
     Effect.scoped(
       Effect.gen(function* () {
-        const h = yield* makeHarness({ [laptop]: {}, [studio]: {}, [server]: {} });
-        const [codexReport, cursorReport, repeated] = yield* Effect.all(
-          [
-            h.sync(request([workCodex], [studio])),
-            h.sync(request([defaultCursor], [studio])),
-            h.sync(request([workCodex], [studio])),
-          ],
-          { concurrency: "unbounded" },
-        );
+        // Hold every export open so the identical submit arrives while the first is in flight.
+        const release = yield* Deferred.make<void>();
+        const h = yield* makeHarness({
+          [laptop]: {
+            exportAccount: (instanceId) =>
+              Deferred.await(release).pipe(Effect.as(exportOf(instanceId))),
+          },
+          [studio]: {},
+          [server]: {},
+        });
+        const fibers = [
+          yield* Effect.forkChild(h.sync(request([workCodex], [studio])), {
+            startImmediately: true,
+          }),
+          yield* Effect.forkChild(h.sync(request([defaultCursor], [studio])), {
+            startImmediately: true,
+          }),
+          yield* Effect.forkChild(h.sync(request([workCodex], [studio])), {
+            startImmediately: true,
+          }),
+        ];
+        yield* Deferred.succeed(release, undefined);
+        const [codexReport, cursorReport, repeated] = yield* Fiber.joinAll(fibers);
         expect(codexReport).toEqual([`${workCodex}->${studio} synced created`]);
         expect(cursorReport).toEqual([`${defaultCursor}->${studio} synced created`]);
         expect(repeated).toEqual(codexReport);
@@ -362,9 +376,13 @@ describe("providerAccountSync command", () => {
           },
           [studio]: {},
         });
-        void h.command.run(h.registry, request([workCodex], [studio]));
+        // The command runs on its caller's fiber, so interrupting that fiber cancels it.
+        const run = yield* Effect.forkChild(
+          Effect.exit(h.command.run(h.registry, request([workCodex], [studio]))),
+          { startImmediately: true },
+        );
         yield* Deferred.await(exportStarted);
-        h.registry.dispose();
+        yield* Fiber.interrupt(run);
         yield* Deferred.await(exportInterrupted);
         yield* Effect.yieldNow;
         expect(h.calls).toEqual([`export:${laptop}:${workCodex}`]);

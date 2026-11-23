@@ -1,7 +1,9 @@
+import { T, useGT } from "gt-react-native";
 import { SheetHeader } from "../../../components/ui/SheetHeader";
 import { useNavigation } from "@react-navigation/native";
 import { useState } from "react";
-import { Linking, Pressable, View } from "react-native";
+import { Pressable, View } from "react-native";
+import { tryOpenExternalUrl } from "../../../lib/openExternalUrl";
 import { WebView } from "react-native-webview";
 
 import { Button } from "../../../components/ui/Button";
@@ -10,7 +12,6 @@ import { AppText as Text } from "../../../components/ui/AppText";
 import { LoadingStrip } from "../../../components/ui/LoadingStrip";
 import { SymbolView } from "../../../components/ui/AppSymbol";
 import { isLegalDocumentUrl, LEGAL_URL } from "../lib/legal-document-url";
-import { useTranslate } from "../../../i18n/translate";
 import { webViewDecelerationRate } from "../../../lib/webViewDecelerationRate";
 
 interface SettingsLegalDocumentRouteScreenProps {
@@ -22,7 +23,7 @@ export function SettingsLegalDocumentRouteScreen({
   documentName,
   documentUrl,
 }: SettingsLegalDocumentRouteScreenProps) {
-  const t = useTranslate();
+  const gt = useGT();
   const [reloadKey, setReloadKey] = useState(0);
   const [loadProgress, setLoadProgress] = useState(0);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -32,20 +33,20 @@ export function SettingsLegalDocumentRouteScreen({
   const headerOptions = (
     <SheetHeader
       title={documentName}
-      accessibilityLabel={t("Close legal document")}
+      accessibilityLabel={gt("Close legal document")}
       onClose={() => navigation.goBack()}
       actions={[
         {
-          accessibilityLabel: t("Open legal documents in external browser"),
+          accessibilityLabel: gt("Open legal documents in external browser"),
           icon: "safari",
-          onPress: () => void Linking.openURL(safeExternalUrl).catch(() => undefined),
+          onPress: () => void tryOpenExternalUrl(safeExternalUrl),
         },
       ]}
     />
   );
 
   const openExternalUrl = (url: string) => {
-    void Linking.openURL(url).catch(() => undefined);
+    void tryOpenExternalUrl(url);
   };
   if (loadError) {
     return (
@@ -61,7 +62,7 @@ export function SettingsLegalDocumentRouteScreen({
           />
           <View className="items-center gap-2">
             <Text className="text-center font-t3-bold text-lg text-foreground">
-              {t("Couldn't load the {document}", { document: documentName.toLowerCase() })}
+              {gt("Couldn't load the {document}", { document: documentName.toLowerCase() })}
             </Text>
             <Text selectable className="text-center text-sm leading-normal text-foreground-muted">
               {loadError}
@@ -69,7 +70,7 @@ export function SettingsLegalDocumentRouteScreen({
           </View>
           <View className="w-full max-w-[320px] gap-2">
             <Button
-              label={t("Try Again")}
+              label={gt("Try Again")}
               tone="contrast"
               fullWidth
               onPress={() => {
@@ -83,7 +84,7 @@ export function SettingsLegalDocumentRouteScreen({
               className="items-center rounded-xl px-4 py-3 active:bg-foreground/5"
             >
               <Text className="font-t3-medium text-base text-foreground-muted">
-                {t("Open in Browser")}
+                <T>Open in Browser</T>
               </Text>
             </Pressable>
           </View>
@@ -132,13 +133,13 @@ export function SettingsLegalDocumentRouteScreen({
         }}
         onError={(event) => {
           setLoadProgress(0);
-          setLoadError(event.nativeEvent.description || t("The page could not be loaded."));
+          setLoadError(event.nativeEvent.description || gt("The page could not be loaded."));
         }}
         onHttpError={(event) => {
           if (!isLegalDocumentUrl(event.nativeEvent.url)) return;
           setLoadProgress(0);
           setLoadError(
-            t("The server returned status {status}.", { status: event.nativeEvent.statusCode }),
+            gt("The server returned status {status}.", { status: event.nativeEvent.statusCode }),
           );
         }}
         renderLoading={() => (

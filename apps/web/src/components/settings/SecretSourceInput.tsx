@@ -6,15 +6,16 @@ import {
   type SecretProviderKind,
 } from "@t3tools/contracts";
 import { builtInSecretProviderDefinitions } from "@t3tools/secret-provider-definitions/registry";
+import { invalidSecretReferenceText } from "@t3tools/client-runtime/secret-request";
+import { hasFeatureFlag } from "@t3tools/client-runtime/state/server";
 import { useAtomValue } from "@effect/atom-react";
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
+import { useGT, useMessages } from "gt-react";
 import { AlertTriangleIcon, CheckIcon, KeyRoundIcon, RefreshCwIcon, TypeIcon } from "lucide-react";
 import { useState, type ComponentProps, type ComponentType, type ReactNode } from "react";
 
-import { isSecretsFeatureEnabled } from "../../env";
 import { useEnvironmentSettings } from "../../hooks/useSettings";
-import { useTranslate } from "../../i18n/translate";
 import { OnePasswordIcon } from "../Icons";
 import { serverEnvironment } from "../../state/server";
 import { useAtomCommand } from "../../state/use-atom-command";
@@ -41,9 +42,9 @@ export function useSecretSources(environmentId: EnvironmentId): ReadonlyArray<Se
   const providers = useEnvironmentSettings(environmentId, (settings) => settings.secretProviders);
   const supported = useAtomValue(
     serverEnvironment.configValueAtom(environmentId),
-    (config) => config?.secretReferences === true,
+    (config) => hasFeatureFlag(config, "secretProviders") && config?.secretReferences === true,
   );
-  if (!isSecretsFeatureEnabled || !supported) return NO_SECRET_SOURCES;
+  if (!supported) return NO_SECRET_SOURCES;
   return (Object.entries(providers) as Array<[SecretProviderId, SecretProviderConfig]>)
     .filter(([, config]) => classifySecretProvider(config).kind !== "unsupported")
     .map(([id, config]) => ({ id, kind: config.kind, label: config.label }));
@@ -73,11 +74,13 @@ export function SecretSourceSelect(props: {
   readonly disabled?: boolean;
   readonly onValueChange: (provider: SecretProviderId | null) => void;
 }) {
-  const t = useTranslate();
+  const gt = useGT();
   const { value, sources } = props;
   const known = value === null || sources.some((source) => source.id === value);
   const title =
-    value === null ? t("Value") : (sources.find((source) => source.id === value)?.label ?? value);
+    value === null
+      ? gt("Value", { $context: "secret source: a value typed in directly" })
+      : (sources.find((source) => source.id === value)?.label ?? value);
   return (
     <Select
       value={value ?? STORED_VALUE}
@@ -91,7 +94,7 @@ export function SecretSourceSelect(props: {
       <SelectTrigger
         size="sm"
         className="w-auto min-w-0 shrink-0"
-        aria-label={t("{label} source").replace("{label}", () => props.label)}
+        aria-label={gt("{label} source", { label: props.label })}
         title={title}
       >
         <SelectValue>
@@ -100,7 +103,10 @@ export function SecretSourceSelect(props: {
       </SelectTrigger>
       <SelectPopup align="start" alignItemWithTrigger={false}>
         <SelectItem value={STORED_VALUE}>
-          <SourceLabel icon={TypeIcon} label={t("Value")} />
+          <SourceLabel
+            icon={TypeIcon}
+            label={gt("Value", { $context: "secret source: a value typed in directly" })}
+          />
         </SelectItem>
         {sources.map((source) => (
           <SelectItem key={source.id} value={source.id}>
@@ -129,7 +135,7 @@ function SecretCheckButton(props: {
   readonly label: string;
   readonly disabled?: boolean | undefined;
 }) {
-  const t = useTranslate();
+  const gt = useGT();
   const { environmentId, secret } = props;
   const supported = useAtomValue(
     serverEnvironment.configValueAtom(environmentId),
@@ -145,28 +151,27 @@ function SecretCheckButton(props: {
   const state = check?.secretKey === secretKey ? check.state : undefined;
 
   const run = async () => {
-    setCheck({ secretKey, state: { status: "checking" } });
+    const pending = { secretKey, state: { status: "checking" } } as const;
+    setCheck(pending);
     const response = await checkSecretSource({ environmentId, input: { source: secret } });
     const next: SecretCheck =
       response._tag !== "Success"
-        ? { status: "failed", detail: t("Could not reach the server") }
+        ? { status: "failed", detail: gt("Could not reach the server") }
         : response.value._tag === "Resolved"
           ? { status: "resolved" }
           : { status: "failed", detail: response.value.detail };
-    setCheck((previous) =>
-      previous?.secretKey === secretKey ? { secretKey, state: next } : previous,
-    );
+    setCheck((previous) => (previous === pending ? { secretKey, state: next } : previous));
   };
 
   if (!supported) return null;
   const description = !canCheck
-    ? t("You cannot check secrets on this environment")
+    ? gt("You cannot check secrets on this environment")
     : state === undefined
-      ? t("Check that the secret resolves")
+      ? gt("Check that the secret resolves")
       : state.status === "checking"
-        ? t("Checking the secret")
+        ? gt("Checking the secret")
         : state.status === "resolved"
-          ? t("Secret resolved")
+          ? gt("Secret resolved")
           : state.detail;
   return (
     <Tooltip>
@@ -181,9 +186,9 @@ function SecretCheckButton(props: {
               onClick={() => void run()}
               aria-label={
                 state?.status === "failed"
-                  ? `${props.label} ${t("failed")}: ${state.detail}`
+                  ? gt("{label} failed: {detail}", { label: props.label, detail: state.detail })
                   : state?.status === "resolved"
-                    ? `${props.label} ${t("resolved")}`
+                    ? gt("{label} resolved", { label: props.label })
                     : props.label
               }
             >
@@ -230,8 +235,9 @@ export function SecretSourceInput({
   children,
   ...rest
 }: SecretSourceInputProps) {
-  const t = useTranslate();
   // A provider picked here applies once a reference for it is committed.
+  const gt = useGT();
+  const messages = useMessages();
   const [pendingProvider, setPendingProvider] = useState<SecretProviderId | null>(null);
   const [rejectedReference, setRejectedReference] = useState<string | null>(null);
   const secret = typeof value === "string" ? undefined : value;
@@ -240,7 +246,7 @@ export function SecretSourceInput({
   const reference = secret !== undefined && secret.provider === provider ? secret.reference : "";
   const providerSource = sources.find((source) => source.id === provider);
   const definition = providerSource && builtInSecretProviderDefinitions.find(providerSource.kind);
-  const label = input["aria-label"] ?? t("Secret");
+  const label = input["aria-label"] ?? gt("Secret");
   const source =
     sources.length === 0 && provider === null ? null : (
       <SecretSourceSelect
@@ -297,7 +303,7 @@ export function SecretSourceInput({
             autoComplete="off"
             placeholder={definition?.referencePlaceholder}
             spellCheck={false}
-            aria-label={t("{label} reference").replace("{label}", () => label)}
+            aria-label={gt("{label} reference", { label })}
             aria-invalid={rejectedReference !== null}
           />
           {environmentId !== undefined &&
@@ -307,14 +313,16 @@ export function SecretSourceInput({
             <SecretCheckButton
               environmentId={environmentId}
               secret={secret}
-              label={t("Check {label}").replace("{label}", () => label)}
+              label={gt("Check {label}", { label })}
               disabled={input.disabled}
             />
           ) : null}
         </div>
         {rejectedReference !== null ? (
           <p className="text-2xs text-destructive">
-            {t(definition?.invalidReferenceMessage ?? "Enter a valid secret reference.")}
+            {definition
+              ? invalidSecretReferenceText(definition.invalidReferenceMessage, messages)
+              : gt("Enter a valid secret reference.")}
           </p>
         ) : null}
       </div>

@@ -4,7 +4,8 @@ import { installThreadOutboxDelivery } from "./state/threadOutboxDelivery";
 import * as Linking from "expo-linking";
 import * as SplashScreen from "expo-splash-screen";
 import { requireNativeModule } from "expo";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useLocale } from "gt-react-native";
+import { useEffect, useRef, useState } from "react";
 import { Platform, StatusBar } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
@@ -39,6 +40,7 @@ import {
 } from "./features/agent-awareness/notificationNavigation";
 import {
   installAppShortcuts,
+  republishAppShortcuts,
   recordAppShortcutNavigationState,
 } from "./features/shortcuts/appShortcutsRuntime";
 import {
@@ -46,9 +48,9 @@ import {
   installAppearanceRuntime,
   useAppearancePreferences,
 } from "./features/settings/appearance/AppearancePreferencesProvider";
-import { InterfaceLanguageSync } from "./i18n/InterfaceLanguageSync";
-import { useInterfaceLanguage } from "./i18n/translate";
 import { RootStack, rootPathnameFromState, workspaceLocationFromState } from "./Stack";
+import { I18nProvider } from "./i18n/I18nProvider";
+import { DEFAULT_LOCALE } from "./i18n/locales";
 import { appAtomRegistry } from "./state/atom-registry";
 import { subscribeComposerDraftModelReconciliation } from "./state/use-composer-drafts";
 import { environmentThreadShells, threadEnvironment } from "./state/threads";
@@ -261,12 +263,27 @@ function SplashScreenCoordinator() {
   return null;
 }
 
+function QuickActionsLanguage() {
+  const locale = useLocale();
+  // Shortcuts published before the catalog loaded are English.
+  const publishedLocale = useRef(DEFAULT_LOCALE);
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- the launcher keeps quick action titles from the last publish, so a language switch republishes them
+  useEffect(() => {
+    if (Platform.OS !== "android" || publishedLocale.current === locale) return;
+    publishedLocale.current = locale;
+    republishAppShortcuts();
+  }, [locale]);
+  return null;
+}
+
 export default function App() {
   return (
     <RegistryContext.Provider value={appAtomRegistry}>
       <CloudAuthProvider>
         <AppearancePreferencesProvider>
-          <AppContent />
+          <I18nProvider>
+            <AppContent />
+          </I18nProvider>
         </AppearancePreferencesProvider>
       </CloudAuthProvider>
     </RegistryContext.Provider>
@@ -275,14 +292,7 @@ export default function App() {
 
 function AppContent() {
   const { themeAppearance } = useAppearancePreferences();
-  const baseNavigationTheme = useMobileNavigationTheme();
-  const interfaceLanguage = useInterfaceLanguage();
-  // Navigators re-evaluate screen option functions (translated header titles)
-  // when the theme context changes, so hand them a fresh object per language.
-  const navigationTheme = useMemo(
-    () => ({ ...baseNavigationTheme, interfaceLanguage }),
-    [baseNavigationTheme, interfaceLanguage],
-  );
+  const navigationTheme = useMobileNavigationTheme();
 
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- matches the Android navigation bar to the app theme, as StatusBar does for the status bar
   useEffect(() => {
@@ -295,7 +305,7 @@ function AppContent() {
   return (
     <>
       <SplashScreenCoordinator />
-      <InterfaceLanguageSync />
+      <QuickActionsLanguage />
       <SubscriptionUsageCoordinator />
       <ConnectDeviceApprovalCoordinator />
       <GestureHandlerRootView className="flex-1">

@@ -1,11 +1,12 @@
 import { LegendList, type LegendListRef } from "@legendapp/list/react-native";
-import { SheetHeader } from "../../components/ui/SheetHeader";
 import { useActiveThreadSort } from "./use-active-thread-sort";
+import { SheetHeader } from "../../components/ui/SheetHeader";
 import { appAtomRegistry } from "../../state/atom-registry";
 import { useAtomValue } from "@effect/atom-react";
 import type { EnvironmentThreadShell } from "@t3tools/client-runtime/state/shell";
 import { effectiveSnoozed } from "@t3tools/client-runtime/state/thread-settled";
 import { sortInboxThreadsByReturn } from "@t3tools/client-runtime/state/thread-inbox";
+import { msg, T, useGT, useMessages } from "gt-react-native";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { Animated, Modal, Pressable, useWindowDimensions, View } from "react-native";
 import { Gesture, GestureDetector, GestureHandlerRootView } from "react-native-gesture-handler";
@@ -14,7 +15,6 @@ import { threadDragGapOffset } from "./threadDragGap";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
 import { AppText as Text } from "../../components/ui/AppText";
-import { useTranslate } from "../../i18n/translate";
 import { SymbolView } from "../../components/ui/AppSymbol";
 import { scopedThreadKey } from "../../lib/scopedEntities";
 import { deriveThreadArrangementSizing } from "../../lib/layout";
@@ -66,6 +66,13 @@ type Drag = {
   destination: Destination | null;
 };
 
+const SECTION_LABELS = {
+  pinned: msg("Pinned", { $context: "thread list section" }),
+  active: msg("Active", { $context: "thread list section" }),
+  snoozed: msg("Snoozed", { $context: "thread list section" }),
+  settled: msg("Settled", { $context: "thread list section" }),
+} as const;
+
 function ArrangementRow(props: {
   height: number;
   offset: number;
@@ -94,13 +101,6 @@ function ArrangementRow(props: {
   );
 }
 
-const SECTION_LABELS = {
-  pinned: "Pinned",
-  active: "Active",
-  snoozed: "Snoozed",
-  settled: "Settled",
-} as const;
-
 function DragHandle(props: {
   title: string;
   disabled: boolean;
@@ -113,7 +113,7 @@ function DragHandle(props: {
   canMoveUp: boolean;
   canMoveDown: boolean;
 }) {
-  const t = useTranslate();
+  const gt = useGT();
   const latest = useRef(props);
   /* oxlint-disable react/refs -- The pan gesture captures its callbacks once per `disabled` change; they read the latest handlers when native gesture events fire. */
   latest.current = props;
@@ -138,15 +138,15 @@ function DragHandle(props: {
         collapsable={false}
         accessible
         accessibilityRole="adjustable"
-        accessibilityLabel={t("Reorder {title}", { title: props.title })}
-        accessibilityHint={t(
+        accessibilityLabel={gt("Reorder {title}", { title: props.title })}
+        accessibilityHint={gt(
           "Move up and Move down reorder within this section. Other actions move between sections.",
         )}
         accessibilityState={{ disabled: props.disabled }}
         accessibilityActions={[
           ...props.sectionActions,
-          ...(props.canMoveUp ? [{ name: "decrement", label: t("Move up") }] : []),
-          ...(props.canMoveDown ? [{ name: "increment", label: t("Move down") }] : []),
+          ...(props.canMoveUp ? [{ name: "decrement", label: gt("Move up") }] : []),
+          ...(props.canMoveDown ? [{ name: "increment", label: gt("Move down") }] : []),
         ]}
         onAccessibilityAction={({ nativeEvent }) => {
           if (props.disabled) return;
@@ -175,10 +175,9 @@ function DragHandle(props: {
   );
 }
 
-/** Shows the same section order as the thread list. Active placement is disabled
- * in message mode so a drag cannot overwrite the saved configured arrangement. */
 function ThreadArrangementSheet(props: { onClose: () => void }) {
-  const t = useTranslate();
+  const gt = useGT();
+  const m = useMessages();
   const { appearance } = useAppearancePreferences();
   const { fontScale } = useWindowDimensions();
   const { rowHeight, headerHeight } = deriveThreadArrangementSizing({
@@ -421,12 +420,12 @@ function ThreadArrangementSheet(props: { onClose: () => void }) {
             <SafeAreaView style={{ flex: 1 }}>
               <SheetHeader
                 presentation="inline"
-                title={t("Arrange threads")}
+                title={gt("Arrange threads")}
                 onClose={props.onClose}
-                accessibilityLabel={t("Close arrange threads")}
+                accessibilityLabel={gt("Close arrange threads")}
               />
               <Text className="px-5 pb-3 text-sm text-foreground-muted">
-                {t("Drag to reorder, pin, or settle. Changes save when you drop.")}
+                <T>Drag to reorder, pin, or settle. Changes save when you drop.</T>
               </Text>
               <View
                 onLayout={(event) => {
@@ -470,9 +469,8 @@ function ThreadArrangementSheet(props: { onClose: () => void }) {
                           label: string;
                         }>((section) => {
                           if (section === item.section) return [];
-                          const dragAction = threadDragAction(item.section, section);
-                          if (!dragAction) return [];
-                          const label = t(dragAction);
+                          const label = threadDragAction(item.section, section, m);
+                          if (!label) return [];
                           if (section === "settled")
                             return configLoaded ? [{ name: section, label }] : [];
                           if (
@@ -565,12 +563,15 @@ function ThreadArrangementSheet(props: { onClose: () => void }) {
                           >
                             <Text className="text-sm text-foreground-muted">
                               {olderSettledShelf.loading
-                                ? t("Loading")
+                                ? gt("Loading", { $context: "older threads are loading" })
                                 : olderSettledShelf.failed
-                                  ? t("Could not load older threads. Retry")
-                                  : t("Show more ({count} settled hidden)", {
-                                      count: settledCount - visibleSettled.length,
-                                    })}
+                                  ? gt("Could not load older threads. Retry")
+                                  : gt(
+                                      "{count, plural, one {Show more ({count} settled hidden)} other {Show more ({count} settled hidden)}}",
+                                      {
+                                        count: settledCount - visibleSettled.length,
+                                      },
+                                    )}
                             </Text>
                           </Pressable>
                         ) : (
@@ -584,11 +585,13 @@ function ThreadArrangementSheet(props: { onClose: () => void }) {
                             }}
                           >
                             <Text className="text-sm font-t3-semibold text-foreground-muted">
-                              {t(SECTION_LABELS[item.section])} (
-                              {item.section === "settled"
-                                ? settledCount
-                                : sections[item.section].length}
-                              )
+                              {gt("{section} ({count})", {
+                                section: m(SECTION_LABELS[item.section]),
+                                count:
+                                  item.section === "settled"
+                                    ? settledCount
+                                    : sections[item.section].length,
+                              })}
                             </Text>
                           </Pressable>
                         )}
@@ -610,11 +613,10 @@ function ThreadArrangementSheet(props: { onClose: () => void }) {
                     </Text>
                     {visiblePreview.destination?.section ? (
                       <Text className="text-xs text-foreground-muted">
-                        {t(
-                          threadDragAction(
-                            visiblePreview.sourceSection,
-                            visiblePreview.destination.section,
-                          ) ?? "",
+                        {threadDragAction(
+                          visiblePreview.sourceSection,
+                          visiblePreview.destination.section,
+                          m,
                         )}
                       </Text>
                     ) : null}

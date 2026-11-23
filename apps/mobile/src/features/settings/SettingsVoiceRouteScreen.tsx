@@ -1,3 +1,4 @@
+import { msg, useGT, useMessages } from "gt-react-native";
 import { ScreenScrollView as ScrollView } from "../../components/ui/ScreenScrollView";
 import { useAtomSet, useAtomValue } from "@effect/atom-react";
 import { AsyncResult } from "effect/reactivity";
@@ -9,8 +10,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { type AppSymbolName } from "../../components/ui/AppSymbol";
 import { AppText as Text } from "../../components/ui/AppText";
-import { translate, useTranslate } from "../../i18n/translate";
 import { cn } from "../../lib/cn";
+import { m } from "../../i18n/messages";
 import { makePermissionStatusAtom } from "../../lib/permissionStatusAtom";
 import {
   isMicrophoneDevice,
@@ -18,7 +19,8 @@ import {
   type MicrophoneKind,
   microphoneEntryKey,
 } from "../../lib/microphonePriority";
-import { mobilePreferencesAtom, updateMobilePreferencesAtom } from "../../state/preferences";
+import { mobilePreferencesAtom, saveMobilePreferences } from "../../state/preferences";
+import { useAtomCommand } from "../../state/use-atom-command";
 import { ListRowLayout } from "../../components/ui/ListRowLayout";
 import { ListChoiceRow } from "../../components/ui/ListChoiceRow";
 import * as Dialog from "../../components/ui/Dialog";
@@ -82,47 +84,53 @@ const KINDS: Record<
   }
 > = {
   wired: {
-    label: "Wired",
-    row: "Other wired",
-    rowDescription: "Headsets and USB microphones not listed here",
+    label: msg("Wired", { $context: "microphone connection type" }),
+    row: msg("Other wired"),
+    rowDescription: msg("Headsets and USB microphones not listed here"),
     icon: "cable.connector",
   },
   bluetooth: {
-    label: "Bluetooth",
-    row: "Other Bluetooth",
+    label: msg("Bluetooth"),
+    row: msg("Other Bluetooth"),
     rowDescription:
       Platform.OS === "android"
-        ? "Earbuds, headsets, and cars, including Android Auto, not listed here"
-        : "AirPods, headsets, and cars not listed here",
+        ? msg("Earbuds, headsets, and cars, including Android Auto, not listed here")
+        : msg("AirPods, headsets, and cars not listed here"),
     icon: "headphones",
   },
   builtIn: {
-    label: "Built-in",
-    row: "Built-in microphone",
-    rowDescription: "The microphone on this device",
+    label: msg("Built-in", { $context: "microphone connection type" }),
+    row: msg("Built-in microphone"),
+    rowDescription: msg("The microphone on this device"),
     icon: "iphone",
   },
   carPlay: {
     label: "CarPlay",
     row: "CarPlay",
-    rowDescription: "The car’s microphone",
+    rowDescription: msg("The car’s microphone"),
     icon: "car",
   },
 };
 
 const UNAVAILABLE_EXPLANATION =
   Platform.OS === "android"
-    ? "Dictation on this device needs Android 12 or later and Google speech services that support your language. Your keyboard’s voice typing is separate."
-    : "Dictation on this device needs iOS 26 or later, a supported device, and a supported language. Your keyboard’s dictation is separate.";
+    ? msg(
+        "Dictation on this device needs Android 12 or later and Google speech services that support your language. Your keyboard’s voice typing is separate.",
+      )
+    : msg(
+        "Dictation on this device needs iOS 26 or later, a supported device, and a supported language. Your keyboard’s dictation is separate.",
+      );
 
 function saveDestination(id: EnvironmentId | null) {
   try {
     chooseVoiceDestination(id);
   } catch {
     Dialog.alert(
-      translate("Could not save transcription choice"),
-      translate(
-        "Dictation on an environment is off for this session. Save again before closing the app, or your previous choice may return when it restarts.",
+      m(msg("Could not save transcription choice")),
+      m(
+        msg(
+          "Dictation on an environment is off for this session. Save again before closing the app, or your previous choice may return when it restarts.",
+        ),
       ),
     );
   }
@@ -138,7 +146,7 @@ function EnvironmentChoice({
   /** Called instead of a local grant when the environment only offers cloud transcription. */
   onCloudOnly: () => void;
 }) {
-  const t = useTranslate();
+  const gt = useGT();
   const local = useAtomValue(voiceConnectionAtom(environment.environmentId)) !== null;
   const cloud = useAtomValue(cloudVoiceConnectionAtom(environment.environmentId)) !== null;
   const usable = local || cloud;
@@ -149,22 +157,22 @@ function EnvironmentChoice({
       disabled={!usable}
       description={
         environment.connection.phase !== "connected"
-          ? t("Not connected")
+          ? gt("Not connected")
           : !usable
-            ? t("Transcription unavailable")
-            : (environment.displayUrl ?? t("Send finished recordings to this environment."))
+            ? gt("Transcription unavailable")
+            : (environment.displayUrl ?? gt("Send finished recordings to this environment."))
       }
       separated
       onPress={() => {
         if (selected) return;
         if (!local) return onCloudOnly();
         Dialog.confirm({
-          title: t("Send microphone audio to {name}?", { name: environment.label }),
-          message: t(
+          title: gt("Send microphone audio to {environment}?", { environment: environment.label }),
+          message: gt(
             "Finished recordings will be sent to {destination} for transcription. You can switch back to This device at any time.",
             { destination: environment.displayUrl ?? environment.label },
           ),
-          confirmText: t("Use environment"),
+          confirmText: gt("Use environment"),
           onConfirm: () => saveDestination(environment.environmentId),
         });
       }}
@@ -184,14 +192,14 @@ function EnvironmentMethodSection({
   cloudOpen: boolean;
   onCloudOpenChange: (open: boolean) => void;
 }) {
-  const t = useTranslate();
+  const gt = useGT();
   const id = environment.environmentId;
   const destination = grant?.destination.environmentId === id ? grant.destination : null;
   const cloudCapable =
     environment.serverConfig?.environment.capabilities.cloudVoiceTranscription === true ||
     destination?.kind === "cloud";
   return (
-    <SettingsSection title={t("Method on {name}", { name: environment.label })}>
+    <SettingsSection title={gt("Method on {environment}", { environment: environment.label })}>
       <LocalModelChoice
         environmentId={id}
         label={environment.label}
@@ -212,7 +220,8 @@ function EnvironmentMethodSection({
 }
 
 export function SettingsVoiceRouteScreen() {
-  const t = useTranslate();
+  const gt = useGT();
+  const m = useMessages();
   const transcriber = useAtomValue(localVoiceTranscriberAtom);
   const grant = useAtomValue(voiceGrantAtom);
   const { environments, isReady } = useEnvironments();
@@ -232,7 +241,7 @@ export function SettingsVoiceRouteScreen() {
   const methodEnvironment = sheetEnvironment ?? grantEnvironment;
   const insets = useSafeAreaInsets();
   const preferencesResult = useAtomValue(mobilePreferencesAtom);
-  const savePreferences = useAtomSet(updateMobilePreferencesAtom);
+  const savePreferences = useAtomCommand(saveMobilePreferences);
   const ready = AsyncResult.isSuccess(preferencesResult) && !preferencesResult.waiting;
   const entries = deviceMicrophoneOrder(
     AsyncResult.isSuccess(preferencesResult) ? preferencesResult.value.microphones : undefined,
@@ -246,8 +255,8 @@ export function SettingsVoiceRouteScreen() {
   const [drops, setDrops] = useState(0);
 
   // Transforms apply to the stored order, so a device recorded meanwhile is kept.
-  const move = (key: string, steps: number) =>
-    savePreferences({
+  const move = (key: string, steps: number) => {
+    void savePreferences({
       transform: (current) => {
         const next = [...deviceMicrophoneOrder(current.microphones)];
         const from = next.findIndex((entry) => microphoneEntryKey(entry) === key);
@@ -258,14 +267,16 @@ export function SettingsVoiceRouteScreen() {
         return { microphones: next };
       },
     });
-  const forget = (key: string) =>
-    savePreferences({
+  };
+  const forget = (key: string) => {
+    void savePreferences({
       transform: (current) => ({
         microphones: deviceMicrophoneOrder(current.microphones).filter(
           (entry) => microphoneEntryKey(entry) !== key,
         ),
       }),
     });
+  };
   const dropSteps = (from: number, translation: number) =>
     rowHeight === 0
       ? 0
@@ -277,7 +288,7 @@ export function SettingsVoiceRouteScreen() {
   const dragTo = drag === null ? -1 : dragFrom + dropSteps(dragFrom, drag.translation);
 
   return (
-    <SettingsScreen title={t("Voice")}>
+    <SettingsScreen title={gt("Voice")}>
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         showsVerticalScrollIndicator={false}
@@ -285,10 +296,10 @@ export function SettingsVoiceRouteScreen() {
         contentContainerClassName="gap-3 px-5 pt-4"
         contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 18) + 18 }}
       >
-        <SettingsSection title={t("Transcribe on")}>
+        <SettingsSection title={gt("Transcribe on")}>
           <ListChoiceRow
-            label={t("This device")}
-            description={t("Audio stays on this device and is transcribed here.")}
+            label={gt("This device")}
+            description={gt("Audio stays on this device and is transcribed here.")}
             selected={!grant && !sheetEnvironment}
             onPress={() => {
               setCloudSheet(null);
@@ -310,8 +321,8 @@ export function SettingsVoiceRouteScreen() {
             ))}
           {isReady && grant && !grantEnvironment ? (
             <ListChoiceRow
-              label={t("Previously selected environment")}
-              description={t("No longer paired")}
+              label={gt("Previously selected environment")}
+              description={gt("No longer paired")}
               separated
               selected
               disabled
@@ -330,14 +341,14 @@ export function SettingsVoiceRouteScreen() {
           />
         ) : null}
         {!grant && transcriber === null ? (
-          <Text className="px-2 text-sm text-foreground-muted">{t(UNAVAILABLE_EXPLANATION)}</Text>
+          <Text className="px-2 text-sm text-foreground-muted">{m(UNAVAILABLE_EXPLANATION)}</Text>
         ) : null}
         {permission === "ask" || permission === "denied" ? (
           <>
-            <SettingsSection title={t("Microphone access")}>
+            <SettingsSection title={gt("Microphone access")}>
               <SettingsActionRow
                 icon="mic"
-                label={t(permission === "ask" ? "Allow microphone access" : "Open Settings")}
+                label={permission === "ask" ? gt("Allow microphone access") : gt("Open Settings")}
                 onPress={
                   permission === "ask" ? requestPermission : () => void Linking.openSettings()
                 }
@@ -345,12 +356,14 @@ export function SettingsVoiceRouteScreen() {
             </SettingsSection>
             <Text className="px-2 text-sm text-foreground-muted">
               {permission === "ask"
-                ? t("Allow microphone access to record and to see your microphones.")
-                : t("Turn on microphone access for T3 Code in Settings to use voice input.")}
+                ? gt("Allow microphone access to record and to see your microphones.")
+                : gt("Turn on microphone access for {product} in Settings to use voice input.", {
+                    product: "T3 Code",
+                  })}
             </Text>
           </>
         ) : null}
-        <SettingsSection title={t("Preferred order")}>
+        <SettingsSection title={gt("Preferred order")}>
           {entries.map((entry, index) => {
             const key = microphoneEntryKey(entry);
             const shift =
@@ -385,12 +398,13 @@ export function SettingsVoiceRouteScreen() {
           })}
         </SettingsSection>
         <Text className="px-2 text-sm text-foreground-muted">
-          {t(
-            "Voice input uses the first connected microphone in this list. A wired or Bluetooth microphone is added by name the first time you dictate with it connected; until then it falls under Other. Swipe left on a named microphone to forget it.",
-          )}
           {Platform.OS === "android"
-            ? ` ${t("Android may still use a different microphone if the preferred one can’t be routed.")}`
-            : null}
+            ? gt(
+                "Voice input uses the first connected microphone in this list. A wired or Bluetooth microphone is added by name the first time you dictate with it connected; until then it falls under Other. Swipe left on a named microphone to forget it. Android may still use a different microphone if the preferred one can’t be routed.",
+              )
+            : gt(
+                "Voice input uses the first connected microphone in this list. A wired or Bluetooth microphone is added by name the first time you dictate with it connected; until then it falls under Other. Swipe left on a named microphone to forget it.",
+              )}
         </Text>
       </ScrollView>
     </SettingsScreen>
@@ -411,11 +425,11 @@ function MicrophoneRow(props: {
   readonly onStep: (direction: "up" | "down") => void;
   readonly onForget: (() => void) | undefined;
 }) {
-  const t = useTranslate();
+  const gt = useGT();
+  const m = useMessages();
   const { lifted, offset, entry, onForget } = props;
   const kind = KINDS[entry.kind];
-  const kindLabel = t(kind.label);
-  const title = isMicrophoneDevice(entry) ? entry.name : t(kind.row);
+  const title = isMicrophoneDevice(entry) ? entry.name : m(kind.row);
   const { width: windowWidth } = useWindowDimensions();
   const style = useAnimatedStyle(() => ({
     transform: [
@@ -432,13 +446,17 @@ function MicrophoneRow(props: {
     <View className="flex-row items-center bg-grouped-card">
       <View
         accessible
-        accessibilityLabel={t("{title}, {kind}, {position} of {count}", {
+        accessibilityLabel={gt("{title}, {kind}, {position} of {count}", {
           title,
-          kind: kindLabel,
+          kind: m(kind.label),
           position: props.position,
           count: props.count,
         })}
-        accessibilityActions={onForget ? [{ name: "forget", label: t("Forget") }] : undefined}
+        accessibilityActions={
+          onForget
+            ? [{ name: "forget", label: gt("Forget", { $context: "verb, forget a microphone" }) }]
+            : undefined
+        }
         onAccessibilityAction={({ nativeEvent }) => {
           if (nativeEvent.actionName === "forget") onForget?.();
         }}
@@ -447,7 +465,7 @@ function MicrophoneRow(props: {
         <ListRowLayout
           icon={kind.icon}
           label={title}
-          description={isMicrophoneDevice(entry) ? kindLabel : t(kind.rowDescription)}
+          description={isMicrophoneDevice(entry) ? m(kind.label) : m(kind.rowDescription)}
         />
       </View>
       {props.reorderable ? (
@@ -479,10 +497,10 @@ function MicrophoneRow(props: {
           fullSwipeWidth={windowWidth - 40}
           onDelete={onForget}
           primaryAction={{
-            accessibilityLabel: t("Forget {name}", { name: title }),
+            accessibilityLabel: gt("Forget {title}", { title }),
             destructive: true,
             icon: "trash",
-            label: t("Forget"),
+            label: gt("Forget", { $context: "verb, forget a microphone" }),
             onPress: onForget,
           }}
           secondaryAction={null}

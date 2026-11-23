@@ -1,5 +1,6 @@
 import { useAtomValue } from "@effect/atom-react";
 import { AsyncResult } from "effect/reactivity";
+import { useGT } from "gt-react-native";
 import { useEffect, useRef } from "react";
 import { AppState, Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -7,7 +8,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText as Text } from "../../components/ui/AppText";
 import { SymbolView } from "../../components/ui/AppSymbol";
 import { Button } from "../../components/ui/Button";
-import { useTranslate } from "../../i18n/translate";
 import { mobilePreferencesAtom } from "../../state/preferences";
 import {
   checkForAndroidUpdate,
@@ -27,18 +27,20 @@ export function AndroidUpdateBanner() {
 }
 
 function AndroidUpdateBannerContent() {
-  const t = useTranslate();
+  const gt = useGT();
   const insets = useSafeAreaInsets();
   const preferencesReady = AsyncResult.isSuccess(useAtomValue(mobilePreferencesAtom));
   const { phase, bannerHidden } = useAndroidUpdater();
   const startedRef = useRef(false);
 
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- Starts the update check once preferences load.
   useEffect(() => {
     if (!preferencesReady || startedRef.current) return;
     startedRef.current = true;
     void checkForAndroidUpdate({ manual: false });
   }, [preferencesReady]);
 
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- Re-checks for updates when the app returns to the foreground.
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (state) => {
       if (state !== "active") return;
@@ -61,20 +63,20 @@ function AndroidUpdateBannerContent() {
 
   const title =
     phase.type === "downloading"
-      ? t("Downloading {version}… {percent}%", {
+      ? gt("Downloading {version}… {percent}%", {
           version: release.version,
           percent: Math.round(phase.progress * 100),
         })
       : phase.type === "ready"
-        ? t("Version {version} is ready to install", { version: release.version })
-        : t("Version {version} is available", { version: release.version });
+        ? gt("Version {version} is ready to install", { version: release.version })
+        : gt("Version {version} is available", { version: release.version });
   const detail =
     phase.type === "error"
       ? phase.message
       : phase.type === "ready"
-        ? t("Android will ask you to confirm the update.")
+        ? gt("Android will ask you to confirm the update.")
         : phase.type === "available"
-          ? t("{size} MB download. Your connections and threads stay as they are.", {
+          ? gt("{size} MB download. Your connections and threads stay as they are.", {
               size: Math.round(release.apkSize / 1_000_000),
             })
           : null;
@@ -106,7 +108,7 @@ function AndroidUpdateBannerContent() {
             {detail ? <Text className="text-sm text-foreground-muted">{detail}</Text> : null}
           </View>
           <Pressable
-            accessibilityLabel={t("Hide")}
+            accessibilityLabel={gt("Hide")}
             accessibilityRole="button"
             hitSlop={12}
             onPress={hideAndroidUpdateBanner}
@@ -121,15 +123,15 @@ function AndroidUpdateBannerContent() {
         ) : (
           <View className="flex-row justify-end gap-2">
             {phase.type === "available" ? (
-              <Button label={t("Later")} tone="text" onPress={() => skipAndroidUpdate(release)} />
+              <Button label={gt("Later")} tone="text" onPress={() => skipAndroidUpdate(release)} />
             ) : null}
             <Button
               label={
                 phase.type === "ready"
-                  ? t("Install")
+                  ? gt("Install")
                   : phase.type === "error"
-                    ? t("Try again")
-                    : t("Update")
+                    ? gt("Try again")
+                    : gt("Update")
               }
               tone="primary"
               onPress={() =>

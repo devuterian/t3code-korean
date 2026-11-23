@@ -10,11 +10,12 @@ import {
   type ScopedThreadRef,
   type ThreadGuestShare,
 } from "@t3tools/contracts";
+import { msg, T, useGT } from "gt-react";
 import { CheckIcon, CopyIcon, UserIcon } from "lucide-react";
 import { useState } from "react";
 
 import { useCopyToClipboard } from "~/hooks/useCopyToClipboard";
-import { useNowMinute } from "~/hooks/useNowMinute";
+import { useDeadlinePassed } from "~/hooks/useDeadline";
 import { appAtomRegistry } from "~/rpc/atomRegistry";
 import { useQuietThreadProjection } from "~/state/entities";
 import { serverEnvironment } from "~/state/server";
@@ -40,7 +41,6 @@ import { buildExpandedImagePreview, type ExpandedImagePreview } from "./Expanded
 import { GuestMessageAttachments } from "./GuestMessageAttachments";
 import { GuestMessageName, guestBubbleClassName } from "./guestMessageStyle";
 import { guestShareDialogThreadAtom } from "./guestShareDialogState";
-import { useTranslate } from "~/i18n/translate";
 
 function useThreadGuestShare(threadRef: ScopedThreadRef | null): ThreadGuestShare | null {
   return useQuietThreadProjection(threadRef)?.projection.thread.guestShare ?? null;
@@ -71,7 +71,7 @@ function GuestShareDialog({
   readonly threadRef: ScopedThreadRef;
   readonly onClose: () => void;
 }) {
-  const t = useTranslate();
+  const gt = useGT();
   const activeShare = useThreadGuestShare(threadRef);
   const canCreate = useAtomValue(
     serverEnvironment.createGuestShare.permissionAtom(threadRef.environmentId),
@@ -79,7 +79,13 @@ function GuestShareDialog({
   const createGuestShare = useAtomCommand(serverEnvironment.createGuestShare, {
     reportFailure: false,
   });
-  const { copyToClipboard, isCopied } = useCopyToClipboard({ target: "guest link" });
+  const { copyToClipboard, isCopied } = useCopyToClipboard({
+    target: {
+      target: "guest link",
+      unavailableMessage: msg("Clipboard API is unavailable while copying guest link."),
+      failureMessage: msg("Failed to copy guest link to the clipboard."),
+    },
+  });
   const [state, setState] = useState<CreateState>({ status: "idle" });
 
   const create = async () => {
@@ -99,7 +105,7 @@ function GuestShareDialog({
     const error = squashAtomCommandFailure(result);
     setState({
       status: "failed",
-      message: error instanceof Error ? error.message : "Could not create a guest link.",
+      message: error instanceof Error ? error.message : gt("Could not create a guest link."),
     });
   };
 
@@ -112,11 +118,14 @@ function GuestShareDialog({
     >
       <DialogPopup className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>{t("Share with guest")}</DialogTitle>
+          <DialogTitle>
+            <T>Share with guest</T>
+          </DialogTitle>
           <DialogDescription>
-            {t(
-              "The guest sees the thread as you do, including command output and the agent's reasoning. Each message they send waits for you.",
-            )}
+            <T>
+              The guest sees the thread as you do, including command output and the agent&apos;s
+              reasoning. Each message they send waits for you.
+            </T>
           </DialogDescription>
         </DialogHeader>
         <DialogPanel>
@@ -124,32 +133,32 @@ function GuestShareDialog({
             <div className="flex items-center gap-2">
               <Input
                 readOnly
-                aria-label={t("Guest link")}
+                aria-label={gt("Guest link")}
                 value={state.url}
                 onFocus={(event) => event.currentTarget.select()}
               />
               <Button size="sm" variant="outline" onClick={() => copyToClipboard(state.url)}>
                 {isCopied ? <CheckIcon /> : <CopyIcon />}
-                {isCopied ? t("Copied") : t("Copy")}
+                {isCopied ? gt("Copied") : gt("Copy", { $context: "verb, copy the link" })}
               </Button>
             </div>
           ) : (
             <p className="text-muted-foreground text-sm">
               {activeShare !== null
-                ? t("A new link ends the current one.")
-                : t("The link works once and expires in 24 hours.")}
+                ? gt("A new link ends the current one.")
+                : gt("The link works once and expires in 24 hours.")}
             </p>
           )}
           {state.status === "failed" ? (
             <p role="alert" className="text-destructive text-xs">
-              {t(state.message)}
+              {state.message}
             </p>
           ) : null}
         </DialogPanel>
         <DialogFooter>
           {state.status === "created" ? (
             <Button size="sm" onClick={onClose}>
-              {t("Done")}
+              <T context="button that closes the dialog">Done</T>
             </Button>
           ) : (
             <>
@@ -159,14 +168,14 @@ function GuestShareDialog({
                 onClick={onClose}
                 disabled={state.status === "creating"}
               >
-                {t("Cancel")}
+                <T>Cancel</T>
               </Button>
               <Button
                 size="sm"
                 onClick={() => void create()}
                 disabled={!canCreate || state.status === "creating"}
               >
-                {state.status === "creating" ? t("Creating...") : t("Create link")}
+                {state.status === "creating" ? gt("Creating...") : gt("Create link")}
               </Button>
             </>
           )}
@@ -178,7 +187,6 @@ function GuestShareDialog({
 
 /** Header status for a shared thread, with the way to end the share. */
 export function GuestShareIndicator({ threadRef }: { readonly threadRef: ScopedThreadRef }) {
-  const t = useTranslate();
   const share = useThreadGuestShare(threadRef);
   const closeGuestShare = useOrchestrationCommand(threadEnvironment.closeGuestShare, {
     label: "stop guest share",
@@ -202,22 +210,28 @@ export function GuestShareIndicator({ threadRef }: { readonly threadRef: ScopedT
           setClosing(false);
         }}
       >
-        {t("Stop sharing")}
+        <T>Stop sharing</T>
       </Button>
     </div>
   );
 }
 
 function GuestShareStatus({ share }: { readonly share: ThreadGuestShare }) {
-  const t = useTranslate();
-  const nowMinute = useNowMinute();
+  const gt = useGT();
+  const expired = useDeadlinePassed(Date.parse(share.expiresAt));
   // The share stays on the thread after it expires, until the owner clears it.
-  if (share.expiresAt.slice(0, 16) <= nowMinute) return <span>{t("Guest link expired")}</span>;
+  if (expired) {
+    return (
+      <span>
+        <T>Guest link expired</T>
+      </span>
+    );
+  }
   return (
     <span>
       {share.guestName !== null
-        ? t("{name} is a guest").replace("{name}", () => share.guestName ?? "")
-        : t("Guest link active")}
+        ? gt("{guestName} is a guest", { guestName: share.guestName })
+        : gt("Guest link active")}
     </span>
   );
 }
@@ -235,7 +249,7 @@ export function GuestPendingMessages({
   readonly onImageExpand: (preview: ExpandedImagePreview) => void;
   readonly onFileOpen: (attachment: ChatFileAttachment) => void;
 }) {
-  const t = useTranslate();
+  const gt = useGT();
   const share = useThreadGuestShare(threadRef);
   const canOperate = useEnvironmentScope(threadRef.environmentId, AuthOrchestrationOperateScope);
   const resolveGuestMessage = useOrchestrationCommand(threadEnvironment.resolveGuestMessage, {
@@ -256,7 +270,7 @@ export function GuestPendingMessages({
     }),
   );
   if (share === null || pending.length === 0) return null;
-  const guestName = share.guestName ?? t("Guest");
+  const guestName = share.guestName ?? gt("Guest");
   const openImage = (attachment: ChatAttachment) => {
     const preview = buildExpandedImagePreview(
       images.map((image) => ({ ...image, previewUrl: imageUrlById.get(image.id) ?? "" })),
@@ -281,9 +295,10 @@ export function GuestPendingMessages({
   return (
     <ol
       className="chat-content-lane flex flex-col gap-4 pb-4"
-      aria-label={t(
-        pending.length === 1 ? "{count} guest message waiting" : "{count} guest messages waiting",
-      ).replace("{count}", () => String(pending.length))}
+      aria-label={gt(
+        "{count, plural, one {{count} guest message waiting} other {{count} guest messages waiting}}",
+        { count: pending.length },
+      )}
       aria-live="polite"
     >
       {pending.map((message) => {
@@ -315,18 +330,18 @@ export function GuestPendingMessages({
                   size="xs"
                   variant="ghost-muted"
                   disabled={busy}
-                  aria-label={t("Dismiss message from {name}").replace("{name}", () => guestName)}
+                  aria-label={gt("Dismiss message from {guestName}", { guestName })}
                   onClick={() => void resolve(message.id, "dismiss")}
                 >
-                  {t("Dismiss")}
+                  <T>Dismiss</T>
                 </Button>
                 <Button
                   size="xs"
                   disabled={busy}
-                  aria-label={t("Send message from {name}").replace("{name}", () => guestName)}
+                  aria-label={gt("Send message from {guestName}", { guestName })}
                   onClick={() => void resolve(message.id, "send")}
                 >
-                  {t("Send")}
+                  <T>Send</T>
                 </Button>
               </div>
             ) : null}

@@ -1,8 +1,8 @@
+import { useGT } from "gt-react-native";
 import { useSyncExternalStore, type ReactNode } from "react";
 import { Split, Stack } from "react-native-screens";
 
 import { RenderErrorBoundary, RenderFailureView } from "../../components/RenderErrorBoundary";
-import { useTranslate } from "../../i18n/translate";
 import { PaneContext } from "../../components/ui/Pane";
 import { GLASS_HEADER_OPTIONS } from "../../native/glass-header-options";
 import { NativeColumnContent } from "../../native/NativeColumnContent.ios";
@@ -39,14 +39,14 @@ function PaneScreenContent(props: {
   readonly resetKeys: ReadonlyArray<unknown> | undefined;
   readonly onClose: () => void;
 }) {
-  const t = useTranslate();
+  const gt = useGT();
   const { store, slot } = useInspectorBarSlot();
   const content = (
     <WorkspaceSlotOptionsContext value={slot}>
       <RenderErrorBoundary
         resetKeys={props.resetKeys}
         renderFallback={(fallback) => (
-          <RenderFailureView {...fallback} title={t("The inspector couldn't be displayed")} />
+          <RenderFailureView {...fallback} title={gt("The inspector couldn't be displayed")} />
         )}
       >
         {props.pane.render()}

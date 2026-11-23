@@ -1,5 +1,6 @@
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 import { useRender } from "@base-ui/react/use-render";
+import { useGT } from "gt-react";
 import { XIcon } from "lucide-react";
 import {
   type ComponentProps,
@@ -11,7 +12,6 @@ import {
   useState,
 } from "react";
 import { cn } from "~/lib/utils";
-import { useTranslate } from "~/i18n/translate";
 import { useNativeTitlebarHeight } from "~/lib/windowControlsOverlay";
 import { Button, type ButtonVariant } from "~/components/ui/button";
 import {
@@ -121,7 +121,7 @@ function DialogPopup({
   variant?: "default" | "media";
   mediaControlsPlacement?: "inside" | "outside";
 }) {
-  const t = useTranslate();
+  const gt = useGT();
   const { popupRef, initialFocus } = useDialogActionInitialFocus();
   const popup = useRender({
     ref: popupRef,
@@ -142,7 +142,7 @@ function DialogPopup({
         {children}
         {showCloseButton && (
           <DialogPrimitive.Close
-            aria-label={t("Close")}
+            aria-label={gt("Close", { $context: "button, closes the dialog" })}
             className="absolute end-2 top-2"
             render={<Button size="icon" variant="ghost" />}
           >

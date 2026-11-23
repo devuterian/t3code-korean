@@ -1,6 +1,8 @@
+import { T, useGT, useMessages } from "gt-react-native";
 import { useAtomRefresh, useAtomValue } from "@effect/atom-react";
-import { cloudSpeechDisclosure } from "@t3tools/shared/speech";
+import { cloudSpeechDisclosure } from "@t3tools/shared/speechCopy";
 import { setCloudSpeechKey } from "@t3tools/client-runtime/voice-input";
+import { hasFeatureFlag } from "@t3tools/client-runtime/state/server";
 import {
   configuredSecretSources,
   secretRequestReference,
@@ -19,12 +21,10 @@ import {
   type VoiceTranscriptionDestination,
 } from "@t3tools/contracts";
 import * as Schema from "effect/Schema";
-import Constants from "expo-constants";
 import { AsyncResult } from "effect/reactivity";
 import { type ReactNode, useState } from "react";
 import { ScrollView, TextInput, View } from "react-native";
 import { Sheet } from "../../components/ui/Sheet";
-import { useTranslate } from "../../i18n/translate";
 import * as Dialog from "../../components/ui/Dialog";
 import { ProviderIcon } from "../../components/ProviderIcon";
 import { AppText as Text } from "../../components/ui/AppText";
@@ -56,18 +56,18 @@ export function CloudVoiceChoice({
   open,
   onOpenChange,
 }: Props & { open: boolean; onOpenChange: (open: boolean) => void }) {
-  const t = useTranslate();
+  const gt = useGT();
   const usable = useAtomValue(cloudVoiceConnectionAtom(environment.environmentId)) !== null;
   return (
     <>
       <ListChoiceRow
-        label={t("Cloud provider")}
+        label={gt("Cloud provider")}
         description={
           active
             ? `${CLOUD_SPEECH_LABELS[active.provider]}${active.provider === "openrouter" ? ` · ${active.model}` : ""}`
             : usable
-              ? t("Use your own API key")
-              : t("Not connected")
+              ? gt("Use your own API key")
+              : gt("Not connected")
         }
         selected={active !== null}
         disabled={!usable}
@@ -99,7 +99,7 @@ function ModelPicker({
   disabled: boolean;
   onChange: (model: CloudSpeechModelId) => void;
 }) {
-  const t = useTranslate();
+  const gt = useGT();
   const [query, setQuery] = useState("");
   const [showAll, setShowAll] = useState(false);
   const needle = query.trim().toLowerCase();
@@ -111,20 +111,20 @@ function ModelPicker({
   const delisted = current !== undefined && !models.some((model) => model.id === current);
   return (
     <ListSection
-      title={t("Model")}
+      title={gt("Model")}
       footer={
         delisted
-          ? t(
-              "OpenRouter no longer lists {model}. Dictation stays off until you choose another model.",
-              { model: current },
+          ? gt(
+              "{provider} no longer lists {model}. Dictation stays off until you choose another model.",
+              { provider: "OpenRouter", model: current },
             )
           : undefined
       }
     >
       <View className="px-4 py-3">
         <TextInput
-          accessibilityLabel={t("Search OpenRouter models")}
-          placeholder={t("Search transcription models")}
+          accessibilityLabel={gt("Search {provider} models", { provider: "OpenRouter" })}
+          placeholder={gt("Search transcription models")}
           autoCapitalize="none"
           autoCorrect={false}
           editable={!disabled}
@@ -157,13 +157,16 @@ function ModelPicker({
       {matches.length === 0 ? (
         <Separated>
           <Text className="px-4 py-3 text-sm text-foreground-muted">
-            {t("No transcription model matches.")}
+            <T>No transcription model matches.</T>
           </Text>
         </Separated>
       ) : matches.length > shown.length ? (
         <Separated>
           <ListActionRow
-            label={t("Show all {count} models", { count: matches.length })}
+            label={gt(
+              "{count, plural, one {Show all {count} models} other {Show all {count} models}}",
+              { count: matches.length },
+            )}
             onPress={() => setShowAll(true)}
           />
         </Separated>
@@ -178,7 +181,8 @@ function Separated({ children }: { children: ReactNode }) {
 }
 
 function CloudChoices({ environment, active, onClose }: Props & { onClose: () => void }) {
-  const t = useTranslate();
+  const gt = useGT();
+  const messages = useMessages();
   const id = environment.environmentId;
   const connection = useAtomValue(cloudVoiceConnectionAtom(id));
   const keys = useAtomValue(cloudVoiceKeysAtom(id));
@@ -195,9 +199,9 @@ function CloudChoices({ environment, active, onClose }: Props & { onClose: () =>
   const [model, setModel] = useState("");
   const [sourceId, setSourceId] = useState<SecretProviderId | null>(null);
   const sources =
-    Constants.expoConfig?.extra?.secretsFeatureEnabled === true &&
+    hasFeatureFlag(environment.serverConfig, "secretProviders") &&
     environment.serverConfig?.secretReferences
-      ? configuredSecretSources(environment.serverConfig.settings.secretProviders)
+      ? configuredSecretSources(environment.serverConfig.settings.secretProviders, messages)
       : [];
   const source = sources.find((candidate) => candidate.id === sourceId);
   const credential =
@@ -213,8 +217,8 @@ function CloudChoices({ environment, active, onClose }: Props & { onClose: () =>
       commit();
     } catch {
       Dialog.alert(
-        t("Could not enable cloud dictation"),
-        t("Check device storage and choose the provider again."),
+        gt("Could not enable cloud dictation"),
+        gt("Check device storage and choose the provider again."),
       );
     }
   };
@@ -250,8 +254,8 @@ function CloudChoices({ environment, active, onClose }: Props & { onClose: () =>
     } catch {
       setSaving(false);
       Dialog.alert(
-        t("Could not update the API key"),
-        t("Check the environment connection and your settings permissions."),
+        gt("Could not update the API key"),
+        gt("Check the environment connection and your settings permissions."),
       );
       return;
     }
@@ -268,10 +272,10 @@ function CloudChoices({ environment, active, onClose }: Props & { onClose: () =>
           <ListActionRow
             label={
               !connection
-                ? t("Environment not connected")
+                ? gt("Environment not connected")
                 : keys._tag === "Failure"
-                  ? t("Could not load keys · Retry")
-                  : t("Checking API keys…")
+                  ? gt("Could not load keys · Retry")
+                  : gt("Checking API keys…")
             }
             disabled={!connection || keys._tag !== "Failure"}
             onPress={reload}
@@ -282,7 +286,9 @@ function CloudChoices({ environment, active, onClose }: Props & { onClose: () =>
     if (!editing)
       return (
         <ListSection
-          footer={t("Audio is sent through {name} using its API key.", { name: environment.label })}
+          footer={gt("Audio is sent through {environment} using its API key.", {
+            environment: environment.label,
+          })}
         >
           {CloudSpeechProvider.literals.map((provider, index) => {
             const label = CLOUD_SPEECH_LABELS[provider];
@@ -306,20 +312,20 @@ function CloudChoices({ environment, active, onClose }: Props & { onClose: () =>
                 disabled={key === undefined || (!key && !canManage) || saving}
                 description={
                   key === undefined
-                    ? t("Update the environment to use this provider")
+                    ? gt("Update the environment to use this provider")
                     : isActive && routed
                       ? canManage
-                        ? t("{model} · Tap to change model or key", { model: activeModel ?? "" })
-                        : t("{model} · Tap to change model", { model: activeModel ?? "" })
+                        ? gt("{model} · Tap to change model or key", { model: activeModel })
+                        : gt("{model} · Tap to change model", { model: activeModel })
                       : isActive && key && canManage
-                        ? t("Tap to manage key")
+                        ? gt("Tap to manage key")
                         : key
                           ? routed
-                            ? t("API key saved · choose a model to use it")
-                            : t("API key saved")
+                            ? gt("API key saved · choose a model to use it")
+                            : gt("API key saved")
                           : canManage
-                            ? t("Add an API key to use this provider")
-                            : t("Ask an environment administrator to add an API key")
+                            ? gt("Add an API key to use this provider")
+                            : gt("Ask an environment administrator to add an API key")
                 }
                 onPress={() => {
                   if (routed) return edit(provider, !isActive);
@@ -329,9 +335,11 @@ function CloudChoices({ environment, active, onClose }: Props & { onClose: () =>
                     return;
                   }
                   Dialog.confirm({
-                    title: t("Use {name} for dictation?", { name: label }),
-                    message: `${cloudSpeechDisclosure(provider, environment.label)} ${t("Select This device to stop sharing.")}`,
-                    confirmText: t("Use {name}", { name: label }),
+                    title: gt("Use {provider} for dictation?", { provider: label }),
+                    message: gt("{disclosure} Select This device to stop sharing.", {
+                      disclosure: cloudSpeechDisclosure(provider, environment.label, messages),
+                    }),
+                    confirmText: gt("Use {provider}", { provider: label }),
                     onConfirm: () => enable(pendingCloudVoiceChoice(id, provider)),
                   });
                 }}
@@ -345,7 +353,7 @@ function CloudChoices({ environment, active, onClose }: Props & { onClose: () =>
     const label = CLOUD_SPEECH_LABELS[provider];
     const company = CLOUD_SPEECH_PROVIDER_NAMES[provider];
     const routed = provider === "openrouter";
-    const disclosure = cloudSpeechDisclosure(provider, environment.label);
+    const disclosure = cloudSpeechDisclosure(provider, environment.label, messages);
     const key = saved[provider];
     const isActive = active?.provider === provider;
     const modelChosen = isModelId(model) && (catalog?.some((entry) => entry.id === model) ?? false);
@@ -378,23 +386,23 @@ function CloudChoices({ environment, active, onClose }: Props & { onClose: () =>
     };
     const keyFooter =
       draft && !credential
-        ? (source?.invalidReferenceMessage ?? t("Enter a valid API key."))
+        ? (source?.invalidReferenceMessage ?? gt("Enter a valid API key."))
         : routed
           ? key && !credential
-            ? t(
+            ? gt(
                 "Uses the API key saved on this environment. The model choice applies only to this device.",
               )
-            : t("Anyone with dictation access to {name} can bill this key.", {
-                name: environment.label,
+            : gt("Anyone with dictation access to {environment} can bill this key.", {
+                environment: environment.label,
               })
           : editing.enable
-            ? t("Anyone with dictation access to {name} can bill this key.", {
-                name: environment.label,
+            ? gt("Anyone with dictation access to {environment} can bill this key.", {
+                environment: environment.label,
               })
-            : t("Updates the {company} key on {name}. Your dictation destination stays the same.", {
-                company,
-                name: environment.label,
-              });
+            : gt(
+                "Updates the {company} key on {environment}. Your dictation destination stays the same.",
+                { company, environment: environment.label },
+              );
     return (
       <>
         <Text className="px-2 text-sm text-foreground-muted">{disclosure}</Text>
@@ -408,12 +416,12 @@ function CloudChoices({ environment, active, onClose }: Props & { onClose: () =>
               onChange={setModel}
             />
           ) : (
-            <ListSection title={t("Model")}>
+            <ListSection title={gt("Model")}>
               <ListActionRow
                 label={
                   AsyncResult.isFailure(models)
-                    ? t("Could not load models · Retry")
-                    : t("Loading transcription models…")
+                    ? gt("Could not load models · Retry")
+                    : gt("Loading transcription models…")
                 }
                 disabled={!AsyncResult.isFailure(models)}
                 onPress={reloadModels}
@@ -422,12 +430,12 @@ function CloudChoices({ environment, active, onClose }: Props & { onClose: () =>
           )
         ) : null}
         {canManage ? (
-          <ListSection title={t("API key")} footer={keyFooter}>
+          <ListSection title={gt("API key")} footer={keyFooter}>
             <View className="gap-3 px-4 py-3">
               {sources.length > 0 && (
                 <View className="flex-row flex-wrap gap-2">
                   <Chip
-                    label={t("Value")}
+                    label={gt("Value", { $context: "enter the secret value directly" })}
                     size="small"
                     selected={sourceId === null}
                     disabled={saving}
@@ -455,12 +463,12 @@ function CloudChoices({ environment, active, onClose }: Props & { onClose: () =>
                 key={sourceId ?? "literal"}
                 accessibilityLabel={
                   sourceId
-                    ? t("{name} API key reference", { name: label })
-                    : t("{name} API key", { name: label })
+                    ? gt("{provider} API key reference", { provider: label })
+                    : gt("{provider} API key", { provider: label })
                 }
                 placeholder={
                   source?.referencePlaceholder ??
-                  (key ? t("Saved key · enter a new one to replace") : t("API key"))
+                  (key ? gt("Saved key · enter a new one to replace") : gt("API key"))
                 }
                 secureTextEntry={sourceId === null}
                 autoCapitalize="none"
@@ -482,7 +490,9 @@ function CloudChoices({ environment, active, onClose }: Props & { onClose: () =>
           <ListSection>
             {routed && !key && !canManage ? (
               <ListActionRow
-                label={t("Ask an administrator to add an OpenRouter key")}
+                label={gt("Ask an administrator to add an {provider} key", {
+                  provider: "OpenRouter",
+                })}
                 disabled
                 onPress={() => {}}
               />
@@ -491,11 +501,11 @@ function CloudChoices({ environment, active, onClose }: Props & { onClose: () =>
                 label={
                   routed
                     ? isActive
-                      ? t("Save")
-                      : t("Save and enable")
+                      ? gt("Save")
+                      : gt("Save and enable")
                     : editing.enable
-                      ? t("Save and enable")
-                      : t("Save key")
+                      ? gt("Save and enable")
+                      : gt("Save key")
                 }
                 loading={saving}
                 disabled={routed ? !routedReady : !credential}
@@ -506,16 +516,16 @@ function CloudChoices({ environment, active, onClose }: Props & { onClose: () =>
               <Separated>
                 <ListActionRow
                   tone="danger"
-                  label={t("Remove key from environment")}
+                  label={gt("Remove key from environment")}
                   disabled={saving}
                   onPress={() =>
                     Dialog.confirm({
-                      title: t("Remove the {name} key from {environment}?", {
-                        name: label,
+                      title: gt("Remove the {provider} key from {environment}?", {
+                        provider: label,
                         environment: environment.label,
                       }),
-                      message: t("Everyone using it for dictation will lose access."),
-                      confirmText: t("Remove key"),
+                      message: gt("Everyone using it for dictation will lose access."),
+                      confirmText: gt("Remove key"),
                       destructive: true,
                       onConfirm: () => void changeKey(provider, null),
                     })
@@ -526,14 +536,14 @@ function CloudChoices({ environment, active, onClose }: Props & { onClose: () =>
           </ListSection>
         ) : null}
         <ListSection>
-          <ListActionRow label={t("Back to providers")} disabled={saving} onPress={reset} />
+          <ListActionRow label={gt("Back to providers")} disabled={saving} onPress={reset} />
         </ListSection>
       </>
     );
   })();
   return (
     <Sheet
-      title={editing ? CLOUD_SPEECH_LABELS[editing.provider] : t("Cloud providers")}
+      title={editing ? CLOUD_SPEECH_LABELS[editing.provider] : gt("Cloud providers")}
       onClose={onClose}
       dismissDisabled={saving}
     >

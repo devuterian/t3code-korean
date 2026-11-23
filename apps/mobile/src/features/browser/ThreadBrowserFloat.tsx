@@ -2,12 +2,12 @@ import { useIsFocused } from "@react-navigation/native";
 import type { EnvironmentId, PreviewSessionSnapshot, ThreadId } from "@t3tools/contracts";
 import { previewPdfAssetUrl } from "@t3tools/shared/preview";
 import * as Option from "effect/Option";
+import { useGT, useMessages } from "gt-react-native";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
 import Animated, { FadeIn, FadeOut, ReduceMotion } from "react-native-reanimated";
 
 import { SymbolView } from "../../components/ui/AppSymbol";
-import { useTranslate } from "../../i18n/translate";
 import { useAppForeground } from "../../lib/appState";
 import { useAppearancePreferences } from "../settings/appearance/AppearancePreferencesProvider";
 import { browserTabTitle } from "./browserTabs";
@@ -84,8 +84,9 @@ function FloatingBrowserPlayer(props: {
   readonly onOpen: () => void;
   readonly onClose: () => void;
 }) {
-  const t = useTranslate();
   const { themeVariables } = useAppearancePreferences();
+  const gt = useGT();
+  const resolveMessage = useMessages();
   const prepared = usePreparedConnection(props.environmentId);
   const httpBaseUrl = Option.isSome(prepared) ? prepared.value.httpBaseUrl : null;
   const [viewport, setViewport] = useState<{ width: number; height: number } | null>(null);
@@ -102,8 +103,10 @@ function FloatingBrowserPlayer(props: {
     >
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={t("Open browser, {title}", { title: browserTabTitle(props.tab) })}
-        accessibilityHint={t("Opens the browser tab full screen")}
+        accessibilityLabel={gt("Open browser, {title}", {
+          title: browserTabTitle(props.tab, resolveMessage),
+        })}
+        accessibilityHint={gt("Opens the browser tab full screen")}
         onPress={props.onOpen}
         className="flex-1"
       >
@@ -128,7 +131,7 @@ function FloatingBrowserPlayer(props: {
       </Pressable>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={t("Close floating preview")}
+        accessibilityLabel={gt("Close floating preview")}
         hitSlop={8}
         onPress={props.onClose}
         className="absolute right-1.5 top-1.5 size-6 items-center justify-center rounded-full bg-black/55"

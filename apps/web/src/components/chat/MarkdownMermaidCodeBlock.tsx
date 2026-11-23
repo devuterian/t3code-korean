@@ -1,7 +1,7 @@
+import { useGT } from "gt-react";
 import { CodeIcon, WorkflowIcon } from "lucide-react";
 import { Suspense, use, useState, type ReactNode } from "react";
 
-import { useTranslate } from "../../i18n/translate";
 import { RenderErrorBoundary } from "../RenderErrorBoundary";
 import { Button } from "../ui/button";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
@@ -24,13 +24,13 @@ export function MarkdownMermaidCodeBlock({
   onExpand: (imageUrl: string) => void;
   children: ReactNode;
 }) {
-  const t = useTranslate();
+  const gt = useGT();
   const [showCode, setShowCode] = useState(false);
   const searching = use(MarkdownFindContext);
   const revealSource = () => setShowCode(true);
   const sourceRevealRef = findRevealRef(revealSource);
   const showDiagram = !showCode && !isStreaming && code.trim().length > 0;
-  const toggleLabel = showCode ? t("Show diagram") : t("Show code");
+  const toggleLabel = showCode ? gt("Show diagram") : gt("Show code");
   return (
     <MarkdownCodeBlock
       code={code}

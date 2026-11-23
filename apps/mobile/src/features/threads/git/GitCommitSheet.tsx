@@ -2,34 +2,42 @@ import { FitSheet } from "../../../components/ui/FitSheet";
 import { SheetHeader } from "../../../components/ui/SheetHeader";
 import { Button } from "../../../components/ui/Button";
 import { useNavigation, type StaticScreenProps } from "@react-navigation/native";
+import { T, useGT, Var } from "gt-react-native";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
 import { formatDiffCount } from "@t3tools/client-runtime/diff-count";
 
-import { useTranslate } from "../../../i18n/translate";
 import { SymbolView } from "../../../components/ui/AppSymbol";
 import { AppText as Text, AppTextInput as TextInput } from "../../../components/ui/AppText";
 import { cn } from "../../../lib/cn";
 import { useEnvironmentQuery } from "../../../state/query";
+import {
+  gitRepositoryTargetFromRoute,
+  type GitRepositoryRouteParams,
+} from "../../../state/thread-git-target";
 import { useThreadSelection } from "../../../state/use-thread-selection";
 import { useSelectedThreadGitActions } from "../../../state/use-selected-thread-git-actions";
 import { useSelectedThreadGitState } from "../../../state/use-selected-thread-git-state";
 import { useSelectedThreadWorktree } from "../../../state/use-selected-thread-worktree";
 import { vcsEnvironment } from "../../../state/vcs";
 
-type GitCommitSheetProps = StaticScreenProps<{
-  readonly environmentId: string;
-  readonly threadId: string;
-}>;
+type GitCommitSheetProps = StaticScreenProps<
+  {
+    readonly environmentId: string;
+    readonly threadId: string;
+  } & GitRepositoryRouteParams
+>;
 
-export function GitCommitSheet(_props: GitCommitSheetProps) {
-  const t = useTranslate();
+export function GitCommitSheet(props: GitCommitSheetProps) {
+  const repository = gitRepositoryTargetFromRoute(props.route.params);
+  const gt = useGT();
   const navigation = useNavigation();
   const { selectedThread } = useThreadSelection();
-  const { selectedThreadCwd } = useSelectedThreadWorktree();
-  const gitState = useSelectedThreadGitState();
-  const gitActions = useSelectedThreadGitActions();
-  const { canWriteSourceControl, canChangeThreadBranch } = gitActions;
+  const threadWorktree = useSelectedThreadWorktree();
+  const selectedThreadCwd = repository?.cwd ?? threadWorktree.selectedThreadCwd;
+  const gitState = useSelectedThreadGitState(repository);
+  const gitActions = useSelectedThreadGitActions(repository);
+  const { canWriteSourceControl, canCreateFeatureBranch } = gitActions;
 
   const gitStatus = useEnvironmentQuery(
     selectedThread !== null && selectedThreadCwd !== null
@@ -54,7 +62,7 @@ export function GitCommitSheet(_props: GitCommitSheetProps) {
   const selectedDeletions = selectedFiles.reduce((sum, file) => sum + file.deletions, 0);
 
   const runCommitAction = async (featureBranch: boolean) => {
-    if (!canWriteSourceControl || (featureBranch && !canChangeThreadBranch)) return;
+    if (!canWriteSourceControl || (featureBranch && !canCreateFeatureBranch)) return;
     const commitMessage = dialogCommitMessage.trim();
     navigation.goBack();
     await gitActions.onRunSelectedThreadGitAction({
@@ -69,10 +77,12 @@ export function GitCommitSheet(_props: GitCommitSheetProps) {
     <FitSheet
       header={
         <SheetHeader
-          title={t("Commit changes")}
-          subtitle={gitStatus.data?.refName ?? t("(detached HEAD)")}
+          title={gt("Commit changes")}
+          subtitle={[repository?.name, gitStatus.data?.refName ?? gt("(detached HEAD)")]
+            .filter(Boolean)
+            .join(" · ")}
           onCancel={() => navigation.goBack()}
-          accessibilityLabel={t("Cancel commit")}
+          accessibilityLabel={gt("Cancel commit")}
         />
       }
       keyboardShouldPersistTaps="handled"
@@ -82,40 +92,47 @@ export function GitCommitSheet(_props: GitCommitSheetProps) {
     >
       {isDefaultRef ? (
         <Text className="text-sm text-warning-foreground">
-          {t("You’re on the default branch. You can create a new branch when committing.")}
+          <T>You’re on the default branch. You can create a new branch when committing.</T>
         </Text>
       ) : null}
       <View className="gap-2">
-        <Text className="text-sm font-t3-medium text-foreground">{t("Commit message")}</Text>
+        <Text className="text-sm font-t3-medium text-foreground">
+          <T>Commit message</T>
+        </Text>
         <TextInput
           multiline
-          accessibilityLabel={t("Commit message")}
+          accessibilityLabel={gt("Commit message")}
           value={dialogCommitMessage}
           onChangeText={setDialogCommitMessage}
-          placeholder={t("Describe your changes…")}
+          placeholder={gt("Describe your changes…")}
           textAlignVertical="top"
           className="min-h-24 rounded-xl bg-subtle px-4 py-3 text-base"
         />
         <Text className="text-xs text-foreground-muted">
-          {t("Leave empty to generate a message automatically.")}
+          <T>Leave empty to generate a message automatically.</T>
         </Text>
       </View>
       <View>
         <View className="flex-row items-center justify-between gap-2 pb-2">
           <View className="flex-1 gap-1">
-            <Text className="text-base font-t3-bold text-foreground">{t("Changed files")}</Text>
+            <Text className="text-base font-t3-bold text-foreground">
+              <T>Changed files</T>
+            </Text>
             <Text className="text-xs text-foreground-muted">
-              {t("{selected} of {total} selected · +{insertions} −{deletions}", {
-                selected: selectedFiles.length,
-                total: allFiles.length,
-                insertions: formatDiffCount(selectedInsertions),
-                deletions: formatDiffCount(selectedDeletions),
-              })}
+              <T>
+                <Var>{selectedFiles.length}</Var> of <Var>{allFiles.length}</Var> selected · +
+                <Var>{formatDiffCount(selectedInsertions)}</Var> −
+                <Var>{formatDiffCount(selectedDeletions)}</Var>
+              </T>
             </Text>
           </View>
           {allFiles.length > 0 ? (
             <Button
-              label={allSelected ? t("Deselect all") : t("Select all")}
+              label={
+                allSelected
+                  ? gt("Deselect all")
+                  : gt("Select all", { $context: "selects every changed file to commit" })
+              }
               tone="text"
               onPress={() =>
                 setExcludedFiles(
@@ -127,7 +144,7 @@ export function GitCommitSheet(_props: GitCommitSheetProps) {
         </View>
         {allFiles.length === 0 ? (
           <Text className="py-4 text-sm text-foreground-muted">
-            {t("No changed files to commit.")}
+            <T>No changed files to commit.</T>
           </Text>
         ) : (
           allFiles.map((file) => {
@@ -198,7 +215,7 @@ export function GitCommitSheet(_props: GitCommitSheetProps) {
       </View>
       <View className="gap-2">
         <Button
-          label={t("Commit changes")}
+          label={gt("Commit changes")}
           icon="checkmark"
           tone="primary"
           fullWidth
@@ -206,11 +223,11 @@ export function GitCommitSheet(_props: GitCommitSheetProps) {
           onPress={() => void runCommitAction(false)}
         />
         <Button
-          label={t("Commit on a new branch")}
+          label={gt("Commit on a new branch")}
           icon="arrow.branch"
           tone="text"
           fullWidth
-          disabled={!canWriteSourceControl || !canChangeThreadBranch || noneSelected || busy}
+          disabled={!canWriteSourceControl || !canCreateFeatureBranch || noneSelected || busy}
           onPress={() => void runCommitAction(true)}
         />
       </View>

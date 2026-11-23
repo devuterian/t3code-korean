@@ -1,7 +1,7 @@
-import { act, useEffect, type ReactNode } from "react";
-import { createRoot, type Root } from "react-dom/client";
-import { afterEach, beforeEach, expect, it, vi } from "vite-plus/test";
+import { useEffect } from "react";
+import { expect, it } from "vite-plus/test";
 
+import { act, render } from "../../test/render";
 import {
   FIT_TABLES_STORAGE_KEY,
   threadWidthStyle,
@@ -21,7 +21,6 @@ it("drives the shared chat-width variable used by rows, composer, and minimap me
   });
 });
 
-let root: Root | undefined;
 let current: ReturnType<typeof useThreadWidth>;
 let other: ReturnType<typeof useThreadWidth>;
 
@@ -34,35 +33,25 @@ function Reader({ secondary = false }: { secondary?: boolean }) {
   return null;
 }
 
-beforeEach(() => {
+/** Starts from empty storage and leaves it empty, so one test's width never reaches the next. */
+function emptyStorage() {
   window.localStorage.clear();
-  vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
-});
-
-afterEach(async () => {
-  await act(() => root?.unmount());
-  root = undefined;
-  window.localStorage.clear();
-  vi.unstubAllGlobals();
-});
-
-function mount(node: ReactNode) {
-  root = createRoot(document.createElement("div"));
-  root.render(node);
+  return { [Symbol.dispose]: () => window.localStorage.clear() };
 }
 
 function storageChanged(key: string) {
   window.dispatchEvent(new StorageEvent("storage", { key }));
 }
+
 it("starts at the original width and shares changes between the toolbar and conversation", async () => {
-  await act(() => {
-    mount(
-      <>
-        <Reader />
-        <Reader secondary />
-      </>,
-    );
-  });
+  using _storage = emptyStorage();
+  await using _screen = await render(
+    <>
+      <Reader />
+      <Reader secondary />
+    </>,
+    { router: false },
+  );
   expect(current[0]).toBe(0);
   await act(() => current[1](5));
   expect(other[0]).toBe(5);
@@ -74,21 +63,17 @@ it("starts at the original width and shares changes between the toolbar and conv
 });
 
 it("retains the preference when navigating or restarting the client", async () => {
-  await act(() => {
-    mount(<Reader />);
-  });
+  using _storage = emptyStorage();
+  await using first = await render(<Reader />, { router: false });
   await act(() => current[1](65));
-  await act(() => root!.unmount());
-  await act(() => {
-    mount(<Reader />);
-  });
+  await first.unmount();
+  await using _second = await render(<Reader />, { router: false });
   expect(current[0]).toBe(65);
 });
 
 it("follows a preference changed by another window", async () => {
-  await act(() => {
-    mount(<Reader />);
-  });
+  using _storage = emptyStorage();
+  await using _screen = await render(<Reader />, { router: false });
   window.localStorage.setItem(THREAD_WIDTH_STORAGE_KEY, "85");
   await act(() => {
     storageChanged(THREAD_WIDTH_STORAGE_KEY);
@@ -106,10 +91,9 @@ it.each([
 ])(
   "keeps invalid stored width $value usable and accepts a subsequent adjustment",
   async ({ value, expected }) => {
+    using _storage = emptyStorage();
     window.localStorage.setItem(THREAD_WIDTH_STORAGE_KEY, JSON.stringify(value));
-    await act(() => {
-      mount(<Reader />);
-    });
+    await using _screen = await render(<Reader />, { router: false });
     expect(current[0]).toBe(expected);
     await act(() => current[1](55));
     expect(current[0]).toBe(55);
@@ -118,9 +102,8 @@ it.each([
 );
 
 it("clamps controls at the endpoints and quantizes every adjustment to five percent", async () => {
-  await act(() => {
-    mount(<Reader />);
-  });
+  using _storage = emptyStorage();
+  await using _screen = await render(<Reader />, { router: false });
   for (const [input, expected] of [
     [-5, 0],
     [105, 100],
@@ -143,16 +126,17 @@ function FitReader({ secondary = false }: { secondary?: boolean }) {
   }, [secondary, value]);
   return null;
 }
+
 it("preserves existing table behavior by default and synchronizes opt-in across consumers", async () => {
-  await act(() => {
-    mount(
-      <>
-        <FitReader />
-        <FitReader secondary />
-        <Reader />
-      </>,
-    );
-  });
+  using _storage = emptyStorage();
+  await using _screen = await render(
+    <>
+      <FitReader />
+      <FitReader secondary />
+      <Reader />
+    </>,
+    { router: false },
+  );
   expect(fit[0]).toBe(false);
   await act(() => fit[1](true));
   expect(otherFit[0]).toBe(true);
@@ -161,39 +145,37 @@ it("preserves existing table behavior by default and synchronizes opt-in across 
   await act(() => otherFit[1](false));
   expect(fit[0]).toBe(false);
 });
+
 it.each([true, false])(
   "preserves an explicit Fit tables %s choice across navigation and restart",
   async (enabled) => {
+    using _storage = emptyStorage();
     window.localStorage.setItem(FIT_TABLES_STORAGE_KEY, JSON.stringify(enabled));
-    await act(() => {
-      mount(<FitReader />);
-    });
+    await using first = await render(<FitReader />, { router: false });
     expect(fit[0]).toBe(enabled);
     await act(() => fit[1](!enabled));
-    await act(() => root!.unmount());
-    await act(() => {
-      mount(<FitReader />);
-    });
+    await first.unmount();
+    await using _second = await render(<FitReader />, { router: false });
     expect(fit[0]).toBe(!enabled);
   },
 );
+
 it("updates tables when another window changes the fit preference", async () => {
-  await act(() => {
-    mount(<FitReader />);
-  });
+  using _storage = emptyStorage();
+  await using _screen = await render(<FitReader />, { router: false });
   window.localStorage.setItem(FIT_TABLES_STORAGE_KEY, "true");
   await act(() => {
     storageChanged(FIT_TABLES_STORAGE_KEY);
   });
   expect(fit[0]).toBe(true);
 });
+
 it.each(["{}", "null", '"false"'])(
   "defaults safely with invalid Fit tables storage %s",
   async (value) => {
+    using _storage = emptyStorage();
     window.localStorage.setItem(FIT_TABLES_STORAGE_KEY, value);
-    await act(() => {
-      mount(<FitReader />);
-    });
+    await using _screen = await render(<FitReader />, { router: false });
     expect(fit[0]).toBe(false);
     await act(() => fit[1](true));
     expect(fit[0]).toBe(true);

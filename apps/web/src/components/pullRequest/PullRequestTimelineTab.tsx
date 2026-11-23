@@ -4,10 +4,7 @@ import {
   resolvePullRequestReviewAnchor,
 } from "@t3tools/shared/pullRequestAnchor";
 import { holdLinkedNodeInView } from "./holdLinkedNodeInView";
-import {
-  capitalizeTerm,
-  sourceControlClients,
-} from "@t3tools/client-runtime/source-control-clients";
+import { sourceControlClients } from "@t3tools/client-runtime/source-control-clients";
 import { useAtomCommand } from "~/state/use-atom-command";
 import type {
   EnvironmentId,
@@ -26,9 +23,11 @@ import {
   MessageSquareIcon,
   MessageSquarePlusIcon,
 } from "lucide-react";
+import { msg, T, useGT, useMessages, Var } from "gt-react";
+
+import { m } from "~/i18n/messages";
 import { useEffect, useEffectEvent, useRef, useState, type ReactNode } from "react";
 
-import { useTranslate } from "~/i18n/translate";
 import { cn } from "~/lib/utils";
 import { readLocalApi } from "~/localApi";
 import { pullRequestEnvironment } from "~/state/pullRequests";
@@ -74,6 +73,8 @@ import {
   pullRequestCompletionScope,
 } from "./PullRequestMarkdownTextarea";
 import { LegendList, type LegendListRef } from "@legendapp/list/react";
+
+import { changeRequestTermKind, type ChangeRequestTermKind } from "./changeRequestTerm";
 
 interface ReactionSurface {
   revealAnchor?: string | null;
@@ -182,11 +183,8 @@ function friendlyReviewState(value: string): string {
 }
 
 function ReviewStateBadge({ state }: { state: string }) {
-  const t = useTranslate();
   return (
-    <span className="text-3xs font-medium text-muted-foreground">
-      {t(friendlyReviewState(state))}
-    </span>
+    <span className="text-3xs font-medium text-muted-foreground">{friendlyReviewState(state)}</span>
   );
 }
 
@@ -197,7 +195,7 @@ function AddToChatButton({
   comment: PullRequestComment;
   reactions: ReactionSurface;
 }) {
-  const t = useTranslate();
+  const gt = useGT();
   const onAddToChat = reactions.onAddToChat;
   return onAddToChat === undefined ? null : (
     <Tooltip>
@@ -207,26 +205,28 @@ function AddToChatButton({
             size="icon-xs"
             variant="ghost-muted"
             className="-mt-1 shrink-0"
-            aria-label={t("Add to chat")}
+            aria-label={gt("Add to chat")}
             onClick={() => onAddToChat(comment)}
           />
         }
       >
         <MessageSquarePlusIcon className="size-3" />
       </TooltipTrigger>
-      <TooltipPopup>{t("Add to chat")}</TooltipPopup>
+      <TooltipPopup>
+        <T>Add to chat</T>
+      </TooltipPopup>
     </Tooltip>
   );
 }
 
 function OpenOnHostButton({ url, onOpen }: { url: string | null; onOpen: (url: string) => void }) {
-  const t = useTranslate();
+  const gt = useGT();
   return url === null ? null : (
     <Button
       size="icon-xs"
       variant="ghost-muted"
       className="-mr-1 shrink-0"
-      aria-label={t("Open activity on host")}
+      aria-label={gt("Open activity on host")}
       onClick={() => onOpen(url)}
     >
       <ExternalLinkIcon className="size-3" />
@@ -242,6 +242,7 @@ function ConversationCard({
   reactions,
   showPath = true,
   reply = false,
+  resolveButton = null,
 }: {
   event: PullRequestTimelineEvent;
   editable: PullRequestComment | null;
@@ -251,8 +252,9 @@ function ConversationCard({
   showPath?: boolean;
   /** A reply goes with its conversation, from the card that heads it. */
   reply?: boolean;
+  resolveButton?: ReactNode;
 }) {
-  const t = useTranslate();
+  const gt = useGT();
   const canReact = reactions.canReact(event);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -269,7 +271,7 @@ function ConversationCard({
     });
     setSaving(false);
     if (result._tag === "Failure") {
-      toastManager.add({ type: "error", title: t("Could not save the comment") });
+      toastManager.add({ type: "error", title: m(msg("Could not save the comment")) });
       return;
     }
     setEditing(false);
@@ -283,18 +285,37 @@ function ConversationCard({
         ? {
             "data-pr-link-target": true,
             tabIndex: -1,
-            className: "group rounded-lg py-2 ring-1 ring-primary/40 outline-none",
+            // Inset: the collapsible panel clips an outer ring's left and right edges.
+            className: "group rounded-lg py-2 ring-1 ring-inset ring-primary/40 outline-none",
           }
         : { className: "group py-2" })}
     >
       <div className="px-2">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
           <div className="min-w-0 flex-1">
-            <div className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 text-xs">
-              <ActorName actor={event.actor} />
-              <span className="text-muted-foreground">{event.title}</span>
+            <h2 className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 text-xs">
+              {event.kind === "review" ? (
+                <T>
+                  <Var>
+                    <ActorName actor={event.actor} />
+                  </Var>{" "}
+                  <span className="text-muted-foreground">reviewed</span>
+                </T>
+              ) : event.kind === "comment" ? (
+                <T>
+                  <Var>
+                    <ActorName actor={event.actor} />
+                  </Var>{" "}
+                  <span className="text-muted-foreground">commented</span>
+                </T>
+              ) : (
+                <>
+                  <ActorName actor={event.actor} />
+                  <span className="text-muted-foreground">{event.title}</span>
+                </>
+              )}
               {event.reviewState ? <ReviewStateBadge state={event.reviewState} /> : null}
-            </div>
+            </h2>
             <PullRequestMetaLine className="mt-1 flex-wrap text-2xs text-muted-foreground">
               <span>
                 <RelativeTime timestamp={event.at} />
@@ -309,10 +330,11 @@ function ConversationCard({
           </div>
           {editable !== null && !editing ? (
             <PullRequestEditButton
-              aria-label={t("Edit comment")}
+              aria-label={gt("Edit comment")}
               onClick={() => setEditing(true)}
             />
           ) : null}
+          {resolveButton}
           {event.body && event.comment && !reply ? (
             <AddToChatButton comment={event.comment} reactions={reactions} />
           ) : null}
@@ -338,7 +360,7 @@ function ConversationCard({
             environmentId={reactions.environmentId}
             completionScope={reactions.completionScope}
             threadRef={reactions.threadRef}
-            label={t("Edit comment")}
+            label={gt("Edit comment")}
             saving={saving}
             onSave={(body) => void save(body)}
             onCancel={() => setEditing(false)}
@@ -383,12 +405,12 @@ function ConversationGroup({
   onOpen: (url: string) => void;
   reactions: ReactionSurface;
 }) {
-  const t = useTranslate();
   const [open, setOpen] = useState(
     () =>
       revealAnchor != null &&
       events.some((event) => pullRequestAnchorMatchesUrl(revealAnchor, event.url)),
   );
+  const gt = useGT();
   const actors = uniqueConversationActors(events);
   const first = events[0];
   if (first === undefined) return null;
@@ -411,14 +433,16 @@ function ConversationGroup({
           >
             <span className="min-w-0 flex-1">
               <span className="block text-xs font-semibold">
-                {t(
-                  `${events.length.toLocaleString()} ${events.length === 1 ? "comment" : "comments"}`,
-                )}
+                {gt("{count, plural, one {{formatted} comment} other {{formatted} comments}}", {
+                  count: events.length,
+                  formatted: events.length.toLocaleString(),
+                })}
               </span>
               <span className="block truncate text-3xs text-muted-foreground">
-                {t(
-                  `${actors.length.toLocaleString()} ${actors.length === 1 ? "author" : "authors"}`,
-                )}{" "}
+                {gt("{count, plural, one {{formatted} author} other {{formatted} authors}}", {
+                  count: actors.length,
+                  formatted: actors.length.toLocaleString(),
+                })}{" "}
                 · <RelativeTime timestamp={first.at} />
               </span>
             </span>
@@ -472,7 +496,7 @@ function ReviewThreadEvent({
   onOpen: (url: string) => void;
   reactions: ReactionSurface;
 }) {
-  const t = useTranslate();
+  const gt = useGT();
   const dismissed = pullRequestReviewOutcome(event.reviewState) === "dismissed";
   const [expanded, setExpanded] = useState(
     () =>
@@ -492,64 +516,60 @@ function ReviewThreadEvent({
         fallback={<MessageSquareIcon className="size-3.5" />}
         muted={!expanded}
       />
-      <div className="flex min-w-0 items-center gap-1">
-        <button
-          type="button"
-          className="flex min-w-0 flex-1 items-center gap-2 px-2 py-2 text-left text-2xs text-muted-foreground hover:text-foreground"
-          aria-expanded={expanded}
-          onClick={() => setExpanded((current) => !current)}
-        >
-          {thread.path === null ? (
-            <span className="min-w-0 truncate">{t("Overview")}</span>
-          ) : (
-            <>
-              <FileCode2Icon aria-hidden className="size-3 shrink-0" />
-              <span className="min-w-0 truncate font-mono">
-                {thread.line === null ? thread.path : `${thread.path}:${thread.line}`}
-              </span>
-            </>
-          )}
-          {thread.isResolved ? (
-            <span className="inline-flex shrink-0 items-center gap-1 font-medium text-success-foreground">
-              <CircleCheckIcon aria-hidden className="size-3" />
-              {t("Resolved")}
+      <button
+        type="button"
+        className="flex w-full min-w-0 items-center gap-2 px-2 py-2 text-left text-2xs text-muted-foreground hover:text-foreground"
+        aria-expanded={expanded}
+        onClick={() => setExpanded((current) => !current)}
+      >
+        {thread.path === null ? (
+          <span className="min-w-0 truncate">
+            <T context="review thread without a file">Overview</T>
+          </span>
+        ) : (
+          <>
+            <FileCode2Icon aria-hidden className="size-3 shrink-0" />
+            <span className="min-w-0 truncate font-mono">
+              {thread.line === null ? thread.path : `${thread.path}:${thread.line}`}
             </span>
-          ) : null}
-          {dismissed ? <span className="shrink-0 font-medium">{t("Review dismissed")}</span> : null}
-          {thread.isOutdated ? <span className="shrink-0 font-medium">{t("Outdated")}</span> : null}
-          {expanded ? null : (
-            <span className="shrink-0">
-              · {event.actor?.login ?? "ghost"}
-              {replyCount > 0 ? (
-                <>
-                  {" "}
-                  ·{" "}
-                  {t(replyCount === 1 ? "{count} reply" : "{count} replies").replace(
-                    "{count}",
-                    () => replyCount.toLocaleString(),
-                  )}
-                </>
-              ) : null}
-            </span>
-          )}
-          <ChevronDownIcon
-            aria-hidden
-            className={cn(
-              "ml-auto size-3.5 shrink-0 transition-transform",
-              expanded && "rotate-180",
-            )}
-          />
-        </button>
-        {expanded ? (
-          <PullRequestResolveThreadButton
-            environmentId={reactions.environmentId}
-            reference={reactions.reference}
-            detail={detail}
-            thread={thread}
-            onRefresh={reactions.onRefresh}
-          />
+          </>
+        )}
+        {thread.isResolved ? (
+          <span className="inline-flex shrink-0 items-center gap-1 font-medium text-success-foreground">
+            <CircleCheckIcon aria-hidden className="size-3" />
+            <T context="review thread state">Resolved</T>
+          </span>
         ) : null}
-      </div>
+        {dismissed ? (
+          <span className="shrink-0 font-medium">
+            <T>Review dismissed</T>
+          </span>
+        ) : null}
+        {thread.isOutdated ? (
+          <span className="shrink-0 font-medium">
+            <T context="review thread state">Outdated</T>
+          </span>
+        ) : null}
+        {expanded ? null : (
+          <span className="shrink-0">
+            · {event.actor?.login ?? "ghost"}
+            {replyCount > 0 ? (
+              <>
+                {" "}
+                ·{" "}
+                {gt("{count, plural, one {{formatted} reply} other {{formatted} replies}}", {
+                  count: replyCount,
+                  formatted: replyCount.toLocaleString(),
+                })}
+              </>
+            ) : null}
+          </span>
+        )}
+        <ChevronDownIcon
+          aria-hidden
+          className={cn("ml-auto size-3.5 shrink-0 transition-transform", expanded && "rotate-180")}
+        />
+      </button>
       {expanded ? (
         <>
           <ConversationCard
@@ -559,6 +579,15 @@ function ReviewThreadEvent({
             onOpen={onOpen}
             reactions={reactions}
             showPath={false}
+            resolveButton={
+              <PullRequestResolveThreadButton
+                environmentId={reactions.environmentId}
+                reference={reactions.reference}
+                detail={detail}
+                thread={thread}
+                onRefresh={reactions.onRefresh}
+              />
+            }
           />
           {thread.replies.length > 0 ? (
             <div className="ml-2 space-y-1 border-l border-border/60 pl-3">
@@ -594,12 +623,12 @@ function CommitEvent({
   event: PullRequestTimelineEvent;
   onOpen: (oid: string) => void;
 }) {
-  const t = useTranslate();
+  const gt = useGT();
   return (
     <button
       type="button"
       className="group relative mb-5 block w-full cursor-pointer rounded-sm pl-12 text-left outline-none [contain-intrinsic-block-size:48px] [content-visibility:auto] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
-      aria-label={t(`View commit ${event.id}`)}
+      aria-label={gt("View commit {sha}", { sha: event.id })}
       onClick={() => onOpen(event.id)}
     >
       <ActorTimelineMarker
@@ -609,7 +638,7 @@ function CommitEvent({
       <div className="flex min-w-0 items-center gap-2.5 py-1.5">
         <div className="min-w-0 flex-1">
           <div className="truncate text-xs font-semibold text-foreground transition-colors group-hover:text-primary">
-            {event.body ?? t("Untitled commit")}
+            {event.body ?? gt("Untitled commit")}
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-3xs text-muted-foreground">
             <code className="font-mono">{event.id.slice(0, 7)}</code>
@@ -630,23 +659,37 @@ function CommitEvent({
   );
 }
 
-function LifecycleEvent({ event, term }: { event: PullRequestTimelineEvent; term: string }) {
-  const t = useTranslate();
-  const title = capitalizeTerm(term);
+function LifecycleEvent({
+  event,
+  term,
+}: {
+  event: PullRequestTimelineEvent;
+  term: ChangeRequestTermKind;
+}) {
+  const gt = useGT();
   const presentation =
     event.kind === "opened"
       ? {
           icon: <PullRequestGlyph.pullRequest className="size-3.5" />,
-          label: `${title} opened`,
+          label: gt(
+            "{term, select, mr {Merge request} cr {Change request} other {Pull request}} opened",
+            { term },
+          ),
         }
       : event.kind === "merged"
         ? {
             icon: <PullRequestGlyph.merged className="size-3.5" />,
-            label: `${title} merged`,
+            label: gt(
+              "{term, select, mr {Merge request} cr {Change request} other {Pull request}} merged",
+              { term },
+            ),
           }
         : {
             icon: <PullRequestGlyph.closed className="size-3.5" />,
-            label: `${title} closed`,
+            label: gt(
+              "{term, select, mr {Merge request} cr {Change request} other {Pull request}} closed",
+              { term },
+            ),
           };
 
   return (
@@ -655,7 +698,7 @@ function LifecycleEvent({ event, term }: { event: PullRequestTimelineEvent; term
       <div className="py-1.5 text-xs">
         <div className="flex flex-wrap items-center gap-1.5">
           {event.actor ? <ActorName actor={event.actor} /> : null}
-          <span className="font-semibold text-foreground">{t(presentation.label)}</span>
+          <span className="font-semibold text-foreground">{presentation.label}</span>
         </div>
         <div className="mt-0.5 text-2xs text-muted-foreground">
           <RelativeTime timestamp={event.at} />
@@ -663,6 +706,20 @@ function LifecycleEvent({ event, term }: { event: PullRequestTimelineEvent; term
       </div>
     </div>
   );
+}
+
+function staleReviewOutcomeLabel(
+  outcome: PullRequestReviewOutcome,
+  gt: ReturnType<typeof useGT>,
+): string {
+  switch (outcome) {
+    case "approved":
+      return gt("Approved, before the latest commits");
+    case "changes-requested":
+      return gt("Changes requested, before the latest commits");
+    case "dismissed":
+      return gt("Review dismissed, before the latest commits");
+  }
 }
 
 function ReviewVerdictEvent({
@@ -680,7 +737,8 @@ function ReviewVerdictEvent({
   onOpen: (url: string) => void;
   reactions: ReactionSurface;
 }) {
-  const t = useTranslate();
+  const gt = useGT();
+  const resolve = useMessages();
   const canReact = reactions.canReact(event);
   return (
     <div className="group relative mb-5 pl-12 [contain-intrinsic-block-size:48px] [content-visibility:auto]">
@@ -691,7 +749,7 @@ function ReviewVerdictEvent({
       />
       <div className="flex min-w-0 flex-wrap items-center gap-2 py-1.5">
         <div className="min-w-0 flex-1">
-          <div className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 text-xs">
+          <h2 className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 text-xs">
             <ActorName actor={event.actor} />
             <Tooltip disabled={!stale}>
               <TooltipTrigger
@@ -706,12 +764,18 @@ function ReviewVerdictEvent({
                   />
                 }
               >
-                {t(pullRequestReviewOutcomeLabel(outcome))}
-                {stale ? <span className="sr-only">, {t("before the latest commits")}</span> : null}
+                {stale ? (
+                  <>
+                    <span aria-hidden>{pullRequestReviewOutcomeLabel(outcome, resolve)}</span>
+                    <span className="sr-only">{staleReviewOutcomeLabel(outcome, gt)}</span>
+                  </>
+                ) : (
+                  pullRequestReviewOutcomeLabel(outcome, resolve)
+                )}
               </TooltipTrigger>
-              <TooltipPopup>{pullRequestReviewOutcomeStaleLabel(outcome)}</TooltipPopup>
+              <TooltipPopup>{pullRequestReviewOutcomeStaleLabel(outcome, resolve)}</TooltipPopup>
             </Tooltip>
-          </div>
+          </h2>
           <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
             <PullRequestMetaLine className="flex-wrap text-2xs text-muted-foreground">
               <span>
@@ -781,8 +845,8 @@ export function PullRequestTimelineTab({
   onAddToChat?: (subject: PullRequestChatSubject) => void;
   onRefresh: () => void;
 }) {
-  const t = useTranslate();
-  const events = buildPullRequestTimeline(detail);
+  const resolve = useMessages();
+  const events = buildPullRequestTimeline(detail, resolve);
   const location = parsePullRequestAnchor(revealUrl);
   const revealAnchor = location?.kind === "timeline" ? location.anchor : null;
   // The linked item stays marked and open after it is shown, until another link replaces it.
@@ -802,7 +866,7 @@ export function PullRequestTimelineTab({
   const matches = (event: PullRequestTimelineEvent) =>
     anchor !== null && pullRequestTimelineEventMatches(event, anchor);
 
-  const term = sourceControlClients.get(detail.provider).changeRequest.singular;
+  const term = changeRequestTermKind(sourceControlClients.get(detail.provider).changeRequest);
   const newestCommitAt = newestPullRequestCommitAt(detail.commits);
   const reactions: ReactionSurface = {
     revealAnchor: anchor,
@@ -907,10 +971,17 @@ export function PullRequestTimelineTab({
 
   if (events.length === 0) {
     return (
-      <div ref={scrollerRef} className="scrollbar-gutter-both h-full overflow-y-auto px-4 py-5">
+      <div
+        ref={scrollerRef}
+        tabIndex={-1}
+        data-workspace-focus-default
+        className="scrollbar-gutter-both h-full overflow-y-auto px-4 py-5 outline-none"
+      >
         <div className="flex flex-col items-center justify-center py-16 text-center text-muted-foreground">
           <PullRequestGlyph.pullRequest className="mb-2 size-5" />
-          <p className="text-xs">{t("No activity yet.")}</p>
+          <p className="text-xs">
+            <T>No activity yet.</T>
+          </p>
         </div>
       </div>
     );
@@ -929,12 +1000,14 @@ export function PullRequestTimelineTab({
       keyExtractor={rowKey}
       renderItem={renderRow}
       estimatedItemSize={140}
-      className="scrollbar-gutter-both h-full px-4"
+      tabIndex={-1}
+      data-workspace-focus-default
+      className="scrollbar-gutter-both h-full px-4 outline-none"
       contentContainerClassName="relative mx-auto w-full max-w-3xl before:absolute before:bottom-10 before:left-[15px] before:top-6 before:w-px before:bg-border/45"
       ListHeaderComponent={
         anchor !== null && targetIndex < 0 && revealUrl === undefined ? (
           <p role="status" className="py-4 text-xs text-muted-foreground">
-            {t("The linked item is not in the loaded activity.")}
+            <T>The linked item is not in the loaded activity.</T>
           </p>
         ) : (
           <div className="h-5" />

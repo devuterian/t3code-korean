@@ -1,5 +1,7 @@
+import { T, useGT } from "gt-react-native";
 import * as Dialog from "../../components/ui/Dialog";
 import { ScreenScrollView as ScrollView } from "../../components/ui/ScreenScrollView";
+import * as Application from "expo-application";
 import Constants from "expo-constants";
 import { settlePromise } from "@t3tools/client-runtime/state/runtime";
 import { useRef, useState } from "react";
@@ -19,14 +21,13 @@ import { AndroidUpdateSettingsRow } from "../android-updater/AndroidUpdateSettin
 import { SettingsRow } from "./components/SettingsRow";
 import { SettingsSection } from "./components/SettingsSection";
 import { SettingsScreen } from "./components/SettingsScreen";
-import { translate, useTranslate } from "../../i18n/translate";
 
 export function SettingsAboutRouteScreen() {
-  const t = useTranslate();
+  const gt = useGT();
   const insets = useSafeAreaInsets();
 
   return (
-    <SettingsScreen title={t("About")}>
+    <SettingsScreen title={gt("About")}>
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         showsVerticalScrollIndicator={false}
@@ -41,7 +42,7 @@ export function SettingsAboutRouteScreen() {
 }
 
 function AppSettingsSection() {
-  const t = useTranslate();
+  const gt = useGT();
   const [checkState, setCheckState] = useState<{
     readonly state: AppUpdateCheckState;
     // "Up to date" is a confirmation that fades back to idle.
@@ -57,7 +58,10 @@ function AppSettingsSection() {
   // Match app.config.ts's production fallback to avoid mislabeling builds as development.
   const variant = (Constants.expoConfig?.extra?.appVariant as string | undefined) ?? "production";
   const variantLabel = variant === "production" ? "" : capitalize(variant);
-  const versionLabel = variantLabel ? `${version} · ${variantLabel}` : version;
+  // EAS assigns build numbers remotely; only the installed binary knows its own.
+  const build = Application.nativeBuildVersion;
+  const versionWithBuild = build ? `${version} (${build})` : version;
+  const versionLabel = variantLabel ? `${versionWithBuild} · ${variantLabel}` : versionWithBuild;
   const updateCheckAvailable = isAppUpdateCheckAvailable();
   const busy =
     updateState === "checking" || updateState === "downloading" || updateState === "restarting";
@@ -70,7 +74,7 @@ function AppSettingsSection() {
     await settlePromise(() =>
       runAppUpdateCheck({
         applyMode: "immediate",
-        onFailure: (message) => Dialog.alert(translate("Update failed"), message),
+        onFailure: (message) => Dialog.alert(gt("Update failed"), message),
         onStateChange: (state) =>
           setCheckState({
             state,
@@ -92,15 +96,15 @@ function AppSettingsSection() {
 
   const statusLabel =
     updateState === "checking"
-      ? t("Checking…")
+      ? gt("Checking…")
       : updateState === "downloading"
-        ? t("Downloading…")
+        ? gt("Downloading…")
         : updateState === "ready"
-          ? t("Update ready")
+          ? gt("Update ready")
           : updateState === "restarting"
-            ? t("Restarting…")
+            ? gt("Restarting…")
             : updateState === "current"
-              ? t("Up to date")
+              ? gt("Up to date")
               : null;
 
   const versionRow = (
@@ -112,7 +116,9 @@ function AppSettingsSection() {
         type="monochrome"
         weight="regular"
       />
-      <Text className="flex-1 text-lg text-foreground">{t("Version")}</Text>
+      <Text className="flex-1 text-lg text-foreground">
+        <T>Version</T>
+      </Text>
       <View className="items-end">
         <Text className="text-lg text-foreground-muted">{versionLabel}</Text>
         {statusLabel ? (
@@ -123,22 +129,22 @@ function AppSettingsSection() {
   );
 
   return (
-    <SettingsSection title={t("App")}>
+    <SettingsSection title={gt("App", { $context: "settings section about this mobile app" })}>
       <SettingsRow
         icon="internaldrive"
-        label={t("Client Storage")}
+        label={gt("Client Storage")}
         target="SettingsClientStorage"
       />
-      <SettingsRow icon="stethoscope" label={t("Diagnostics")} target="SettingsDiagnostics" />
+      <SettingsRow icon="stethoscope" label={gt("Diagnostics")} target="SettingsDiagnostics" />
       <SettingsRow
         icon="doc.on.doc"
-        label={t("Open source licenses")}
+        label={gt("Open source licenses")}
         target="SettingsOpenSourceLicenses"
       />
-      <SettingsRow icon="doc.text" label={t("Legal")} fullScreenTarget="SettingsLegal" />
+      <SettingsRow icon="doc.text" label={gt("Legal")} fullScreenTarget="SettingsLegal" />
       {updateCheckAvailable ? (
         <Pressable
-          accessibilityLabel={t("Version {version}", { version: versionLabel })}
+          accessibilityLabel={gt("Version {version}", { version: versionLabel })}
           accessibilityRole="text"
           disabled={busy}
           onPress={handleVersionPress}

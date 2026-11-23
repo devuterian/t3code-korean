@@ -1,21 +1,24 @@
+import {
+  managedNightlyDeniedMessage,
+  managedUpdatesDenial,
+} from "@t3tools/client-runtime/contract-labels";
 import type { ServerUpdateState } from "@t3tools/client-runtime/state/server";
 import {
   type DesktopUpdateChannel,
   type EnvironmentId,
-  managedNightlyDeniedMessage,
-  managedUpdatesDenial,
   type ServerConfig,
   type ServerSelfUpdateCapability,
 } from "@t3tools/contracts";
 import { cliReleaseChannelOf, desktopUpdateChannelOf } from "@t3tools/shared/cliRelease";
 import { compareSemverVersions } from "@t3tools/shared/semver";
+import { msg } from "gt-react";
 
+import { m, type MessageResolver } from "~/i18n/messages";
 import {
   resolveServerSelfUpdateCapability,
   resolveVersionMismatch,
   supportsDesktopAppUpdate,
 } from "~/versionSkew";
-import { getInterfaceLanguage, translate } from "../../i18n/translate";
 import type { ServerUpdateOutcome, ServerUpdateTarget } from "../ServerUpdateAction";
 
 export interface UpdateEverythingMachine {
@@ -73,6 +76,7 @@ export interface SkippedMachine {
 export function collectServerUpdateTargets(
   machines: ReadonlyArray<UpdateEverythingMachine>,
   targetVersion: string,
+  resolve: MessageResolver = m,
 ): {
   readonly targets: ServerUpdateTarget[];
   readonly skipped: SkippedMachine[];
@@ -90,15 +94,16 @@ export function collectServerUpdateTargets(
     }
     const skip = (reason: string) =>
       skipped.push({ environmentId: machine.environmentId, label: machine.label, reason });
-    const unavailable = unavailableReason(machine);
+    const unavailable = unavailableReason(machine, resolve);
     if (config === null || unavailable !== null) {
-      skip(unavailable ?? translate("not connected"));
+      skip(unavailable ?? resolve(msg("not connected")));
       continue;
     }
     const selfUpdate = resolveServerSelfUpdateCapability(config);
     const managedDenial = managedMachineUpdateDenial(
       config,
       selfUpdate === "desktop-managed" ? undefined : targetVersion,
+      resolve,
     );
     if (managedDenial !== undefined) {
       skip(managedDenial);
@@ -106,23 +111,21 @@ export function collectServerUpdateTargets(
     }
     const desktopAppUpdate = supportsDesktopAppUpdate(config);
     if (selfUpdate === null) {
-      skip(translate("needs a manual update"));
+      skip(resolve(msg("needs a manual update")));
       continue;
     }
     if (selfUpdate === "desktop-managed" && !desktopAppUpdate) {
-      skip(translate("needs a newer desktop app"));
+      skip(resolve(msg("needs a newer desktop app")));
       continue;
     }
-    const serverVersion = config.environment.serverVersion;
+    const serverChannel = cliReleaseChannelOf(config.environment.serverVersion);
+    // A desktop app installs its own track's newest release. Nightly builds run ahead of Stable, so a
+    // Nightly host behind a Stable target has something newer; a Stable host may not.
     if (
-      selfUpdate !== "desktop-managed" &&
-      cliReleaseChannelOf(serverVersion) !== cliReleaseChannelOf(targetVersion)
+      serverChannel !== cliReleaseChannelOf(targetVersion) &&
+      (selfUpdate !== "desktop-managed" || serverChannel === "stable")
     ) {
-      skip(
-        translate("on the {channel} channel").replace("{channel}", () =>
-          cliReleaseChannelOf(serverVersion),
-        ),
-      );
+      skip(resolve(msg("on the {channel} channel", { channel: serverChannel })));
       continue;
     }
     const target: ServerUpdateTarget = {
@@ -138,10 +141,13 @@ export function collectServerUpdateTargets(
   return { targets, skipped };
 }
 
-function unavailableReason(machine: UpdateEverythingMachine): string | null {
-  if (machine.serverConfig === null || !machine.connected) return translate("not connected");
-  if (!machine.canMaintain) return translate("no permission");
-  if (machine.updateState.status === "running") return translate("already updating");
+function unavailableReason(
+  machine: UpdateEverythingMachine,
+  resolve: MessageResolver,
+): string | null {
+  if (machine.serverConfig === null || !machine.connected) return resolve(msg("not connected"));
+  if (!machine.canMaintain) return resolve(msg("no permission"));
+  if (machine.updateState.status === "running") return resolve(msg("already updating"));
   return null;
 }
 
@@ -152,41 +158,93 @@ export interface ChannelSwitchRelease {
   readonly databaseMigration: number | undefined;
 }
 
-export const channelSwitchLabel = (channel: DesktopUpdateChannel) =>
-  channel === "nightly" ? translate("Nightly") : translate("Stable");
+/** Components pass `useMessages()` so labels follow a language switch. */
+export const channelSwitchLabel = (channel: DesktopUpdateChannel, resolve: MessageResolver = m) =>
+  channel === "nightly"
+    ? resolve(msg("Nightly", { $context: "release track" }))
+    : resolve(msg("Stable", { $context: "release track" }));
 
 /** Stable and Nightly each build their own commits, so either can hold migrations the other lacks.
  * Crossing tracks needs proof that the target release knows every migration the database holds. */
 const crossesTrack = (fromVersion: string, release: ChannelSwitchRelease) =>
   desktopUpdateChannelOf(fromVersion) !== release.channel;
 
+type ChannelSwitchBlock = "server-predates-checks" | "release-predates-checks" | "unsupported";
+
+function channelSwitchBlock(
+  fromVersion: string,
+  release: ChannelSwitchRelease,
+  currentMigration: number | undefined,
+): ChannelSwitchBlock | null {
+  if (!crossesTrack(fromVersion, release)) return null;
+  // Servers and releases from before this check report no migration number.
+  if (currentMigration === undefined) return "server-predates-checks";
+  if (release.databaseMigration === undefined) return "release-predates-checks";
+  return currentMigration > release.databaseMigration ? "unsupported" : null;
+}
+
 function channelSwitchBlockReason(
   fromVersion: string,
   release: ChannelSwitchRelease,
   currentMigration: number | undefined,
+  resolve: MessageResolver,
 ): string | null {
-  if (!crossesTrack(fromVersion, release)) return null;
-  const from = channelSwitchLabel(desktopUpdateChannelOf(fromVersion));
-  // Servers and releases from before this check report no migration number.
-  if (currentMigration === undefined) {
-    return translate("its server predates database checks; update it on {track} first").replace(
-      "{track}",
-      () => from,
-    );
+  const block = channelSwitchBlock(fromVersion, release, currentMigration);
+  if (block === null) return null;
+  const from = channelSwitchLabel(desktopUpdateChannelOf(fromVersion), resolve);
+  const to = channelSwitchLabel(release.channel, resolve);
+  const version = release.version;
+  switch (block) {
+    case "server-predates-checks":
+      return resolve(
+        msg("its server predates database checks; update it on {from} first", { from }),
+      );
+    case "release-predates-checks":
+      return resolve(
+        msg("{version} predates database checks; wait for a newer {to} release", { version, to }),
+      );
+    case "unsupported":
+      return resolve(
+        msg(
+          "its database has changes {version} does not support yet; stay on {from} until {to} has them",
+          { version, from, to },
+        ),
+      );
   }
-  if (release.databaseMigration === undefined) {
-    return translate("{version} predates database checks; wait for a newer {track} release")
-      .replace("{version}", () => release.version)
-      .replace("{track}", () => channelSwitchLabel(release.channel));
+}
+
+function localChannelSwitchBlockReason(
+  fromVersion: string,
+  release: ChannelSwitchRelease,
+  block: ChannelSwitchBlock,
+  resolve: MessageResolver,
+): string {
+  const from = channelSwitchLabel(desktopUpdateChannelOf(fromVersion), resolve);
+  const to = channelSwitchLabel(release.channel, resolve);
+  const version = release.version;
+  switch (block) {
+    case "server-predates-checks":
+      return resolve(
+        msg(
+          "This app cannot switch: its server predates database checks; update it on {from} first.",
+          { from },
+        ),
+      );
+    case "release-predates-checks":
+      return resolve(
+        msg(
+          "This app cannot switch: {version} predates database checks; wait for a newer {to} release.",
+          { version, to },
+        ),
+      );
+    case "unsupported":
+      return resolve(
+        msg(
+          "This app cannot switch: its database has changes {version} does not support yet; stay on {from} until {to} has them.",
+          { version, from, to },
+        ),
+      );
   }
-  return currentMigration > release.databaseMigration
-    ? translate(
-        "its database has changes {version} does not support yet; stay on {from} until {track} has them",
-      )
-        .replace("{version}", () => release.version)
-        .replace("{from}", () => from)
-        .replace("{track}", () => channelSwitchLabel(release.channel))
-    : null;
 }
 
 /** This app's reinstall restarts every server it hosts, so each of their databases must allow the
@@ -202,6 +260,7 @@ export function localSwitchBlockReason(
   }>,
   backendCount: number,
   localEnvironmentEnabled: boolean,
+  resolve: MessageResolver = m,
 ): string | null {
   if (!localEnvironmentEnabled || !crossesTrack(appVersion, release)) return null;
   if (
@@ -209,13 +268,18 @@ export function localSwitchBlockReason(
     hosted.length < backendCount ||
     hosted.some((server) => !server.connected)
   ) {
-    return translate("its server is not connected, so its database cannot be checked");
+    return resolve(
+      msg(
+        "This app cannot switch: its server is not connected, so its database cannot be checked.",
+      ),
+    );
   }
-  return (
-    hosted
-      .map((server) => channelSwitchBlockReason(appVersion, release, server.databaseMigration))
-      .find((reason) => reason !== null) ?? null
-  );
+  const block = hosted
+    .map((server) => channelSwitchBlock(appVersion, release, server.databaseMigration))
+    .find((reason): reason is ChannelSwitchBlock => reason !== null);
+  return block === undefined
+    ? null
+    : localChannelSwitchBlockReason(appVersion, release, block, resolve);
 }
 
 /**
@@ -225,15 +289,16 @@ export function localSwitchBlockReason(
 function managedMachineUpdateDenial(
   config: NonNullable<UpdateEverythingMachine["serverConfig"]>,
   targetVersion: string | undefined,
+  resolve: MessageResolver,
 ): string | undefined {
   const policy = config.managedPolicy;
   return (
-    managedUpdatesDenial(policy) ??
+    managedUpdatesDenial(policy, resolve) ??
     (policy !== undefined &&
     policy.limits?.updates?.allowNightly === false &&
     targetVersion !== undefined &&
     cliReleaseChannelOf(targetVersion) !== "stable"
-      ? managedNightlyDeniedMessage(policy.organization)
+      ? managedNightlyDeniedMessage(policy.organization, resolve)
       : undefined)
   );
 }
@@ -243,6 +308,7 @@ function managedMachineUpdateDenial(
 export function collectChannelSwitchTargets(
   machines: ReadonlyArray<UpdateEverythingMachine>,
   release: ChannelSwitchRelease,
+  resolve: MessageResolver = m,
 ): { readonly targets: ServerUpdateTarget[]; readonly skipped: SkippedMachine[] } {
   const targets: ServerUpdateTarget[] = [];
   const skipped: SkippedMachine[] = [];
@@ -273,28 +339,28 @@ export function collectChannelSwitchTargets(
       sameTrack &&
       resolveVersionMismatch(serverVersion, release.version) === null
     ) {
-      const move = trackSwitchMove(config, true);
+      const move = trackSwitchMove(config, true, resolve);
       if (
         !("skip" in move) &&
         move.selfUpdate === "desktop-managed" &&
-        unavailableReason(machine) === null &&
-        managedMachineUpdateDenial(config, release.version) === undefined
+        unavailableReason(machine, resolve) === null &&
+        managedMachineUpdateDenial(config, release.version, resolve) === undefined
       ) {
         targets.push({ ...target(move.selfUpdate, serverVersion), trackOnly: true });
       }
       continue;
     }
-    const unavailable = unavailableReason(machine);
+    const unavailable = unavailableReason(machine, resolve);
     if (config === null || serverVersion === undefined || unavailable !== null) {
-      skip(unavailable ?? translate("not connected"));
+      skip(unavailable ?? resolve(msg("not connected")));
       continue;
     }
-    const managedDenial = managedMachineUpdateDenial(config, release.version);
+    const managedDenial = managedMachineUpdateDenial(config, release.version, resolve);
     if (managedDenial !== undefined) {
       skip(managedDenial);
       continue;
     }
-    const move = trackSwitchMove(config, sameTrack);
+    const move = trackSwitchMove(config, sameTrack, resolve);
     if ("skip" in move) {
       skip(move.skip);
       continue;
@@ -303,6 +369,7 @@ export function collectChannelSwitchTargets(
       serverVersion,
       release,
       config.environment.databaseMigration,
+      resolve,
     );
     if (blocked !== null) {
       skip(blocked);
@@ -314,9 +381,10 @@ export function collectChannelSwitchTargets(
       compareSemverVersions(release.version, serverVersion) <= 0
     ) {
       skip(
-        translate("run `t3 update --channel {channel} --allow-downgrade` there").replace(
-          "{channel}",
-          () => (release.channel === "nightly" ? "nightly" : "stable"),
+        resolve(
+          msg("run `{command}` there", {
+            command: `t3 update --channel ${release.channel === "nightly" ? "nightly" : "stable"} --allow-downgrade`,
+          }),
         ),
       );
       continue;
@@ -336,7 +404,7 @@ export function awaitsTrackSwitch(
     !machine.hostedByThisApp &&
     config !== null &&
     !isOnTrack(config.environment.serverVersion, channel) &&
-    !("skip" in trackSwitchMove(config, false))
+    !("skip" in trackSwitchMove(config, false, m))
   );
 }
 
@@ -348,19 +416,20 @@ function isOnTrack(version: string, channel: DesktopUpdateChannel): boolean {
 function trackSwitchMove(
   config: NonNullable<UpdateEverythingMachine["serverConfig"]>,
   sameTrack: boolean,
+  resolve: MessageResolver,
 ): { readonly selfUpdate: ServerSelfUpdateCapability } | { readonly skip: string } {
   if (cliReleaseChannelOf(config.environment.serverVersion) === "preview") {
-    return { skip: translate("runs a preview build") };
+    return { skip: resolve(msg("runs a preview build")) };
   }
   const selfUpdate = resolveServerSelfUpdateCapability(config);
-  if (selfUpdate === null) return { skip: translate("needs a manual update") };
+  if (selfUpdate === null) return { skip: resolve(msg("needs a manual update")) };
   if (selfUpdate !== "desktop-managed") return { selfUpdate };
   if (config.environment.capabilities.desktopAppChannelSwitch !== true) {
-    return { skip: translate("needs a newer desktop app") };
+    return { skip: resolve(msg("needs a newer desktop app")) };
   }
   // Squirrel.Mac renames the bundle for the new track and then cannot relaunch it.
   if (!sameTrack && config.environment.platform.os === "darwin") {
-    return { skip: translate("switch the Mac app on that Mac") };
+    return { skip: resolve(msg("switch the Mac app on that Mac")) };
   }
   return { selfUpdate };
 }
@@ -453,11 +522,13 @@ export function closeFinishedUpdateRun(run: UpdateEverythingRun): UpdateEverythi
 
 const UPDATE_SLOW_AFTER_MS = 3 * 60 * 1000;
 
-export function formatUpdateElapsed(ms: number): string {
+export function formatUpdateElapsed(ms: number, resolve: MessageResolver = m): string {
   const minutes = Math.floor(ms / 60_000);
-  if (minutes < 1) return "<1m";
-  if (minutes < 60) return `${minutes}m`;
-  return `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
+  if (minutes < 1) return resolve(msg("<1m"));
+  if (minutes < 60) return resolve(msg("{minutes}m", { minutes }));
+  return resolve(
+    msg("{hours}h {minutes}m", { hours: Math.floor(minutes / 60), minutes: minutes % 60 }),
+  );
 }
 
 export interface UpdateRunMachineView {
@@ -484,17 +555,18 @@ export function describeUpdateCapsule(
   machines: ReadonlyArray<UpdateRunMachineView>,
   local: UpdateRunLocalState,
   now: number,
+  resolve: MessageResolver = m,
 ): UpdateCapsuleView {
   if (run.phase === "countdown" && run.restartAt !== null) {
     const seconds = Math.max(0, Math.ceil((run.restartAt - now) / 1000));
     return {
       tone: "default",
-      label: translate("Restart in {seconds}s").replace("{seconds}", () => String(seconds)),
+      label: resolve(msg("Restart in {seconds}s", { seconds })),
       action: "later",
     };
   }
   if (run.phase === "installing") {
-    return { tone: "default", label: translate("Restarting…"), action: null };
+    return { tone: "default", label: resolve(msg("Restarting…")), action: null };
   }
   const active = machines.filter(({ status }) => isActive(status) && status !== "waiting");
   const slowest = active.toSorted((a, b) => a.machine.startedAt - b.machine.startedAt)[0];
@@ -503,25 +575,27 @@ export function describeUpdateCapsule(
       tone: "slow",
       label: slowest.machine.label,
       slow: {
-        status: RUN_STATUS_LABELS[slowest.status],
-        elapsed: formatUpdateElapsed(now - slowest.machine.startedAt),
+        status: resolve(RUN_STATUS_LABELS[slowest.status]),
+        elapsed: formatUpdateElapsed(now - slowest.machine.startedAt, resolve),
       },
       action: null,
     };
   }
   const done = machines.filter(({ status }) => status === "done").length;
   if (machines.some(({ status }) => isActive(status))) {
-    return { tone: "default", label: updatedCountLabel(done, machines.length), action: null };
+    return {
+      tone: "default",
+      label: resolve(msg("{done} of {total} updated", { done, total: machines.length })),
+      action: null,
+    };
   }
   if (local?.status === "downloading") {
     return {
       tone: "default",
       label:
         local.percent === null
-          ? translate("Downloading")
-          : translate("Downloading {percent}%").replace("{percent}", () =>
-              String(Math.floor(local.percent ?? 0)),
-            ),
+          ? resolve(msg("Downloading"))
+          : resolve(msg("Downloading {percent}%", { percent: Math.floor(local.percent) })),
       action: null,
     };
   }
@@ -529,31 +603,35 @@ export function describeUpdateCapsule(
   if (failed.length > 0) {
     return {
       tone: "failed",
-      label: translate(failed.length === 1 ? "{label} failed" : "{count} failed")
-        .replace("{label}", () => failed[0]!.machine.label)
-        .replace("{count}", () => String(failed.length)),
+      label:
+        failed.length === 1
+          ? resolve(msg("{machine} failed", { machine: failed[0]!.machine.label }))
+          : resolve(
+              msg("{count, plural, one {{count} failed} other {{count} failed}}", {
+                count: failed.length,
+              }),
+            ),
       action:
         !run.trackSwitch && failed.some(({ machine }) => machine.server !== null)
           ? "retry"
           : "dismiss",
     };
   }
-  return { tone: "default", label: updatedCountLabel(done, machines.length), action: null };
+  return {
+    tone: "default",
+    label: resolve(msg("{done} of {total} updated", { done, total: machines.length })),
+    action: null,
+  };
 }
 
-function updatedCountLabel(done: number, total: number): string {
-  return translate("{done} of {total} updated")
-    .replace("{done}", () => String(done))
-    .replace("{total}", () => String(total));
-}
-
+/** `msg()` strings: resolve them with `m` or `useMessages()` where they show. */
 export const RUN_STATUS_LABELS: Record<UpdateRunMachineStatus, string> = {
-  providers: "updating providers",
-  waiting: "waiting",
-  downloading: "downloading",
-  restarting: "restarting",
-  done: "done",
-  failed: "failed",
+  providers: msg("updating providers"),
+  waiting: msg("waiting"),
+  downloading: msg("downloading"),
+  restarting: msg("restarting"),
+  done: msg("done"),
+  failed: msg("failed"),
 };
 
 export interface UpdateEverythingResult {
@@ -582,7 +660,7 @@ export function collectUpdateEverythingResult(input: {
     updatedProviders: input.providers.filter((outcome) => outcome.status === "updated").length,
     restarting: [],
     failures: [
-      ...input.localFailures.map((failure) => `${translate("This app:")} ${failure}`),
+      ...input.localFailures.map((failure) => m(msg("This app: {failure}", { failure }))),
       ...input.servers.flatMap(({ label, outcome }) =>
         outcome.status === "failed" ? [`${label}: ${outcome.message}`] : [],
       ),
@@ -599,34 +677,37 @@ export function getUpdateEverythingToastView(
   readonly title: string;
   readonly description?: string;
 } | null {
-  const parts = [
-    result.localVersion !== null && result.localVersion === appVersion
-      ? translate("this app")
-      : null,
-    countLabel(result.updatedServers, "{count} server", "{count} servers"),
-    countLabel(result.updatedProviders, "{count} provider", "{count} providers"),
-  ].filter((part) => part !== null);
+  const updated = updateTargetsSentence(
+    "updated",
+    {
+      app: result.localVersion !== null && result.localVersion === appVersion,
+      servers: result.updatedServers,
+      providers: result.updatedProviders,
+    },
+    m,
+  );
   const restarting =
     result.restarting.length === 0
       ? []
       : [
-          translate(
-            result.restarting.length === 1
-              ? "{names} is still restarting."
-              : "{names} are still restarting.",
-          ).replace("{names}", () => joinList(result.restarting)),
+          m(
+            msg(
+              "{count, plural, one {{machines} is still restarting.} other {{machines} are still restarting.}}",
+              { count: result.restarting.length, machines: joinList(result.restarting, m) },
+            ),
+          ),
         ];
   if (result.failures.length === 0) {
-    if (parts.length === 0) return null;
+    if (updated === null) return null;
     return {
       type: "success",
-      title: updatedTitle(parts),
+      title: updated,
       ...(restarting.length === 0 ? {} : { description: restarting.join("\n") }),
     };
   }
   return {
     type: "error",
-    title: parts.length === 0 ? translate("Update failed") : updatedTitle(parts),
+    title: updated === null ? m(msg("Update failed")) : updated,
     description: [...result.failures, ...restarting].join("\n"),
   };
 }
@@ -657,23 +738,121 @@ export interface UpdateEverythingRow {
   readonly providers: ReadonlyArray<string>;
 }
 
-function countLabel(count: number, singular: string, plural: string): string | null {
-  return count === 0
-    ? null
-    : translate(count === 1 ? singular : plural).replace("{count}", () => String(count));
+/** "Update this app, 2 servers, and 3 providers" as one sentence per combination; null when nothing. */
+function updateTargetsSentence(
+  verb: "update" | "updated",
+  targets: { readonly app: boolean; readonly servers: number; readonly providers: number },
+  resolve: MessageResolver,
+): string | null {
+  const { app, servers, providers } = targets;
+  const values = { servers, providers };
+  const update = verb === "update";
+  if (app && servers > 0 && providers > 0) {
+    return update
+      ? resolve(
+          msg(
+            "Update this app, {servers, plural, one {{servers} server} other {{servers} servers}}, and {providers, plural, one {{providers} provider} other {{providers} providers}}",
+            values,
+          ),
+        )
+      : resolve(
+          msg(
+            "Updated this app, {servers, plural, one {{servers} server} other {{servers} servers}}, and {providers, plural, one {{providers} provider} other {{providers} providers}}",
+            values,
+          ),
+        );
+  }
+  if (app && servers > 0) {
+    return update
+      ? resolve(
+          msg(
+            "Update this app and {servers, plural, one {{servers} server} other {{servers} servers}}",
+            values,
+          ),
+        )
+      : resolve(
+          msg(
+            "Updated this app and {servers, plural, one {{servers} server} other {{servers} servers}}",
+            values,
+          ),
+        );
+  }
+  if (app && providers > 0) {
+    return update
+      ? resolve(
+          msg(
+            "Update this app and {providers, plural, one {{providers} provider} other {{providers} providers}}",
+            values,
+          ),
+        )
+      : resolve(
+          msg(
+            "Updated this app and {providers, plural, one {{providers} provider} other {{providers} providers}}",
+            values,
+          ),
+        );
+  }
+  if (servers > 0 && providers > 0) {
+    return update
+      ? resolve(
+          msg(
+            "Update {servers, plural, one {{servers} server} other {{servers} servers}} and {providers, plural, one {{providers} provider} other {{providers} providers}}",
+            values,
+          ),
+        )
+      : resolve(
+          msg(
+            "Updated {servers, plural, one {{servers} server} other {{servers} servers}} and {providers, plural, one {{providers} provider} other {{providers} providers}}",
+            values,
+          ),
+        );
+  }
+  if (app) return update ? resolve(msg("Update this app")) : resolve(msg("Updated this app"));
+  if (servers > 0) {
+    return update
+      ? resolve(
+          msg("Update {servers, plural, one {{servers} server} other {{servers} servers}}", values),
+        )
+      : resolve(
+          msg(
+            "Updated {servers, plural, one {{servers} server} other {{servers} servers}}",
+            values,
+          ),
+        );
+  }
+  if (providers > 0) {
+    return update
+      ? resolve(
+          msg(
+            "Update {providers, plural, one {{providers} provider} other {{providers} providers}}",
+            values,
+          ),
+        )
+      : resolve(
+          msg(
+            "Updated {providers, plural, one {{providers} provider} other {{providers} providers}}",
+            values,
+          ),
+        );
+  }
+  return null;
 }
 
-/** "a, b, and c" in English; other interface languages use their own list conjunction. */
-function joinList(parts: ReadonlyArray<string>): string {
-  return new Intl.ListFormat(getInterfaceLanguage(), { type: "conjunction" }).format(parts);
-}
-
-function updatedTitle(parts: ReadonlyArray<string>): string {
-  return translate("Updated {items}").replace("{items}", () => joinList(parts));
+function joinList(parts: ReadonlyArray<string>, resolve: MessageResolver): string {
+  if (parts.length <= 1) return parts.join("");
+  if (parts.length === 2) {
+    return resolve(msg("{first} and {second}", { first: parts[0], second: parts[1] }));
+  }
+  return resolve(
+    msg("{items}, and {last}", { items: parts.slice(0, -1).join(", "), last: parts.at(-1) }),
+  );
 }
 
 /** One row per machine: this app's machines first, then servers, provider-only, and skipped. */
-export function describeUpdateEverything(plan: UpdateEverythingPlan): {
+export function describeUpdateEverything(
+  plan: UpdateEverythingPlan,
+  resolve: MessageResolver = m,
+): {
   readonly summary: string;
   readonly version: string | null;
   readonly providerCount: number;
@@ -683,15 +862,16 @@ export function describeUpdateEverything(plan: UpdateEverythingPlan): {
     (count, machine) => count + machine.providers.length,
     0,
   );
-  const summary = translate("Update {items}").replace("{items}", () =>
-    joinList(
-      [
-        plan.localVersion ? translate("this app") : null,
-        countLabel(plan.servers.length, "{count} server", "{count} servers"),
-        countLabel(providerCount, "{count} provider", "{count} providers"),
-      ].filter((part) => part !== null),
-    ),
-  );
+  const summary =
+    updateTargetsSentence(
+      "update",
+      {
+        app: Boolean(plan.localVersion),
+        servers: plan.servers.length,
+        providers: providerCount,
+      },
+      resolve,
+    ) ?? resolve(msg("Update {items}", { items: "" }));
 
   const rows = new Map<EnvironmentId | null, UpdateEverythingRow>();
   const update = (
@@ -709,7 +889,9 @@ export function describeUpdateEverything(plan: UpdateEverythingPlan): {
     rows.set(environmentId, { ...row, ...change });
   };
   if (plan.localVersion) {
-    if (plan.localMachines.length === 0) update(null, translate("This app"), { app: "this-app" });
+    if (plan.localMachines.length === 0) {
+      update(null, resolve(msg("This app")), { app: "this-app" });
+    }
     for (const machine of plan.localMachines) {
       update(machine.environmentId, machine.label, { app: "this-app" });
     }

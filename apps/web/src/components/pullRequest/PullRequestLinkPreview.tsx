@@ -1,5 +1,6 @@
 import type { PreviewCard as PreviewCardPrimitive } from "@base-ui/react/preview-card";
 import { isAtomCommandInterrupted } from "@t3tools/client-runtime/state/runtime";
+import { useMessages } from "gt-react";
 import { parsePullRequestAnchor, pullRequestLinkCommit } from "@t3tools/shared/pullRequestAnchor";
 import type { EnvironmentId, PullRequestRef } from "@t3tools/contracts";
 import {
@@ -13,7 +14,6 @@ import {
 } from "react";
 
 import { RelativeTime } from "~/components/RelativeTime";
-import { useTranslate } from "~/i18n/translate";
 import { pullRequestEnvironment, useSharedPullRequestSummary } from "~/state/pullRequests";
 import { useAtomQueryRunner } from "~/state/use-atom-query-runner";
 import { useEnvironmentQuery } from "~/state/query";
@@ -53,7 +53,7 @@ export function PullRequestLinkPreview({
   onOpenFallback?: (url: string) => Promise<void>;
   fallback?: ReactNode;
 }) {
-  const t = useTranslate();
+  const messages = useMessages();
   const [open, setOpen] = useState(false);
   const previewActionsRef = useRef<PreviewCardPrimitive.Root.Actions | null>(null);
   const [resolvingClick, setResolvingClick] = useState(false);
@@ -117,7 +117,7 @@ export function PullRequestLinkPreview({
   const state =
     card === null
       ? null
-      : resolvePullRequestState({ state: card.state, isDraft: card.isDraft ?? false });
+      : resolvePullRequestState({ state: card.state, isDraft: card.isDraft ?? false }, messages);
   const authorLabel =
     card?.author === null
       ? "ghost"
@@ -154,7 +154,7 @@ export function PullRequestLinkPreview({
                   {state === null ? null : (
                     <span className="inline-flex shrink-0 items-center gap-1">
                       <state.Icon aria-hidden className={`size-3 ${state.toneClassName}`} />
-                      {t(state.label)}
+                      {state.label}
                     </span>
                   )}
                 </div>
@@ -175,7 +175,7 @@ export function PullRequestLinkPreview({
                       <>
                         <span aria-hidden>·</span>
                         <span className="shrink-0">
-                          {t("opened")} <RelativeTime timestamp={preview.createdAt} />
+                          opened <RelativeTime timestamp={preview.createdAt} />
                         </span>
                       </>
                     )}

@@ -1,3 +1,4 @@
+import { thrownErrorMessage } from "@t3tools/client-runtime/errors";
 import {
   formatFilePathForClipboard,
   type MediaActionId,
@@ -17,16 +18,17 @@ import {
   type SessionGrantInput,
 } from "@t3tools/contracts";
 import { AsyncResult } from "effect/reactivity";
+import { msg } from "gt-react";
 import { useRef, useState, type ReactElement } from "react";
 
 import { useComposerHandleContext } from "../../composerHandleContext";
 import { writeTextToClipboard } from "../../hooks/useCopyToClipboard";
-import { translate } from "~/i18n/translate";
 import { readLocalApi } from "../../localApi";
 import { appAtomRegistry } from "../../rpc/atomRegistry";
 import { assetEnvironment } from "../../state/assets";
 import { useEnvironmentQuery } from "../../state/query";
 import { environmentSession, readPreparedConnection } from "../../state/session";
+import { m } from "../../i18n/messages";
 import { useAtomQueryRunner } from "../../state/use-atom-query-runner";
 import { stackedThreadToast, toastManager } from "../ui/toast";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
@@ -78,7 +80,7 @@ export function useMediaActions(source: MediaActionSource) {
     (fileSession.error === null && fileSession.data !== null && allowsHostMedia(fileSession.data));
   const assertCanReadMedia = () => {
     if (!canReadHostMedia(hostEnvironmentId)) {
-      throw new Error(translate("This connection cannot read host files."));
+      throw new Error(m(msg("This connection cannot read host files.")));
     }
   };
   const createAssetUrl = useAtomQueryRunner(assetEnvironment.createUrl, {
@@ -89,18 +91,18 @@ export function useMediaActions(source: MediaActionSource) {
     assertCanReadMedia();
     if (!source.asset) {
       if (!source.src) {
-        throw new Error(translate("This media is unavailable. Try reopening the preview."));
+        throw new Error(m(msg("This media is unavailable. Try reopening the preview.")));
       }
       return source.src;
     }
     const { environmentId, resource } = source.asset;
     const connection = readPreparedConnection(environmentId);
-    if (!connection) throw new Error(translate("Reconnect to this environment and try again."));
+    if (!connection) throw new Error(m(msg("Reconnect to this environment and try again.")));
     const result = await createAssetUrl({ environmentId, input: { resource } });
     if (result._tag === "Failure") throw squashAtomCommandFailure(result);
     assertCanReadMedia();
     const url = resolveAssetUrl(connection.httpBaseUrl, result.value.relativeUrl);
-    if (!url) throw new Error(translate("The environment returned an invalid media URL."));
+    if (!url) throw new Error(m(msg("The environment returned an invalid media URL.")));
     return url;
   };
   const save = async () => {
@@ -110,9 +112,7 @@ export function useMediaActions(source: MediaActionSource) {
     assertCanReadMedia();
     if (!navigator.clipboard?.write || typeof ClipboardItem === "undefined") {
       throw new Error(
-        translate(
-          "Image copying is unavailable. Use a secure browser connection or save the image.",
-        ),
+        m(msg("Image copying is unavailable. Use a secure browser connection or save the image.")),
       );
     }
     // Start the clipboard write in the user gesture; fetching/decoding may finish later.
@@ -144,7 +144,7 @@ export function MediaActions({
     if (!api || menuOpen.current) return;
     menuOpen.current = true;
     setTooltipOpen(false);
-    let failureTitle = translate("Could not open media menu");
+    let failureTitle = m(msg("Could not open media menu"));
     let progressToast: ReturnType<typeof toastManager.add> | undefined;
     const result = await settlePromise(async () => {
       const isImage = source.kind === "image";
@@ -155,48 +155,55 @@ export function MediaActions({
         typeof ClipboardItem !== "undefined";
       const items: ContextMenuItem<MediaActionId>[] = [];
       if (reference?.kind === "file") {
-        items.push({ id: "copy-full-path", label: translate("Copy full path") });
+        items.push({ id: "copy-full-path", label: m(msg("Copy full path")) });
         if (reference.relativePath)
-          items.push({ id: "copy-relative-path", label: translate("Copy relative path") });
+          items.push({ id: "copy-relative-path", label: m(msg("Copy relative path")) });
       } else if (reference?.kind === "url") {
-        items.push({ id: "copy-url", label: translate("Copy URL") });
+        items.push({ id: "copy-url", label: m(msg("Copy URL")) });
       }
       // A frame is only worth capturing when a mounted composer can take the citation.
       if (source.kind === "video" && source.onCiteFrame && video && composerRef?.current) {
-        items.push({ id: "cite-region", label: translate("Cite frame"), disabled: !canReadMedia });
+        items.push({ id: "cite-region", label: m(msg("Cite frame")), disabled: !canReadMedia });
       }
       if (source.onOpenFile)
         items.push({
           id: "open-file",
-          label: translate("Open in file viewer"),
+          label: m(msg("Open in file viewer")),
           disabled: !canReadMedia,
         });
       items.push({
         id: "save",
-        label: isImage ? translate("Save image") : translate("Save video"),
+        label: isImage ? m(msg("Save image")) : m(msg("Save video")),
         disabled: unavailable,
       });
       if (source.kind === "image") {
         items.push({
           id: "copy-image",
-          label: translate("Copy image"),
+          label: m(msg("Copy image")),
           disabled: unavailable || !canCopyImage,
         });
       }
 
       const action = await api.contextMenu.show(items, position);
       if (!action) return;
-      const failureTitles: Record<MediaActionId, string> = {
-        "copy-full-path": "Could not copy full path",
-        "copy-relative-path": "Could not copy relative path",
-        "copy-url": "Could not copy URL",
-        "open-file": "Could not open in file viewer",
-        save: isImage ? "Could not save image" : "Could not save video",
-        "save-image": "Could not save image",
-        "copy-image": "Could not copy image",
-        "cite-region": "Could not cite frame",
-      };
-      failureTitle = translate(failureTitles[action]);
+      failureTitle =
+        action === "copy-full-path"
+          ? m(msg("Could not copy full path"))
+          : action === "copy-relative-path"
+            ? m(msg("Could not copy relative path"))
+            : action === "copy-url"
+              ? m(msg("Could not copy url"))
+              : action === "open-file"
+                ? m(msg("Could not open in file viewer"))
+                : action === "save"
+                  ? isImage
+                    ? m(msg("Could not save image"))
+                    : m(msg("Could not save video"))
+                  : action === "copy-image"
+                    ? m(msg("Could not copy image"))
+                    : action === "cite-region"
+                      ? m(msg("Could not cite frame"))
+                      : m(msg("Could not complete media action"));
       const text =
         action === "copy-full-path" && reference?.kind === "file"
           ? reference.path
@@ -208,14 +215,27 @@ export function MediaActions({
       if (text !== undefined) {
         const clipboardText =
           reference?.kind === "file" ? formatFilePathForClipboard(text, reference.path) : text;
-        await writeTextToClipboard(clipboardText, reference?.kind === "file" ? "file path" : "URL");
+        await writeTextToClipboard(
+          clipboardText,
+          reference?.kind === "file"
+            ? {
+                target: "file path",
+                unavailableMessage: msg("Clipboard API is unavailable while copying file path."),
+                failureMessage: msg("Failed to copy file path to the clipboard."),
+              }
+            : {
+                target: "URL",
+                unavailableMessage: msg("Clipboard API is unavailable while copying URL."),
+                failureMessage: msg("Failed to copy URL to the clipboard."),
+              },
+        );
       } else if (action === "open-file") {
         assertCanReadMedia();
         source.onOpenFile?.();
       } else if (action === "cite-region" && video && source.onCiteFrame) {
         video.pause();
         const seconds = video.currentTime;
-        progressToast = toastManager.add({ type: "loading", title: translate("Capturing frame…") });
+        progressToast = toastManager.add({ type: "loading", title: m(msg("Capturing frame…")) });
         const still = await readVideoFrame(actionUrl, seconds, video);
         toastManager.close(progressToast);
         progressToast = undefined;
@@ -226,9 +246,9 @@ export function MediaActions({
           title:
             action === "save"
               ? isImage
-                ? translate("Preparing image download…")
-                : translate("Preparing video download…")
-              : translate("Copying image…"),
+                ? m(msg("Preparing image download…"))
+                : m(msg("Preparing video download…"))
+              : m(msg("Copying image…")),
         });
         await (action === "save" ? save() : copyImage());
         toastManager.close(progressToast);
@@ -239,7 +259,7 @@ export function MediaActions({
       const toast = stackedThreadToast({
         type: "error",
         title: failureTitle,
-        description: error instanceof Error ? error.message : translate("The media action failed."),
+        description: thrownErrorMessage(error, m) ?? m(msg("The media action failed.")),
       });
       if (progressToast) toastManager.update(progressToast, toast);
       else toastManager.add(toast);

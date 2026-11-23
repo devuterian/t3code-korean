@@ -12,11 +12,11 @@ import {
   type PullRequestComment,
 } from "@t3tools/contracts";
 import { StackActions, type NavigationProp } from "@react-navigation/native";
+import { msg, T, useGT, useMessages, Var } from "gt-react-native";
 import { useMemo, useState, type ComponentProps, type ReactNode } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { parseMarkdownDocument } from "../../lib/markdownDocument";
 import { AppText as Text } from "../../components/ui/AppText";
-import { translate, useTranslate } from "../../i18n/translate";
 import { SymbolView, type AppSymbolName } from "../../components/ui/AppSymbol";
 import { byTimestamp, relativeTime } from "../../lib/time";
 import { PullRequestAvatar } from "./PullRequestPresentation";
@@ -26,6 +26,7 @@ import { pullRequestDescriptionContent } from "./pullRequestDescriptionContent";
 import { discussionCommentCountLabel } from "./pullRequestDiffComments";
 import { normalizedReviewState } from "./pullRequestStatus";
 import type { PullRequestParams } from "./usePullRequestDiff";
+import type { MessageResolver } from "../../i18n/messages";
 
 function TimelineEvent(props: {
   icon: AppSymbolName | "commit";
@@ -83,16 +84,17 @@ function TimelineComment({
   params: PullRequestParams;
   actions: CommentActions;
 }) {
-  const t = useTranslate();
   const target = parsePullRequestAnchor(params.navigationUrl);
   const linked =
     target?.kind === "timeline" && pullRequestAnchorMatchesUrl(target.anchor, comment.url);
   const [expanded, setExpanded] = useState(linked);
+  const gt = useGT();
+  const messages = useMessages();
   const { themeVariables: colors } = useAppearancePreferences();
   const long = comment.body.length > 450 || comment.body.split("\n").length > 8;
   const content = useMemo(
-    () => pullRequestDescriptionContent(parseMarkdownDocument(comment.body)),
-    [comment.body],
+    () => pullRequestDescriptionContent(parseMarkdownDocument(comment.body), [], messages),
+    [comment.body, messages],
   );
   const preview = content.preview;
   const state = normalizedReviewState(comment.reviewState);
@@ -103,18 +105,37 @@ function TimelineComment({
       icon={approved ? "checkmark" : changes ? "doc.text" : "text.bubble"}
       tone={approved ? "success" : changes ? "danger" : undefined}
     >
-      <View className="flex-row items-center gap-2">
+      <View accessible accessibilityRole="header" className="flex-row items-center gap-2">
         <PullRequestAvatar actor={comment.author} size={22} />
         <View className="min-w-0 flex-1">
           <Text className="text-sm">
-            <Text className="font-t3-medium">{comment.author?.login ?? t("Unknown author")}</Text>
-            <Text className="text-foreground-muted">
-              {" "}
-              {approved ? t("approved") : changes ? t("requested changes") : t("commented")}
-            </Text>
+            {approved ? (
+              <T>
+                <Text className="font-t3-medium">
+                  <Var>{comment.author?.login ?? gt("Unknown author")}</Var>
+                </Text>
+                <Text className="text-foreground-muted"> approved</Text>
+              </T>
+            ) : changes ? (
+              <T>
+                <Text className="font-t3-medium">
+                  <Var>{comment.author?.login ?? gt("Unknown author")}</Var>
+                </Text>
+                <Text className="text-foreground-muted"> requested changes</Text>
+              </T>
+            ) : (
+              <T>
+                <Text className="font-t3-medium">
+                  <Var>{comment.author?.login ?? gt("Unknown author")}</Var>
+                </Text>
+                <Text className="text-foreground-muted"> commented</Text>
+              </T>
+            )}
           </Text>
         </View>
-        <Text className="text-2xs text-foreground-tertiary">{relativeTime(comment.createdAt)}</Text>
+        <Text className="text-2xs text-foreground-tertiary">
+          {relativeTime(comment.createdAt, undefined, messages)}
+        </Text>
       </View>
       {comment.path ? (
         <Text className="font-mono text-2xs text-foreground-muted" numberOfLines={2}>
@@ -195,7 +216,7 @@ function TimelineComment({
               className="flex-row items-center justify-center gap-1 py-2 active:opacity-70"
             >
               <Text className="text-xs font-t3-medium text-foreground">
-                {expanded ? t("Show less") : t("Show more")}
+                {expanded ? gt("Show less") : gt("Show more")}
               </Text>
               <SymbolView
                 name={expanded ? "chevron.up" : "chevron.down"}
@@ -222,6 +243,7 @@ export function pullRequestTimelineRows(
   navigation: Pick<NavigationProp<ReactNavigation.RootParamList>, "navigate" | "dispatch">,
   actions: CommentActions,
   newestFirst: boolean,
+  resolve: MessageResolver,
 ) {
   const linkTarget = parsePullRequestAnchor(params.navigationUrl);
   const threads = pullRequestConversationThreads(activity);
@@ -253,28 +275,33 @@ export function pullRequestTimelineRows(
       date: thread.comments[0]?.createdAt ?? "",
       content: (
         <TimelineEvent icon="text.bubble" tone={thread.isResolved ? "success" : undefined}>
-          <View className="flex-row items-center gap-2">
+          <View accessible accessibilityRole="header" className="flex-row items-center gap-2">
             <PullRequestAvatar actor={thread.comments[0]?.author ?? null} size={22} />
             <Text className="flex-1 text-sm">
-              <Text className="font-t3-medium">
-                {thread.comments[0]?.author?.login ?? translate("Unknown author")}
-              </Text>
-              <Text className="text-foreground-muted"> {translate("started a discussion")}</Text>
+              <T>
+                <Text className="font-t3-medium">
+                  <Var>{thread.comments[0]?.author?.login ?? resolve(msg("Unknown author"))}</Var>
+                </Text>
+                <Text className="text-foreground-muted"> started a discussion</Text>
+              </T>
             </Text>
             {thread.comments[0] ? (
               <Text className="text-2xs text-foreground-tertiary">
-                {relativeTime(thread.comments[0].createdAt)}
+                {relativeTime(thread.comments[0].createdAt, undefined, resolve)}
               </Text>
             ) : null}
           </View>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={translate(
-              thread.isResolved
-                ? "Open resolved discussion in {path}"
-                : "Open unresolved discussion in {path}",
-              { path: thread.path ?? translate("the overview") },
-            )}
+            accessibilityLabel={
+              thread.path === null
+                ? thread.isResolved
+                  ? resolve(msg("Open resolved discussion in the overview"))
+                  : resolve(msg("Open unresolved discussion in the overview"))
+                : thread.isResolved
+                  ? resolve(msg("Open resolved discussion in {path}", { path: thread.path }))
+                  : resolve(msg("Open unresolved discussion in {path}", { path: thread.path }))
+            }
             onPress={() =>
               navigation.navigate("PullRequestDiscussion", { ...params, discussionId: thread.id })
             }
@@ -282,7 +309,9 @@ export function pullRequestTimelineRows(
           >
             <View className="flex-row items-center gap-2">
               {thread.path === null ? (
-                <Text className="flex-1 text-xs">{translate("Overview")}</Text>
+                <Text className="flex-1 text-xs">
+                  <T>Overview</T>
+                </Text>
               ) : (
                 <>
                   <SymbolView name="doc.text" size={14} tintColorClassName="accent-icon-muted" />
@@ -295,9 +324,14 @@ export function pullRequestTimelineRows(
               <SymbolView name="chevron.right" size={12} tintColorClassName="accent-icon-muted" />
             </View>
             <Text className="text-xs text-foreground-muted">
-              {thread.isResolved ? translate("Resolved") : translate("Unresolved")}
-              {thread.isOutdated ? ` · ${translate("Outdated")}` : ""} ·{" "}
-              {discussionCommentCountLabel(thread.commentCount ?? thread.comments.length)}
+              {thread.isResolved
+                ? resolve(msg("Resolved", { $context: "review thread state" }))
+                : resolve(msg("Unresolved", { $context: "review thread state" }))}
+              {thread.isOutdated
+                ? ` · ${resolve(msg("Outdated", { $context: "review thread state" }))}`
+                : ""}{" "}
+              ·{" "}
+              {discussionCommentCountLabel(thread.commentCount ?? thread.comments.length, resolve)}
             </Text>
           </Pressable>
         </TimelineEvent>
@@ -310,10 +344,12 @@ export function pullRequestTimelineRows(
         <TimelineEvent icon="commit">
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={translate("View commit {sha}, {message}", {
-              sha: commit.oid.slice(0, 7),
-              message: commit.messageHeadline,
-            })}
+            accessibilityLabel={resolve(
+              msg("View commit {sha}, {headline}", {
+                sha: commit.oid.slice(0, 7),
+                headline: commit.messageHeadline,
+              }),
+            )}
             onPress={() =>
               navigation.dispatch(
                 StackActions.push("PullRequestFile", { ...params, commit: commit.oid, path: "" }),
@@ -339,7 +375,7 @@ export function pullRequestTimelineRows(
       date: "",
       content: (
         <Text className="py-3 text-xs text-foreground-muted">
-          {translate("More activity is available on the provider.")}
+          <T>More activity is available on the provider.</T>
         </Text>
       ),
     });

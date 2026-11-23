@@ -1,6 +1,9 @@
 import { useAtomValue } from "@effect/atom-react";
+import { errorDisplayMessage } from "@t3tools/client-runtime/errors";
 import { videoMimeType } from "@t3tools/shared/video";
 import * as Effect from "effect/Effect";
+import { msg } from "gt-react-native";
+import { m } from "../i18n/messages";
 import * as Equal from "effect/Equal";
 import * as Hash from "effect/Hash";
 import * as Option from "effect/Option";
@@ -11,7 +14,6 @@ import type { FileBackedComposerAttachment } from "./composerImages";
 import { resolveOwnedComposerAttachmentFileUri } from "./composerAttachmentFiles";
 import { shareLocalAttachment, type AttachmentPreviewFile } from "./attachmentDownload";
 import { retainComposerAttachmentFileForPreview } from "./composerAttachmentPreviewRetention";
-import { translate } from "../i18n/translate";
 
 export async function loadLocalAttachmentPreview(
   attachment: FileBackedComposerAttachment,
@@ -30,7 +32,7 @@ export async function loadLocalAttachmentPreview(
       attachment.fileUri;
     const file = new File(uri);
     if (!file.exists) {
-      throw new Error(translate("The local attachment file is missing."));
+      throw new Error("The local attachment file is missing.");
     }
     let disposed = false;
     return {
@@ -64,7 +66,7 @@ export async function loadLocalAttachmentPreview(
   } catch (cause) {
     release();
     if (signal.aborted) return null;
-    throw new Error(translate("This attachment is no longer available. Attach the file again."), {
+    throw new Error(m(msg("This attachment is no longer available. Attach the file again.")), {
       cause,
     });
   }
@@ -105,8 +107,7 @@ const localAttachmentPreviewFamily = Atom.family((key: LocalAttachmentPreviewKey
         try: (signal) => loadLocalAttachmentPreview(key.attachment, signal),
         catch: (cause) =>
           new LocalAttachmentPreviewLoadError({
-            message:
-              cause instanceof Error ? cause.message : translate("The local file is unavailable."),
+            message: errorDisplayMessage(cause, m) ?? m(msg("The local file is unavailable.")),
             cause,
           }),
       }).pipe(

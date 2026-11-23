@@ -8,9 +8,10 @@ import {
   squashAtomCommandFailure,
 } from "@t3tools/client-runtime/state/runtime";
 import type { EnvironmentId } from "@t3tools/contracts";
+import { msg } from "gt-react";
 
 import { stackedThreadToast, toastManager } from "~/components/ui/toast";
-import { translate } from "~/i18n/translate";
+import { m } from "~/i18n/messages";
 import { waitForProject } from "~/state/entities";
 import { projectEnvironment } from "~/state/projects";
 import { sourceControlEnvironment } from "~/state/sourceControl";
@@ -21,7 +22,7 @@ import { suggestAppAccessForRemote } from "../components/sourceControlAppAccessT
 function errorMessage(error: unknown): string {
   return error instanceof Error && error.message.trim().length > 0
     ? error.message
-    : translate("An error occurred.");
+    : m(msg("An error occurred."));
 }
 
 export function useNewProject() {
@@ -51,11 +52,12 @@ export function useNewProject() {
         toastManager.add(
           stackedThreadToast({
             type: "error",
-            title: translate("Could not create the {host} repository").replace(
-              "{host}",
-              () => label,
+            title: m(msg("Could not create the {label} repository", { label })),
+            description: m(
+              msg("{error} Use Publish Repository in the Git menu to try again.", {
+                error: errorMessage(squashAtomCommandFailure(result)),
+              }),
             ),
-            description: `${errorMessage(squashAtomCommandFailure(result))} ${translate("Use Publish Repository in the Git menu to try again.")}`,
           }),
         );
       }
@@ -64,7 +66,7 @@ export function useNewProject() {
     toastManager.add(
       stackedThreadToast({
         type: "success",
-        title: translate("Published to {host}").replace("{host}", () => label),
+        title: m(msg("Published to {label}", { label })),
         description: result.value.repository.nameWithOwner,
       }),
     );
@@ -85,7 +87,7 @@ export function useNewProject() {
         toastManager.add(
           stackedThreadToast({
             type: "error",
-            title: translate("Could not create the project"),
+            title: m(msg("Could not create the project")),
             description: errorMessage(squashAtomCommandFailure(result)),
           }),
         );
@@ -99,16 +101,18 @@ export function useNewProject() {
         commitError === undefined
           ? {
               type: "success",
-              title: translate("Created {name}").replace("{name}", () => input.name),
+              title: m(msg("Created {name}", { name: input.name })),
               description: workspaceRoot,
             }
           : {
               type: "warning",
-              title: translate("Created {name} without a first commit").replace(
-                "{name}",
-                () => input.name,
+              title: m(msg("Created {name} without a first commit", { name: input.name })),
+              description: m(
+                msg("{error} The project is in {path}.", {
+                  error: commitError,
+                  path: workspaceRoot,
+                }),
               ),
-              description: `${commitError} ${translate("The project is in {path}.").replace("{path}", () => workspaceRoot)}`,
             },
       ),
     );
@@ -126,8 +130,12 @@ export function useNewProject() {
       toastManager.add(
         stackedThreadToast({
           type: "error",
-          title: translate("Failed to open project"),
-          description: `${errorMessage(error)} ${translate("It will appear in the sidebar once this client catches up.")}`,
+          title: m(msg("Failed to open project")),
+          description: m(
+            msg("{error} It will appear in the sidebar once this client catches up.", {
+              error: errorMessage(error),
+            }),
+          ),
         }),
       );
       return null;
@@ -137,7 +145,7 @@ export function useNewProject() {
       toastManager.add(
         stackedThreadToast({
           type: "error",
-          title: translate("Failed to open project"),
+          title: m(msg("Failed to open project")),
           description: errorMessage(error),
         }),
       );

@@ -1,11 +1,11 @@
 import type { EnvironmentId } from "@t3tools/contracts";
+import { useGT } from "gt-react-native";
 import { View } from "react-native";
 
 import { EmptyState } from "../../components/ui/EmptyState";
 import type { AssetUrlFailureReason } from "../../state/asset-url-state";
 import { useEnvironmentPresentation } from "../../state/presentation";
 import { EnvironmentConnectionNotice } from "../connection/EnvironmentConnectionNotice";
-import { useTranslate } from "../../i18n/translate";
 import { useRetryEnvironment } from "../connection/useRetryEnvironment";
 
 export function WorkspaceFilePreviewError(props: {
@@ -13,8 +13,8 @@ export function WorkspaceFilePreviewError(props: {
   readonly reason: AssetUrlFailureReason;
   readonly onRetry: () => void;
 }) {
-  const t = useTranslate();
   const { environmentId, onRetry } = props;
+  const gt = useGT();
   const environment = useEnvironmentPresentation(environmentId);
   const retryEnvironment = useRetryEnvironment();
   const retryConnection = () => {
@@ -26,7 +26,10 @@ export function WorkspaceFilePreviewError(props: {
     return (
       <View className="flex-1 bg-sheet">
         <EnvironmentConnectionNotice
-          environmentLabel={environment.presentation?.entry.target.label ?? t("Environment")}
+          environmentLabel={
+            environment.presentation?.entry.target.label ??
+            gt("Environment", { $context: "fallback environment name" })
+          }
           connection={
             environment.presentation?.connection ?? {
               phase: "available",
@@ -34,7 +37,7 @@ export function WorkspaceFilePreviewError(props: {
               traceId: null,
             }
           }
-          resourceName="preview"
+          resource="preview"
           onRetry={retryConnection}
         />
       </View>
@@ -44,9 +47,9 @@ export function WorkspaceFilePreviewError(props: {
   return (
     <View className="flex-1 items-center justify-center bg-sheet px-6">
       <EmptyState
-        title={t("Preview unavailable")}
-        detail={t("This file may be missing, unsupported, or unavailable on this environment.")}
-        actionLabel={t("Try again")}
+        title={gt("Preview unavailable")}
+        detail={gt("This file may be missing, unsupported, or unavailable on this environment.")}
+        actionLabel={gt("Try again")}
         onAction={props.onRetry}
       />
     </View>

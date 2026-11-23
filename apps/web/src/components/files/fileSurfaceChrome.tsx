@@ -1,12 +1,12 @@
 import type { ReactNode } from "react";
 
+import { T, useGT } from "gt-react";
 import { Spinner } from "~/components/ui/spinner";
 import { Button } from "~/components/ui/button";
 import { Toggle } from "~/components/ui/toggle";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "~/components/ui/tooltip";
 import { DIFF_SURFACE_THEME_UNSAFE_CSS } from "~/lib/diffRendering";
 import { cn } from "~/lib/utils";
-import { useTranslate } from "~/i18n/translate";
 
 export const FILE_SURFACE_SUBHEADER_CLASS =
   "flex h-10 min-h-10 shrink-0 items-center gap-2 border-b border-border/60 bg-background px-3 in-data-[preview-panel-mode=inline]:mb-3 in-data-[preview-panel-mode=inline]:h-7 in-data-[preview-panel-mode=inline]:min-h-7 in-data-[preview-panel-mode=inline]:border-b-transparent";
@@ -66,9 +66,7 @@ export function FileSurfaceAction(props: {
   readonly onPress: () => void;
   readonly children: ReactNode;
 }) {
-  const t = useTranslate();
   const pressed = props.pressed;
-  const label = t(props.label);
   return (
     <Tooltip>
       <TooltipTrigger
@@ -79,7 +77,7 @@ export function FileSurfaceAction(props: {
               className="shrink-0"
               disabled={props.disabled ?? false}
               onClick={props.onPress}
-              aria-label={label}
+              aria-label={props.label}
               variant="ghost"
               size="icon-sm"
             >
@@ -91,7 +89,7 @@ export function FileSurfaceAction(props: {
               pressed={pressed}
               disabled={props.disabled ?? false}
               onPressedChange={props.onPress}
-              aria-label={label}
+              aria-label={props.label}
               variant="ghost"
               size="sm"
             >
@@ -100,29 +98,28 @@ export function FileSurfaceAction(props: {
           )
         }
       />
-      <TooltipPopup>{label}</TooltipPopup>
+      <TooltipPopup>{props.label}</TooltipPopup>
     </Tooltip>
   );
 }
 
 export function FileSurfaceNotice(props: { readonly children: ReactNode }) {
-  const t = useTranslate();
   return (
     <div
       role="status"
       className="shrink-0 border-b border-warning/20 bg-warning-surface px-3 py-1.5 text-2xs text-warning-foreground"
     >
-      {typeof props.children === "string" ? t(props.children) : props.children}
+      {props.children}
     </div>
   );
 }
 
 export function FileSurfaceLoading(props: { readonly className?: string }) {
-  const t = useTranslate();
+  const gt = useGT();
   return (
     <div
       role="status"
-      aria-label={t("Loading file")}
+      aria-label={gt("Loading file")}
       className={cn(
         "flex min-h-0 flex-1 items-center justify-center text-muted-foreground",
         props.className,
@@ -137,20 +134,19 @@ export function FileSurfaceFailure(props: {
   readonly message: string;
   readonly onRetry?: () => void;
 }) {
-  const t = useTranslate();
   return (
     <div
       role="alert"
       className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 px-6 text-center text-xs leading-relaxed"
     >
-      <p className="text-destructive">{t(props.message)}</p>
+      <p className="text-destructive">{props.message}</p>
       {props.onRetry ? (
         <button
           type="button"
           onClick={props.onRetry}
           className="rounded-md border border-input px-2.5 py-1 text-xs text-foreground hover:bg-accent focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
         >
-          {t("Try again")}
+          <T>Try again</T>
         </button>
       ) : null}
     </div>

@@ -59,6 +59,7 @@ function cursorFor(dx: number, dy: number, vertical: boolean, horizontal: boolea
 export function MiddleClickAutoscroll() {
   const enabled = useClientSettings((settings) => settings.middleClickAutoscroll);
 
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- Subscribes to window mouse events while the setting is on.
   useEffect(() => {
     if (!enabled) return;
     let stopActive: (() => void) | null = null;

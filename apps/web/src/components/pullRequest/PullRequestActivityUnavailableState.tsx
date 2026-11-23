@@ -1,10 +1,12 @@
+import { Branch, T } from "gt-react";
+
 import { RefreshIcon } from "~/components/ui/refresh-icon";
 
 import { cn } from "~/lib/utils";
 
-import { useTranslate } from "~/i18n/translate";
-
 import { Button } from "../ui/button";
+
+import type { ChangeRequestTermKind } from "./changeRequestTerm";
 
 export function PullRequestActivityUnavailableState({
   error,
@@ -13,12 +15,10 @@ export function PullRequestActivityUnavailableState({
   compact = false,
 }: {
   error: string;
-  /** The host's word for a change request, as in "pull request". */
-  term: string;
+  term: ChangeRequestTermKind;
   onRetry: () => void;
   compact?: boolean;
 }) {
-  const t = useTranslate();
   return (
     <div
       className={cn(
@@ -26,11 +26,19 @@ export function PullRequestActivityUnavailableState({
         compact ? "py-3" : "min-h-48 px-4 py-10",
       )}
     >
-      <p className="text-sm font-medium text-foreground">{t(`Could not load ${term} activity`)}</p>
+      <p className="text-sm font-medium text-foreground">
+        <T>
+          Could not load{" "}
+          <Branch branch={term} mr="merge request" cr="change request">
+            pull request
+          </Branch>{" "}
+          activity
+        </T>
+      </p>
       <p className="max-w-md text-xs text-muted-foreground">{error}</p>
       <Button size="sm" variant="outline" onClick={onRetry}>
         <RefreshIcon aria-hidden size="sm" />
-        {t("Retry")}
+        <T>Retry</T>
       </Button>
     </div>
   );

@@ -1,4 +1,4 @@
-import { useTranslate } from "~/i18n/translate";
+import { T, useGT, Var } from "gt-react";
 
 import { MenuGroupLabel } from "../ui/menu";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
@@ -12,15 +12,19 @@ export function PullRequestStackHeader({
   notice?: string | null | undefined;
   stale?: boolean;
 }) {
-  const t = useTranslate();
+  const gt = useGT();
   return (
     <MenuGroupLabel>
       <div className="flex items-center justify-between gap-2">
-        <span>{t(`Stack #${number}`)}</span>
+        <span>
+          <T>
+            Stack #<Var>{number}</Var>
+          </T>
+        </span>
         {notice ? (
           <Tooltip>
             <TooltipTrigger render={<span role="status" className="text-xs font-normal" />}>
-              {stale ? t("May be stale") : t("Refreshing…")}
+              {stale ? gt("May be stale") : gt("Refreshing…")}
             </TooltipTrigger>
             <TooltipPopup>{notice}</TooltipPopup>
           </Tooltip>

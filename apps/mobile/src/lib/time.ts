@@ -1,8 +1,6 @@
-import { formatCompactDuration, getInterfaceLanguage } from "../i18n/translate";
+import { msg } from "gt-react-native";
 
-function underAMinute(): string {
-  return getInterfaceLanguage() === "ko" ? "방금" : "<1m";
-}
+import { m, type MessageResolver } from "../i18n/messages";
 
 // Host timestamps may carry UTC offsets or mixed fractions, so text order is not time order.
 export function compareTimestamps(left: string, right: string): number {
@@ -16,7 +14,13 @@ export function byTimestamp(newestFirst: boolean) {
       : compareTimestamps(left.date, right.date);
 }
 
-export function relativeTime(input: string, nowMs: number = Date.now()): string {
+export function relativeTime(
+  input: string,
+  nowMs: number = Date.now(),
+  resolve: MessageResolver = m,
+): string {
+  const underAMinute = () =>
+    resolve(msg("<1m", { $context: "compact elapsed time, under one minute" }));
   const timestamp = Date.parse(input);
   if (Number.isNaN(timestamp)) {
     return underAMinute();
@@ -26,13 +30,21 @@ export function relativeTime(input: string, nowMs: number = Date.now()): string 
   if (deltaSeconds < 60) return underAMinute();
 
   const deltaMinutes = Math.floor(deltaSeconds / 60);
-  if (deltaMinutes < 60) return formatCompactDuration(deltaMinutes, "m");
+  if (deltaMinutes < 60) {
+    return resolve(
+      msg("{count}m", { count: String(deltaMinutes), $context: "compact elapsed minutes" }),
+    );
+  }
 
   const deltaHours = Math.floor(deltaMinutes / 60);
-  if (deltaHours < 24) return formatCompactDuration(deltaHours, "h");
+  if (deltaHours < 24) {
+    return resolve(
+      msg("{count}h", { count: String(deltaHours), $context: "compact elapsed hours" }),
+    );
+  }
 
   const deltaDays = Math.floor(deltaHours / 24);
-  return formatCompactDuration(deltaDays, "d");
+  return resolve(msg("{count}d", { count: String(deltaDays), $context: "compact elapsed days" }));
 }
 
 /** Milliseconds until the relative-time label next changes. */

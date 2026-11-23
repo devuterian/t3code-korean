@@ -1,6 +1,7 @@
 import { Atom, type AtomRegistry } from "effect/reactivity";
+import { msg } from "gt-react-native";
 
-import { translate } from "../../i18n/translate";
+import { m } from "../../i18n/messages";
 import type { DraftComposerAttachment } from "../../lib/composerImages";
 import type { ComposerDraft } from "../../state/use-composer-drafts";
 import type {
@@ -211,10 +212,10 @@ export function makeIncomingShareImports(deps: ShareImportDeps) {
       if (stopped()) return;
       advance(entry, "reserved");
       const share = deps.getShare(shareId);
-      if (!share) throw new Error(translate("The shared content is no longer in the inbox."));
+      if (!share) throw new Error(m(msg("The shared content is no longer in the inbox.")));
       const selected = deps.selectAttachments(share, destination.environmentId);
       if (selected.status === "pending") {
-        throw new Error(translate("Server attachment support is still loading."));
+        throw new Error(m(msg("Server attachment support is still loading.")));
       }
       entry.needsRestore = true;
       let skippedAttachmentCount: number;
@@ -253,11 +254,11 @@ export function makeIncomingShareImports(deps: ShareImportDeps) {
       const warnings = [...share.warnings, ...selected.warnings];
       if (skippedAttachmentCount > 0) {
         warnings.push(
-          translate(
-            skippedAttachmentCount === 1
-              ? "1 shared file was skipped because this draft reached the attachment limit."
-              : "{count} shared files were skipped because this draft reached the attachment limit.",
-            { count: skippedAttachmentCount },
+          m(
+            msg(
+              "{count, plural, one {{count} shared file was skipped because this draft reached the attachment limit.} other {{count} shared files were skipped because this draft reached the attachment limit.}}",
+              { count: skippedAttachmentCount },
+            ),
           ),
         );
       }

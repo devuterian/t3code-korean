@@ -1,8 +1,8 @@
 import type { ServerProvider } from "@t3tools/contracts";
+import { useMessages } from "gt-react";
 import { useEffect, useState } from "react";
 
 import { useClientSettings } from "../../hooks/useSettings";
-import { useTranslate } from "../../i18n/translate";
 import { limitedUntilLabel } from "./ProviderPoolsSettings.logic";
 
 const LIMIT_EXPIRY_CHECK_MS = 30_000;
@@ -18,14 +18,14 @@ export function ProviderLimitedUntil({
   readonly provider: Pick<ServerProvider, "limitedUntil"> | undefined;
   readonly className?: string;
 }) {
-  const t = useTranslate();
+  const m = useMessages();
   const timestampFormat = useClientSettings((settings) => settings.timestampFormat);
   const [nowMs, setNowMs] = useState(() => Date.now());
-  // oxlint-disable-next-line t3code/react-effect-budget -- the server never re-publishes an expired limit, so the label needs a clock.
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- the server never re-publishes an expired limit, so the label needs a clock.
   useEffect(() => {
     const id = setInterval(() => setNowMs(Date.now()), LIMIT_EXPIRY_CHECK_MS);
     return () => clearInterval(id);
   }, []);
-  const label = provider ? limitedUntilLabel(provider, nowMs, timestampFormat) : null;
-  return label === null ? null : <span className={className}>{t(label)}</span>;
+  const label = provider ? limitedUntilLabel(provider, nowMs, timestampFormat, m) : null;
+  return label === null ? null : <span className={className}>{label}</span>;
 }

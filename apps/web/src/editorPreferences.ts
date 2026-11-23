@@ -15,11 +15,12 @@ import { safeDecodeURIComponent } from "@t3tools/shared/markdownLinks";
 import * as Cause from "effect/Cause";
 import * as Schema from "effect/Schema";
 import { AsyncResult } from "effect/reactivity";
+import { msg } from "gt-react";
 import { getLocalStorageItem, setLocalStorageItem, useLocalStorage } from "./hooks/useLocalStorage";
+import { m } from "./i18n/messages";
 import { shellEnvironment } from "./state/shell";
 import { useAtomCommand } from "./state/use-atom-command";
 import { readEnvironmentScope } from "./state/session";
-import { translate } from "./i18n/translate";
 
 const LAST_EDITOR_KEY = "t3code:last-editor";
 
@@ -30,9 +31,10 @@ export class PreferredEditorEnvironmentRequiredError extends Schema.TaggedError<
   },
 ) {
   override get message(): string {
-    return translate("Cannot open {path} because no environment is selected.").replace(
-      "{path}",
-      () => this.targetPath,
+    return m(
+      msg("Cannot open {targetPath} because no environment is selected.", {
+        targetPath: this.targetPath,
+      }),
     );
   }
 }
@@ -46,9 +48,12 @@ export class PreferredEditorUnavailableError extends Schema.TaggedError<Preferre
   },
 ) {
   override get message(): string {
-    return translate("No available editor can open {path} in environment {environment}.")
-      .replace("{path}", () => this.targetPath)
-      .replace("{environment}", () => this.environmentId);
+    return m(
+      msg("No available editor can open {targetPath} in environment {environmentId}.", {
+        targetPath: this.targetPath,
+        environmentId: this.environmentId,
+      }),
+    );
   }
 }
 
@@ -118,7 +123,7 @@ export function useOpenInPreferredEditor(
         Cause.fail(
           new EnvironmentAuthorizationError({
             requiredScope: AuthOrchestrationOperateScope,
-            message: translate("This connection cannot open an editor on this environment."),
+            message: m(msg("This connection cannot open an editor on this environment.")),
           }),
         ),
       );

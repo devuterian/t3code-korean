@@ -3,28 +3,34 @@ import {
   type AccountSyncEnvironment,
   planProviderAccountSync,
   type ProviderAccountSyncCell,
+  providerAccountSyncFailureMessage,
   syncedAccountState,
 } from "@t3tools/client-runtime/state/provider-account-sync";
+import { msg } from "gt-react-native";
 import type {
   EnvironmentId,
   ProviderAccountOmission,
   ProviderInstanceId,
 } from "@t3tools/contracts";
 
-import { translate } from "../../i18n/translate";
+import { m, type MessageResolver } from "../../i18n/messages";
 
-export function blockNote(reason: AccountSyncBlockReason, device: string): string {
+export function blockNote(
+  reason: AccountSyncBlockReason,
+  device: string,
+  resolve: MessageResolver = m,
+): string {
   switch (reason) {
     case "same-environment":
-      return translate("This is the source device.");
+      return resolve(msg("This is the source device."));
     case "not-connected":
-      return translate("{device} isn't connected.", { device });
+      return resolve(msg("{device} isn't connected.", { device }));
     case "update-required":
-      return translate("Update {device} to sync accounts.", { device });
+      return resolve(msg("Update {device} to sync accounts.", { device }));
     case "permission-required":
-      return translate("This connection can't manage providers on {device}.", { device });
+      return resolve(msg("This connection can't manage providers on {device}.", { device }));
     case "instance-id-conflict":
-      return translate("{device} uses this account's ID for another provider.", { device });
+      return resolve(msg("{device} uses this account's ID for another provider.", { device }));
   }
 }
 
@@ -36,11 +42,12 @@ export interface SyncDestinationChoice {
 }
 
 export function syncDestinationChoice(input: {
+  readonly resolve?: MessageResolver;
   readonly source: AccountSyncEnvironment;
   readonly destination: AccountSyncEnvironment;
   readonly instanceId: ProviderInstanceId;
 }): SyncDestinationChoice {
-  const { source, destination, instanceId } = input;
+  const { source, destination, instanceId, resolve = m } = input;
   const plan = planProviderAccountSync({
     source,
     destinations: [destination],
@@ -50,32 +57,35 @@ export function syncDestinationChoice(input: {
   const cell = plan.cells[0];
   const block = plan.destinations[0]?.block ?? null;
   if (block !== null)
-    return { environmentId, label, disabled: true, note: blockNote(block, label) };
+    return { environmentId, label, disabled: true, note: blockNote(block, label, resolve) };
   if (plan.sourceBlock !== null)
     return {
       environmentId,
       label,
       disabled: true,
-      note: blockNote(plan.sourceBlock, source.label),
+      note: blockNote(plan.sourceBlock, source.label, resolve),
     };
   if (cell?.action === "blocked")
-    return { environmentId, label, disabled: true, note: blockNote(cell.reason, label) };
+    return { environmentId, label, disabled: true, note: blockNote(cell.reason, label, resolve) };
   if (cell?.action === "update")
     return {
       environmentId,
       label,
       disabled: false,
       note: cell.signedInAs
-        ? translate("Updates the copy on {device} (signed in as {account}).", {
-            device: label,
-            account: cell.signedInAs,
-          })
-        : translate("Updates the copy on {device}.", { device: label }),
+        ? resolve(
+            msg("Updates the copy on {device} (signed in as {account}).", {
+              device: label,
+              account: cell.signedInAs,
+            }),
+          )
+        : resolve(msg("Updates the copy on {device}.", { device: label })),
     };
   return { environmentId, label, disabled: false, note: null };
 }
 
 function omittedNote(
+  resolve: MessageResolver,
   omitted: ReadonlyArray<ProviderAccountOmission>,
   sourceLabel: string,
   destinationLabel: string,
@@ -88,30 +98,36 @@ function omittedNote(
   const local = names("machine-local");
   if (local.length > 0)
     parts.push(
-      translate("Stays on {device}: {settings}.", {
-        device: sourceLabel,
-        settings: local.join(", "),
-      }),
+      resolve(
+        msg("Stays on {device}: {settings}.", {
+          device: sourceLabel,
+          settings: local.join(", "),
+        }),
+      ),
     );
   const unsupported = names("unsupported-here");
   if (unsupported.length > 0)
     parts.push(
-      translate("Not supported on {device}, update it: {settings}.", {
-        device: destinationLabel,
-        settings: unsupported.join(", "),
-      }),
+      resolve(
+        msg("Not supported on {device}, update it: {settings}.", {
+          device: destinationLabel,
+          settings: unsupported.join(", "),
+        }),
+      ),
     );
   const missing = names("missing-on-source");
   if (missing.length > 0)
     parts.push(
-      translate("No value on {device}: {settings}.", {
-        device: sourceLabel,
-        settings: missing.join(", "),
-      }),
+      resolve(
+        msg("No value on {device}: {settings}.", {
+          device: sourceLabel,
+          settings: missing.join(", "),
+        }),
+      ),
     );
   const oversized = names("too-large");
   if (oversized.length > 0)
-    parts.push(translate("Too large to copy: {settings}.", { settings: oversized.join(", ") }));
+    parts.push(resolve(msg("Too large to copy: {settings}.", { settings: oversized.join(", ") })));
   return parts.length === 0 ? null : parts.join(" ");
 }
 
@@ -123,6 +139,7 @@ export interface SyncResultRow {
 }
 
 export function syncResultRow(input: {
+  readonly resolve?: MessageResolver;
   readonly cell: ProviderAccountSyncCell;
   readonly accountLabel: string;
   readonly sourceLabel: string;
@@ -130,46 +147,56 @@ export function syncResultRow(input: {
   /** The copy as the destination reports it; undefined until the destination lists it. */
   readonly destinationProvider: Parameters<typeof syncedAccountState>[0];
 }): SyncResultRow {
-  const { cell, accountLabel, sourceLabel, destinationLabel } = input;
+  const { cell, accountLabel, sourceLabel, destinationLabel, resolve = m } = input;
   const key = `${cell.instanceId}:${cell.destinationEnvironmentId}`;
-  const title = translate("{account} on {device}", {
-    account: accountLabel,
-    device: destinationLabel,
-  });
+  const title = resolve(
+    msg("{account} on {device}", {
+      account: accountLabel,
+      device: destinationLabel,
+    }),
+  );
   if (cell.status === "skipped") {
     const device = cell.end === "source" ? sourceLabel : destinationLabel;
-    return { key, title, description: blockNote(cell.reason, device), tone: "default" };
+    return { key, title, description: blockNote(cell.reason, device, resolve), tone: "default" };
   }
   if (cell.status === "failed") {
-    return { key, title, description: cell.message, tone: "danger" };
+    const description =
+      cell.failure === "error"
+        ? cell.message
+        : providerAccountSyncFailureMessage(cell.failure, cell.stage, resolve);
+    return { key, title, description, tone: "danger" };
   }
   const state = syncedAccountState(input.destinationProvider);
   const status = (() => {
     switch (state.kind) {
       case "ready":
         return state.signedInAs
-          ? translate("Ready, signed in as {account}.", { account: state.signedInAs })
-          : translate("Ready.");
+          ? resolve(msg("Ready, signed in as {account}.", { account: state.signedInAs }))
+          : resolve(msg("Ready."));
       case "starting":
-        return translate("Starting on {device}.", { device: destinationLabel });
+        return resolve(msg("Starting on {device}.", { device: destinationLabel }));
       case "disabled":
-        return translate("Turned off on {device}.", { device: destinationLabel });
+        return resolve(msg("Turned off on {device}.", { device: destinationLabel }));
       case "error":
         return state.message
-          ? translate("Problem on {device}: {message}", {
-              device: destinationLabel,
-              message: state.message,
-            })
-          : translate("Problem on {device}.", { device: destinationLabel });
+          ? resolve(
+              msg("Problem on {device}: {message}", {
+                device: destinationLabel,
+                message: state.message,
+              }),
+            )
+          : resolve(msg("Problem on {device}.", { device: destinationLabel }));
       case "needs-sign-in":
-        return translate("Sign in on {device} to finish.", { device: destinationLabel });
+        return resolve(msg("Sign in on {device} to finish.", { device: destinationLabel }));
       case "needs-host-setup":
-        return translate("Sign in on {device} with the provider's own tool.", {
-          device: destinationLabel,
-        });
+        return resolve(
+          msg("Sign in on {device} with the provider's own tool.", {
+            device: destinationLabel,
+          }),
+        );
     }
   })();
-  const note = omittedNote(cell.omitted, sourceLabel, destinationLabel);
+  const note = omittedNote(resolve, cell.omitted, sourceLabel, destinationLabel);
   return {
     key,
     title,

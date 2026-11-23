@@ -3,29 +3,16 @@ import {
   type ProviderSubagentStatus,
 } from "@t3tools/client-runtime/state/thread-execution";
 import { isOrchestrationV2WorkActive, type EnvironmentId, type ThreadId } from "@t3tools/contracts";
+import { T, useGT, useMessages, Var } from "gt-react-native";
 import { useState } from "react";
 import { View } from "react-native";
 
 import { AppText as Text } from "../../components/ui/AppText";
 import { ProviderIcon } from "../../components/ProviderIcon";
 import { Button } from "../../components/ui/Button";
-import { useTranslate } from "../../i18n/translate";
-import { localizeDurationUnits } from "../../lib/threadActivity";
 import { NativeChildWorkSheet } from "./NativeChildWorkSheet";
+import { ReadOnlyComposerBar } from "./ReadOnlyComposerBar";
 import { useVisibleSecondClock } from "./use-visible-second-clock";
-
-/** Shared status text ("Working 1m 5s", "Completed in 3s") in the active language. */
-function useLocalizedSubagentStatus(status: string): string {
-  const t = useTranslate();
-  const match = /^(\S+)(?: (in )?(\S.*))?$/.exec(status);
-  if (match === null) return t(status);
-  const [, label, completedIn, elapsed] = match;
-  if (elapsed === undefined) return t(label!);
-  const duration = localizeDurationUnits(elapsed);
-  return completedIn
-    ? t("{status} in {duration}", { status: t(label!), duration })
-    : t("{status} {duration}", { status: t(label!), duration });
-}
 
 export function ProviderSubagentBar(props: {
   readonly provider: { readonly driver: string; readonly iconUrl?: string | undefined } | null;
@@ -36,22 +23,22 @@ export function ProviderSubagentBar(props: {
   /** Set for providers whose children T3 reads on demand instead of streaming. */
   readonly inspect: { readonly environmentId: EnvironmentId; readonly threadId: ThreadId } | null;
 }) {
+  const gt = useGT();
+  const messages = useMessages();
   const [inspecting, setInspecting] = useState(false);
   const live = props.status !== null && isOrchestrationV2WorkActive(props.status.status);
   const nowMs = useVisibleSecondClock(live);
-  const t = useTranslate();
-  const statusLabel = useLocalizedSubagentStatus(formatProviderSubagentStatus(props.status, nowMs));
+  const statusLabel = formatProviderSubagentStatus(props.status, nowMs, messages);
   const modelDescription =
     props.effortLabel === null ? props.modelLabel : `${props.modelLabel}, ${props.effortLabel}`;
 
   return (
-    <View className="flex-row items-center gap-3 rounded-[20px] border border-border-subtle bg-card-alt py-2 pe-2 ps-4">
-      {}
+    <ReadOnlyComposerBar>
       <View
         accessible
-        accessibilityLabel={t(
-          "{model} subagent, {status}. It runs on its own and cannot take messages.",
-          { model: modelDescription, status: statusLabel },
+        accessibilityLabel={gt(
+          "{modelDescription} subagent, {statusLabel}. It runs on its own and cannot take messages.",
+          { modelDescription, statusLabel },
         )}
         className="min-w-0 flex-1 gap-0.5"
       >
@@ -80,18 +67,24 @@ export function ProviderSubagentBar(props: {
           className="font-sans text-xs text-foreground-secondary"
           style={{ fontVariant: ["tabular-nums"] }}
         >
-          {t("{status} · Runs on its own", { status: statusLabel })}
+          <T>
+            <Var>{statusLabel}</Var> · Runs on its own
+          </T>
         </Text>
       </View>
       {props.inspect ? (
-        <Button label={t("Work")} tone="secondary" onPress={() => setInspecting(true)} />
+        <Button
+          label={gt("Work", { $context: "noun, opens the subagent's work log" })}
+          tone="secondary"
+          onPress={() => setInspecting(true)}
+        />
       ) : null}
       {props.onOpenParent ? (
-        <Button label={t("Open parent")} tone="secondary" onPress={props.onOpenParent} />
+        <Button label={gt("Open parent")} tone="secondary" onPress={props.onOpenParent} />
       ) : null}
       {props.inspect && inspecting ? (
         <NativeChildWorkSheet {...props.inspect} onClose={() => setInspecting(false)} />
       ) : null}
-    </View>
+    </ReadOnlyComposerBar>
   );
 }

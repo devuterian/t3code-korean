@@ -3,15 +3,19 @@ import {
   type EasDeviceHostConfig as EasDeviceHostConfigType,
 } from "@t3tools/contracts";
 import * as Schema from "effect/Schema";
+import { msg } from "gt-react";
 
-import { translate } from "../../i18n/translate";
+import { m, type MessageResolver } from "../../i18n/messages";
 
 export const parseEasDeviceHostDraft = Schema.decodeUnknownOption(EasDeviceHostConfig);
 
-export const newEasDeviceHost = (id: string): EasDeviceHostConfigType => ({
+export const newEasDeviceHost = (
+  id: string,
+  resolve: MessageResolver = m,
+): EasDeviceHostConfigType => ({
   kind: "eas",
   id,
-  label: "Expo Simulators",
+  label: resolve(msg("Expo Simulators")),
   accessToken: "",
   maxSessionMinutes: 30,
   idleMinutes: 10,
@@ -37,13 +41,15 @@ export function updateEasDeviceHosts(
     : [...hosts, next];
 }
 
-export function easSessionLimits(host: EasDeviceHostConfigType) {
-  return translate(
-    host.maxConcurrentSessions === 1
-      ? "Up to 1 session at once, each stopped after {minutes} min or {idle} idle min"
-      : "Up to {count} sessions at once, each stopped after {minutes} min or {idle} idle min",
-  )
-    .replace("{count}", () => String(host.maxConcurrentSessions))
-    .replace("{minutes}", () => String(host.maxSessionMinutes))
-    .replace("{idle}", () => String(host.idleMinutes));
+export function easSessionLimits(host: EasDeviceHostConfigType, resolve: MessageResolver = m) {
+  return resolve(
+    msg(
+      "Up to {sessions, plural, one {{sessions} session} other {{sessions} sessions}} at once, each stopped after {maxMinutes} min or {idleMinutes} idle min",
+      {
+        sessions: host.maxConcurrentSessions,
+        maxMinutes: host.maxSessionMinutes,
+        idleMinutes: host.idleMinutes,
+      },
+    ),
+  );
 }

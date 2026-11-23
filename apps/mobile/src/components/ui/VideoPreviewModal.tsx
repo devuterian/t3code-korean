@@ -1,16 +1,18 @@
+import { errorDisplayMessage } from "@t3tools/client-runtime/errors";
 import * as Dialog from "./Dialog";
 import { requireNativeModule } from "expo";
 import { settlePromise, squashAtomCommandFailure } from "@t3tools/client-runtime/state/runtime";
 import { AsyncResult } from "effect/reactivity";
+import { msg } from "gt-react-native";
 import { useEffect, useEffectEvent, useId } from "react";
 
+import { m } from "../../i18n/messages";
 import { loadLocalAttachmentPreview } from "../../lib/localAttachmentPreview";
 import { usePreviewPresentation, videoPreviewKey } from "../../lib/previewPresentation";
 import { fullscreenVideoClosed, fullscreenVideoOpened } from "../../lib/videoAudioSession";
 import { mediaVideoPreviewUri, type VideoPreviewSource } from "../../lib/videoPreviewSource";
 import { refreshAssetUrl } from "../../state/assets";
 import { usePreparedConnection } from "../../state/session";
-import { translate } from "../../i18n/translate";
 import {
   acquireAudioSession,
   activateAudioSession,
@@ -49,15 +51,15 @@ function NativeVideoPreview(props: {
   // Mints a fresh URL for each presentation: AVKit retains the URL and offers no retry,
   // so a cached link that expired while the app was suspended would fail to play.
   const resolvePlaybackUrl = useEffectEvent(async (): Promise<string> => {
-    if (source.type !== "media") throw new Error(translate("Could not load this video."));
+    if (source.type !== "media") throw new Error(m(msg("Could not load this video.")));
     if (!("resource" in source)) return source.uri;
     const url = await refreshAssetUrl(source.environmentId, source.resource).catch(() => null);
     const playbackUrl = mediaVideoPreviewUri(source, url);
     if (playbackUrl !== null) return playbackUrl;
     throw new Error(
       preparedConnection._tag === "None"
-        ? translate("Reconnect to this environment and open the video again.")
-        : translate("Could not load this video. Check the connection and try again."),
+        ? m(msg("Reconnect to this environment and open the video again."))
+        : m(msg("Could not load this video. Check the connection and try again.")),
     );
   });
   const reauthorize = useEffectEvent(() => {
@@ -106,7 +108,11 @@ function NativeVideoPreview(props: {
         return;
       }
       const current = acquire();
-      if (!current || !(await activateAudioSession(current, true)) || controller.signal.aborted) {
+      if (
+        !current ||
+        !(await activateAudioSession(current, { nativePlayback: true })) ||
+        controller.signal.aborted
+      ) {
         release();
         file?.dispose();
         if (!controller.signal.aborted) onRequestClose();
@@ -127,14 +133,16 @@ function NativeVideoPreview(props: {
       // AVKit gives no retry, so re-mint now; the minted URL may already be unusable.
       if (ready) reauthorize();
       Dialog.alert(
-        translate("Could not open video"),
+        m(msg("Could not open video")),
         ready
-          ? translate(
-              "This video couldn't be loaded or played. Check the connection, or touch and hold the video to save or share the original.",
+          ? m(
+              msg(
+                "This video couldn't be loaded or played. Check the connection, or touch and hold the video to save or share the original.",
+              ),
             )
           : error instanceof Error
-            ? error.message
-            : translate("Could not load this video."),
+            ? (errorDisplayMessage(error, m) ?? error.message)
+            : m(msg("Could not load this video.")),
       );
       onRequestClose();
     });

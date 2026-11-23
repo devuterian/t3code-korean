@@ -4,9 +4,9 @@ import type {
   ServerProvider,
 } from "@t3tools/contracts";
 import { type ComposerUsagePart, composerUsageSummary } from "@t3tools/shared/usageLimits";
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { useGT } from "gt-react";
+import { Fragment, useEffect, useState } from "react";
 
-import { useTranslate } from "~/i18n/translate";
 import { cn } from "~/lib/utils";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 
@@ -28,15 +28,13 @@ export function ComposerUsageLimitsText(props: {
   compact: boolean;
   onOpen: (() => void) | undefined;
 }) {
-  const t = useTranslate();
+  const gt = useGT();
   const [now, setNow] = useState(() => Date.now());
-  const summary = useMemo(
-    () => composerUsageSummary(props.providers, props.instanceId, props.mode, now),
-    [props.providers, props.instanceId, props.mode, now],
-  );
+  const summary = composerUsageSummary(props.providers, props.instanceId, props.mode, now);
   const nextChangeAt = summary?.nextChangeAt ?? null;
   // One timer to the next reset, so a window that has rolled over turns into
   // a dash without polling. Fresh provider data re-renders on its own.
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- One timer to the next limit reset, cleared on change or unmount.
   useEffect(() => {
     if (nextChangeAt === null) return;
     const timer = setTimeout(
@@ -47,14 +45,17 @@ export function ComposerUsageLimitsText(props: {
   }, [nextChangeAt]);
 
   if (!summary || props.mode === "off") return null;
-  const suffix = props.mode === "used" ? t("used") : t("left");
-  const kindLabel = (part: ComposerUsagePart) => t(part.kind === "session" ? "Session" : "Weekly");
+  const kindLabel = (part: ComposerUsagePart) =>
+    part.kind === "session" ? gt("Session") : gt("Weekly");
   const description = summary.parts
-    .map((part) =>
-      part.percent === null
-        ? `${kindLabel(part)}: ${t("Reset, waiting for a new reading")}`
-        : `${kindLabel(part)}: ${part.percent}% ${suffix}`,
-    )
+    .map((part) => {
+      const kind = kindLabel(part);
+      if (part.percent === null) return gt("{kind}: Reset, waiting for a new reading", { kind });
+      const percent = part.percent;
+      return props.mode === "used"
+        ? gt("{kind}: {percent}% used", { kind, percent })
+        : gt("{kind}: {percent}% left", { kind, percent });
+    })
     .join(" · ");
 
   return (
@@ -67,7 +68,7 @@ export function ComposerUsageLimitsText(props: {
             disabled={!props.onOpen}
             onPointerDown={(event) => event.preventDefault()}
             onClick={props.onOpen}
-            aria-label={`${t("Usage limits")}: ${description}`}
+            aria-label={gt("Usage limits: {description}", { description })}
           />
         }
       >
@@ -85,7 +86,7 @@ export function ComposerUsageLimitsText(props: {
           </Fragment>
         ))}
         {props.mode === "used" ? (
-          <span className="text-muted-foreground/80">{t("used")}</span>
+          <span className="text-muted-foreground/80">{gt("used")}</span>
         ) : null}
       </TooltipTrigger>
       <TooltipPopup side="top">{description}</TooltipPopup>

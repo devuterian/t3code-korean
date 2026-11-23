@@ -17,7 +17,7 @@ export function useNewTaskAppIntent(onNewTask: () => void): void {
     }
   });
 
-  // oxlint-disable-next-line t3code/react-effect-budget -- Drains intents queued natively before JS mounted, then listens for new ones.
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- Drains intents queued natively before JS mounted, then listens for new ones.
   useEffect(() => {
     if (!AppIntents) return;
     let cancel = whenRootNavigationReady(handlePendingIntent);

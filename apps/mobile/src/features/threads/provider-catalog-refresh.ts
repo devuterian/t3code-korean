@@ -1,11 +1,13 @@
 import type { EnvironmentId } from "@t3tools/contracts";
+import { errorDisplayMessage } from "@t3tools/client-runtime/errors";
 import type { AtomCommandResult } from "@t3tools/client-runtime/state/runtime";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
 } from "@t3tools/client-runtime/state/runtime";
+import { msg } from "gt-react-native";
 
-import { translate } from "../../i18n/translate";
+import { m } from "../../i18n/messages";
 
 type RefreshProvidersTarget = {
   readonly environmentId: EnvironmentId;
@@ -31,5 +33,5 @@ export function providerCatalogRefreshError(
 ): string | null {
   if (result._tag !== "Failure" || isAtomCommandInterrupted(result)) return null;
   const error = squashAtomCommandFailure(result);
-  return error instanceof Error ? error.message : translate("Provider discovery failed.");
+  return errorDisplayMessage(error, m) ?? m(msg("Provider discovery failed."));
 }

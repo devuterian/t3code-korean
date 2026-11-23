@@ -1,7 +1,8 @@
-import { shouldPreserveAssistantLineBreaks } from "@t3tools/shared/markdownPipeline";
+import { shouldPreserveAssistantLineBreaks } from "@t3tools/shared/assistantInsights";
 import { MessageId, type RunId, type TurnItemId } from "@t3tools/contracts";
 import { canForkProjectedAssistantItem } from "@t3tools/client-runtime/state/thread-workflows";
 import { agentWorkingDirectories } from "@t3tools/client-runtime/workspace-basename-lookup";
+import { T, useGT, useMessages } from "gt-react";
 import { memo, use, useState } from "react";
 import { type ChatMessage, type TurnDiffSummary } from "../../types";
 import ChatMarkdown from "../ChatMarkdown";
@@ -13,7 +14,12 @@ import { ProposedPlanCard } from "./ProposedPlanCard";
 import { HtmlRenderFrame } from "./HtmlRenderFrame";
 import { McpAppFrame } from "./McpAppFrame";
 import { checkpointFileTotals } from "@t3tools/client-runtime/state/thread-checkpoints";
-import { ChangedFilesCard } from "./ChangedFilesTree";
+import { ChangedFilesCard, type ChangedFilesGroup } from "./ChangedFilesTree";
+import {
+  changedFileTotals,
+  turnChanges,
+  turnHasChanges,
+} from "@t3tools/client-runtime/state/thread-repositories";
 import { useFileContextMenuHandler } from "../../fileContextMenu";
 import {
   readResponseSubagents,
@@ -32,7 +38,6 @@ import { readThreadTurnItems } from "../../state/entities";
 import { useV2ItemSupport } from "../../state/v2ItemSupport";
 import { TimelineRowCtx, TimelineRowActivityCtx, type TimelineRow } from "./timelineRowContext";
 import { MESSAGE_HEADING_LEVEL, MessageAuthorHeading } from "./TimelineRowParts";
-import { useTranslate } from "~/i18n/translate";
 import { useAtomValue } from "@effect/atom-react";
 import { AsyncResult, Atom } from "effect/reactivity";
 import { vcsEnvironment } from "../../state/vcs";
@@ -40,8 +45,8 @@ import { vcsEnvironment } from "../../state/vcs";
 const NO_VCS_STATUS = Atom.make(AsyncResult.initial());
 
 export function AssistantTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "message" }> }) {
-  const t = useTranslate();
   const ctx = use(TimelineRowCtx);
+  const gt = useGT();
   // The timeline holds a streaming message's row while only its text grows.
   const liveText = useAssistantMessageText(
     row.message.streaming ? ctx.threadRef : null,
@@ -49,7 +54,7 @@ export function AssistantTimelineRow({ row }: { row: Extract<TimelineRow, { kind
   );
   const text = liveText ?? row.message.text;
   const messageText =
-    text || (row.message.streaming || row.suppressEmptyResponse ? "" : t("(empty response)"));
+    text || (row.message.streaming || row.suppressEmptyResponse ? "" : gt("(empty response)"));
 
   return (
     <>
@@ -150,8 +155,8 @@ function AssistantForkButton({
 }: {
   readonly projectedItem: NonNullable<Extract<TimelineRow, { kind: "message" }>["projectedItem"]>;
 }) {
-  const t = useTranslate();
   const ctx = use(TimelineRowCtx);
+  const gt = useGT();
   const [busy, setBusy] = useState(false);
   const support = useV2ItemSupport({
     environmentId: ctx.activeThreadEnvironmentId,
@@ -182,13 +187,15 @@ function AssistantForkButton({
                 () => setBusy(false),
               );
             }}
-            aria-label={t("Fork from this response")}
+            aria-label={gt("Fork from this response")}
           />
         }
       >
         <GitForkIcon className={cn("size-3", busy && "animate-pulse")} />
       </TooltipTrigger>
-      <TooltipPopup side="top">{t("Fork from this response")}</TooltipPopup>
+      <TooltipPopup side="top">
+        <T>Fork from this response</T>
+      </TooltipPopup>
     </Tooltip>
   );
 }
@@ -228,6 +235,7 @@ function AssistantMessageMeta({
   alwaysVisible?: boolean;
 }) {
   const ctx = use(TimelineRowCtx);
+  const m = useMessages();
 
   return (
     <div
@@ -256,10 +264,16 @@ function AssistantMessageMeta({
       {!message.streaming && (
         <Tooltip>
           <TooltipTrigger render={<p className="text-muted-foreground text-xs tabular-nums" />}>
-            {formatDayAwareTimestamp(message.updatedAt, ctx.timestampFormat)}
+            {formatDayAwareTimestamp(
+              message.updatedAt,
+              ctx.timestampFormat,
+              undefined,
+              undefined,
+              m,
+            )}
           </TooltipTrigger>
           <TooltipPopup>
-            {formatChatTimestampTooltip(message.updatedAt, ctx.timestampFormat)}
+            {formatChatTimestampTooltip(message.updatedAt, ctx.timestampFormat, m)}
           </TooltipPopup>
         </Tooltip>
       )}
@@ -268,8 +282,8 @@ function AssistantMessageMeta({
 }
 
 function AssistantReplyButton({ message, itemId }: { message: ChatMessage; itemId: TurnItemId }) {
-  const t = useTranslate();
   const ctx = use(TimelineRowCtx);
+  const gt = useGT();
   const { threadRef, onReplyToResponse } = ctx;
   if (!threadRef || !onReplyToResponse || !message.text.trim()) return null;
 
@@ -303,22 +317,23 @@ function AssistantReplyButton({ message, itemId }: { message: ChatMessage; itemI
             size="xs"
             variant="ghost-muted"
             onClick={reply}
-            aria-label={t("Reply to this response")}
+            aria-label={gt("Reply to this response")}
           />
         }
       >
         <ReplyIcon className="size-3" />
       </TooltipTrigger>
-      <TooltipPopup side="top">{t("Reply to this response")}</TooltipPopup>
+      <TooltipPopup side="top">
+        <T>Reply to this response</T>
+      </TooltipPopup>
     </Tooltip>
   );
 }
 
 function AssistantStatusBadge({ status }: { status: string }) {
-  const t = useTranslate();
   return (
     <span className="rounded-full border border-border/70 px-1.5 py-0.5 font-mono text-3xs text-muted-foreground">
-      {t(status)}
+      {status}
     </span>
   );
 }
@@ -429,7 +444,7 @@ const AssistantChangedFilesSection = memo(function AssistantChangedFilesSection(
 }) {
   if (!turnSummary) return null;
   const checkpointFiles = turnSummary.files;
-  if (checkpointFiles.length === 0) return null;
+  if (!turnHasChanges(turnSummary)) return null;
 
   return (
     <AssistantChangedFilesSectionInner
@@ -457,6 +472,7 @@ function AssistantChangedFilesSectionInner({
   onOpenTurnDiff: (runId: RunId, filePath?: string) => void;
 }) {
   const ctx = use(TimelineRowCtx);
+  const gt = useGT();
   const persistedExpanded = useUiStateStore(
     (store) => store.threadChangedFilesExpandedById[routeThreadKey]?.[turnSummary.runId],
   );
@@ -479,33 +495,72 @@ function AssistantChangedFilesSectionInner({
       : NO_VCS_STATUS,
     (status) => AsyncResult.getOrElse(status, () => null)?.workingTree.rootPath,
   );
+  const repositories = turnSummary.repositories;
+  const rootGroupName = activeProject?.title ?? gt("Project folder");
+  const groups: ReadonlyArray<ChangedFilesGroup> | undefined =
+    repositories === undefined
+      ? undefined
+      : [
+          ...(checkpointFiles.length === 0
+            ? []
+            : [
+                {
+                  key: ".",
+                  name: rootGroupName,
+                  files: checkpointFiles,
+                  totals: checkpointFileTotals(turnSummary),
+                  relativePath: "",
+                },
+              ]),
+          ...repositories.map((repository) => ({
+            key: repository.scopeId,
+            name: repository.name,
+            files: repository.files,
+            totals: changedFileTotals(repository),
+            relativePath: repository.relativePath,
+            ...(repository.baselineMissing
+              ? { note: gt("This turn's changes in this repository cannot be listed.") }
+              : {}),
+          })),
+        ];
+  const repositoryCwdByGroupKey = new Map(
+    repositories?.map((repository) => [repository.scopeId as string, repository.cwd]),
+  );
 
   return (
     <ChangedFilesCard
       runId={turnSummary.runId}
       files={checkpointFiles}
-      totals={checkpointFileTotals(turnSummary)}
+      totals={turnChanges(turnSummary).totals}
+      groups={groups}
       allDirectoriesExpanded={allDirectoriesExpanded}
       resolvedTheme={resolvedTheme}
       onToggleAllDirectories={() =>
         setExpanded(routeThreadKey, turnSummary.runId, !allDirectoriesExpanded)
       }
       onOpenTurnDiff={onOpenTurnDiff}
-      onFileContextMenu={(filePath, event) =>
+      onFileContextMenu={(filePath, event, group) => {
+        const repositoryCwd = group && repositoryCwdByGroupKey.get(group.key);
         onFileContextMenu(
-          {
-            environmentId: ctx.activeThreadEnvironmentId,
-            filePath,
-            workspaceRoot: ctx.workspaceRoot,
-            repositoryRoot:
-              repositoryRoot ??
-              (thread?.worktreePath == null
-                ? activeProject?.repositoryIdentity?.rootPath
-                : undefined),
-          },
+          repositoryCwd === undefined
+            ? {
+                environmentId: ctx.activeThreadEnvironmentId,
+                filePath,
+                workspaceRoot: ctx.workspaceRoot,
+                repositoryRoot:
+                  repositoryRoot ??
+                  (thread?.worktreePath == null
+                    ? activeProject?.repositoryIdentity?.rootPath
+                    : undefined),
+              }
+            : {
+                environmentId: ctx.activeThreadEnvironmentId,
+                filePath,
+                workspaceRoot: repositoryCwd,
+              },
           event,
-        )
-      }
+        );
+      }}
     />
   );
 }

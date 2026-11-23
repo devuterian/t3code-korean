@@ -1,4 +1,6 @@
-import { translate } from "../../i18n/translate";
+import { msg } from "gt-react-native";
+
+import { m, type MessageResolver } from "../../i18n/messages";
 
 export interface ZipEntry {
   readonly path: string;
@@ -125,19 +127,29 @@ export function zipFolderLabel(label: string) {
   return { prefix: parts.length > 1 ? `${parts.slice(0, -1).join("/")}/` : "", name };
 }
 
-export function zipDownloadTimeLeft(input: {
-  readonly receivedBytes: number;
-  readonly totalBytes: number;
-  readonly elapsedMs: number;
-}) {
+export function zipDownloadTimeLeft(
+  input: {
+    readonly receivedBytes: number;
+    readonly totalBytes: number;
+    readonly elapsedMs: number;
+  },
+  resolve: MessageResolver = m,
+) {
   if (input.receivedBytes <= 0 || input.totalBytes <= input.receivedBytes || input.elapsedMs < 1000)
     return null;
   const seconds = Math.ceil(
     ((input.totalBytes - input.receivedBytes) * input.elapsedMs) / input.receivedBytes / 1000,
   );
   return seconds < 60
-    ? translate(seconds === 1 ? "About {count} second left" : "About {count} seconds left", {
-        count: seconds,
-      })
-    : translate("About {count} minutes left", { count: Math.ceil(seconds / 60) });
+    ? resolve(
+        msg(
+          "{seconds, plural, one {About {seconds} second left} other {About {seconds} seconds left}}",
+          { seconds },
+        ),
+      )
+    : resolve(
+        msg("{minutes, plural, other {About {minutes} minutes left}}", {
+          minutes: Math.ceil(seconds / 60),
+        }),
+      );
 }

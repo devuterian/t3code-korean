@@ -1,8 +1,8 @@
 import { useAtomValue } from "@effect/atom-react";
 import { AuthProvidersManageScope, type EnvironmentId } from "@t3tools/contracts";
+import { useGT, useMessages } from "gt-react";
 
 import { useEnvironmentSettings, useUpdateEnvironmentSettings } from "../../hooks/useSettings";
-import { useTranslate } from "../../i18n/translate";
 import { useEnvironmentScope } from "../../state/session";
 import { providersIgnoringCheckedAtAtom, serverEnvironment } from "../../state/server";
 import { Checkbox } from "../ui/checkbox";
@@ -14,7 +14,7 @@ import {
   modelCoverageLabel,
   type ProviderPoolChange,
 } from "./ProviderPoolsSettings.logic";
-import { searchableSetting } from "./settingsSearch";
+import { useSearchableSetting } from "./settingsSearch";
 import { SettingsPageContainer, SettingsRow, SettingsSection } from "./settingsLayout";
 
 export function ProviderPoolsSettings({
@@ -22,7 +22,9 @@ export function ProviderPoolsSettings({
 }: {
   readonly environmentId: EnvironmentId;
 }) {
-  const t = useTranslate();
+  const gt = useGT();
+  const m = useMessages();
+  const searchableSetting = useSearchableSetting();
   const providers = useAtomValue(providersIgnoringCheckedAtAtom(environmentId));
   const providerPools = useEnvironmentSettings(environmentId, (settings) => settings.providerPools);
   const supportsProviderPools = useAtomValue(
@@ -31,19 +33,13 @@ export function ProviderPoolsSettings({
   );
   const canManage = useEnvironmentScope(environmentId, AuthProvidersManageScope);
   const updateSettings = useUpdateEnvironmentSettings(environmentId);
-  const cards = buildProviderPoolCards(providers, providerPools);
+  const cards = buildProviderPoolCards(providers, providerPools, m);
   const { id, title } = searchableSetting("account-pools");
-  // Status headlines may carry an auth label after " · "; only the headline is translated.
-  const translateStatus = (status: string) => {
-    const [headline = status, ...tail] = status.split(" · ");
-    return [t(headline), ...tail].join(" · ");
-  };
-
   if (!supportsProviderPools) {
     return (
       <SettingsPageContainer>
         <p className="text-sm text-muted-foreground">
-          {t("This environment's server is too old for account pools. Update it to use them.")}
+          {gt("This environment's server is too old for account pools. Update it to use them.")}
         </p>
       </SettingsPageContainer>
     );
@@ -53,13 +49,15 @@ export function ProviderPoolsSettings({
     <SettingsPageContainer className="gap-8">
       <SettingsSection id={id} title={title}>
         <SettingsRow
-          title="Share the work across accounts"
-          description="Pool two or more accounts of the same provider. The model picker then shows one entry for the provider, each turn runs on an account that still has quota, and a turn that hits a usage limit continues on another account. A conversation stays on its account while that account is available. Switching Claude accounts continues from a summary of the conversation; accounts that share one Codex home carry on natively."
+          title={gt("Share the work across accounts")}
+          description={gt(
+            "Pool two or more accounts of the same provider. The model picker then shows one entry for the provider, each turn runs on an account that still has quota, and a turn that hits a usage limit continues on another account. A conversation stays on its account while that account is available. Switching Claude accounts continues from a summary of the conversation; accounts that share one Codex home carry on natively.",
+          )}
         />
       </SettingsSection>
       {cards.length === 0 ? (
         <p className="px-3 text-sm text-muted-foreground sm:px-4">
-          {t("Add a second account for a provider on the Providers page to pool them.")}
+          {gt("Add a second account for a provider on the Providers page to pool them.")}
         </p>
       ) : (
         cards.map((card) => {
@@ -74,21 +72,19 @@ export function ProviderPoolsSettings({
           return (
             <SettingsSection key={card.driver} title={card.label}>
               <SettingsRow
-                title="Pool these accounts"
+                title={gt("Pool these accounts")}
                 description={
                   card.canEnable
-                    ? t(
+                    ? gt(
                         "One {provider} entry in the model picker, with turns routed across the ticked accounts.",
-                      ).replace("{provider}", () => card.label)
-                    : "Tick at least two accounts to turn the pool on."
+                        { provider: card.label },
+                      )
+                    : gt("Tick at least two accounts to turn the pool on.")
                 }
-                status={card.modelCoverage ? modelCoverageLabel(card.modelCoverage) : undefined}
+                status={card.modelCoverage ? modelCoverageLabel(card.modelCoverage, m) : undefined}
                 control={
                   <Switch
-                    aria-label={t("Pool {provider} accounts").replace(
-                      "{provider}",
-                      () => card.label,
-                    )}
+                    aria-label={gt("Pool {provider} accounts", { provider: card.label })}
                     checked={card.enabled}
                     disabled={!canManage || (!card.canEnable && !card.enabled)}
                     onCheckedChange={(enabled) => update({ type: "enabled", enabled })}
@@ -102,27 +98,28 @@ export function ProviderPoolsSettings({
                   description={
                     <>
                       <span className="block">
-                        {translateStatus(candidate.status)}
+                        {candidate.status}
                         <ProviderLimitedUntil
                           provider={candidate.provider}
                           className="ms-1.5 text-warning-foreground"
                         />
                       </span>
                       {candidate.continuationHint ? (
-                        <span className="block">{t(candidate.continuationHint)}</span>
+                        <span className="block">{candidate.continuationHint}</span>
                       ) : null}
                       {candidate.sameLoginHint ? (
                         <span className="block text-muted-foreground">
-                          {t(candidate.sameLoginHint)}
+                          {candidate.sameLoginHint}
                         </span>
                       ) : null}
                     </>
                   }
                   control={
                     <Checkbox
-                      aria-label={t("Include {account} in the {provider} pool")
-                        .replace("{account}", () => candidate.displayName)
-                        .replace("{provider}", () => card.label)}
+                      aria-label={gt("Include {account} in the {provider} pool", {
+                        account: candidate.displayName,
+                        provider: card.label,
+                      })}
                       checked={candidate.ticked}
                       disabled={!canManage}
                       onCheckedChange={(ticked) =>

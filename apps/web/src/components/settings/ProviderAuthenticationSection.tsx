@@ -1,3 +1,5 @@
+import { thrownErrorMessage } from "@t3tools/client-runtime/errors";
+import { m } from "~/i18n/messages";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
@@ -12,12 +14,12 @@ import type {
 } from "@t3tools/contracts";
 import { compareSemverVersions } from "@t3tools/shared/semver";
 import { useAtomValue } from "@effect/atom-react";
+import { msg, T, useGT, useMessages, Var } from "gt-react";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { CopyIcon } from "lucide-react";
 
 import { writeTextToClipboard } from "../../hooks/useCopyToClipboard";
 import { isWebUrl } from "../../browser/webUrl";
-import { useTranslate } from "../../i18n/translate";
 import { ensureLocalApi } from "../../localApi";
 import { useEnvironmentQuery } from "../../state/query";
 import { serverEnvironment } from "../../state/server";
@@ -46,9 +48,9 @@ export function ProviderAuthenticationSection({
   readonly readOnly: boolean;
   readonly autoOpenBrowser?: boolean;
 }) {
-  const t = useTranslate();
+  const gt = useGT();
   const target = { environmentId, input: { instanceId } };
-  const query = useEnvironmentQuery(serverEnvironment.providerAuthState(target));
+  const query = useEnvironmentQuery(serverEnvironment.providerAuthState(target), useMessages());
   const commands = { reportFailure: false, reportDefect: false };
   const start = useAtomCommand(serverEnvironment.startProviderAuth, commands);
   const respond = useAtomCommand(serverEnvironment.respondProviderAuth, commands);
@@ -117,30 +119,25 @@ export function ProviderAuthenticationSection({
     (provider.auth.type === "gemini-api-key" || provider.auth.type === "agent-platform");
   const accountDescription = active
     ? auth?.phase === "starting"
-      ? (auth.message ?? (usesCredentials ? t("Connecting…") : t("Starting sign-in…")))
+      ? (auth.message ?? (usesCredentials ? gt("Connecting…") : gt("Starting sign-in…")))
       : auth?.phase === "verifying"
         ? usesCredentials
-          ? t("Checking credentials and loading models…")
-          : t("Checking your account…")
+          ? gt("Checking credentials and loading models…")
+          : gt("Checking your account…")
         : interaction?.type === "terminal"
-          ? t("Complete sign-in in the terminal below.")
+          ? gt("Complete sign-in in the terminal below.")
           : interaction?.type === "credentials"
-            ? t("Enter your credentials below.")
-            : t("Finish signing in in your browser.")
+            ? gt("Enter your credentials below.")
+            : gt("Finish signing in in your browser.")
     : signedIn
-      ? t("Signed in.")
-      : canInstallCodex && !provider.installed
-        ? t("Install Codex CLI on this environment before signing in.")
-        : isDiscovering
-          ? t("Discovering sign-in methods…")
-          : needsExternalSetup
-            ? t("No in-app sign-in advertised. Follow the provider's docs to finish setup.")
-            : usesCredentials
-              ? t("Connect on {environment} to load models.").replace(
-                  "{environment}",
-                  () => environmentLabel,
-                )
-              : t("Sign in on {environment}.").replace("{environment}", () => environmentLabel);
+      ? gt("Signed in.")
+      : isDiscovering
+        ? gt("Discovering sign-in methods…")
+        : needsExternalSetup
+          ? gt("No in-app sign-in advertised. Follow the provider's docs to finish setup.")
+          : usesCredentials
+            ? gt("Connect on {environment} to load models.", { environment: environmentLabel })
+            : gt("Sign in on {environment}.", { environment: environmentLabel });
   const statusMessage = auth?.phase === "failed" ? auth.message : null;
   const disabled = readOnly || pending || query.error !== null || isDiscovering;
   const installDisabled =
@@ -195,10 +192,10 @@ export function ProviderAuthenticationSection({
       void ensureLocalApi()
         .shell.openExternal(url)
         .catch(() => {
-          setError(t("Could not open the sign-in page. Use Open browser or copy the link."));
+          setError(gt("Could not open the sign-in page. Use Open browser or copy the link."));
         });
     }
-  }, [active, auth?.flowId, browserFlowId, interaction, query.error, t, url]);
+  }, [active, auth?.flowId, browserFlowId, interaction, query.error, gt, url]);
 
   async function beginSignIn() {
     if (pendingRef.current) return;
@@ -227,7 +224,7 @@ export function ProviderAuthenticationSection({
 
   async function run<A, E>(
     command: () => Promise<AtomCommandResult<A, E>>,
-    failureMessage = "Provider sign-in failed. Try again.",
+    failureMessage?: string,
   ) {
     if (pendingRef.current) return false;
     pendingRef.current = true;
@@ -239,10 +236,14 @@ export function ProviderAuthenticationSection({
       if (result._tag === "Success") succeeded = true;
       else if (!isAtomCommandInterrupted(result)) {
         const failure = squashAtomCommandFailure(result);
-        setError(failure instanceof Error ? failure.message : t(failureMessage));
+        setError(
+          failure instanceof Error
+            ? (thrownErrorMessage(failure, m) ?? failure.message)
+            : (failureMessage ?? gt("Provider sign-in failed. Try again.")),
+        );
       }
     } catch {
-      setError(t(failureMessage));
+      setError(failureMessage ?? gt("Provider sign-in failed. Try again."));
     }
     pendingRef.current = false;
     setPending(false);
@@ -262,7 +263,7 @@ export function ProviderAuthenticationSection({
   async function openBrowser() {
     if (!url || readOnly) return;
     if (!isWebUrl(url)) {
-      setError("This sign-in link is not a web address, so it was not opened.");
+      setError(gt("This sign-in link is not a web address, so it was not opened."));
       return;
     }
     const requiresConsent = interaction?.type === "browser" && interaction.requiresConsent;
@@ -279,7 +280,7 @@ export function ProviderAuthenticationSection({
       setError(null);
     } catch {
       pending?.close();
-      setError(t("Could not open the sign-in page. Copy the link and open it in your browser."));
+      setError(gt("Could not open the sign-in page. Copy the link and open it in your browser."));
     }
   }
 
@@ -289,48 +290,49 @@ export function ProviderAuthenticationSection({
 
   const installStatus =
     installation?.phase === "downloading"
-      ? (installation.totalBytes === null
-          ? t("Downloading Codex CLI ({downloaded} MB).")
-          : t("Downloading Codex CLI ({downloaded} MB of {total} MB).").replace("{total}", () =>
-              ((installation.totalBytes ?? 0) / 1_000_000).toFixed(1),
-            )
-        ).replace("{downloaded}", () => (installation.downloadedBytes / 1_000_000).toFixed(1))
+      ? installation.totalBytes === null
+        ? gt("Downloading Codex CLI ({downloaded} MB).", {
+            downloaded: (installation.downloadedBytes / 1_000_000).toFixed(1),
+          })
+        : gt("Downloading Codex CLI ({downloaded} MB of {total} MB).", {
+            downloaded: (installation.downloadedBytes / 1_000_000).toFixed(1),
+            total: (installation.totalBytes / 1_000_000).toFixed(1),
+          })
       : installation?.phase === "extracting"
-        ? t("Extracting Codex CLI.")
+        ? gt("Extracting Codex CLI.")
         : installation?.phase === "verifying"
-          ? t("Checking Codex CLI.")
+          ? gt("Checking Codex CLI.")
           : installation?.phase === "succeeded" &&
               installation.source === "local" &&
               !provider.installed
-            ? t(
+            ? gt(
                 "This provider cannot use the environment's Codex executable. Install Codex CLI for this provider.",
               )
             : installation?.phase === "succeeded" && !provider.installed
-              ? t("Codex CLI is installed. Checking whether this provider can run it.")
+              ? gt("Codex CLI is installed. Checking whether this provider can run it.")
               : installation?.phase === "failed" || installation?.phase === "cancelled"
-                ? (installation.message ?? t("Codex CLI installation failed."))
+                ? (installation.message ?? gt("Codex CLI installation failed."))
                 : updateAvailable
-                  ? t("Codex {version} is available.").replace(
-                      "{version}",
-                      () => installation.version ?? "",
-                    )
+                  ? gt("Codex {version} is available.", { version: installation.version ?? "" })
                   : null;
 
   return (
     <SettingsRow
-      title="Account"
+      title={gt("Account")}
       description={
         signedIn && !active && provider.auth.email?.trim() ? (
           <span>
-            {t("Signed in as")}{" "}
-            <RedactedSensitiveText
-              key={provider.auth.email}
-              value={provider.auth.email}
-              ariaLabel={t("Toggle account email visibility")}
-              revealTooltip={t("Click to reveal email")}
-              hideTooltip={t("Click to hide email")}
-              className="max-w-full truncate"
-            />
+            <T>
+              Signed in as{" "}
+              <RedactedSensitiveText
+                key={provider.auth.email}
+                value={provider.auth.email}
+                ariaLabel={gt("Toggle account email visibility")}
+                revealTooltip={gt("Click to reveal email")}
+                hideTooltip={gt("Click to hide email")}
+                className="max-w-full truncate"
+              />
+            </T>
           </span>
         ) : (
           <span role="status">{accountDescription}</span>
@@ -357,7 +359,7 @@ export function ProviderAuthenticationSection({
             installation.totalBytes !== null &&
             installation.totalBytes > 0 ? (
               <progress
-                aria-label={t("Codex CLI download")}
+                aria-label={gt("Codex CLI download")}
                 className="mt-2 block h-1 w-full accent-foreground"
                 value={installation.downloadedBytes}
                 max={installation.totalBytes}
@@ -380,15 +382,15 @@ export function ProviderAuthenticationSection({
                     if (!operationId) return;
                     void run(
                       () => cancelInstall({ environmentId, input: { instanceId, operationId } }),
-                      "Could not cancel Codex installation. Try again.",
+                      gt("Could not cancel Codex installation. Try again."),
                     );
                   }}
                 >
-                  {t("Cancel installation")}
+                  {gt("Cancel installation")}
                 </Button>
               ) : (
                 <Button size="sm" variant="outline" disabled>
-                  {t("Installing Codex CLI")}
+                  {gt("Installing Codex CLI")}
                 </Button>
               )
             ) : (
@@ -401,33 +403,31 @@ export function ProviderAuthenticationSection({
                     if (installation.source === "local") {
                       void run(
                         () => startInstall({ environmentId, input: { instanceId } }),
-                        "Could not install Codex CLI. Try again.",
+                        gt("Could not install Codex CLI. Try again."),
                       );
                     } else {
                       void run(
                         () => refreshProviders({ environmentId, input: { instanceId } }),
-                        "Could not refresh Codex status. Try again.",
+                        gt("Could not refresh Codex status. Try again."),
                       );
                     }
                   } else {
                     void run(
                       () => startInstall({ environmentId, input: { instanceId } }),
-                      "Could not install Codex CLI. Try again.",
+                      gt("Could not install Codex CLI. Try again."),
                     );
                   }
                 }}
               >
-                {t(
-                  updateAvailable
-                    ? "Update Codex CLI"
-                    : installation?.phase === "failed" || installation?.phase === "cancelled"
-                      ? "Retry installation"
-                      : installation?.phase === "succeeded"
-                        ? installation.source === "local"
-                          ? "Install Codex CLI"
-                          : "Refresh status"
-                        : "Install Codex CLI",
-                )}
+                {updateAvailable
+                  ? gt("Update Codex CLI")
+                  : installation?.phase === "failed" || installation?.phase === "cancelled"
+                    ? gt("Retry installation")
+                    : installation?.phase === "succeeded"
+                      ? installation.source === "local"
+                        ? gt("Install Codex CLI")
+                        : gt("Refresh status")
+                      : gt("Install Codex CLI")}
               </Button>
             )
           ) : null}
@@ -437,14 +437,16 @@ export function ProviderAuthenticationSection({
               disabled={disabled}
               onValueChange={(value) => setMethodId(value ?? "")}
             >
-              <SelectTrigger size="sm" aria-label={t("Sign-in method")} className="w-44">
+              <SelectTrigger size="sm" aria-label={gt("Sign-in method")} className="w-44">
                 <SelectValue>
                   {auth?.methods?.find((method) => method.id === methodId)?.name ??
-                    t("Provider default")}
+                    gt("Provider default")}
                 </SelectValue>
               </SelectTrigger>
               <SelectPopup>
-                <SelectItem value="">{t("Provider default")}</SelectItem>
+                <SelectItem value="">
+                  <T>Provider default</T>
+                </SelectItem>
                 {auth?.methods?.map((method) => (
                   <SelectItem key={method.id} value={method.id}>
                     {method.name}
@@ -461,32 +463,42 @@ export function ProviderAuthenticationSection({
                 disabled={disabled}
                 onClick={() => void openBrowser()}
               >
-                {t("Open browser")}
+                <T>Open browser</T>
               </Button>
               <Tooltip>
                 <TooltipTrigger
                   render={
                     <Button
-                      aria-label={t("Copy sign-in link")}
+                      aria-label={gt("Copy sign-in link")}
                       size="icon-sm"
                       variant="ghost-muted"
                       disabled={disabled}
                       onClick={() => {
                         // Copy during the click to retain clipboard activation; consent must still be
                         // recorded before use.
-                        const copied = writeTextToClipboard(url, "Provider sign-in link");
+                        const copied = writeTextToClipboard(url, {
+                          target: "Provider sign-in link",
+                          unavailableMessage: msg(
+                            "Clipboard API is unavailable while copying Provider sign-in link.",
+                          ),
+                          failureMessage: msg(
+                            "Failed to copy Provider sign-in link to the clipboard.",
+                          ),
+                        });
                         void (async () => {
                           await copied;
                           if (interaction?.type === "browser" && interaction.requiresConsent)
                             await send({ type: "browser", action: "accept" });
-                        })().catch(() => setError(t("Could not copy the sign-in link.")));
+                        })().catch(() => setError(gt("Could not copy the sign-in link.")));
                       }}
                     >
                       <CopyIcon />
                     </Button>
                   }
                 />
-                <TooltipPopup>{t("Copy sign-in link")}</TooltipPopup>
+                <TooltipPopup>
+                  <T>Copy sign-in link</T>
+                </TooltipPopup>
               </Tooltip>
             </>
           ) : null}
@@ -499,13 +511,13 @@ export function ProviderAuthenticationSection({
                   <a href={provider.setup.documentationUrl} target="_blank" rel="noreferrer" />
                 }
               >
-                {t("Open docs")}
+                <T>Open docs</T>
               </Button>
             ) : active && auth?.flowId ? (
               <Button
                 size="sm"
                 variant="ghost-muted"
-                aria-label={t("Cancel sign-in")}
+                aria-label={gt("Cancel sign-in")}
                 disabled={disabled}
                 onClick={() =>
                   void run(() =>
@@ -513,7 +525,7 @@ export function ProviderAuthenticationSection({
                   )
                 }
               >
-                {t("Cancel")}
+                <T>Cancel</T>
               </Button>
             ) : !active && !needsExternalSetup && provider.setup?.canAuthenticate !== false ? (
               <Button
@@ -523,14 +535,14 @@ export function ProviderAuthenticationSection({
                 onClick={() => void beginSignIn()}
               >
                 {signedIn
-                  ? t("Change account")
+                  ? gt("Change account")
                   : auth?.phase === "failed" || auth?.phase === "cancelled"
                     ? usesCredentials
-                      ? t("Retry connection")
-                      : t("Retry sign-in")
+                      ? gt("Retry connection")
+                      : gt("Retry sign-in")
                     : usesCredentials
-                      ? t("Connect")
-                      : t("Sign in")}
+                      ? gt("Connect")
+                      : gt("Sign in")}
               </Button>
             ) : null}
             {!active && signedIn && (provider.auth.canLogout ?? provider.setup?.canAuthenticate) ? (
@@ -541,19 +553,20 @@ export function ProviderAuthenticationSection({
                 onClick={() => {
                   void ensureLocalApi()
                     .dialogs.confirm(
-                      `${t("Sign out of {provider} on {environment}?")
-                        .replace("{provider}", () => provider.displayName ?? provider.driver)
-                        .replace(
-                          "{environment}",
-                          () => environmentLabel,
-                        )} ${t("This stops running threads that share this sign-in. Thread history is kept.")}`,
+                      gt(
+                        "Sign out of {provider} on {environment}? This stops running threads that share this sign-in. Thread history is kept.",
+                        {
+                          provider: provider.displayName ?? provider.driver,
+                          environment: environmentLabel,
+                        },
+                      ),
                     )
                     .then((confirmed) => {
                       if (confirmed) void run(() => logout(target));
                     });
                 }}
               >
-                {t("Sign out")}
+                <T>Sign out</T>
               </Button>
             ) : null}
           </>
@@ -569,16 +582,22 @@ export function ProviderAuthenticationSection({
         <>
           {interaction?.type === "deviceCode" ? (
             <p className="py-2 text-sm text-muted-foreground">
-              {t("Enter code")}{" "}
-              <code className="select-all font-mono text-foreground">{interaction.userCode}</code>{" "}
-              {t("in your browser.")}
+              <T>
+                Enter code{" "}
+                <code className="select-all font-mono text-foreground">
+                  <Var>{interaction.userCode}</Var>
+                </code>{" "}
+                in your browser.
+              </T>
             </p>
           ) : null}
           {interaction?.type === "terminal" ? (
             <div className="py-2">
               <Suspense
                 fallback={
-                  <p className="text-xs text-muted-foreground">{t("Loading sign-in terminal…")}</p>
+                  <p className="text-xs text-muted-foreground">
+                    <T>Loading sign-in terminal…</T>
+                  </p>
                 }
               >
                 <ProviderAuthTerminal
@@ -611,14 +630,14 @@ export function ProviderAuthenticationSection({
                         if (result._tag !== "Success") {
                           terminalQueue.current = [];
                           if (!isAtomCommandInterrupted(result))
-                            setError(t("The provider sign-in terminal is no longer available."));
+                            setError(gt("The provider sign-in terminal is no longer available."));
                           break;
                         }
                       }
                     })()
                       .catch(() => {
                         terminalQueue.current = [];
-                        setError(t("Could not send input to the provider sign-in terminal."));
+                        setError(gt("Could not send input to the provider sign-in terminal."));
                       })
                       .finally(() => {
                         terminalSending.current = false;
@@ -659,7 +678,7 @@ export function ProviderAuthenticationSection({
                 className="w-fit"
                 disabled={disabled}
               >
-                {t("Connect")}
+                <T>Connect</T>
               </Button>
             </form>
           ) : null}
@@ -680,9 +699,7 @@ export function ProviderAuthenticationSection({
               }}
             >
               <label className="grid gap-1">
-                {acceptsCode
-                  ? t("Paste the code from Claude")
-                  : t("If the final localhost page does not load, paste its full URL here.")}
+                <T>If the final localhost page does not load, paste its full URL here.</T>
                 <Input
                   size="sm"
                   id={`provider-callback-${instanceId}`}
@@ -703,7 +720,7 @@ export function ProviderAuthenticationSection({
                 className="w-fit"
                 disabled={disabled || !values.callback?.trim()}
               >
-                {t("Continue")}
+                <T>Continue</T>
               </Button>
             </form>
           ) : null}

@@ -101,8 +101,8 @@ export function resolveActiveThreadSortOrder(
   return source?.[1].settings.activeThreadSortOrder ?? "manual";
 }
 
-/** English labels are translation keys; clients translate them at render time. */
+/** Clients own the translated labels for these values. */
 export const ACTIVE_THREAD_SORT_OPTIONS = [
-  { value: "manual", label: "Configured order" },
-  { value: "last_message", label: "Last message" },
-] as const satisfies ReadonlyArray<{ value: ActiveThreadSortOrder; label: string }>;
+  { value: "manual" },
+  { value: "last_message" },
+] as const satisfies ReadonlyArray<{ value: ActiveThreadSortOrder }>;

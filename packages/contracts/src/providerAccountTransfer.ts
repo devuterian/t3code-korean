@@ -75,16 +75,9 @@ export const PortableProviderInstance = Schema.Struct({
 export type PortableProviderInstance = typeof PortableProviderInstance.Type;
 
 /**
- * Produced only by the source server.
- *
- * Invariants, established by the source and re-checked by the destination (neither trusts the
- * other's classification):
- *  - `instance.config` holds no secret field and no machine-local field;
- *  - `instance.environment` holds only non-sensitive, non-machine-local variables;
- *  - every secret is in `secrets`, each at most once per slot.
- *
- * Holds plaintext. Clients keep it only inside the sync fiber that relays it: never in an atom,
- * never persisted, never logged.
+ * Produced only by the source server and re-checked by the destination: `instance.config` and
+ * `instance.environment` hold no secret or machine-local value, and every secret is in
+ * `secrets`, once per slot. Holds plaintext, so clients keep it only inside the sync fiber.
  */
 export const ProviderAccountExport = Schema.Struct({
   /** The source's id. The destination reuses it as the target id: identity across machines. */

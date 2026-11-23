@@ -14,7 +14,7 @@ import {
 const MAX_CLICK_TRAVEL_PX = 4;
 
 const REGION_BOX_CLASS_NAME =
-  "pointer-events-none absolute rounded-[3px] border-2 border-primary bg-primary/10";
+  "pointer-events-none absolute rounded-sm border-2 border-primary bg-primary/10";
 
 function regionStyle(region: ImageRegion): CSSProperties {
   return {
@@ -42,11 +42,11 @@ function PointMarker({
   return (
     <div
       ref={markerRef}
-      className="pointer-events-none absolute size-4 -translate-1/2 rounded-full border-2 border-primary bg-primary/25 shadow-[0_0_0_2px_rgb(0_0_0/0.35)]"
+      className="pointer-events-none absolute size-4 -translate-1/2 rounded-full border-2 border-primary bg-primary/25 ring-2 ring-black/35"
       style={pointStyle(region)}
     >
       {number === undefined ? null : (
-        <span className="absolute top-full left-full rounded-[3px] bg-primary px-1 text-[10px] leading-4 font-medium text-primary-foreground">
+        <span className="absolute top-full left-full rounded-sm bg-primary px-1 text-3xs leading-4 font-medium text-primary-foreground">
           {number}
         </span>
       )}
@@ -58,10 +58,10 @@ function CitedRegion({ region, number }: { region: ImageRegion; number: number }
   if (isImagePointRegion(region)) return <PointMarker region={region} number={number} />;
   return (
     <div
-      className="pointer-events-none absolute rounded-[3px] border-2 border-primary"
+      className="pointer-events-none absolute rounded-sm border-2 border-primary"
       style={regionStyle(region)}
     >
-      <span className="absolute top-0 left-0 rounded-br-[3px] bg-primary px-1 text-[10px] leading-4 font-medium text-primary-foreground">
+      <span className="absolute top-0 left-0 rounded-br-sm bg-primary px-1 text-3xs leading-4 font-medium text-primary-foreground">
         {number}
       </span>
     </div>

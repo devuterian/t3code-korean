@@ -1,13 +1,14 @@
 import * as Dialog from "./Dialog";
 import { requireNativeModule } from "expo";
+import { msg, useGT } from "gt-react-native";
 import { useEffect, useEffectEvent, useId, useRef, useState } from "react";
 
+import { m } from "../../i18n/messages";
 import type {
   FilePreviewImage,
   FilePreviewModalProps,
   FilePreviewViewerProps,
 } from "./FilePreviewModal.types";
-import { translate } from "../../i18n/translate";
 import { FilePreviewSession } from "./FilePreviewSession";
 
 export type {
@@ -39,6 +40,7 @@ const NativeControls = requireNativeModule<{
 const nativeUri = (image: FilePreviewImage) => (image.failed ? null : image.uri);
 
 function NativeFilePreview(props: FilePreviewViewerProps) {
+  const gt = useGT();
   const identifier = useId();
   // Later URLs reach the native presentation through updateFile instead of presenting again.
   const [presented] = useState(props.source);
@@ -49,8 +51,8 @@ function NativeFilePreview(props: FilePreviewViewerProps) {
     if (props.onOpenError) props.onOpenError(error);
     else
       Dialog.alert(
-        translate("Could not open preview"),
-        translate("The file could not be loaded. Please try again."),
+        gt("Could not open preview"),
+        gt("The file could not be loaded. Please try again."),
       );
   });
 
@@ -64,7 +66,9 @@ function NativeFilePreview(props: FilePreviewViewerProps) {
       delivered.current = images.map((image) => image.uri);
       presentation = NativeControls.presentFiles(
         images.map((image) => image.uri ?? null),
-        images.map((image) => image.name ?? translate("Preview")),
+        images.map(
+          (image) => image.name ?? m(msg("Preview", { $context: "noun, preview window title" })),
+        ),
         selectedIndex,
         images.map((image) => image.sourceIdentifier ?? ""),
         identifier,
@@ -73,7 +77,7 @@ function NativeFilePreview(props: FilePreviewViewerProps) {
       const { uri, name, sourceIdentifier } = presented;
       presentation = NativeControls.presentFile(
         uri,
-        name ?? translate("Preview"),
+        name ?? m(msg("Preview", { $context: "noun, preview window title" })),
         sourceIdentifier ?? "",
         identifier,
       );

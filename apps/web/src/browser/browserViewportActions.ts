@@ -1,12 +1,14 @@
+import { thrownErrorMessage } from "@t3tools/client-runtime/errors";
 import { runAtomCommand, squashAtomCommandFailure } from "@t3tools/client-runtime/state/runtime";
 import type { PreviewViewportSetting, ScopedThreadRef } from "@t3tools/contracts";
 import * as Schema from "effect/Schema";
+import { msg } from "gt-react";
 
 import { toastManager } from "~/components/ui/toast";
+import { m } from "~/i18n/messages";
 import { updatePreviewServerSnapshot } from "~/previewStateStore";
 import { appAtomRegistry } from "~/rpc/atomRegistry";
 import { previewEnvironment } from "~/state/preview";
-import { translate } from "~/i18n/translate";
 
 /** One browser tab as both the server (thread + tab id) and this window's runtime know it. */
 export interface BrowserViewportTarget {
@@ -82,8 +84,8 @@ async function resizeBrowserViewport(
     const error = squashAtomCommandFailure(result);
     toastManager.add({
       type: "error",
-      title: translate("Unable to resize browser viewport"),
-      description: error instanceof Error ? error.message : translate("An error occurred."),
+      title: m(msg("Unable to resize browser viewport")),
+      description: thrownErrorMessage(error, m) ?? m(msg("An error occurred.")),
     });
     throw error;
   }

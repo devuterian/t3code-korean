@@ -8,6 +8,7 @@ import {
 } from "../hooks/useSettings";
 import { initializeI18n } from "./initializeI18n";
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from "./locales";
+import { setActiveLocale } from "./messages";
 
 type LocaleTranslations = Awaited<ReturnType<typeof getTranslationsSnapshot>>;
 
@@ -46,20 +47,24 @@ function activateLocale(locale: string): void {
     return;
   }
   snapshot = { locale, translations: { ...loadedTranslations } };
+  setActiveLocale(locale);
   document.documentElement.lang = locale;
   for (const listener of listeners) listener();
 }
 
 function applyLanguageSetting(): void {
+  const { interfaceLanguage, language } = getClientSettings();
+  // Korean fork before v0.1.12 kept the UI language in `interfaceLanguage`. Move a non-default
+  // choice into `language` once; resetting it to "en" keeps a later English pick from flipping back.
+  if (interfaceLanguage !== "en") {
+    void updateClientSettings({
+      language: interfaceLanguage === "zh-CN" ? "zh" : interfaceLanguage,
+      interfaceLanguage: "en",
+    });
+    return;
+  }
   // Not desktopBridge.getSystemLocale(): that is the regional/time locale, not the UI language.
-  // The fork's interface language picks the locale; upstream's separate language row is hidden.
-  const { interfaceLanguage } = getClientSettings();
-  requestedLocale = resolveLocale(
-    interfaceLanguage === "zh-CN" ? "zh" : interfaceLanguage,
-    navigator.languages,
-    SUPPORTED_LOCALES,
-    DEFAULT_LOCALE,
-  );
+  requestedLocale = resolveLocale(language, navigator.languages, SUPPORTED_LOCALES, DEFAULT_LOCALE);
   void whenLocaleReady();
 }
 

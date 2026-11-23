@@ -3,32 +3,31 @@ import type {
   ThreadMoveToLocalCheckoutPreview,
 } from "@t3tools/contracts";
 
-import { translate } from "../i18n/translate";
+import { msg } from "gt-react";
 
-/** Translates a source string, then fills its `{name}` placeholders. */
-function fill(source: string, values: Readonly<Record<string, string | number>>): string {
-  return Object.entries(values).reduce(
-    (text, [name, value]) => text.replace(`{${name}}`, () => String(value)),
-    translate(source),
-  );
-}
-
-const plural = (count: number, one: string, many: string) =>
-  fill(count === 1 ? one : many, { count });
+import { m, type MessageResolver } from "../i18n/messages";
 
 /** "2 staged, 1 unstaged, 3 new files", or null when nothing comes along. */
 export function describeChanges(
   changes: ThreadMoveToLocalCheckoutPreview["changes"],
+  resolve: MessageResolver = m,
 ): string | null {
   const parts = [
-    changes.staged > 0 ? fill("{count} staged", { count: changes.staged }) : null,
-    changes.unstaged > 0 ? fill("{count} unstaged", { count: changes.unstaged }) : null,
+    changes.staged > 0 ? resolve(msg("{count} staged", { count: changes.staged })) : null,
+    changes.unstaged > 0 ? resolve(msg("{count} unstaged", { count: changes.unstaged })) : null,
     changes.untracked > 0
-      ? plural(changes.untracked, "{count} new file", "{count} new files")
+      ? resolve(
+          msg("{count, plural, one {{count} new file} other {{count} new files}}", {
+            count: changes.untracked,
+          }),
+        )
       : null,
   ].filter((part) => part !== null);
   return parts.length === 0 ? null : parts.join(", ");
 }
+
+const commitsLabel = (count: number, resolve: MessageResolver) =>
+  resolve(msg("{count, plural, one {{count} commit} other {{count} commits}}", { count }));
 
 /** How the thread's branch relates to the commit the checkout is on now. */
 export function describeBranchDistance(
@@ -36,47 +35,67 @@ export function describeBranchDistance(
     ThreadMoveToLocalCheckoutPreview,
     "commitsAhead" | "commitsBehind" | "currentLocalBranch"
   >,
+  resolve: MessageResolver = m,
 ): string | null {
   const { commitsAhead: ahead, commitsBehind: behind } = preview;
   if (ahead === null || behind === null) return null;
-  const base = preview.currentLocalBranch ?? translate("the current commit");
-  const commits = (count: number) => plural(count, "{count} commit", "{count} commits");
-  if (ahead === 0 && behind === 0) return fill("Same commit as {base}", { base });
-  if (behind === 0) return fill("{commits} ahead of {base}", { commits: commits(ahead), base });
-  if (ahead === 0) return fill("{commits} behind {base}", { commits: commits(behind), base });
-  return fill("{commits} ahead of {base}, {behind} behind", {
-    commits: commits(ahead),
-    base,
-    behind,
-  });
+  const base = preview.currentLocalBranch ?? resolve(msg("the current commit"));
+  if (ahead === 0 && behind === 0) return resolve(msg("Same commit as {base}", { base }));
+  if (behind === 0) {
+    return resolve(
+      msg("{commits} ahead of {base}", { commits: commitsLabel(ahead, resolve), base }),
+    );
+  }
+  if (ahead === 0) {
+    return resolve(
+      msg("{commits} behind {base}", { commits: commitsLabel(behind, resolve), base }),
+    );
+  }
+  return resolve(
+    msg("{commits} ahead of {base}, {behind} behind", {
+      commits: commitsLabel(ahead, resolve),
+      base,
+      behind,
+    }),
+  );
 }
 
+/** Labels are `msg()` strings; components resolve them with `useMessages()`. */
 export const FILE_CHANGE_LABEL: Record<ThreadMoveToLocalCheckoutFileChange["change"], string> = {
-  staged: "Staged",
-  unstaged: "Unstaged",
-  staged_and_unstaged: "Staged + unstaged",
-  untracked: "New",
+  staged: msg("Staged"),
+  unstaged: msg("Unstaged"),
+  staged_and_unstaged: msg("Staged + unstaged"),
+  untracked: msg("New", { $context: "label for an untracked file in a git change list" }),
 };
 
 /** The success toast's description: where the thread is now and what came with it. */
-export function describeMoveResult(result: {
-  readonly branch: string;
-  readonly carriedChanges: boolean;
-  readonly previousWorktreeKept: boolean;
-}): string {
+export function describeMoveResult(
+  result: {
+    readonly branch: string;
+    readonly carriedChanges: boolean;
+    readonly previousWorktreeKept: boolean;
+  },
+  resolve: MessageResolver = m,
+): string {
   return [
-    fill("Now on {branch}.", { branch: result.branch }),
-    result.carriedChanges ? translate("Your uncommitted changes came along.") : null,
-    result.previousWorktreeKept ? translate("The old worktree folder keeps its own copy.") : null,
+    resolve(msg("Now on {branch}.", { branch: result.branch })),
+    result.carriedChanges ? resolve(msg("Your uncommitted changes came along.")) : null,
+    result.previousWorktreeKept
+      ? resolve(msg("The old worktree folder keeps its own copy."))
+      : null,
   ]
     .filter((line) => line !== null)
     .join(" ");
 }
 
 /** Readable text for a failed request, including an older server that lacks the move. */
-export function moveErrorMessage(error: unknown, fallback: string): string {
+export function moveErrorMessage(
+  error: unknown,
+  fallback: string,
+  resolve: MessageResolver = m,
+): string {
   if (String(error).includes("Unknown request tag")) {
-    return translate("This T3 Code server can't move threads yet. Update it, then try again.");
+    return resolve(msg("This T3 Code server can't move threads yet. Update it, then try again."));
   }
-  return error instanceof Error && error.message.length > 0 ? error.message : translate(fallback);
+  return error instanceof Error && error.message.length > 0 ? error.message : resolve(fallback);
 }

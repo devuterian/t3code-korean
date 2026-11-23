@@ -1,6 +1,7 @@
 import type { PromptLinkRepository } from "@t3tools/shared/promptLinks";
+import { msg } from "gt-react-native";
 
-import { translate } from "../../i18n/translate";
+import { m, type MessageResolver } from "../../i18n/messages";
 
 const PROMPT_LINK_PARAM_KEYS = ["prompt", "repo", "pr", "provider", "model"] as const;
 
@@ -27,24 +28,31 @@ export function withoutPromptLinkParams(params: object | undefined): Record<stri
   );
 }
 
-export function promptLinkNotice(input: {
-  readonly hiddenCharacters: number;
-  readonly modelUnavailable?: boolean;
-  readonly pullRequestUnavailable?: number | null;
-}): string {
+export function promptLinkNotice(
+  input: {
+    readonly hiddenCharacters: number;
+    readonly modelUnavailable?: boolean;
+    readonly pullRequestUnavailable?: number | null;
+  },
+  resolve: MessageResolver = m,
+): string {
   return [
     input.hiddenCharacters > 0
-      ? translate(
-          "This prompt had hidden characters, it may be malicious. They were removed. Read it before you send.",
+      ? resolve(
+          msg(
+            "This prompt had hidden characters, it may be malicious. They were removed. Read it before you send.",
+          ),
         )
-      : translate("This prompt came from a link. Read it before you send."),
+      : resolve(msg("This prompt came from a link. Read it before you send.")),
     input.modelUnavailable
-      ? translate("The requested model is not available, so your default is used.")
+      ? resolve(msg("The requested model is not available, so your default is used."))
       : null,
     input.pullRequestUnavailable != null
-      ? translate(
-          "Pull request #{number} could not be loaded, so this task starts from your default branch.",
-          { number: input.pullRequestUnavailable },
+      ? resolve(
+          msg(
+            "Pull request #{number} could not be loaded, so this task starts from your default branch.",
+            { number: input.pullRequestUnavailable },
+          ),
         )
       : null,
   ]

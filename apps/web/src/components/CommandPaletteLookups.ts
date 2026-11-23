@@ -3,10 +3,10 @@ import {
   type EnvironmentId,
   resolveEnvironmentMachineKind,
 } from "@t3tools/contracts";
+import { useGT } from "gt-react";
 
 import { isDesktopLocalConnectionTarget } from "../connection/desktopLocal";
 import { useClientSettings } from "../hooks/useSettings";
-import { useTranslate } from "../i18n/translate";
 import { getProjectOrderKey } from "@t3tools/client-runtime/state/project-grouping";
 import { useProjects, useVisibleThreadShells } from "../state/entities";
 import { useEnvironments, usePrimaryEnvironmentId } from "../state/environments";
@@ -18,7 +18,7 @@ import { orderItemsByPreferredIds, sortLogicalProjectsForSidebar } from "./Sideb
 // source. Taking the source as an argument instead leaves the helper hook-free, and the
 // compiler then treats it as a plain function and caches nothing.
 export function useEnvironmentLookups() {
-  const t = useTranslate();
+  const gt = useGT();
   const { environments } = useEnvironments();
   const environmentLabelById = new Map(
     environments.map((environment) => [environment.environmentId, environment.label] as const),
@@ -32,9 +32,9 @@ export function useEnvironmentLookups() {
         {
           kind: isLocal ? "local" : "remote",
           label: isPrimary
-            ? t("Local")
+            ? gt("Local", { $context: "machine location" })
             : isLocal
-              ? `${environment.label} (${t("Local")})`
+              ? gt("{label} (Local)", { label: environment.label })
               : environment.label,
           machine: resolveEnvironmentMachineKind(environment.serverConfig),
         },

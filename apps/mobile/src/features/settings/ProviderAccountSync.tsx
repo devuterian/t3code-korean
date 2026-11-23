@@ -5,11 +5,11 @@ import {
   supportsProviderAccountSync,
 } from "@t3tools/client-runtime/state/provider-account-sync";
 import type { EnvironmentId, ServerProvider } from "@t3tools/contracts";
+import { useGT, useMessages } from "gt-react-native";
 import { useState } from "react";
 import { View } from "react-native";
 
 import { AppText as Text } from "../../components/ui/AppText";
-import { useTranslate } from "../../i18n/translate";
 import { useEnvironments, type EnvironmentPresentation } from "../../state/environments";
 import { providerAccountSync, serverEnvironment } from "../../state/server";
 import { useAtomCommand } from "../../state/use-atom-command";
@@ -58,12 +58,14 @@ function DestinationRow({
   readonly disabled: boolean;
   readonly onChange: (environmentId: EnvironmentId, checked: boolean) => void;
 }) {
+  const m = useMessages();
   const canImport = useAtomValue(providerAccountSync.canImportAtom(destination.environmentId));
   const destinationEnvironment = useAccountSyncEnvironment(destination, canImport);
   const choice = syncDestinationChoice({
     source,
     destination: destinationEnvironment,
     instanceId: provider.instanceId,
+    resolve: m,
   });
   return (
     <SettingsSwitchRow
@@ -87,10 +89,12 @@ function ResultRow({
   readonly source: EnvironmentPresentation;
   readonly destination: EnvironmentPresentation | undefined;
 }) {
+  const m = useMessages();
   const providers =
     useAtomValue(serverEnvironment.providersValueAtom(cell.destinationEnvironmentId)) ??
     EMPTY_PROVIDERS;
   const row: SyncResultRow = syncResultRow({
+    resolve: m,
     cell,
     accountLabel,
     sourceLabel: source.label,
@@ -124,7 +128,7 @@ export function ProviderAccountSync({
   readonly provider: ServerProvider;
   readonly accountLabel: string;
 }) {
-  const t = useTranslate();
+  const gt = useGT();
   const { environments } = useEnvironments();
   const canExport = useAtomValue(providerAccountSync.canExportAtom(environment.environmentId));
   const [open, setOpen] = useState(false);
@@ -142,8 +146,8 @@ export function ProviderAccountSync({
     <>
       <SettingsActionRow
         icon="arrow.left.arrow.right"
-        label={t("Sync to…")}
-        description={t("Copy this account's settings to another device.")}
+        label={gt("Sync to…")}
+        description={gt("Copy this account's settings to another device.")}
         disabled={running}
         onPress={() => setOpen((current) => !current)}
       />
@@ -180,7 +184,7 @@ function SyncPanel({
   readonly setRunning: (running: boolean) => void;
   readonly onClose: () => void;
 }) {
-  const t = useTranslate();
+  const gt = useGT();
   const source = useAccountSyncEnvironment(environment, true);
   const sync = useAtomCommand(providerAccountSync, { reportFailure: false });
   const [chosen, setChosen] = useState<ReadonlySet<EnvironmentId>>(() => new Set());
@@ -201,11 +205,11 @@ function SyncPanel({
     <View>
       <Text textRole="footnote" className="px-4 py-3 text-foreground-muted">
         {report === null
-          ? t(
+          ? gt(
               "Settings and API keys are copied from {device}. Sign-ins are not: each device signs in on its own. Paths stay on {device}.",
               { device: environment.label },
             )
-          : t("Sync again at any time; it updates the copies without duplicating them.")}
+          : gt("Sync again at any time; it updates the copies without duplicating them.")}
       </Text>
       {report === null ? (
         <>
@@ -229,14 +233,14 @@ function SyncPanel({
           ))}
           <SettingsActionRow
             icon="arrow.right"
-            label={running ? t("Syncing…") : t("Sync")}
+            label={running ? gt("Syncing…") : gt("Sync")}
             disabled={chosen.size === 0}
             loading={running}
             onPress={() => void runSync()}
           />
           <SettingsActionRow
             icon="xmark"
-            label={t("Cancel")}
+            label={gt("Cancel")}
             disabled={running}
             onPress={onClose}
           />
@@ -257,12 +261,12 @@ function SyncPanel({
           {report.cells.some((cell) => cell.status === "failed") ? (
             <SettingsActionRow
               icon="arrow.clockwise"
-              label={t("Retry")}
+              label={gt("Retry")}
               loading={running}
               onPress={() => void runSync()}
             />
           ) : null}
-          <SettingsActionRow icon="checkmark" label={t("Done")} onPress={onClose} />
+          <SettingsActionRow icon="checkmark" label={gt("Done")} onPress={onClose} />
         </>
       )}
     </View>

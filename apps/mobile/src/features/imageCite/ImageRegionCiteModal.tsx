@@ -11,6 +11,7 @@ import {
 import type { EnvironmentId, ThreadId } from "@t3tools/contracts";
 import { normalizeNativeMarkdownUrl } from "../../lib/markdownLinks";
 import * as Haptics from "expo-haptics";
+import { msg, useGT } from "gt-react-native";
 import { useCallback, useEffect, useEffectEvent, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, Image, Modal, Pressable, StyleSheet, View } from "react-native";
 import { Gesture, GestureDetector, GestureHandlerRootView } from "react-native-gesture-handler";
@@ -21,7 +22,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText as Text, AppTextInput as TextInput } from "../../components/ui/AppText";
 import { SymbolView } from "../../components/ui/AppSymbol";
 import { ControlPill } from "../../components/ui/ControlPill";
-import { translate, useTranslate } from "../../i18n/translate";
+import { m } from "../../i18n/messages";
 import { downloadAttachmentForPreview } from "../../lib/attachmentDownload";
 import { cropImageRegionAttachment, imagePointAttachment } from "../../lib/imageRegionCrop";
 import { loadLocalAttachmentPreview } from "../../lib/localAttachmentPreview";
@@ -51,6 +52,7 @@ function useLocalImage(source: MediaActionsSource) {
     image: null,
     error: null,
   });
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- Loads the image, and releases it on unmount or when the source changes.
   useEffect(() => {
     const controller = new AbortController();
     let loaded: LocalImage | null = null;
@@ -59,7 +61,7 @@ function useLocalImage(source: MediaActionsSource) {
         return loadLocalAttachmentPreview(source.attachment, controller.signal);
       }
       const uri = await resolveUrl();
-      if (uri === null) throw new Error(translate("Reconnect to this environment and try again."));
+      if (uri === null) throw new Error(m(msg("Reconnect to this environment and try again.")));
       if (/^(file|content|data):/i.test(uri)) return { uri, dispose: () => undefined };
       return downloadAttachmentForPreview({
         url: uri,
@@ -80,8 +82,7 @@ function useLocalImage(source: MediaActionsSource) {
         if (controller.signal.aborted) return;
         setState({
           image: null,
-          error:
-            error instanceof Error ? error.message : translate("The image could not be loaded."),
+          error: error instanceof Error ? error.message : m(msg("The image could not be loaded.")),
         });
       });
     return () => {
@@ -109,7 +110,7 @@ function RegionSelector(props: {
   readonly region: ImageRegion | null;
   readonly onSelect: (region: ImageRegion | null) => void;
 }) {
-  const t = useTranslate();
+  const gt = useGT();
   const [frame, setFrame] = useState<Size | null>(null);
   const [natural, setNatural] = useState<Size | null>(null);
   const [failed, setFailed] = useState(false);
@@ -139,6 +140,7 @@ function RegionSelector(props: {
   );
   const gesture = useMemo(
     () =>
+      // oxlint-disable-next-line react/capitalized-calls -- Gesture.Pan is a gesture factory, not a React component.
       Gesture.Pan()
         .minDistance(0)
         .shouldCancelWhenOutside(false)
@@ -199,7 +201,7 @@ function RegionSelector(props: {
         <GestureDetector gesture={gesture}>
           <View
             accessible
-            accessibilityLabel={t("Image. Drag over a part or tap a point to cite.")}
+            accessibilityLabel={gt("Image. Drag over a part or tap a point to cite.")}
             style={{
               position: "absolute",
               left: fitted.left,
@@ -242,7 +244,7 @@ function RegionSelector(props: {
         <View className="flex-1 items-center justify-center px-6">
           {failed ? (
             <Text className="text-center text-white/80">
-              {t("This image could not be opened for citing.")}
+              {gt("This image could not be opened for citing.")}
             </Text>
           ) : (
             <ActivityIndicator color="#ffffff" />
@@ -263,7 +265,7 @@ export function ImageRegionCiteModal(props: {
   readonly threadId: ThreadId;
   readonly onClose: () => void;
 }) {
-  const t = useTranslate();
+  const gt = useGT();
   const insets = useSafeAreaInsets();
   const { image, error } = useLocalImage(props.source);
   const [region, setRegion] = useState<ImageRegion | null>(null);
@@ -296,8 +298,8 @@ export function ImageRegionCiteModal(props: {
       const draftKey = scopedThreadKey(props.environmentId, props.threadId);
       if (!insertComposerDraftImageCitation(draftKey, attachment, citedComment)) {
         Alert.alert(
-          t("Could not add the region"),
-          t("Remove some attachments or context from the draft and try again."),
+          gt("Could not add the region"),
+          gt("Remove some attachments or context from the draft and try again."),
         );
         return;
       }
@@ -305,8 +307,8 @@ export function ImageRegionCiteModal(props: {
       props.onClose();
     } catch (cause) {
       Alert.alert(
-        t("Could not cite region"),
-        cause instanceof Error ? cause.message : t("Try again."),
+        gt("Could not cite region"),
+        cause instanceof Error ? cause.message : gt("Try again."),
       );
     } finally {
       setCiting(false);
@@ -323,7 +325,7 @@ export function ImageRegionCiteModal(props: {
           >
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={t("Cancel")}
+              accessibilityLabel={gt("Cancel")}
               disabled={citing}
               onPress={close}
               className="min-h-11 min-w-11 items-center justify-center"
@@ -331,7 +333,7 @@ export function ImageRegionCiteModal(props: {
               <SymbolView name="xmark" size={20} tintColor="#ffffff" type="monochrome" />
             </Pressable>
             <Text className="flex-1 text-center text-base font-t3-semibold text-white">
-              {region ? t("Add a comment") : t("Drag a region or tap a point")}
+              {region ? gt("Add a comment") : gt("Drag a region or tap a point")}
             </Text>
             <View className="min-h-11 min-w-11" />
           </View>
@@ -354,16 +356,16 @@ export function ImageRegionCiteModal(props: {
           >
             <TextInput
               multiline
-              placeholder={t("Add an optional comment...")}
+              placeholder={gt("Add an optional comment...")}
               value={comment}
               onChangeText={setComment}
               editable={!citing}
               className="max-h-32 min-h-11 flex-1 rounded-[20px] bg-white/10 px-4 py-2.5 text-base text-white"
             />
             <ControlPill
-              accessibilityLabel={t("Cite region")}
+              accessibilityLabel={gt("Cite region")}
               icon="arrow.up"
-              label={citing ? t("Citing…") : t("Cite")}
+              label={citing ? gt("Citing…") : gt("Cite")}
               variant="primary"
               disabled={!image || !region || citing}
               onPress={() => void cite()}

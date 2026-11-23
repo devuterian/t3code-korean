@@ -1,3 +1,4 @@
+import { errorDisplayMessage } from "@t3tools/client-runtime/errors";
 import { useAtomMount, useAtomSubscribe } from "@effect/atom-react";
 import { executeAtomQuery } from "@t3tools/client-runtime/state/runtime";
 import { ProjectListEntriesError, type EnvironmentId, type ProjectEntry } from "@t3tools/contracts";
@@ -5,9 +6,10 @@ import * as Cause from "effect/Cause";
 import * as Schema from "effect/Schema";
 import { useLayoutEffect, useRef, useState } from "react";
 import { Atom } from "effect/reactivity";
+import { msg } from "gt-react-native";
 
-import { translate } from "../../i18n/translate";
 import { environmentCatalog } from "../../connection/catalog";
+import { m } from "../../i18n/messages";
 import { appAtomRegistry } from "../../state/atom-registry";
 import { projectEnvironment } from "../../state/projects";
 import { useDebouncedValue } from "../../state/queries";
@@ -270,7 +272,9 @@ export function useFileTreeEntries(input: {
           validatedDirectories,
           errors: new Map(current.errors).set(
             directoryPath,
-            error instanceof Error ? error.message : translate("Files unavailable"),
+            error instanceof Error
+              ? (errorDisplayMessage(error, m) ?? error.message)
+              : m(msg("Files unavailable")),
           ),
         };
       });

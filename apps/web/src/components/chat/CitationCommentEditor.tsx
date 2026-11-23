@@ -1,4 +1,5 @@
 import { ASSISTANT_CITATION_MAX_COMMENT_LENGTH, type EnvironmentId } from "@t3tools/contracts";
+import { T, useGT, Var } from "gt-react";
 import {
   use,
   useEffect,
@@ -15,7 +16,6 @@ import { textDirection } from "~/textDirection";
 
 import { ComposerContextActionsContext } from "../composerContextActions";
 import { Button } from "../ui/button";
-import { useTranslate } from "~/i18n/translate";
 import { usePrimaryEnvironmentId } from "~/state/environments";
 
 type CitationCommentEditorProps = {
@@ -68,7 +68,7 @@ function CitationCommentFields({
   onDraftChange,
   onVoiceSetupOpenChange,
 }: CitationCommentFieldsProps) {
-  const t = useTranslate();
+  const gt = useGT();
   const [comment, setComment] = useState(commentInput?.text ?? initialComment);
   const localInputRef = useRef<HTMLTextAreaElement | null>(null);
   const textareaRef = inputRef ?? localInputRef;
@@ -135,7 +135,7 @@ function CitationCommentFields({
         aria-label={label}
         aria-description={description}
         aria-invalid={commentTooLong || undefined}
-        placeholder={t("Add an optional comment...")}
+        placeholder={gt("Add an optional comment...")}
         rows={2}
         dir={textDirection(comment)}
         className="field-sizing-content block max-h-40 min-h-16 w-full resize-none bg-transparent px-1 py-1.5 text-base outline-none placeholder:text-muted-foreground sm:text-sm"
@@ -159,31 +159,37 @@ function CitationCommentFields({
       />
       {commentTooLong ? (
         <p role="status" className="pt-1 text-xs text-destructive">
-          {t(
-            `Comments can contain up to ${ASSISTANT_CITATION_MAX_COMMENT_LENGTH.toLocaleString()} characters.`,
-          )}
+          <T>
+            Comments can contain up to{" "}
+            <Var>{ASSISTANT_CITATION_MAX_COMMENT_LENGTH.toLocaleString()}</Var> characters.
+          </T>
         </p>
       ) : null}
       <div className="mt-2 flex flex-wrap items-center justify-end gap-2">
         <TextFieldSpeechControls speech={speech} />
-        <Button
-          variant="outline"
-          size="xs"
-          onPointerDown={(event) => event.preventDefault()}
-          onClick={onCancel}
-        >
-          {t("Cancel")}
-        </Button>
-        <Button
-          size="xs"
-          disabled={
-            speech.preparing || submitDisabled || (commentTooLong && !speech.blocksSubmission)
-          }
-          onPointerDown={(event) => event.preventDefault()}
-          onClick={submit}
-        >
-          {commentTooLong ? t("Shorten comment") : submitLabel}
-        </Button>
+        {/* Wrap as a pair so the recording pill never pushes Save alone onto a new row under Cancel. */}
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="xs"
+            // Escape cancels; keep Tab from the comment on Save so Enter cannot discard a new citation.
+            tabIndex={-1}
+            onPointerDown={(event) => event.preventDefault()}
+            onClick={onCancel}
+          >
+            <T>Cancel</T>
+          </Button>
+          <Button
+            size="xs"
+            disabled={
+              speech.preparing || submitDisabled || (commentTooLong && !speech.blocksSubmission)
+            }
+            onPointerDown={(event) => event.preventDefault()}
+            onClick={submit}
+          >
+            {commentTooLong ? gt("Shorten comment") : submitLabel}
+          </Button>
+        </div>
       </div>
     </div>
   );

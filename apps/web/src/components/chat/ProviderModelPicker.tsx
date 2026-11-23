@@ -6,6 +6,7 @@ import {
   type ResolvedKeybindingsConfig,
 } from "@t3tools/contracts";
 import { RegistryContext } from "@effect/atom-react";
+import { T, useGT } from "gt-react";
 import {
   createContext,
   memo,
@@ -20,7 +21,6 @@ import { Badge } from "../ui/badge";
 import { Popover, PopoverPopup, PopoverTrigger } from "../ui/popover";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import { cn } from "~/lib/utils";
-import { useTranslate } from "~/i18n/translate";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { ModelPickerContent, resolveModelPickerSelectedModel } from "./ModelPickerContent";
 import { retainedModelWhileProviderLocked } from "./ProviderModelPicker.logic";
@@ -130,7 +130,6 @@ export const ProviderModelPicker = memo(function ProviderModelPicker(props: {
   effortColumn?: ReactNode;
   footer?: ReactNode;
 }) {
-  const t = useTranslate();
   const composerFloatingLayerProps = useComposerMenuProps();
   const [uncontrolledIsMenuOpen, setUncontrolledIsMenuOpen] = useState(false);
   const isMenuOpen = props.open ?? uncontrolledIsMenuOpen;
@@ -150,6 +149,7 @@ export const ProviderModelPicker = memo(function ProviderModelPicker(props: {
   useEffect(() => {
     if (isMenuOpen) refreshModelCatalog();
   }, [isMenuOpen]);
+  const gt = useGT();
   const searchInputRef = useRef<HTMLInputElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popupRef = useRef<HTMLDivElement | null>(null);
@@ -176,10 +176,12 @@ export const ProviderModelPicker = memo(function ProviderModelPicker(props: {
   const triggerTitle = selectedModel
     ? getTriggerDisplayModelName(selectedModel, activeEntry?.driverKind)
     : props.model === ANTIGRAVITY_DEFAULT_MODEL
-      ? t("Choose model")
-      : props.model || t("Choose model");
+      ? gt("Choose model")
+      : props.model || gt("Choose model");
+  const withUnavailable = (model: string, isUnavailable: boolean | undefined) =>
+    isUnavailable ? gt("{model} (Unavailable)", { model }) : model;
   const triggerLabel = selectedModel
-    ? `${getDisplayModelName(selectedModel)}${selectedModel.isUnavailable ? ` (${t("Unavailable")})` : ""}`
+    ? withUnavailable(getDisplayModelName(selectedModel), selectedModel.isUnavailable)
     : triggerTitle;
   const accountSuffix = props.activeAccount ? ` · ${props.activeAccount.memberName}` : "";
   const showInstanceBadge =
@@ -245,28 +247,32 @@ export const ProviderModelPicker = memo(function ProviderModelPicker(props: {
       model: selection.model,
       options: props.modelOptionsByInstance.get(selection.instanceId) ?? [],
     });
-    const unavailable = model?.isUnavailable ? ` (${t("Unavailable")})` : "";
     return {
       ...selection,
       entry,
       label: model
-        ? `${getTriggerDisplayModelName(model, entry?.driverKind)}${unavailable}`
+        ? withUnavailable(getTriggerDisplayModelName(model, entry?.driverKind), model.isUnavailable)
         : selection.model,
-      fullLabel: model ? `${getDisplayModelName(model)}${unavailable}` : selection.model,
+      fullLabel: model
+        ? withUnavailable(getDisplayModelName(model), model.isUnavailable)
+        : selection.model,
     };
   });
   const multipleLabel = selectedEntries
     ? selectedEntries.length === 0
-      ? t("Choose models")
-      : `${selectedEntries
-          .slice(0, 2)
-          .map((selection) => selection.label)
-          .join(
-            ", ",
-          )}${selectedEntries.length > 2 ? `, ${t(`${selectedEntries.length - 2} more`)}` : ""}`
+      ? gt("Choose models")
+      : selectedEntries.length > 2
+        ? gt("{count, plural, one {{models}, {count} more} other {{models}, {count} more}}", {
+            models: selectedEntries
+              .slice(0, 2)
+              .map((selection) => selection.label)
+              .join(", "),
+            count: selectedEntries.length - 2,
+          })
+        : selectedEntries.map((selection) => selection.label).join(", ")
     : undefined;
   const allModelNames = selectedEntries
-    ? selectedEntries.map((selection) => selection.fullLabel).join(", ") || t("Choose models")
+    ? selectedEntries.map((selection) => selection.fullLabel).join(", ") || gt("Choose models")
     : undefined;
   const triggerTooltipContent = [
     props.triggerLabel ??
@@ -315,7 +321,7 @@ export const ProviderModelPicker = memo(function ProviderModelPicker(props: {
       {...(props.onOpenProviderSetup ? { onOpenProviderSetup: props.onOpenProviderSetup } : {})}
       getModelDisabledReason={(instanceId, model) =>
         props.disabled
-          ? t("Model picker is disabled")
+          ? gt("Model picker is disabled")
           : (props.getModelDisabledReason?.(instanceId, model) ?? null)
       }
       onInstanceModelChange={handleInstanceModelChange}
@@ -443,7 +449,7 @@ export const ProviderModelPicker = memo(function ProviderModelPicker(props: {
           {props.triggerSuffix}
           {selectedModel?.isUnavailable && !selectedEntries && props.triggerLabel === undefined ? (
             <Badge variant="outline" size="sm">
-              {t("Unavailable")}
+              <T context="badge on a model that cannot be selected">Unavailable</T>
             </Badge>
           ) : null}
         </span>

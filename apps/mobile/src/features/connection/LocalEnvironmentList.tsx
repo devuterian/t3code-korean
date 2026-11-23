@@ -1,3 +1,4 @@
+import { T } from "gt-react-native";
 import type { EnvironmentId } from "@t3tools/contracts";
 import type { ComponentProps } from "react";
 import { View } from "react-native";
@@ -5,7 +6,6 @@ import { View } from "react-native";
 import { SymbolView } from "../../components/ui/AppSymbol";
 import { AppText as Text } from "../../components/ui/AppText";
 import { ConnectionEnvironmentRow } from "./ConnectionEnvironmentRow";
-import { useTranslate } from "../../i18n/translate";
 
 type EnvironmentRowProps = ComponentProps<typeof ConnectionEnvironmentRow>;
 
@@ -22,9 +22,7 @@ export function LocalEnvironmentList({
   readonly expandedId: EnvironmentId | null;
   readonly onToggle: (environmentId: EnvironmentId) => void;
 }) {
-  const t = useTranslate();
   if (environments.length === 0) {
-    const [tapToAddBefore, tapToAddAfter] = t("Tap {plus} to add one.").split("{plus}");
     return (
       <View
         collapsable={false}
@@ -39,11 +37,11 @@ export function LocalEnvironmentList({
           />
         </View>
         <Text className="text-center text-sm leading-normal text-foreground-muted">
-          {t("No environments connected yet.")}
+          <T>No environments connected yet.</T>
           {"\n"}
-          {tapToAddBefore}
-          <Text className="font-t3-bold text-foreground">+</Text>
-          {tapToAddAfter}
+          <T>
+            Tap <Text className="font-t3-bold text-foreground">+</Text> to add one.
+          </T>
         </Text>
       </View>
     );

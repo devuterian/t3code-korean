@@ -1,7 +1,9 @@
 import { useAtomValue } from "@effect/atom-react";
 import { AsyncResult } from "effect/reactivity";
 
-import { getFormattingLocale, useTranslate } from "../../i18n/translate";
+import { useGT } from "gt-react-native";
+
+import { useFormattingLocale } from "../../i18n/I18nProvider";
 import { mobilePreferencesAtom } from "../../state/preferences";
 import { SettingsRow } from "../settings/components/SettingsRow";
 import {
@@ -20,7 +22,8 @@ export function AndroidUpdateSettingsRow() {
 }
 
 function AndroidUpdateSettingsRowContent() {
-  const t = useTranslate();
+  const gt = useGT();
+  const locale = useFormattingLocale();
   const preferences = useAtomValue(mobilePreferencesAtom);
   const { phase } = useAndroidUpdater();
   const lastCheckedAt = AsyncResult.isSuccess(preferences)
@@ -28,9 +31,9 @@ function AndroidUpdateSettingsRowContent() {
     : undefined;
   const lastChecked =
     lastCheckedAt === undefined
-      ? t("Never checked")
-      : t("Last checked {time}", {
-          time: new Date(lastCheckedAt).toLocaleString(getFormattingLocale(), {
+      ? gt("Never checked")
+      : gt("Last checked {time}", {
+          time: new Date(lastCheckedAt).toLocaleString(locale, {
             month: "short",
             day: "numeric",
             hour: "numeric",
@@ -39,18 +42,18 @@ function AndroidUpdateSettingsRowContent() {
         });
   const status =
     phase.type === "checking"
-      ? t("Checking…")
+      ? gt("Checking…")
       : phase.type === "current"
-        ? t("You have the latest version")
+        ? gt("You have the latest version")
         : phase.type === "available"
-          ? t("Version {version} is available", { version: phase.release.version })
+          ? gt("Version {version} is available", { version: phase.release.version })
           : phase.type === "downloading"
-            ? t("Downloading {version}… {percent}%", {
+            ? gt("Downloading {version}… {percent}%", {
                 version: phase.release.version,
                 percent: Math.round(phase.progress * 100),
               })
             : phase.type === "ready"
-              ? t("Version {version} is ready to install", { version: phase.release.version })
+              ? gt("Version {version} is ready to install", { version: phase.release.version })
               : phase.type === "error"
                 ? phase.message
                 : lastChecked;
@@ -58,8 +61,8 @@ function AndroidUpdateSettingsRowContent() {
   return (
     <SettingsRow
       icon="arrow.down.circle"
-      label={t("Check for updates")}
-      value={`${t("Current version {version}", { version: getRunningVersion() ?? "?" })} · ${status}`}
+      label={gt("Check for updates")}
+      value={`${gt("Current version {version}", { version: getRunningVersion() ?? "?" })} · ${status}`}
       disabled={phase.type === "checking" || phase.type === "downloading"}
       onPress={() => {
         if (phase.type === "available") void downloadAndInstallAndroidUpdate(phase.release);

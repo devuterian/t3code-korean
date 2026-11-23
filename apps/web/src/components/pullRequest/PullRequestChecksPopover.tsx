@@ -6,10 +6,11 @@ import type {
   PullRequestRef,
   ScopedThreadRef,
 } from "@t3tools/contracts";
+import { msg, T, useGT, useMessages, Var } from "gt-react";
 import { useState } from "react";
 
 import { useOpenLink } from "~/browser/useOpenLink";
-import { useTranslate } from "~/i18n/translate";
+import { m } from "~/i18n/messages";
 import { cn } from "~/lib/utils";
 import { pullRequestEnvironment } from "~/state/pullRequests";
 import { useEnvironmentQuery } from "~/state/query";
@@ -37,9 +38,10 @@ function LazyChecksBody({
   reference: PullRequestRef;
   threadRef: ScopedThreadRef | null;
 }) {
-  const t = useTranslate();
+  const gt = useGT();
   const detailQuery = useEnvironmentQuery(
     pullRequestEnvironment.detail({ environmentId, input: reference }),
+    useMessages(),
   );
   if (detailQuery.error !== null) {
     return <p className="text-muted-foreground text-xs">{detailQuery.error}</p>;
@@ -47,7 +49,7 @@ function LazyChecksBody({
   if (detailQuery.data === null) {
     return (
       <p className="text-muted-foreground text-xs">
-        {detailQuery.isPending ? t("Loading checks…") : t("No checks reported")}
+        {detailQuery.isPending ? gt("Loading checks…") : gt("No checks reported")}
       </p>
     );
   }
@@ -61,7 +63,8 @@ function ChecksBody({
   checks: ReadonlyArray<PullRequestCheck>;
   threadRef: ScopedThreadRef | null;
 }) {
-  const t = useTranslate();
+  const gt = useGT();
+  const resolve = useMessages();
   const openLink = useOpenLink(threadRef);
   const [showAll, setShowAll] = useState(false);
   const { attention, running, completed } = groupPullRequestChecks(checks);
@@ -69,7 +72,11 @@ function ChecksBody({
   const visibleChecks = [...attention, ...running, ...(showAll || !canCollapse ? completed : [])];
   const hasDetails = visibleChecks.some((check) => check.url !== null);
   if (checks.length === 0) {
-    return <p className="text-muted-foreground text-xs">{t("No checks reported")}</p>;
+    return (
+      <p className="text-muted-foreground text-xs">
+        <T>No checks reported</T>
+      </p>
+    );
   }
   return (
     <>
@@ -94,7 +101,7 @@ function ChecksBody({
                   <TooltipPopup side="top">{check.description ?? check.name}</TooltipPopup>
                 </Tooltip>
                 <span className="justify-self-end whitespace-nowrap text-muted-foreground">
-                  {t(pullRequestCheckStatusLabel(check))}
+                  {pullRequestCheckStatusLabel(check, resolve)}
                 </span>
                 {check.url === null ? null : (
                   <button
@@ -106,12 +113,12 @@ function ChecksBody({
                         console.error(error);
                         toastManager.add({
                           type: "error",
-                          title: t("Unable to open check details"),
+                          title: m(msg("Unable to open check details")),
                         });
                       });
                     }}
                   >
-                    {t("Details")}
+                    <T>Details</T>
                   </button>
                 )}
               </li>
@@ -126,7 +133,7 @@ function ChecksBody({
           aria-expanded={showAll}
           onClick={() => setShowAll(!showAll)}
         >
-          {showAll ? t("Show less") : t("Show all")}
+          {showAll ? gt("Show less") : gt("Show all")}
         </Button>
       ) : null}
     </>
@@ -154,23 +161,25 @@ export function PullRequestChecksPopover({
   className?: string;
   render?: React.ReactElement;
 }) {
-  const t = useTranslate();
-  const presentation = pullRequestChecksStatePresentation(checksState);
+  const gt = useGT();
+  const resolve = useMessages();
+  const presentation = pullRequestChecksStatePresentation(checksState, resolve);
   const incompleteCount =
     checks?.filter((check) => check.status === "pending" || check.status === "action-required")
       .length ?? 0;
   const failedCount =
     checks?.filter((check) => check.status === "failure" || check.status === "cancelled").length ??
     0;
-  const summary = checks === undefined || stale ? null : summarizePullRequestChecks(checks);
+  const summary =
+    checks === undefined || stale ? null : summarizePullRequestChecks(checks, resolve);
   return (
     <Popover>
       <PopoverTrigger
         nativeButton={variant === "count"}
         aria-label={
           variant === "count"
-            ? `${t("Open checks")}: ${summary ?? t(presentation.label)}`
-            : `${t("Checks")}: ${t(presentation.label)}`
+            ? gt("Open checks: {summary}", { summary: summary ?? presentation.label })
+            : gt("Checks: {summary}", { summary: presentation.label })
         }
         render={
           variant === "count" ? (
@@ -191,25 +200,29 @@ export function PullRequestChecksPopover({
             {checks !== undefined && incompleteCount > 0 ? (
               // Clip the second line so "checks" disappears whole when the count must shrink.
               <span className="h-lh min-w-0 overflow-hidden text-left whitespace-normal tabular-nums">
-                <span className="whitespace-nowrap">
-                  {checks.length - incompleteCount}/{checks.length}
-                </span>{" "}
-                {t("checks")}
+                <T>
+                  <span className="whitespace-nowrap">
+                    <Var>{checks.length - incompleteCount}</Var>/<Var>{checks.length}</Var>
+                  </span>{" "}
+                  checks
+                </T>
               </span>
             ) : failedCount > 0 ? (
               <span className="min-w-0 truncate tabular-nums">
-                {t("{count} failed").replace("{count}", String(failedCount))}
+                {gt("{count, plural, one {{count} failed} other {{count} failed}}", {
+                  count: failedCount,
+                })}
               </span>
             ) : null}
           </>
         ) : null}
       </PopoverTrigger>
       <PopoverPopup align="start" width="md" side="bottom">
-        <p className="mb-2 font-medium text-sm">{t(presentation.label)}</p>
+        <p className="mb-2 font-medium text-sm">{presentation.label}</p>
         {summary === null ? null : <p className="mb-2 text-muted-foreground text-xs">{summary}</p>}
         {stale ? (
           <p className="text-muted-foreground text-xs">
-            {t("Check details are out of date. Refresh the pull request to update them.")}
+            <T>Check details are out of date. Refresh the pull request to update them.</T>
           </p>
         ) : checks !== undefined ? (
           <ChecksBody checks={checks} threadRef={threadRef} />

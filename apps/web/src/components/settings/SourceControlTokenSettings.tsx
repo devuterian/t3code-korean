@@ -4,6 +4,7 @@ import {
   type SecretReference,
   type SettingsSecretValue,
 } from "@t3tools/contracts";
+import { T, useGT, Var } from "gt-react";
 import { ExternalLinkIcon } from "lucide-react";
 import { useState } from "react";
 
@@ -18,27 +19,7 @@ import { useAtomCommand } from "../../state/use-atom-command";
 import { Button, InlineButton } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
-import { useTranslate } from "../../i18n/translate";
 import { SecretSourceInput, useSecretSources } from "./SecretSourceInput";
-
-/** Fills `{name}` placeholders in `text`; names listed in `codes` render as inline code chips. */
-function fillPlaceholders(
-  text: string,
-  values: Readonly<Record<string, string>>,
-  codes: ReadonlySet<string>,
-) {
-  return text.split(/(\{\w+\})/).map((part) => {
-    const key = /^\{(\w+)\}$/.exec(part)?.[1];
-    if (key === undefined || values[key] === undefined) return part;
-    return codes.has(key) ? (
-      <code key={part} className="rounded bg-muted px-1 py-px text-2xs">
-        {values[key]}
-      </code>
-    ) : (
-      values[key]
-    );
-  });
-}
 
 const hasToken = (token: SettingsSecretValue | undefined) =>
   typeof token === "string" ? token.length > 0 : token !== undefined;
@@ -54,7 +35,12 @@ export function SourceControlTokenSettings({
   readonly credentials: SourceControlHostCredentials;
   readonly onSaved: () => void;
 }) {
-  const t = useTranslate();
+  const gt = useGT();
+  // Translates the GitHub definition's English `tokenAccess`.
+  const tokenAccess =
+    definition.kind === "github"
+      ? gt("read and write access to pull requests and contents")
+      : credentials.tokenAccess;
   const { tokens } = useEnvironmentSettings(environmentId, (settings) =>
     readHostCredentialSettings(settings, definition.kind),
   );
@@ -109,19 +95,18 @@ export function SourceControlTokenSettings({
       {/* Locked while saving: a successful save clears the draft, which would drop edits made mid-request. */}
       <fieldset disabled={saving} className="contents">
         <p className="max-w-2xl text-xs leading-relaxed text-muted-foreground">
-          {fillPlaceholders(
-            t(
-              "A token saved here is used before {envVar} and the {command} login, so {provider} works without the {cliLabel}. Give it {access}.",
-            ),
-            {
-              envVar: credentials.tokenEnvVar,
-              command: credentials.cliName,
-              provider: definition.label,
-              cliLabel: credentials.cliLabel,
-              access: t(credentials.tokenAccess),
-            },
-            new Set(["envVar", "command"]),
-          )}{" "}
+          <T>
+            A token saved here is used before{" "}
+            <code className="rounded bg-muted px-1 py-px text-2xs">
+              <Var>{credentials.tokenEnvVar}</Var>
+            </code>{" "}
+            and the{" "}
+            <code className="rounded bg-muted px-1 py-px text-2xs">
+              <Var>{credentials.cliName}</Var>
+            </code>{" "}
+            login, so <Var>{definition.label}</Var> works without the{" "}
+            <Var>{credentials.cliLabel}</Var>. Give it <Var>{tokenAccess}</Var>.
+          </T>{" "}
           {normalizedHost || defaultHost ? (
             <InlineButton
               render={
@@ -132,14 +117,16 @@ export function SourceControlTokenSettings({
                 />
               }
             >
-              {t("Create a token")}
+              <T>Create a token</T>
               <ExternalLinkIcon aria-hidden className="size-3" />
             </InlineButton>
           ) : null}
         </p>
         <div className="grid gap-3 sm:grid-cols-[12rem_1fr]">
           <div className="grid gap-1.5">
-            <Label htmlFor={`${definition.kind}-token-host-${environmentId}`}>{t("Host")}</Label>
+            <Label htmlFor={`${definition.kind}-token-host-${environmentId}`}>
+              <T>Host</T>
+            </Label>
             <Input
               id={`${definition.kind}-token-host-${environmentId}`}
               autoComplete="off"
@@ -150,11 +137,13 @@ export function SourceControlTokenSettings({
             />
           </div>
           <div className="grid gap-1.5">
-            <Label htmlFor={`${definition.kind}-token-${environmentId}`}>{t("Token")}</Label>
+            <Label htmlFor={`${definition.kind}-token-${environmentId}`}>
+              <T>Token</T>
+            </Label>
             <SecretSourceInput
               id={`${definition.kind}-token-${environmentId}`}
               size="sm"
-              aria-label={`${definition.label} token`}
+              aria-label={gt("{host} token", { host: definition.label })}
               environmentId={environmentId}
               configured={isSaved && !isSecretReference(savedToken)}
               value={draft}
@@ -167,10 +156,11 @@ export function SourceControlTokenSettings({
         <div className="flex items-center justify-between gap-3">
           <p className="text-xs text-muted-foreground">
             {savedHosts.length === 0
-              ? t("No token saved; the server uses {envVar} or the {command} login.")
-                  .replace("{envVar}", () => credentials.tokenEnvVar)
-                  .replace("{command}", () => credentials.cliName)
-              : t("Saved for {hosts}.").replace("{hosts}", () => savedHosts.join(", "))}
+              ? gt("No token saved; the server uses {envVar} or the {cliName} login.", {
+                  envVar: credentials.tokenEnvVar,
+                  cliName: credentials.cliName,
+                })
+              : gt("Saved for {hosts}.", { hosts: savedHosts.join(", ") })}
           </p>
           <div className="flex shrink-0 gap-2">
             {isSaved ? (
@@ -180,7 +170,7 @@ export function SourceControlTokenSettings({
                 disabled={saving}
                 onClick={() => void save(normalizedHost, "")}
               >
-                {t("Remove")}
+                <T>Remove</T>
               </Button>
             ) : null}
             <Button
@@ -188,7 +178,7 @@ export function SourceControlTokenSettings({
               size="xs"
               disabled={!normalizedHost || submission === "" || saving}
             >
-              {t("Save")}
+              <T>Save</T>
             </Button>
           </div>
         </div>

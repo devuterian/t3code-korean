@@ -16,7 +16,7 @@ function createList(bundle: string) {
   let within = true;
   let layoutLeavesWithinThreshold = true;
   let nativeScroll = 2000;
-  const scrollToEnd = vi.fn(() => {
+  const scrollToEnd = vi.fn((_options?: { animated: boolean }) => {
     nativeScroll = 2200;
   });
   const state = {
@@ -43,7 +43,7 @@ function createList(bundle: string) {
     state,
     interruptUserScroll: vi.fn(),
     scrollToEnd: ({ animated }: { animated: boolean }) => {
-      state.refScroller.current.scrollToEnd({ animated } as never);
+      state.refScroller.current.scrollToEnd({ animated });
       if (!animated) state.scroll = nativeScroll;
     },
   };
@@ -51,6 +51,7 @@ function createList(bundle: string) {
     `${maintain}\n${layout}\n({ doMaintainScrollAtEnd, handleLayout })`,
     {
       Platform: { OS: "web" },
+      hasNativeScrollToStart: () => false,
       invalidateHorizontalRTLScrollType: vi.fn(),
       getWindowSize: () => ({ width: 600, height: 800 }),
       scrollToIndex: vi.fn(),

@@ -3,12 +3,12 @@ import {
   codexFeedbackNotice,
   type CodexFeedbackSubmission,
 } from "@t3tools/client-runtime/state/threads";
+import { useGT, useMessages } from "gt-react-native";
 import { Pressable, View } from "react-native";
 
 import { AppText as Text } from "../../components/ui/AppText";
 import { SymbolView } from "../../components/ui/AppSymbol";
 import { copyTextWithHaptic } from "../../lib/copyTextWithHaptic";
-import { useTranslate } from "../../i18n/translate";
 
 export function ComposerFeedback({
   submission,
@@ -17,19 +17,20 @@ export function ComposerFeedback({
   readonly submission: CodexFeedbackSubmission;
   readonly onDismiss: () => void;
 }) {
-  const t = useTranslate();
-  const notice = codexFeedbackNotice(submission);
+  const gt = useGT();
+  const m = useMessages();
+  const notice = codexFeedbackNotice(submission, m);
   if (!notice) return null;
   return (
     <View className="px-4 pb-3">
       <View className="gap-2 rounded-[20px] border-continuous bg-card p-4">
         <View className="flex-row items-center gap-3">
           <Text accessibilityLiveRegion="polite" className="min-w-0 flex-1 text-sm text-foreground">
-            {t(notice.title)}
+            {notice.title}
           </Text>
           {submission.status !== "uploading" ? (
             <Pressable
-              accessibilityLabel={t("Dismiss feedback notice")}
+              accessibilityLabel={gt("Dismiss feedback notice")}
               accessibilityRole="button"
               hitSlop={12}
               onPress={onDismiss}
@@ -46,14 +47,12 @@ export function ComposerFeedback({
         </View>
         {notice.description ? (
           <Text selectable className="text-xs text-foreground-muted">
-            {submission.status === "sent"
-              ? t("Thread ID: {id}", { id: submission.feedbackId })
-              : notice.description}
+            {notice.description}
           </Text>
         ) : null}
         {submission.status === "sent" ? (
           <Button
-            label={t("Copy ID")}
+            label={gt("Copy ID")}
             tone="text"
             onPress={() =>
               copyTextWithHaptic(submission.feedbackId, { target: "Codex feedback thread ID" })

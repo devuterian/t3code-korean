@@ -1,10 +1,10 @@
 import { workspaceAreaProps } from "../lib/workspaceFocus";
 import { Outlet, createFileRoute, redirect, useLocation } from "@tanstack/react-router";
 import { useState, type ReactNode } from "react";
+import { T, useGT, useMessages, Var } from "gt-react";
 import { RotateCcwIcon } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { useSettingsRestore } from "../components/settings/SettingsPanels";
-import { useTranslate } from "../i18n/translate";
 
 import { AppRouteModal, AppRouteModalClose } from "../components/AppRouteModal";
 import { SettingsBreadcrumb } from "../components/settings/SettingsBreadcrumb";
@@ -29,7 +29,6 @@ import {
 } from "../components/settings/settingsSearch";
 
 function RestoreDeviceDefaultsButton({ onRestored }: { onRestored: () => void }) {
-  const t = useTranslate();
   const { changedSettingLabels, restoreDefaults } = useSettingsRestore(onRestored);
   return (
     <Button
@@ -39,15 +38,18 @@ function RestoreDeviceDefaultsButton({ onRestored }: { onRestored: () => void })
       onClick={() => void restoreDefaults()}
     >
       <RotateCcwIcon className="mx-1 size-3.5" />
-      <span className="max-sm:sr-only">{t("Restore device defaults")}</span>
+      <span className="max-sm:sr-only">
+        <T>Restore device defaults</T>
+      </span>
     </Button>
   );
 }
 
 function SettingsScopeBoundary({ pathname, children }: { pathname: string; children: ReactNode }) {
-  const t = useTranslate();
   const { scope, connectedEnvironments } = useSettingsScope();
   const { environments } = useEnvironments();
+  const gt = useGT();
+  const m = useMessages();
   const hash = useLocation({ select: (location) => location.hash });
   const searchTarget = getSettingsSearchTargetScope(hash);
   const autoSettlementAvailability = searchTarget?.requiresThreadAutoSettlement
@@ -66,8 +68,13 @@ function SettingsScopeBoundary({ pathname, children }: { pathname: string; child
         eligibleEnvironmentIds={autoSettlementAvailability.eligibleEnvironmentIds}
       >
         {autoSettlementAvailability.eligibleEnvironmentIds.length > 0
-          ? `${t(searchTarget.title)} ${t("requires a supporting environment. Choose one to continue.")}`
-          : `${t(searchTarget.title)} ${t("requires a supporting environment. Connect or update an environment to continue.")}`}
+          ? gt("{title} requires a supporting environment. Choose one to continue.", {
+              title: m(searchTarget.title),
+            })
+          : gt(
+              "{title} requires a supporting environment. Connect or update an environment to continue.",
+              { title: m(searchTarget.title) },
+            )}
       </SettingsScopeNotice>
     );
   }
@@ -84,7 +91,10 @@ function SettingsScopeBoundary({ pathname, children }: { pathname: string; child
         : "all";
     return (
       <SettingsScopeNotice target={target} targetId={hash}>
-        {`${t(searchTarget.title)} ${t("is not available for the selected target. Choose its owning scope to continue.")}`}
+        {gt(
+          "{title} is not available for the selected target. Choose its owning scope to continue.",
+          { title: m(searchTarget.title) },
+        )}
       </SettingsScopeNotice>
     );
   }
@@ -94,14 +104,16 @@ function SettingsScopeBoundary({ pathname, children }: { pathname: string; child
   if (scope.kind === "unavailable")
     return (
       <SettingsPageContainer>
-        <p className="text-sm text-muted-foreground">{t(scope.message)}</p>
+        <p className="text-sm text-muted-foreground">{scope.message}</p>
       </SettingsPageContainer>
     );
   if (scope.kind === "environment" && connectedEnvironments.length === 0) {
     return (
       <SettingsPageContainer>
         <p className="text-sm text-muted-foreground">
-          {t("Reconnect")} {scope.label} {t("to change its settings.")}
+          <T>
+            Reconnect <Var>{scope.label}</Var> to change its settings.
+          </T>
         </p>
       </SettingsPageContainer>
     );
@@ -110,20 +122,18 @@ function SettingsScopeBoundary({ pathname, children }: { pathname: string; child
 }
 
 function SettingsContentLayout() {
-  const t = useTranslate();
-  const contentArea = workspaceAreaProps("settings", 1, t("Settings content"));
+  const gt = useGT();
+  const contentArea = workspaceAreaProps("settings", 1, gt("Settings content"));
   const location = useLocation();
   const { search, environment } = useSettingsScope();
   const contentScopeKey =
-    location.pathname === "/settings/diagnostics" ||
-    location.pathname === "/settings/providers" ||
-    location.pathname === "/settings/account-pools"
+    location.pathname === "/settings/diagnostics" || location.pathname === "/settings/providers"
       ? environment?.environmentId
       : JSON.stringify(search);
   const [restoreSignal, setRestoreSignal] = useState(0);
 
   return (
-    <AppRouteModal label={t("Settings")}>
+    <AppRouteModal label={gt("Settings")}>
       <div className="relative flex min-h-0 flex-1">
         <SettingsSidebarNav pathname={location.pathname} />
         <div {...contentArea} className="flex min-h-0 min-w-0 flex-1 flex-col">
@@ -156,11 +166,7 @@ function SettingsRouteLayout() {
   return (
     <SettingsScopeProvider
       search={rawSearch}
-      singleEnvironment={
-        pathname === "/settings/providers" ||
-        pathname === "/settings/secrets" ||
-        pathname === "/settings/account-pools"
-      }
+      singleEnvironment={pathname === "/settings/providers" || pathname === "/settings/secrets"}
       deviceOnly={SETTINGS_DEVICE_ONLY_PATHS.has(pathname)}
       onChange={(next) => {
         // Send every axis so retain middleware recognizes "all" as an explicit target.

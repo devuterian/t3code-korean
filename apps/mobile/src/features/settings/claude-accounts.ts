@@ -1,3 +1,4 @@
+import { msg } from "gt-react-native";
 import {
   deriveAvailableInstanceId,
   deriveInstanceId,
@@ -13,7 +14,7 @@ import {
   type ServerSettings,
 } from "@t3tools/contracts";
 
-import { translate } from "../../i18n/translate";
+import { m } from "../../i18n/messages";
 
 export const CLAUDE_DRIVER = ProviderDriverKind.make("claudeAgent");
 export const DEFAULT_CLAUDE_INSTANCE_ID = defaultInstanceIdForDriver(CLAUDE_DRIVER);
@@ -43,9 +44,15 @@ export function planClaudeAccountSave(input: {
   const name = input.draft.name.trim();
   const configDir = input.draft.configDir.trim();
   const adding = input.instanceId === null;
-  if (adding && name.length === 0) return { error: translate("Enter a name for this account.") };
+  if (adding && name.length === 0) return { error: m(msg("Enter a name for this account.")) };
   if (adding && configDir.length === 0) {
-    return { error: translate("Enter the Claude config folder this account is signed in with.") };
+    return {
+      error: m(
+        msg("Enter the {provider} config folder this account is signed in with.", {
+          provider: "Claude",
+        }),
+      ),
+    };
   }
   const instanceId =
     input.instanceId ??
@@ -58,7 +65,7 @@ export function planClaudeAccountSave(input: {
     );
   if (input.policy && isManagedSettingPath(input.policy, `providerInstances.${instanceId}`)) {
     return {
-      error: translate("Managed by {organization}.", { organization: input.policy.organization }),
+      error: m(msg("Managed by {organization}.", { organization: input.policy.organization })),
     };
   }
   const current: ProviderInstanceConfig = Object.hasOwn(input.providerInstances, instanceId)

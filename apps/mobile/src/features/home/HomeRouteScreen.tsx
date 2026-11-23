@@ -2,11 +2,10 @@ import { uuidv4 } from "../../lib/uuid";
 import { ThreadUndoNotice } from "./ThreadUndoNotice";
 import { use } from "react";
 import { NativePrimaryColumnContext } from "../../native/v5-workspace-context";
-import * as Arr from "effect/Array";
-import * as Order from "effect/Order";
 import { useNavigation } from "@react-navigation/native";
 import { useMemo, useState } from "react";
 import { Platform } from "react-native";
+import { useGT, useMessages } from "gt-react-native";
 
 import type { EnvironmentThreadShell } from "@t3tools/client-runtime/state/shell";
 import { pickableProjectGroups } from "@t3tools/client-runtime/state/project-grouping";
@@ -20,7 +19,6 @@ import {
   useAdaptiveWorkspaceLayout,
   useWorkspacePaneState,
 } from "../layout/AdaptiveWorkspaceLayout";
-import { useTranslate } from "../../i18n/translate";
 import { useActiveThreadSort } from "../threads/use-active-thread-sort";
 import { AndroidHomeFabLayout } from "./AndroidHomeFab";
 import { HomeScreen } from "./HomeScreen";
@@ -43,10 +41,11 @@ import { useSelectWorkspaceTab } from "../layout/workspace/useSelectWorkspaceTab
 import { useSelectWorkspaceDetail } from "../layout/workspace/useSelectWorkspaceDetail";
 import { WorkspaceListEmptyDetail } from "../layout/workspace/WorkspaceListEmptyDetail";
 import { WorkspaceListHeader } from "../layout/workspace/WorkspaceListHeader";
-import { buildHomeListFilterMenuItems } from "./home-list-filter-menu";
+import { buildHomeListFilterMenuItems, homeListFilterEnvironments } from "./home-list-filter-menu";
 
 export function HomeRouteScreen() {
-  const t = useTranslate();
+  const gt = useGT();
+  const m = useMessages();
   const nativePrimaryColumn = use(NativePrimaryColumnContext);
   const activeThreadSort = useActiveThreadSort();
   const { layout, setPrimarySidebarSearchQuery, startNewTask } = useAdaptiveWorkspaceLayout();
@@ -112,19 +111,7 @@ export function HomeRouteScreen() {
   const pendingTasks = usePendingNewTasks();
   const { openPendingTask, confirmDeletePendingTask } =
     usePendingTaskListActions(selectThreadRoute);
-  const connectionStateByEnvironmentId = new Map(
-    workspaceEnvironments.map(
-      (environment) => [environment.environmentId, environment.connectionState] as const,
-    ),
-  );
-  const environments = Arr.sort(
-    Object.values(savedConnectionsById).map((connection) => ({
-      environmentId: connection.environmentId,
-      label: connection.environmentLabel,
-      connectionState: connectionStateByEnvironmentId.get(connection.environmentId) ?? "available",
-    })),
-    Order.mapInput(Order.String, (environment: { readonly label: string }) => environment.label),
-  );
+  const environments = homeListFilterEnvironments(workspaceEnvironments);
   const availableEnvironmentIds = useMemo(
     () => new Set(environments.map((environment) => environment.environmentId)),
     [environments],
@@ -137,12 +124,15 @@ export function HomeRouteScreen() {
   const selectedEnvironmentId = listOptions.selectedEnvironmentId;
   const projectScopes = useMemo(
     () =>
-      buildHomeProjectScopes({
-        projects,
-        environmentId: selectedEnvironmentId,
-        projectGroupingMode: listOptions.projectGroupingMode,
-      }),
-    [listOptions.projectGroupingMode, projects, selectedEnvironmentId],
+      buildHomeProjectScopes(
+        {
+          projects,
+          environmentId: selectedEnvironmentId,
+          projectGroupingMode: listOptions.projectGroupingMode,
+        },
+        m,
+      ),
+    [listOptions.projectGroupingMode, projects, selectedEnvironmentId, m],
   );
   const projectFilterOptions = useMemo(
     () =>
@@ -176,36 +166,38 @@ export function HomeRouteScreen() {
     <AndroidHomeFabLayout onStartNewTask={startNewTask}>
       <>
         <WorkspaceListHeader
-          accessibilityLabel={t("T3 Code, Threads")}
+          accessibilityLabel={gt("T3 Code, Threads")}
           onOpenEnvironments={() => openSettings(navigation, "SettingsEnvironments")}
           search={{
             value: searchQuery,
             onChangeText: setSearchQuery,
-            placeholder: t("Search"),
-            accessibilityLabel: t("Search threads"),
+            placeholder: gt("Search", { $context: "search field placeholder" }),
+            accessibilityLabel: gt("Search threads"),
           }}
           filter={{
             customized:
               selectedEnvironmentId !== null ||
               selectedProjectKey !== null ||
               (activeThreadSort.available && activeThreadSort.order !== "manual"),
-            items: buildHomeListFilterMenuItems({
-              environments,
-              projects: projectFilterOptions,
-              selectedEnvironmentId,
-              selectedProjectKey,
-              onEnvironmentChange: setSelectedEnvironmentId,
-              onProjectChange: setSelectedProjectKey,
-              ...(activeThreadSort.available
-                ? {
-                    activeThreadSort: {
-                      order: activeThreadSort.order,
-                      onChange: activeThreadSort.setOrder,
-                    },
-                  }
-                : {}),
-              t,
-            }),
+            items: buildHomeListFilterMenuItems(
+              {
+                environments,
+                projects: projectFilterOptions,
+                selectedEnvironmentId,
+                selectedProjectKey,
+                onEnvironmentChange: setSelectedEnvironmentId,
+                onProjectChange: setSelectedProjectKey,
+                ...(activeThreadSort.available
+                  ? {
+                      activeThreadSort: {
+                        order: activeThreadSort.order,
+                        onChange: activeThreadSort.setOrder,
+                      },
+                    }
+                  : {}),
+              },
+              m,
+            ),
           }}
         />
 

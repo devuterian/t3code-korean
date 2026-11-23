@@ -1,16 +1,18 @@
+import { runAtomCommand } from "@t3tools/client-runtime/state/runtime";
 import { AsyncResult } from "effect/reactivity";
 import { Directory, File, Paths } from "expo-file-system";
 import { useSyncExternalStore } from "react";
+import { msg } from "gt-react-native";
 import { Platform } from "react-native";
 
-import { translate } from "../../i18n/translate";
+import { m } from "../../i18n/messages";
 import { AppInstaller } from "../../native/appInstaller";
 import type {
   AndroidUpdatePreferences,
   KoreanAndroidRelease,
 } from "../../persistence/mobile-preferences";
 import { appAtomRegistry } from "../../state/atom-registry";
-import { mobilePreferencesAtom, updateMobilePreferencesAtom } from "../../state/preferences";
+import { mobilePreferencesAtom, saveMobilePreferences } from "../../state/preferences";
 import {
   isAutomaticCheckDue,
   isKoreanReleaseDownloadUrl,
@@ -86,7 +88,7 @@ function readUpdatePreferences(): AndroidUpdatePreferences | null {
 }
 
 function saveUpdatePreferences(patch: Partial<AndroidUpdatePreferences>) {
-  appAtomRegistry.set(updateMobilePreferencesAtom, {
+  void runAtomCommand(appAtomRegistry, saveMobilePreferences, {
     transform: (current) => ({ androidUpdate: { ...current.androidUpdate, ...patch } }),
   });
 }
@@ -154,8 +156,8 @@ async function runCheck(manual: boolean) {
     } else {
       throw new Error(
         response.status === 403 || response.status === 429
-          ? translate("GitHub is limiting update checks. Try again in an hour.")
-          : translate("GitHub returned an error ({status}).", { status: response.status }),
+          ? m(msg("GitHub is limiting update checks. Try again in an hour."))
+          : m(msg("GitHub returned an error ({status}).", { status: response.status })),
       );
     }
   } catch (cause) {
@@ -165,8 +167,7 @@ async function runCheck(manual: boolean) {
       setSnapshot({
         phase: {
           type: "error",
-          message:
-            cause instanceof Error ? cause.message : translate("Could not check for updates."),
+          message: cause instanceof Error ? cause.message : m(msg("Could not check for updates.")),
           release: null,
         },
       });
@@ -174,7 +175,7 @@ async function runCheck(manual: boolean) {
     return;
   }
 
-  appAtomRegistry.set(updateMobilePreferencesAtom, {
+  void runAtomCommand(appAtomRegistry, saveMobilePreferences, {
     transform: (current) => {
       // A fresh listing replaces the cached release, so a pulled one stops being offered.
       const { latest: cachedLatest, ...rest } = current.androidUpdate ?? {};
@@ -227,7 +228,7 @@ export async function downloadAndInstallAndroidUpdate(release: KoreanAndroidRele
   let lastPercent = 0;
   try {
     // Releases cached before the URL was pinned are refused here too.
-    if (!isKoreanReleaseDownloadUrl(release.apkUrl)) throw new Error(translate("Download failed."));
+    if (!isKoreanReleaseDownloadUrl(release.apkUrl)) throw new Error(m(msg("Download failed.")));
     directory.create({ intermediates: true, idempotent: true });
     const file = new File(directory, `t3code-ko-${release.version}.apk`);
     await File.downloadFileAsync(release.apkUrl, file, {
@@ -243,14 +244,14 @@ export async function downloadAndInstallAndroidUpdate(release: KoreanAndroidRele
     });
     if (file.size !== release.apkSize) {
       file.delete();
-      throw new Error(translate("The download was incomplete. Try again."));
+      throw new Error(m(msg("The download was incomplete. Try again.")));
     }
     // GitHub publishes a SHA-256 for newer assets; without one the size check is all we have.
     if (release.apkSha256) {
       const actual = AppInstaller.sha256File ? await AppInstaller.sha256File(file.uri) : null;
       if (actual !== release.apkSha256) {
         file.delete();
-        throw new Error(translate("The downloaded update failed verification. Try again."));
+        throw new Error(m(msg("The downloaded update failed verification. Try again.")));
       }
     }
     setSnapshot({ phase: { type: "ready", release, fileUri: file.uri } });
@@ -261,7 +262,7 @@ export async function downloadAndInstallAndroidUpdate(release: KoreanAndroidRele
     setSnapshot({
       phase: {
         type: "error",
-        message: cause instanceof Error ? cause.message : translate("Download failed."),
+        message: cause instanceof Error ? cause.message : m(msg("Download failed.")),
         release,
       },
     });
@@ -290,8 +291,7 @@ export function installDownloadedUpdate() {
     setSnapshot({
       phase: {
         type: "error",
-        message:
-          cause instanceof Error ? cause.message : translate("Could not open the installer."),
+        message: cause instanceof Error ? cause.message : m(msg("Could not open the installer.")),
         release: phase.release,
       },
     });

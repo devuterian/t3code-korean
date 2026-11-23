@@ -1,3 +1,4 @@
+import { useGT } from "gt-react";
 import { ChevronDownIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
@@ -9,7 +10,6 @@ import {
   PullRequestFilterOptionIcon,
   type PullRequestFilterOption,
 } from "./PullRequestListFilters";
-import { translatePullRequestLabel } from "./pullRequestIcons";
 
 export function PullRequestCompactFilterMenu<Value extends string>({
   label,
@@ -32,14 +32,16 @@ export function PullRequestCompactFilterMenu<Value extends string>({
   onChange: (value: Value) => void;
   className?: string;
 }) {
+  const gt = useGT();
   const current = options.find((option) => option.value === value) ?? options[0];
   if (!current) return null;
-  const currentLabel = translatePullRequestLabel(current.label);
   return (
     <Menu>
       <MenuTrigger
-        aria-label={triggerLabel || iconOnly ? `${label}: ${currentLabel}` : label}
-        title={iconOnly ? `${label}: ${currentLabel}` : undefined}
+        aria-label={
+          triggerLabel || iconOnly ? gt("{label}: {value}", { label, value: current.label }) : label
+        }
+        title={iconOnly ? gt("{label}: {value}", { label, value: current.label }) : undefined}
         render={
           outlined ? (
             <Button variant="outline" size={iconOnly ? "icon" : "default"} />
@@ -58,7 +60,7 @@ export function PullRequestCompactFilterMenu<Value extends string>({
           </>
         ) : (
           <>
-            <span className="truncate">{currentLabel}</span>
+            <span className="truncate">{current.label}</span>
             <ChevronDownIcon aria-hidden className="size-3 shrink-0 text-muted-foreground/70" />
           </>
         )}
@@ -75,7 +77,7 @@ export function PullRequestCompactFilterMenu<Value extends string>({
               >
                 <span className="flex min-w-0 items-center gap-2">
                   <PullRequestFilterOptionIcon option={option} />
-                  {translatePullRequestLabel(option.label)}
+                  {option.label}
                 </span>
               </MenuRadioItem>
             );

@@ -18,5 +18,11 @@ module.exports = {
     { type: "contents", id: "appMajorVersion", contents: majorVersion },
     // withIosAppIntents copies this into the app target; fingerprint only hashes the plugin itself.
     { type: "file", filePath: "plugins/ios/T3AppIntents.swift", reasons: ["iosAppIntents"] },
+    // Expo skips symlinks when hashing local modules.
+    {
+      type: "file",
+      filePath: "../../native/apple-speech/AppleSpeechEngine.swift",
+      reasons: ["appleSpeech"],
+    },
   ],
 };

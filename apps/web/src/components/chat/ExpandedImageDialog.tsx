@@ -1,5 +1,6 @@
 import { memo, useEffect, useRef, useState, type ReactNode, type KeyboardEvent } from "react";
 import { flushSync } from "react-dom";
+import { T, useGT } from "gt-react";
 import {
   ArrowLeftIcon,
   ChevronLeftIcon,
@@ -32,6 +33,7 @@ import { MediaVideoPlayer } from "../media/MediaVideoPlayer";
 import { isContextMenuOpen } from "../../contextMenuFallback";
 import {
   SnapShotAccessibilityData,
+  SnapShotCopyButton,
   SnapShotContentsButton,
   snapShotAccessibilityDetails,
 } from "./SnapShotAttachmentDetails";
@@ -40,7 +42,6 @@ import { CitationCommentEditor } from "./CitationCommentEditor";
 import { ImageRegionCiteLayer } from "./ImageRegionCiteLayer";
 import { ZoomableImage, type ZoomableImageHandle } from "./ZoomableImage";
 import { composerFloatingLayerProps } from "./composerEventScope";
-import { useTranslate } from "~/i18n/translate";
 import { useAtomValue } from "@effect/atom-react";
 import { Atom } from "effect/reactivity";
 import { appAtomRegistry } from "~/rpc/atomRegistry";
@@ -104,7 +105,7 @@ export const ExpandedImageDialog = memo(function ExpandedImageDialog({
   preview,
   onClose,
 }: ExpandedImageDialogProps) {
-  const t = useTranslate();
+  const gt = useGT();
   const [imageOffset, setImageOffset] = useState(0);
   const [failedImageSrc, setFailedImageSrc] = useState<string | null>(null);
   const [accessibilityDetailsSrc, setAccessibilityDetailsSrc] = useState<string | null>(null);
@@ -128,7 +129,7 @@ export const ExpandedImageDialog = memo(function ExpandedImageDialog({
   const item = preview.images[index];
   const source: MediaActionSource = item?.actionsSource ?? {
     kind: item?.type === "video" ? "video" : "image",
-    name: item?.name ?? "Media",
+    name: item?.name ?? gt("Media"),
     src: item?.src ?? null,
   };
   const openFile = source.onOpenFile;
@@ -197,8 +198,8 @@ export const ExpandedImageDialog = memo(function ExpandedImageDialog({
       toastManager.add(
         stackedThreadToast({
           type: "error",
-          title: t("Could not capture the frame"),
-          description: error instanceof Error ? error.message : t("The video could not be read."),
+          title: gt("Could not capture the frame"),
+          description: error instanceof Error ? error.message : gt("The video could not be read."),
         }),
       );
     } finally {
@@ -222,8 +223,8 @@ export const ExpandedImageDialog = memo(function ExpandedImageDialog({
       toastManager.add(
         stackedThreadToast({
           type: "warning",
-          title: t("No composer to cite into"),
-          description: t("Open a thread, then cite the region again."),
+          title: gt("No composer to cite into"),
+          description: gt("Open a thread, then cite the region again."),
         }),
       );
       return;
@@ -255,8 +256,8 @@ export const ExpandedImageDialog = memo(function ExpandedImageDialog({
         toastManager.add(
           stackedThreadToast({
             type: "warning",
-            title: t("The composer can't take this region right now"),
-            description: t(
+            title: gt("The composer can't take this region right now"),
+            description: gt(
               "Finish any pending approval or question, or wait for the connection, then cite again.",
             ),
           }),
@@ -271,8 +272,8 @@ export const ExpandedImageDialog = memo(function ExpandedImageDialog({
       toastManager.add(
         stackedThreadToast({
           type: "error",
-          title: t("Could not cite the region"),
-          description: error instanceof Error ? error.message : t("The image could not be read."),
+          title: gt("Could not cite the region"),
+          description: error instanceof Error ? error.message : gt("The image could not be read."),
         }),
       );
     } finally {
@@ -351,7 +352,6 @@ export const ExpandedImageDialog = memo(function ExpandedImageDialog({
     return () => window.removeEventListener("keydown", onEscape, { capture: true });
   }, [close, pendingRegion, selecting]);
   if (!item) return null;
-  const mediaLabel = item.type === "video" ? "video" : "image";
   const citeOverlay =
     selecting && citableSrc !== null ? (
       <ImageRegionCiteLayer
@@ -366,10 +366,10 @@ export const ExpandedImageDialog = memo(function ExpandedImageDialog({
       <OpenMediaLink originalUrl={item.originalUrl} />
     ) : null;
   const contentsLabel = showingAccessibilityDetails
-    ? t("Show screenshot")
+    ? gt("Show screenshot")
     : accessibilityDetails?.format === "json"
-      ? t("Show accessibility JSON")
-      : t("Show extracted text");
+      ? gt("Show accessibility JSON")
+      : gt("Show extracted text");
 
   return (
     <Dialog
@@ -399,7 +399,9 @@ export const ExpandedImageDialog = memo(function ExpandedImageDialog({
           if (event.target === event.currentTarget) close();
         }}
       >
-        <DialogTitle className="sr-only">{t(`Expanded ${mediaLabel} preview`)}</DialogTitle>
+        <DialogTitle className="sr-only">
+          {isVideo ? gt("Expanded video preview") : gt("Expanded image preview")}
+        </DialogTitle>
         <Button
           type="button"
           ref={closeButtonRef}
@@ -407,10 +409,10 @@ export const ExpandedImageDialog = memo(function ExpandedImageDialog({
           variant="media-close"
           className="absolute left-0 top-0 z-20 max-[8rem]:left-1/2 max-[8rem]:-translate-x-1/2"
           onClick={close}
-          aria-label={t(`Back, close ${mediaLabel} preview`)}
+          aria-label={isVideo ? gt("Back, close video preview") : gt("Back, close image preview")}
         >
           <ArrowLeftIcon aria-hidden="true" />
-          {t("Back")}
+          <T>Back</T>
         </Button>
         {preview.images.length > 1 && (
           <Button
@@ -418,7 +420,7 @@ export const ExpandedImageDialog = memo(function ExpandedImageDialog({
             size="icon"
             variant="media-navigation"
             className="left-0 top-auto bottom-0 translate-y-0 sm:top-1/2 sm:bottom-auto sm:-translate-y-1/2"
-            aria-label={t("Previous media")}
+            aria-label={gt("Previous media")}
             onClick={() => navigateImage(-1)}
           >
             <ChevronLeftIcon className="size-5" />
@@ -437,7 +439,10 @@ export const ExpandedImageDialog = memo(function ExpandedImageDialog({
                     ref={zoomableImageRef}
                     key={frame.src}
                     src={frame.src}
-                    name={t(`${item.name} at ${formatVideoTimestamp(frame.seconds)}`)}
+                    name={gt("{name} at {time}", {
+                      name: item.name,
+                      time: formatVideoTimestamp(frame.seconds),
+                    })}
                     onError={() => setFailedImageSrc(frame.src)}
                     selecting={selecting}
                     overlay={citeOverlay}
@@ -455,8 +460,8 @@ export const ExpandedImageDialog = memo(function ExpandedImageDialog({
               <ExpandedMediaFailure>
                 <p>
                   {openOriginalLink
-                    ? t("This image could not be loaded.")
-                    : t("Image unavailable. The file may have been moved or deleted.")}
+                    ? gt("This image could not be loaded.")
+                    : gt("Image unavailable. The file may have been moved or deleted.")}
                 </p>
                 {openOriginalLink}
               </ExpandedMediaFailure>
@@ -485,7 +490,7 @@ export const ExpandedImageDialog = memo(function ExpandedImageDialog({
                 align="start"
                 width="md"
                 padding="compact"
-                aria-label={t("Comment on selected region")}
+                aria-label={gt("Comment on selected region")}
                 initialFocus={() => {
                   commentInputRef.current?.focus({ preventScroll: true });
                   return false;
@@ -495,11 +500,15 @@ export const ExpandedImageDialog = memo(function ExpandedImageDialog({
                 {pendingRegion ? (
                   <CitationCommentEditor
                     key={`${pendingRegion.x}:${pendingRegion.y}:${pendingRegion.width}:${pendingRegion.height}`}
-                    label={t("Comment on selected region")}
-                    description={t(
+                    label={gt("Comment on selected region")}
+                    description={gt(
                       "Enter to cite the region with this comment; Shift+Enter for a new line.",
                     )}
-                    submitLabel={citing ? t("Citing…") : t("Cite")}
+                    submitLabel={
+                      citing
+                        ? gt("Citing…")
+                        : gt("Cite", { $context: "verb, button that quotes the selected region" })
+                    }
                     submitDisabled={citing}
                     inputRef={commentInputRef}
                     onSubmit={(comment) => void citeRegion(pendingRegion, comment)}
@@ -510,7 +519,12 @@ export const ExpandedImageDialog = memo(function ExpandedImageDialog({
             </Popover>
             <div className="mt-2 flex max-w-[var(--media-width)] items-center justify-center gap-1.5 text-xs text-white/80 max-sm:px-10">
               <span className="truncate" aria-live="polite" aria-atomic="true">
-                {frame ? t(`${item.name} at ${formatVideoTimestamp(frame.seconds)}`) : item.name}
+                {frame
+                  ? gt("{name} at {time}", {
+                      name: item.name,
+                      time: formatVideoTimestamp(frame.seconds),
+                    })
+                  : item.name}
                 {preview.images.length > 1 ? ` (${index + 1}/${preview.images.length})` : ""}
               </span>
               {accessibilityDetails && item.source ? (
@@ -555,19 +569,26 @@ export const ExpandedImageDialog = memo(function ExpandedImageDialog({
                     }
                   >
                     <SquareDashedMousePointerIcon aria-hidden="true" />
-                    {capturingFrame ? t("Capturing…") : t("Cite")}
+                    {capturingFrame
+                      ? gt("Capturing…")
+                      : gt("Cite", { $context: "verb, button that quotes the selected region" })}
                   </TooltipTrigger>
                   <TooltipPopup side="top">
                     {selecting
                       ? isVideo
-                        ? t("Back to the video (C)")
-                        : t("Stop selecting (C)")
+                        ? gt("Back to the video (C)")
+                        : gt("Stop selecting (C)")
                       : isVideo
-                        ? t("Pause and cite a region of this frame (C)")
-                        : t("Drag a region or click a point to cite (C)")}
+                        ? gt("Pause and cite a region of this frame (C)")
+                        : gt("Drag a region or click a point to cite (C)")}
                   </TooltipPopup>
                 </Tooltip>
               ) : null}
+              {item.onCopySnapshot && (
+                <div className="-my-1.5">
+                  <SnapShotCopyButton onCopy={item.onCopySnapshot} />
+                </div>
+              )}
             </div>
           </div>
         </MediaActions>
@@ -577,7 +598,7 @@ export const ExpandedImageDialog = memo(function ExpandedImageDialog({
             size="icon"
             variant="media-navigation"
             className="right-0 top-auto bottom-0 translate-y-0 sm:top-1/2 sm:bottom-auto sm:-translate-y-1/2"
-            aria-label={t("Next media")}
+            aria-label={gt("Next media")}
             onClick={() => navigateImage(1)}
           >
             <ChevronRightIcon className="size-5" />

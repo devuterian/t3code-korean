@@ -1,6 +1,7 @@
 import * as WorktreeMcp from "../mcp/WorktreeMcpService.ts";
 import * as ServerSettings from "../serverSettings.ts";
 import * as ProjectSetupScriptRunner from "../project/ProjectSetupScriptRunner.ts";
+import * as TaskFolders from "../workspace/TaskFolders.ts";
 import type { McpInvocationScope } from "../mcp/McpInvocationContext.ts";
 import { describe, expect, it, vi } from "@effect/vitest";
 import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
@@ -680,6 +681,7 @@ const mcpLayer = (harness: ReturnType<typeof makeHarness>) =>
         harness.layer,
         ServerSettings.layerTest({}),
         Layer.mock(ProjectSetupScriptRunner.ProjectSetupScriptRunner)({}),
+        Layer.mock(TaskFolders.TaskFolders)({}),
       ),
     ),
   );

@@ -1,3 +1,5 @@
+import { useMessages } from "gt-react";
+import { hasFeatureFlag } from "@t3tools/client-runtime/state/server";
 import { AuthEnvironmentMaintainScope } from "@t3tools/contracts";
 
 import { usePrimaryCloudLinkState } from "~/cloud/cloudLinkState";
@@ -16,6 +18,14 @@ import {
   getThreadAutoSettlementSearchAvailability,
   hasProviderPoolsEnvironment,
 } from "./settingsSearch";
+
+/** Any environment whose server enables secret providers; gates the Secrets page, nav and search. */
+export function useHasSecretProvidersEnvironment() {
+  const { environments } = useEnvironments();
+  return environments.some((environment) =>
+    hasFeatureFlag(environment.serverConfig, "secretProviders"),
+  );
+}
 
 export function useAvailableSettingsSearchItems() {
   const { environments } = useEnvironments();
@@ -42,6 +52,7 @@ export function useAvailableSettingsSearchItems() {
         environment.serverConfig !== null &&
         environment.serverConfig.managedPolicy?.limits?.providers?.allowedDrivers === undefined,
     ) === true;
+  const hasSecretProvidersEnvironment = useHasSecretProvidersEnvironment();
   const hasThreadAutoSettlement =
     getThreadAutoSettlementSearchAvailability(environments).eligibleEnvironmentIds.length > 0;
   const hasProviderPools = hasProviderPoolsEnvironment(environments);
@@ -57,6 +68,7 @@ export function useAvailableSettingsSearchItems() {
   const canManageLocalBackend = !localEnvironmentDisabled && canMaintain;
   const desktopWsl = useEnvironmentQuery(
     isElectron && canManageLocalBackend ? desktopWslStateAtom : null,
+    useMessages(),
   );
   const cloudPublicConfig = hasCloudPublicConfig() === true;
   const wslSettingsRowVisible =
@@ -76,5 +88,6 @@ export function useAvailableSettingsSearchItems() {
     hasFastWorktreeCheckoutEnvironment,
     hasTextGeneratorsEnvironment,
     hasPrimaryEnvironment: primaryEnvironmentId !== null,
+    hasSecretProvidersEnvironment,
   });
 }

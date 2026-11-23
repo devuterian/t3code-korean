@@ -1,3 +1,4 @@
+import { useGT } from "gt-react";
 import {
   useImperativeHandle,
   useRef,
@@ -13,7 +14,6 @@ import {
   windowControlsOverlayHeight,
 } from "../../lib/windowControlsOverlay";
 
-import { useTranslate } from "~/i18n/translate";
 import { AttachmentImage } from "../media/AttachmentImage";
 
 const MAX_ZOOM = 8;
@@ -68,7 +68,7 @@ export function ZoomableImage({
   overlay?: ReactNode;
   ref?: Ref<ZoomableImageHandle>;
 }) {
-  const t = useTranslate();
+  const gt = useGT();
   const viewportRef = useRef<HTMLDivElement>(null);
   const [naturalSize, setNaturalSize] = useState({ width: 0, height: 0 });
   const viewerSize = useSyncExternalStore(subscribeViewerSize, getViewerSize);
@@ -177,13 +177,13 @@ export function ZoomableImage({
       <div
         ref={attachViewport}
         role="region"
-        aria-label={t(`${name}, zoomable image`)}
+        aria-label={gt("{name}, zoomable image", { name })}
         aria-description={
           selecting
-            ? t(
+            ? gt(
                 "Drag over the image to select a region. Scroll to zoom. Use Enter to toggle zoom, plus or minus to zoom, and 0 to fit.",
               )
-            : t(
+            : gt(
                 "Click to zoom in or return to fit. Pinch or Ctrl+scroll to zoom, scroll or drag to pan. Use Enter to toggle zoom, plus or minus to zoom, and 0 to fit.",
               )
         }
@@ -283,7 +283,7 @@ export function ZoomableImage({
         </div>
       </div>
       <span className="sr-only" aria-live="polite">
-        {Math.round(zoom * 100)}% zoom
+        {gt("{percent}% zoom", { percent: Math.round(zoom * 100) })}
       </span>
     </div>
   );

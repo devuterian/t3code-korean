@@ -10,7 +10,9 @@ import {
   type OrchestrationV2Subagent,
   type ServerProvider,
 } from "@t3tools/contracts";
-import { deriveSubagentElapsedMs, formatDuration } from "@t3tools/shared/orchestrationTiming";
+import { deriveSubagentElapsedMs } from "@t3tools/shared/orchestrationTiming";
+import { formatDuration } from "@t3tools/shared/orchestrationTimingCopy";
+import { T, useGT, useMessages } from "gt-react-native";
 import { useState, type ReactNode } from "react";
 import { ScrollView, View } from "react-native";
 
@@ -21,7 +23,6 @@ import { ListRowLayout } from "../../components/ui/ListRowLayout";
 import { ListSection } from "../../components/ui/ListSection";
 import { RowPressable } from "../../components/ui/RowPressable";
 import { cn } from "../../lib/cn";
-import { useTranslate } from "../../i18n/translate";
 import { useEnvironmentServerConfig, useThreadShell } from "../../state/entities";
 import { SUBAGENT_TONE_TEXT_CLASS, SubagentStatusDot } from "./SubagentStatusDot";
 import { SubagentStopButton } from "./SubagentStopButton";
@@ -43,37 +44,23 @@ const RAIL_ICON = {
   queued: "circle.dashed",
 } as const satisfies Record<WorkflowRailTone, AppSymbolName>;
 
-function railToneLabel(t: ReturnType<typeof useTranslate>, tone: WorkflowRailTone) {
-  switch (tone) {
-    case "working":
-      return t("Working");
-    case "completed":
-      return t("Completed");
-    case "failed":
-      return t("Failed");
-    case "stopped":
-      return t("Stopped");
-    case "queued":
-      return t("Queued");
-  }
-}
-
 export function ThreadWorkflowGroup(props: {
   readonly environmentId: EnvironmentId;
   readonly subagent: OrchestrationV2Subagent;
   readonly group: SubagentWorkflowGroup;
   readonly onOpen: (threadId: ThreadId) => void;
 }) {
-  const t = useTranslate();
   const { group } = props;
+  const gt = useGT();
+  const m = useMessages();
   const provider = useEnvironmentServerConfig(props.environmentId)?.providers.find(
     (candidate) => candidate.instanceId === props.subagent.providerInstanceId,
   );
   const [selected, setSelected] = useState<string | null>(null);
-  const rail = workflowRail(group);
+  const rail = workflowRail(group, m);
   const open = rail.find((item) => item.key === selected);
   const label = group.workflow.workflowName ?? group.workflow.title;
-  const statusLabel = resolveSubagentRowPresentation(props.subagent).statusLabel;
+  const statusLabel = resolveSubagentRowPresentation(props.subagent, false, m).statusLabel;
 
   return (
     <View className="my-2">
@@ -81,8 +68,8 @@ export function ThreadWorkflowGroup(props: {
         <View className="flex-row items-center">
           <RowPressable
             accessibilityRole="button"
-            accessibilityLabel={t("{label} workflow, {status}", { label, status: statusLabel })}
-            accessibilityHint={open ? t("Collapses the workflow") : t("Opens the current phase")}
+            accessibilityLabel={gt("{label} workflow, {status}", { label, status: statusLabel })}
+            accessibilityHint={open ? gt("Collapses the workflow") : gt("Opens the current phase")}
             accessibilityState={{ expanded: open !== undefined }}
             disabled={rail.length === 0}
             onPress={() => setSelected(nextWorkflowSelection(rail, selected))}
@@ -128,15 +115,21 @@ export function ThreadWorkflowGroup(props: {
                   selected={item.key === selected}
                   accessibilityLabel={
                     count
-                      ? t("{title} phase, {status}, {count} completed", {
-                          title: item.title,
-                          status: railToneLabel(t, item.tone),
-                          count,
-                        })
-                      : t("{title} phase, {status}", {
-                          title: item.title,
-                          status: railToneLabel(t, item.tone),
-                        })
+                      ? gt(
+                          "{title} phase, {tone, select, working {working} completed {completed} failed {failed} stopped {stopped} other {queued}}, {count} completed",
+                          {
+                            title: item.title,
+                            tone: item.tone,
+                            count,
+                          },
+                        )
+                      : gt(
+                          "{title} phase, {tone, select, working {working} completed {completed} failed {failed} stopped {stopped} other {queued}}",
+                          {
+                            title: item.title,
+                            tone: item.tone,
+                          },
+                        )
                   }
                   onPress={() => setSelected(nextWorkflowSelection(rail, selected, item.key))}
                 />
@@ -149,7 +142,7 @@ export function ThreadWorkflowGroup(props: {
             textRole="footnote"
             className="border-t border-border-subtle px-4 py-3 text-foreground-muted"
           >
-            {t("No agents yet")}
+            <T>No agents yet</T>
           </Text>
         ) : (
           open.members.map((member) => (
@@ -173,22 +166,27 @@ function WorkflowMemberRow(props: {
   readonly provider: ServerProvider | undefined;
   readonly onOpen: (threadId: ThreadId) => void;
 }) {
-  const t = useTranslate();
   const { member } = props;
+  const gt = useGT();
+  const m = useMessages();
   const threadId = member.childThreadId === null ? null : ThreadId.make(member.childThreadId);
   const shell = useThreadShell(
     threadId === null ? null : scopeThreadRef(props.environmentId, threadId),
   );
   const canOpen = threadId !== null && shell !== null;
-  const presentation = resolveSubagentRowPresentation({
-    title: member.title,
-    prompt: "",
-    status: member.status,
-    result: null,
-    childThreadId: threadId,
-  });
+  const presentation = resolveSubagentRowPresentation(
+    {
+      title: member.title,
+      prompt: "",
+      status: member.status,
+      result: null,
+      childThreadId: threadId,
+    },
+    false,
+    m,
+  );
   const { detail, error } = workflowMemberDetail(member);
-  const metadata = workflowMemberMetadata(member, props.provider);
+  const metadata = workflowMemberMetadata(member, props.provider, m);
   const labels = [metadata.model, metadata.effort].filter((value) => value !== null);
   return (
     <RowPressable
@@ -201,7 +199,7 @@ function WorkflowMemberRow(props: {
         ...(error === null ? [] : [error]),
       ].join(", ")}
       accessibilityHint={
-        canOpen ? t("Opens this agent's thread") : t("Its thread is not available yet")
+        canOpen ? gt("Opens this agent's thread") : gt("Its thread is not available yet")
       }
       disabled={!canOpen}
       onPress={() => threadId !== null && props.onOpen(threadId)}
@@ -314,6 +312,7 @@ type ElapsedTiming = Parameters<typeof deriveSubagentElapsedMs>[0];
 
 function useElapsedLabel(timing: ElapsedTiming): string | null {
   const nowMs = useVisibleSecondClock(isActiveSubagentStatus(timing.status));
+  const messages = useMessages();
   const elapsedMs = deriveSubagentElapsedMs(timing, nowMs);
-  return elapsedMs === null || elapsedMs === 0 ? null : formatDuration(elapsedMs);
+  return elapsedMs === null || elapsedMs === 0 ? null : formatDuration(elapsedMs, messages);
 }

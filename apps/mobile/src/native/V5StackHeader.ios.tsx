@@ -3,11 +3,11 @@ import type {
   NativeStackHeaderItemMenu,
   NativeStackNavigationOptions,
 } from "@react-navigation/native-stack";
+import { useGT } from "gt-react-native";
 import { isValidElement, useEffect, useRef } from "react";
 import { StyleSheet } from "react-native";
 import { KeyboardController, useKeyboardState } from "react-native-keyboard-controller";
 import { isDuoDevice } from "../lib/device-type";
-import { translate } from "../i18n/translate";
 import { useMobileNavigationTheme } from "../lib/useMobileNavigationTheme";
 import { useDeviceType, useNativeLayoutMetrics } from "./native-layout-metrics";
 import { HeaderItemsWidthContext } from "./header-items-width";
@@ -161,6 +161,7 @@ export function V5StackHeader(props: {
   readonly searchIdentifier?: string;
 }) {
   const { options } = props;
+  const gt = useGT();
   const theme = useMobileNavigationTheme();
   const nativeMetrics = useNativeLayoutMetrics();
   const deviceType = useDeviceType();
@@ -247,7 +248,7 @@ export function V5StackHeader(props: {
     const compose: HeaderItem = {
       type: "item",
       id: "workspace-compose",
-      title: "New task",
+      title: gt("New task"),
       icon: { type: "sfSymbol", name: "square.and.pencil" },
       onPress: props.onCompose,
     };
@@ -268,7 +269,7 @@ export function V5StackHeader(props: {
       {
         type: "item",
         id: "dismiss-keyboard",
-        title: translate("Dismiss keyboard"),
+        title: gt("Dismiss keyboard"),
         icon: { type: "sfSymbol", name: "keyboard.chevron.compact.down" },
         onPress: () => void KeyboardController.dismiss(),
         // The folded bar is short; keep this out of the overflow menu.
@@ -360,7 +361,11 @@ export function V5StackHeader(props: {
                 hideWhenScrolling={false}
                 allowToolbarIntegration={searchOptions?.allowToolbarIntegration ?? true}
                 placement={bottomSearch ? "integrated" : (searchOptions?.placement ?? "automatic")}
-                placeholder={mailSearch?.placeholder ?? searchOptions?.placeholder ?? "Search"}
+                placeholder={
+                  mailSearch?.placeholder ??
+                  searchOptions?.placeholder ??
+                  gt("Search", { $context: "search field placeholder" })
+                }
                 onFocus={(event) => {
                   searchOptions?.onFocus?.(event);
                 }}

@@ -1,227 +1,258 @@
-import { EnvironmentId, ProjectId } from "@t3tools/contracts";
-import * as Cause from "effect/Cause";
-import { AsyncResult } from "effect/reactivity";
-import { act, StrictMode, type ReactNode } from "react";
+import type { ReactNode } from "react";
+import { act } from "react";
+import * as React from "react";
 import { createRoot } from "react-dom/client";
+import type { EnvironmentProject } from "@t3tools/client-runtime/state/shell";
+import { EnvironmentId, ProjectId } from "@t3tools/contracts";
 import { expect, it, vi } from "vite-plus/test";
+import { retargetSavedNewTaskDraft } from "../../state/use-composer-drafts";
 
-const { Children, state, project } = vi.hoisted(() => ({
-  project: {
-    environmentId: "environment",
-    id: "existing",
-    title: "Existing project",
-    workspaceRoot: "/work/existing",
-  },
-  Children: ({ children }: { children?: ReactNode }) => children,
-  state: {
-    connected: true,
-    loading: false,
-    paired: true,
-    scratchSupported: true,
-    reconnecting: false,
-    openScratch: vi.fn(),
-    selectDetail: vi.fn(),
-    setProject: vi.fn(),
-    alert: vi.fn(),
-  },
-}));
-vi.mock("react-native", () => ({ Platform: { OS: "ios" }, View: Children, Pressable: Children }));
-vi.mock("@react-navigation/native", () => ({
-  useNavigation: () => ({
+const environmentId = EnvironmentId.make("env-1");
+
+function project(id: string, workspaceRoot: string): EnvironmentProject {
+  return {
+    environmentId,
+    id: ProjectId.make(id),
+    title: id,
+    workspaceRoot,
+    repositoryIdentity: null,
+    defaultModelSelection: null,
+    defaultThreadEnvMode: "worktree",
+    scripts: [],
+    createdAt: "2026-10-26T00:00:00Z",
+    updatedAt: "2026-10-26T00:00:00Z",
+  };
+}
+
+const regular = project("app", "/repo/app");
+const scratch = project("scratch", "/scratch");
+
+const harness = vi.hoisted(() => ({
+  setProject: vi.fn(),
+  openScratch: vi.fn(),
+  selectDetail: vi.fn(),
+  navigation: {
+    goBack: vi.fn(),
     getState: () => ({
-      routeNames: ["NewTaskProject"],
+      routeNames: ["Thread", "NewTaskProject"],
       index: 1,
-      routes: [
-        { name: "Thread", params: { draft: { projectId: "existing" } } },
-        { name: "NewTaskProject" },
-      ],
+      routes: [{ name: "Thread", params: { draft: {} } }, { name: "NewTaskProject" }],
     }),
-  }),
+    getParent: () => undefined,
+    canGoBack: () => true,
+    dispatch: vi.fn(),
+    navigate: vi.fn(),
+  },
+}));
+
+vi.mock("react-native", () => ({
+  Platform: { OS: "ios" },
+  View: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
+  Pressable: (props: {
+    accessibilityLabel: string;
+    disabled?: boolean;
+    onPress: () => void;
+    children?: ReactNode;
+  }) => (
+    <button aria-label={props.accessibilityLabel} disabled={props.disabled} onClick={props.onPress}>
+      {props.children}
+    </button>
+  ),
+}));
+vi.mock("react-native-safe-area-context", () => ({
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
+vi.mock("gt-react-native", () => ({
+  msg: (text: string) => text,
+  T: ({ children }: { children?: ReactNode }) => <>{children}</>,
+  useGT: () => (text: string) => text,
+  useMessages: () => (text: string) => text,
+}));
+vi.mock("@react-navigation/native", () => ({
+  StackActions: { push: (name: string) => ({ type: "PUSH", name }) },
+  useFocusEffect: (effect: () => () => void) => React.useEffect(effect, [effect]),
   useIsFocused: () => true,
+  useNavigation: () => harness.navigation,
 }));
-vi.mock("react-native-safe-area-context", () => ({ useSafeAreaInsets: () => ({ bottom: 0 }) }));
-vi.mock("../../components/ui/Dialog", () => ({ alert: state.alert }));
+vi.mock("../../components/ui/NavigationRow", () => ({
+  NavigationRow: (props: { title: string; disabled?: boolean; onPress?: () => void }) => (
+    <button aria-label={props.title} disabled={props.disabled === true} onClick={props.onPress}>
+      {props.title}
+    </button>
+  ),
+}));
+vi.mock("../../components/ui/Dialog", () => ({ alert: vi.fn() }));
 vi.mock("../../components/ui/AppActivityIndicator", () => ({ AppActivityIndicator: () => null }));
-vi.mock("../../components/ui/NavigationRow", () => ({ NavigationRow: () => null }));
-vi.mock("../../components/ui/AppBar", () => ({ AppBar: ({ title }: { title: string }) => title }));
-vi.mock("../../components/ui/AppSymbol", () => ({ SymbolView: () => null }));
-vi.mock("../../components/ui/ScreenContent", () => ({ ScreenContent: Children }));
-vi.mock("../../components/ui/ScreenScrollView", () => ({ ScreenScrollView: Children }));
-vi.mock("../../components/ui/AppText", () => ({ AppText: Children }));
-vi.mock("../../components/ui/Button", () => ({ Button: ({ label }: { label: string }) => label }));
-vi.mock("../../components/ProjectFavicon", () => ({ ProjectFavicon: () => null }));
+vi.mock("../../components/ui/AppBar", () => ({ AppBar: () => null }));
 vi.mock("../../components/LoadingScreen", () => ({
-  LoadingScreen: ({ message }: { message: string }) => message,
+  LoadingScreen: (props: { message: string }) => <p>{props.message}</p>,
 }));
+vi.mock("../../components/ui/AppSymbol", () => ({ SymbolView: () => null }));
+vi.mock("../../components/ui/Button", () => ({ Button: () => null }));
+vi.mock("../../components/ui/ScreenContent", () => ({
+  ScreenContent: ({ children }: { children?: ReactNode }) => <>{children}</>,
+}));
+vi.mock("../../components/ui/ScreenScrollView", () => ({
+  ScreenScrollView: ({ children }: { children?: ReactNode }) => <>{children}</>,
+}));
+vi.mock("../../components/ui/AppText", () => ({
+  AppText: ({ children }: { children?: ReactNode }) => <span>{children}</span>,
+}));
+vi.mock("../../components/ProjectFavicon", () => ({ ProjectFavicon: () => null }));
+vi.mock("../connection/environmentStatusText", () => ({ runtimeConnectionErrorText: () => null }));
 vi.mock("../../state/entities", () => ({
-  useProjects: () => (state.paired ? [project] : []),
-  useServerConfigs: () =>
-    new Map([["environment", state.scratchSupported ? { scratchWorkspaceRoot: "/scratch" } : {}]]),
+  useProjects: () => [regular, scratch],
+  useServerConfigs: () => new Map([[environmentId, { scratchWorkspaceRoot: "/scratch" }]]),
 }));
 vi.mock("../../state/projects", () => ({ projectEnvironment: { openScratch: {} } }));
-vi.mock("../../state/use-atom-command", () => ({ useAtomCommand: () => state.openScratch }));
-vi.mock("../../state/workspace", () => ({
-  useWorkspaceState: () => ({
-    state: {
-      isLoadingConnections: state.loading,
-      hasConnections: state.paired,
-      hasReadyEnvironment: state.connected,
-      hasConnectingEnvironment: state.loading || state.reconnecting,
-      hasLoadedShellSnapshot: !state.loading,
-      connectionState: state.connected ? "connected" : "available",
-      connectionError: null,
-    },
-  }),
-}));
+vi.mock("../../state/use-atom-command", () => ({ useAtomCommand: () => harness.openScratch }));
+vi.mock("../../state/use-composer-drafts", () => ({ retargetSavedNewTaskDraft: vi.fn() }));
 vi.mock("../../state/use-remote-environment-registry", () => ({
   useRemoteConnectionStatus: () => ({
-    connectedEnvironments: state.connected
-      ? [{ environmentId: "environment", connectionState: "connected" }]
-      : [],
+    connectedEnvironments: [{ environmentId, connectionState: "connected" }],
   }),
 }));
-vi.mock("../sharing/IncomingShareProvider", () => ({ useIncomingShare: () => ({}) }));
+vi.mock("../../state/workspace", () => ({
+  useWorkspaceState: () => ({ state: { hasReadyEnvironment: true } }),
+}));
+vi.mock("../sharing/IncomingShareProvider", () => ({
+  useIncomingShare: () => ({ getShare: () => null, releaseShareReservation: vi.fn() }),
+}));
+vi.mock("../layout/workspace/useSelectWorkspaceDetail", () => ({
+  useSelectWorkspaceDetail: () => harness.selectDetail,
+}));
 vi.mock("./new-task-flow-provider", () => ({
   useNewTaskFlow: () => ({
-    projectScopes: state.paired
-      ? [
-          {
-            key: "existing",
-            title: project.title,
-            representative: project,
-            projects: [project],
-            projectRefs: [{ environmentId: project.environmentId, projectId: project.id }],
-          },
-        ]
-      : [],
-    selectedEnvironmentId: "environment",
-    setProject: state.setProject,
+    projectScopes: [
+      {
+        key: "app",
+        title: "app",
+        representative: regular,
+        projects: [regular],
+        projectRefs: [],
+        pinned: false,
+        archived: false,
+      },
+    ],
+    selectedEnvironmentId: environmentId,
+    setProject: harness.setProject,
   }),
-}));
-vi.mock("../workspace/useSelectWorkspaceDetail", () => ({
-  useSelectWorkspaceDetail: () => state.selectDetail,
 }));
 
 import { NewTaskRouteScreen } from "./NewTaskRouteScreen";
 
-async function setup(
-  options: {
-    shortcut?: boolean;
-    loading?: boolean;
-    paired?: boolean;
-    scratchSupported?: boolean;
-    reconnecting?: boolean;
-  } = {},
-) {
-  vi.clearAllMocks();
-  Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
-  state.loading = options.loading ?? false;
-  state.scratchSupported = options.scratchSupported ?? true;
-  state.reconnecting = options.reconnecting ?? false;
-  state.paired = options.paired ?? true;
-  state.connected = state.paired && !state.loading;
-  const result =
-    Promise.withResolvers<
-      AsyncResult.AsyncResult<{ environmentId: EnvironmentId; id: ProjectId }, Error>
-    >();
-  state.openScratch.mockReturnValue(result.promise);
+it("opens No project once from the Action button and keeps its focus request", async () => {
+  (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+  const opening = Promise.withResolvers<unknown>();
+  harness.openScratch.mockReset().mockReturnValue(opening.promise);
+  harness.selectDetail.mockClear();
+  harness.setProject.mockClear();
+
   const container = document.createElement("div");
-  document.body.append(container);
   const root = createRoot(container);
-  const render = () =>
-    act(async () => {
-      root.render(
-        <StrictMode>
-          <NewTaskRouteScreen
-            route={{
-              params:
-                options.shortcut === false
-                  ? {}
-                  : { startWithoutProject: true, requestId: "shortcut" },
-            }}
-          />
-        </StrictMode>,
-      );
-    });
-  await render();
+  using _root = { [Symbol.dispose]: () => act(() => root.unmount()) };
+  const route = { params: { startWithoutProject: true, requestId: "shortcut" } } as never;
+  act(() => root.render(<NewTaskRouteScreen route={route} />));
+  act(() => root.render(<NewTaskRouteScreen route={route} />));
+
+  expect(harness.openScratch).toHaveBeenCalledTimes(1);
+  expect(container.textContent).toContain("Opening new task…");
+  await act(async () => opening.resolve({ _tag: "Success", value: scratch }));
+
+  expect(harness.setProject).not.toHaveBeenCalled();
+  expect(harness.selectDetail.mock.calls).toEqual([
+    [
+      {
+        name: "Thread",
+        params: {
+          draft: { requestId: "shortcut", environmentId, projectId: scratch.id },
+        },
+      },
+    ],
+  ]);
+});
+
+it("keeps the project picked while No project was still opening", async () => {
+  (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+  const opening = Promise.withResolvers<unknown>();
+  harness.openScratch.mockReturnValue(opening.promise);
+
+  const container = document.createElement("div");
+  const root = createRoot(container);
+  using _root = { [Symbol.dispose]: () => act(() => root.unmount()) };
+  act(() => root.render(<NewTaskRouteScreen route={{ params: undefined } as never} />));
+  const row = (label: string) => container.querySelector<HTMLElement>(`[aria-label="${label}"]`)!;
+
+  act(() => row("No project").click());
+  await act(async () => row("app").click());
+  await act(async () => opening.resolve({ _tag: "Success", value: scratch }));
+
+  expect(harness.setProject.mock.calls).toEqual([[regular]]);
+  expect(harness.navigation.goBack).toHaveBeenCalledTimes(1);
+});
+
+function renderWithSavedDraft() {
+  (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+  const opening = Promise.withResolvers<unknown>();
+  const retargeting = Promise.withResolvers<boolean>();
+  harness.openScratch.mockReturnValue(opening.promise);
+  vi.mocked(retargetSavedNewTaskDraft)
+    .mockReset()
+    .mockImplementation((_draftId, target) =>
+      target.projectId === scratch.id ? retargeting.promise : Promise.resolve(true),
+    );
+  harness.selectDetail.mockClear();
+
+  const container = document.createElement("div");
+  const root = createRoot(container);
+  const route = { params: { draftId: "existing-draft" } } as never;
+  act(() => root.render(<NewTaskRouteScreen key="first" route={route} />));
   return {
-    container,
-    render,
-    result,
-    async [Symbol.asyncDispose]() {
-      await act(async () => root.unmount());
-      container.remove();
-    },
+    opening,
+    retargeting,
+    root,
+    route,
+    row: (label: string) => container.querySelector<HTMLElement>(`[aria-label="${label}"]`)!,
+    [Symbol.dispose]: () => act(() => root.unmount()),
   };
 }
 
-it("opens the no-project workspace once and preserves the shortcut focus request", async () => {
-  await using screen = await setup();
-  expect(state.openScratch).toHaveBeenCalledTimes(1);
-  expect(screen.container.textContent).not.toContain("Choose project");
-  expect(state.setProject).not.toHaveBeenCalled();
-  await act(async () =>
-    screen.result.resolve(
-      AsyncResult.success({
-        environmentId: EnvironmentId.make("environment"),
-        id: ProjectId.make("scratch"),
-      }),
-    ),
-  );
-  expect(state.selectDetail).toHaveBeenCalledExactlyOnceWith({
-    name: "Thread",
-    params: {
-      draft: {
-        requestId: "shortcut",
-        environmentId: "environment",
-        projectId: "scratch",
-        incomingShareId: undefined,
-      },
+const appDraftSelection = [
+  [
+    {
+      name: "Thread",
+      params: { draft: { environmentId, projectId: regular.id, draftId: "existing-draft" } },
     },
+  ],
+];
+
+it("keeps the picked project after backing out and reopening while No project is pending", async () => {
+  using screen = renderWithSavedDraft();
+
+  act(() => screen.row("No project").click());
+  act(() => screen.root.render(null));
+  act(() => screen.root.render(<NewTaskRouteScreen key="second" route={screen.route} />));
+  await act(async () => screen.row("app").click());
+  await act(async () => {
+    screen.opening.resolve({ _tag: "Success", value: scratch });
+    screen.retargeting.resolve(true);
   });
+
+  expect(harness.selectDetail.mock.calls).toEqual(appDraftSelection);
 });
 
-it("waits for cold-launch connections before opening the no-project workspace", async () => {
-  await using screen = await setup({ loading: true });
-  expect(state.openScratch).not.toHaveBeenCalled();
-  expect(screen.container.textContent).not.toContain("Choose project");
-  state.loading = false;
-  state.connected = true;
-  await screen.render();
-  expect(state.openScratch).toHaveBeenCalledTimes(1);
-});
+it("cancels the No project draft retarget when another project is picked", async () => {
+  using screen = renderWithSavedDraft();
 
-it("keeps the existing add-environment flow on an unpaired device", async () => {
-  await using screen = await setup({ paired: false });
-  expect(state.openScratch).not.toHaveBeenCalled();
-  expect(screen.container.textContent).toContain("No environments connected");
-  expect(screen.container.textContent).toContain("Add environment");
-});
+  act(() => screen.row("No project").click());
+  await act(async () => screen.opening.resolve({ _tag: "Success", value: scratch }));
+  const scratchSignal = vi
+    .mocked(retargetSavedNewTaskDraft)
+    .mock.calls.find(([, target]) => target.projectId === scratch.id)?.[2];
+  expect(scratchSignal?.aborted).toBe(false);
+  await act(async () => screen.row("app").click());
+  expect(scratchSignal?.aborted).toBe(true);
+  await act(async () => screen.retargeting.resolve(true));
 
-it("keeps ordinary project selection manual", async () => {
-  await using screen = await setup({ shortcut: false });
-  expect(state.openScratch).not.toHaveBeenCalled();
-  expect(screen.container.textContent).toContain("Choose project");
-});
-
-it("shows the existing recovery flow after a no-project request fails without retrying automatically", async () => {
-  await using screen = await setup();
-  await act(async () =>
-    screen.result.resolve(AsyncResult.failure(Cause.fail(new Error("Server unavailable")))),
-  );
-  expect(state.alert).toHaveBeenCalledWith(
-    "Could not start without a project",
-    "Server unavailable",
-  );
-  expect(state.selectDetail).not.toHaveBeenCalled();
-  expect(screen.container.textContent).toContain("Choose project");
-  await screen.render();
-  expect(state.openScratch).toHaveBeenCalledTimes(1);
-});
-
-it("does not wait forever for another environment when the connected server has no no-project workspace", async () => {
-  await using screen = await setup({ scratchSupported: false, reconnecting: true });
-  expect(state.openScratch).not.toHaveBeenCalled();
-  expect(screen.container.textContent).toContain("Choose project");
-  expect(screen.container.textContent).not.toContain("Opening new task");
+  expect(harness.selectDetail.mock.calls).toEqual(appDraftSelection);
 });

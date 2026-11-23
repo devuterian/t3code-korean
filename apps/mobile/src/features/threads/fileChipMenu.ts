@@ -4,6 +4,9 @@ import type { ThreadId } from "@t3tools/contracts";
 import { resolveMarkdownLinkPresentation } from "../../lib/markdownLinks";
 import type { MarkdownFileContextMenu } from "../../native/SelectableMarkdownText.types";
 import { hostPreviewMimeTypeFromExtension } from "@t3tools/shared/filePreview";
+import { msg } from "gt-react-native";
+
+import { m, type MessageResolver } from "../../i18n/messages";
 
 import {
   isAbsolutePath,
@@ -11,7 +14,6 @@ import {
   resolveWorkspaceFilePath,
   resolveWorkspaceRelativeFilePath,
 } from "../files/filePath";
-import { translate } from "../../i18n/translate";
 
 export interface FileChipTarget {
   readonly fullPath?: string;
@@ -68,20 +70,23 @@ export function fileChipShareSource(target: FileChipTarget, threadId: ThreadId) 
     : null;
 }
 
-export function fileChipMenu(target: FileChipTarget): MarkdownFileContextMenu {
+export function fileChipMenu(
+  target: FileChipTarget,
+  resolve: MessageResolver = m,
+): MarkdownFileContextMenu {
   return {
     title: target.fullPath ?? target.relativePath ?? "",
     actions: [
-      ...(target.fullPath ? [{ id: "copy-full-path", title: translate("Copy full path") }] : []),
+      ...(target.fullPath ? [{ id: "copy-full-path", title: resolve(msg("Copy full path")) }] : []),
       ...(target.relativePath
-        ? [{ id: "copy-relative-path", title: translate("Copy relative path") }]
+        ? [{ id: "copy-relative-path", title: resolve(msg("Copy relative path")) }]
         : []),
-      { id: "open-file", title: translate("Open in file viewer") },
+      { id: "open-file", title: resolve(msg("Open in file viewer")) },
       ...(fileChipMetadata(target)
         ? [
             {
               id: "save",
-              title: translate("Save or share"),
+              title: resolve(msg("Save or share")),
             },
           ]
         : []),

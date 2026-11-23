@@ -1,3 +1,5 @@
+import { msg } from "gt-react";
+import { m } from "../i18n/messages";
 import {
   type EnvironmentThreadShell,
   type PendingSubagentRequest,
@@ -19,7 +21,6 @@ import {
 } from "lucide-react";
 
 import { getClientSettings, subscribeClientSettings } from "../hooks/useSettings";
-import { translate } from "../i18n/translate";
 import { isWindowsPlatform } from "../lib/utils";
 import { environmentSummaries } from "../state/presentation";
 import { environmentShell } from "../state/shell";
@@ -153,16 +154,16 @@ export function startThreadNotifications(
     const active = activeThread();
     const title =
       kind === "completion"
-        ? translate("Thread completed")
+        ? m(msg("Thread completed"))
         : status === "approval"
-          ? translate("Approval needed")
+          ? m(msg("Approval needed"))
           : status === "limited"
-            ? translate("Usage limit reached")
+            ? m(msg("Usage limit reached"))
             : status === "failed"
-              ? translate("Thread failed")
+              ? m(msg("Thread failed"))
               : status === "request"
-                ? translate("Guest request")
-                : translate("Input needed");
+                ? m(msg("Guest request"))
+                : m(msg("Input needed"));
     // Auto-switch covers only the focused-window case: in the background the OS
     // notification is the attention signal, and switching a hidden window changes
     // nothing the user can see.
@@ -215,7 +216,7 @@ export function startThreadNotifications(
             ),
         },
         actionProps: {
-          children: translate("Open thread"),
+          children: m(msg("Open thread")),
           onClick: () => {
             toastManager.close(toastId);
             void router.navigate({

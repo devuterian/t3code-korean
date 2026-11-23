@@ -1,9 +1,10 @@
-import { useAtomSet, useAtomValue } from "@effect/atom-react";
+import { useAtomValue } from "@effect/atom-react";
 import * as Effect from "effect/Effect";
 import { AsyncResult } from "effect/reactivity";
 import { Camera } from "expo-camera";
 import Constants from "expo-constants";
 import * as Notifications from "expo-notifications";
+import { msg, useGT, useMessages } from "gt-react-native";
 import type { ComponentProps } from "react";
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { AppState, Linking, Modal, Platform, ScrollView, View } from "react-native";
@@ -12,9 +13,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText as Text } from "../../components/ui/AppText";
 import { SymbolView } from "../../components/ui/AppSymbol";
 import { Button } from "../../components/ui/Button";
-import { useTranslate } from "../../i18n/translate";
 import { AppInstaller } from "../../native/appInstaller";
-import { mobilePreferencesAtom, updateMobilePreferencesAtom } from "../../state/preferences";
+import { mobilePreferencesAtom, saveMobilePreferences } from "../../state/preferences";
+import { useAtomCommand } from "../../state/use-atom-command";
 import { requestAgentNotificationPermission } from "../agent-awareness/notificationPermissions";
 import {
   ANDROID_PERMISSION_IDS,
@@ -93,7 +94,7 @@ export function AndroidPermissionsOnboarding() {
 
 function AndroidPermissionsOnboardingHost() {
   const preferences = useAtomValue(mobilePreferencesAtom);
-  const savePreferences = useAtomSet(updateMobilePreferencesAtom);
+  const savePreferences = useAtomCommand(saveMobilePreferences);
   const reopen = useSyncExternalStore(subscribeOpen, () => openRequested);
   const [visible, setVisible] = useState(false);
   const [statuses, setStatuses] = useState<Statuses | null>(null);
@@ -110,8 +111,10 @@ function AndroidPermissionsOnboardingHost() {
   }, []);
 
   // Decide once per launch, after stored preferences load.
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- Decides once per launch, after stored preferences load.
   useEffect(() => {
     if (decided || !AsyncResult.isSuccess(preferences)) return;
+    // oxlint-disable-next-line react/set-state-in-effect -- Marks the one-per-launch decision before reading native permission statuses.
     setDecided(true);
     const stored = preferences.value.androidPermissionsOnboarding;
     void refresh().then((next) => {
@@ -122,13 +125,16 @@ function AndroidPermissionsOnboardingHost() {
     });
   }, [decided, preferences, refresh]);
 
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- Opens on request from outside the React tree.
   useEffect(() => {
     if (!reopen) return;
     openRequested = false;
+    // oxlint-disable-next-line react/set-state-in-effect -- Opens after the native permission statuses are read.
     void refresh().then(() => setVisible(true));
   }, [reopen, refresh]);
 
   // Grants made in system settings land while the app is in the background.
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- Re-reads permissions when the app returns from system settings.
   useEffect(() => {
     if (!visible) return;
     const subscription = AppState.addEventListener("change", (state) => {
@@ -140,7 +146,7 @@ function AndroidPermissionsOnboardingHost() {
   const close = useCallback(() => {
     setVisible(false);
     void refresh().then((latest) => {
-      savePreferences({
+      void savePreferences({
         androidPermissionsOnboarding: {
           seenVersion: currentAppVersion(),
           granted: latest ? grantedIds(latest) : [],
@@ -172,20 +178,20 @@ const ROWS: ReadonlyArray<{
   {
     id: "notifications",
     icon: "bell.badge",
-    title: "Notifications",
-    reason: "Get a heads-up when an agent finishes or needs your answer.",
+    title: msg("Notifications"),
+    reason: msg("Get a heads-up when an agent finishes or needs your answer."),
   },
   {
     id: "camera",
     icon: "qrcode.viewfinder",
-    title: "Camera",
-    reason: "Scan the pairing QR code to connect to a computer.",
+    title: msg("Camera"),
+    reason: msg("Scan the pairing QR code to connect to a computer."),
   },
   {
     id: "installPackages",
     icon: "arrow.down.circle",
-    title: "Install updates",
-    reason: "Install new versions of this app from GitHub without a computer.",
+    title: msg("Install updates"),
+    reason: msg("Install new versions of this app from GitHub without a computer."),
   },
 ];
 
@@ -194,7 +200,8 @@ function PermissionsScreen(props: {
   readonly onClose: () => void;
   readonly onRefresh: () => Promise<Statuses | null>;
 }) {
-  const t = useTranslate();
+  const gt = useGT();
+  const m = useMessages();
   const insets = useSafeAreaInsets();
   const [busy, setBusy] = useState(false);
   const allGranted = ANDROID_PERMISSION_IDS.every((id) => props.statuses[id] === "granted");
@@ -237,9 +244,9 @@ function PermissionsScreen(props: {
     >
       <ScrollView className="flex-1" contentContainerClassName="gap-6 px-5 pb-6 pt-10">
         <View className="gap-2">
-          <Text className="text-3xl font-t3-bold text-foreground">{t("Set up permissions")}</Text>
+          <Text className="text-3xl font-t3-bold text-foreground">{gt("Set up permissions")}</Text>
           <Text className="text-base text-foreground-muted">
-            {t("T3 Code asks only for what it uses. You can change these any time in Settings.")}
+            {gt("T3 Code asks only for what it uses. You can change these any time in Settings.")}
           </Text>
         </View>
         <View className="overflow-hidden rounded-3xl bg-grouped-card">
@@ -262,8 +269,8 @@ function PermissionsScreen(props: {
                   weight="regular"
                 />
                 <View className="min-w-0 flex-1 gap-1">
-                  <Text className="text-base text-foreground">{t(row.title)}</Text>
-                  <Text className="text-sm text-foreground-muted">{t(row.reason)}</Text>
+                  <Text className="text-base text-foreground">{m(row.title)}</Text>
+                  <Text className="text-sm text-foreground-muted">{m(row.reason)}</Text>
                 </View>
                 {status === "granted" ? (
                   <View className="flex-row items-center gap-1">
@@ -272,12 +279,12 @@ function PermissionsScreen(props: {
                       size={18}
                       tintColorClassName="accent-icon"
                     />
-                    <Text className="text-sm text-foreground-muted">{t("Allowed")}</Text>
+                    <Text className="text-sm text-foreground-muted">{gt("Allowed")}</Text>
                   </View>
                 ) : (
                   <Button
                     disabled={busy}
-                    label={status === "blocked" ? t("Open settings") : t("Allow")}
+                    label={status === "blocked" ? gt("Open settings") : gt("Allow")}
                     onPress={() => void request(row.id)}
                   />
                 )}
@@ -288,12 +295,12 @@ function PermissionsScreen(props: {
       </ScrollView>
       <View className="flex-row justify-end gap-2 px-5 pb-4 pt-2">
         {allGranted ? (
-          <Button label={t("Done")} tone="primary" onPress={props.onClose} />
+          <Button label={gt("Done")} tone="primary" onPress={props.onClose} />
         ) : (
           <>
-            <Button label={t("Later")} tone="text" onPress={props.onClose} />
+            <Button label={gt("Later")} tone="text" onPress={props.onClose} />
             <Button
-              label={t("Allow all")}
+              label={gt("Allow all")}
               loading={busy}
               tone="primary"
               onPress={() => void requestAll()}

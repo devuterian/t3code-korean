@@ -17,7 +17,6 @@ import { AsyncResult } from "effect/reactivity";
 
 import { resolveAssetUrl } from "~/assets/assetUrls";
 import { isPreviewAvailableFor, previewRuntimeFor } from "~/browser/previewRuntime";
-import { translate } from "~/i18n/translate";
 import {
   applyPreviewServerSnapshot,
   readThreadPreviewState,
@@ -32,6 +31,8 @@ import {
 } from "~/rightPanelStore";
 
 import { resolveBrowserDefaults } from "./browserDefaults";
+import { msg } from "gt-react";
+import { m } from "~/i18n/messages";
 
 export const isBrowserPreviewFile = (path: string): boolean =>
   /\.(?:html?|pdf)$/i.test(path.split(/[?#]/, 1)[0] ?? "");
@@ -46,7 +47,7 @@ export class BrowserSettingsReadError extends Schema.TaggedError<BrowserSettings
   { cause: Schema.Defect() },
 ) {
   override get message(): string {
-    return translate("Saved browser settings could not be loaded.");
+    return m(msg("Saved browser settings could not be loaded."));
   }
 }
 
@@ -130,7 +131,7 @@ export async function openFileInPreview<AssetError, PreviewError>(input: {
     return AsyncResult.failure(
       Cause.fail(
         new BrowserPreviewUnavailableError({
-          message: translate("The integrated browser is unavailable in this runtime."),
+          message: m(msg("The integrated browser is unavailable in this runtime.")),
         }),
       ),
     );
