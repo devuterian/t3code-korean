@@ -87,18 +87,22 @@ export T3CODE_DESKTOP_UPDATE_REPOSITORY="$UPDATE_REPOSITORY"
 export T3CODE_MAC_SIGN_IDENTITY T3CODE_MAC_SIGN_KEYCHAIN
 
 cd "$REPO_ROOT"
+# T3K_MAC_TARGET=zip skips the dmg when this Mac cannot create disk images (hdiutil
+# failing); installed apps update from the zip, so the release still updates them.
+MAC_TARGET="${T3K_MAC_TARGET:-dmg}"
 node scripts/build-desktop-artifact.ts \
-  --platform mac --target dmg --arch arm64 \
+  --platform mac --target "$MAC_TARGET" --arch arm64 \
   --build-version "$VERSION" --output-dir "$OUTPUT_DIR"
 
 BASE="T3-Code-Korean-${VERSION}-mac-arm64"
 FILES=(
-  "$BASE.dmg"
-  "$BASE.dmg.blockmap"
   "$BASE.zip"
   "$BASE.zip.blockmap"
   "latest-mac.yml"
 )
+if [[ "$MAC_TARGET" == "dmg" ]]; then
+  FILES+=("$BASE.dmg" "$BASE.dmg.blockmap")
+fi
 for file in "${FILES[@]}"; do
   if [[ ! -f "$OUTPUT_DIR/$file" ]]; then
     echo "error: expected $OUTPUT_DIR/$file was not produced." >&2

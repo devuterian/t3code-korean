@@ -123,6 +123,11 @@ T3CODE_LOGIN_KEYCHAIN_PASSWORD="<from passage>" \
   bash scripts/korean-release-mac.sh "$VERSION" "$PWD/release-$VERSION" 2>&1 | tee /tmp/t3k-mac-build.log
 ```
 
+If the dmg step fails with `hdiutil: attach failed` (seen on 2026-11-23 on
+macOS 27.2 after the disk filled up; even a 20 MB test image would not attach),
+build with `T3K_MAC_TARGET=zip`: installed apps update from the zip, and the dmg
+can be added to the release after a reboot.
+
 Never keep a second copy of the app (a renamed old build, a mounted dmg) on
 this Mac: both share the `com.marierie.t3code-korean` bundle id, so macOS
 keeps showing permission prompts under the other copy's name.
