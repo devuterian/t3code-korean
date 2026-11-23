@@ -97,7 +97,7 @@
   },
   "32607": {
     "title": "fix(web): move overlay panel tabs below native window controls",
-    "asked": "2026-11-16",
+    "asked": "2026-11-23",
     "decision": "pending"
   },
   "32915": {
@@ -139,7 +139,8 @@
   "33057": {
     "title": "feat(web): sidebar folder button picks or adds a project",
     "asked": "2026-11-16",
-    "decision": "pending"
+    "decision": "merged-upstream",
+    "answered": "2026-11-23"
   },
   "37225": {
     "title": "fix(server): a delegated task still reaches its parent when its first update fails",
@@ -182,5 +183,45 @@
     "asked": "2026-11-17",
     "decision": "yes",
     "answered": "2026-11-17"
+  },
+  "40773": {
+    "title": "fix(server): Full access Codex no longer asks before dangerous commands",
+    "asked": "2026-11-23",
+    "decision": "pending"
+  },
+  "40085": {
+    "title": "fix(server): Claude plugin MCP servers no longer flood threads with sign-in notices",
+    "asked": "2026-11-23",
+    "decision": "pending"
+  },
+  "40612": {
+    "title": "fix(shared): macOS bare spawns no longer allocate ghost PIDs for each PATH miss",
+    "asked": "2026-11-23",
+    "decision": "pending"
+  },
+  "40505": {
+    "title": "fix(desktop): preserve UTC timestamps in macOS update zips with ditto",
+    "asked": "2026-11-23",
+    "decision": "pending"
+  },
+  "40347": {
+    "title": "fix(desktop): a link opened while the macOS window is closed opens a window",
+    "asked": "2026-11-23",
+    "decision": "pending"
+  },
+  "40391": {
+    "title": "fix(server): settled threads no longer send mobile completion pushes",
+    "asked": "2026-11-23",
+    "decision": "pending"
+  },
+  "40359": {
+    "title": "fix(server): a worktree branch rename no longer reports failure after Git renamed it",
+    "asked": "2026-11-23",
+    "decision": "pending"
+  },
+  "40692": {
+    "title": "fix(server): Claude Auto asks before commands Claude escalates",
+    "asked": "2026-11-23",
+    "decision": "pending"
   }
 }

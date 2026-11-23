@@ -7,7 +7,7 @@ progress, no `rm` (move to Trash), confirm before deleting big things.
 
 Paths: repo `/Users/marie/.t3/projects/t3code-korean`, Windows checkout
 `C:\Users\marie\src\t3code-korean-v3` on `ssh DESKTOP-BCUC43S` (PowerShell).
-Node 26 on the Mac: `source ~/.nvm/nvm.sh; nvm use 26.12.1; export PATH="$PWD/node_modules/.bin:$PATH"`.
+Node 26 on the Mac: `source ~/.nvm/nvm.sh; nvm use 26.13.1; export PATH="$PWD/node_modules/.bin:$PATH"`.
 In zsh, write `"${TAG}:path"`, never `$TAG:path` (`:a`, `:r` are modifiers).
 
 ## 0. Before starting
@@ -153,7 +153,9 @@ ssh DESKTOP-BCUC43S 'cd C:\Users\marie\src\t3code-korean-v3; $env:PATH="$PWD\nod
 scp "DESKTOP-BCUC43S:C:/Users/marie/src/t3code-korean-v3/release-<VERSION>-win/<file>" <local dir>   # one file per scp
 ```
 
-If the Windows PC is offline, push the branch and run the same script on a
+The Windows PC has no Python since upstream v0.1.12 started requiring it for
+node-gyp (preflight error `Python 3 for node-gyp`). Unless someone installs it,
+use the GitHub runner below. If the Windows PC is offline, push the branch and run the same script on a
 GitHub runner (the repo is public, so it costs nothing), then download its
 artifact:
 
@@ -189,6 +191,11 @@ which briefly edit tracked files), smoke-tests the archive on the host, and writ
 `t3-$VERSION-linux-arm64.tar.gz` plus `SHA256SUMS`. The host keeps its tools and
 checkout under `~/build` between runs; do not touch the other services there.
 
+Mac arm64 CLI archive (a T3 server for Macs without the app), after the Mac app:
+`bash scripts/korean-release-darwin-arm64.sh "$VERSION" "$PWD/release-$VERSION-darwin"`.
+Its SHA256SUMS lists only the darwin archive; upload one SHA256SUMS that
+concatenates the Linux arm64 and darwin files.
+
 Linux x64 AppImage (the desktop app on 마리리's Surface Pro 9, Fedora): it is
 built on a GitHub runner, so it needs the commit on `origin`. Run it at the
 start of step 8, right after pushing the branch. The workflow file lives on
@@ -214,8 +221,8 @@ refuses a non-empty one.
 Push the branch and tag `v$VERSION` to `origin` (never to `upstream`). Create
 the release as a draft on `devuterian/t3code-korean`, upload all files (mac:
 dmg, dmg.blockmap, zip, zip.blockmap, latest-mac.yml; Windows: exe,
-exe.blockmap, latest.yml; Android: the arm64 APK; Linux: the arm64 tar.gz and
-`SHA256SUMS`; Linux x64: the AppImage and `latest-linux.yml`), then publish it as the latest release (not a
+exe.blockmap, latest.yml; Android: the arm64 APK; Linux: the arm64 tar.gz; Mac CLI: the darwin
+arm64 tar.gz; one merged `SHA256SUMS`; Linux x64: the AppImage and `latest-linux.yml`), then publish it as the latest release (not a
 pre-release). Notes in Korean 해요체: what changed for users (from upstream's
 release notes and our changes), install notes per platform, source branch and
 commit. Afterwards download `releases/latest/download/latest-mac.yml`,
@@ -232,7 +239,7 @@ release Mac and Windows anyway and say so in the report.
 
 마리리's Galaxy Z Flip5 runs the Linux arm64 archive as a T3 server (Termux,
 proot Debian, `t3 serve --lan`), reached by the Mac app at
-`z-flip5.tailbda46.ts.net:3773`. Move it to the release you just published.
+`z-flip5.tail.lost.plus:3773`. Move it to the release you just published.
 `ssh z-flip5` (port 8022, the alias sits above the fleet block in
 `~/.ssh/config`) lands in Termux, not in Debian. The Debian root is
 `$R=/data/data/com.termux/files/usr/var/lib/proot-distro/containers/debian/rootfs`.
@@ -258,7 +265,7 @@ proot Debian, `t3 serve --lan`), reached by the Mac app at
    carries the hostname shim (`LD_PRELOAD`) and `PATH` the server needs.
 
 5. After 30 seconds,
-   `curl -s http://z-flip5.tailbda46.ts.net:3773/.well-known/t3/environment`
+   `curl -s http://z-flip5.tail.lost.plus:3773/.well-known/t3/environment`
    must show `"label":"z-flip5"` and `"serverVersion":"$VERSION"`. If not,
    point the link back at the old version, restart, and report the failure.
 6. Clean up on the phone with Debian's trash-cli, never `rm` (`trash-list`
