@@ -98,7 +98,8 @@
   "32607": {
     "title": "fix(web): move overlay panel tabs below native window controls",
     "asked": "2026-11-23",
-    "decision": "pending"
+    "decision": "yes",
+    "answered": "2026-11-23"
   },
   "32915": {
     "title": "fix(server): keep Codex loaded when reasoning effort changes",
@@ -187,41 +188,50 @@
   "40773": {
     "title": "fix(server): Full access Codex no longer asks before dangerous commands",
     "asked": "2026-11-23",
-    "decision": "pending"
+    "decision": "yes",
+    "answered": "2026-11-23"
   },
   "40085": {
     "title": "fix(server): Claude plugin MCP servers no longer flood threads with sign-in notices",
     "asked": "2026-11-23",
-    "decision": "pending"
+    "decision": "yes",
+    "answered": "2026-11-23"
   },
   "40612": {
     "title": "fix(shared): macOS bare spawns no longer allocate ghost PIDs for each PATH miss",
     "asked": "2026-11-23",
-    "decision": "pending"
+    "decision": "yes",
+    "answered": "2026-11-23"
   },
   "40505": {
     "title": "fix(desktop): preserve UTC timestamps in macOS update zips with ditto",
     "asked": "2026-11-23",
-    "decision": "pending"
+    "decision": "yes",
+    "answered": "2026-11-23"
   },
   "40347": {
     "title": "fix(desktop): a link opened while the macOS window is closed opens a window",
     "asked": "2026-11-23",
-    "decision": "pending"
+    "decision": "yes",
+    "answered": "2026-11-23"
   },
   "40391": {
     "title": "fix(server): settled threads no longer send mobile completion pushes",
     "asked": "2026-11-23",
-    "decision": "pending"
+    "decision": "yes",
+    "answered": "2026-11-23"
   },
   "40359": {
     "title": "fix(server): a worktree branch rename no longer reports failure after Git renamed it",
     "asked": "2026-11-23",
-    "decision": "pending"
+    "decision": "merged-upstream",
+    "answered": "2026-11-23",
+    "note": "upstream #40361 in v0.1.12 already treats the rename as done"
   },
   "40692": {
     "title": "fix(server): Claude Auto asks before commands Claude escalates",
     "asked": "2026-11-23",
-    "decision": "pending"
+    "decision": "yes",
+    "answered": "2026-11-23"
   }
 }
