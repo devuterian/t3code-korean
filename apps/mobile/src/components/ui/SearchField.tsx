@@ -1,4 +1,4 @@
-import type { RefObject } from "react";
+import { type RefObject, useState } from "react";
 import { Pressable, TextInput, type TextInputInstance, View } from "react-native";
 
 import { SymbolView } from "./AppSymbol";
@@ -24,6 +24,20 @@ export function SearchField({
   onChangeText,
 }: SearchFieldProps) {
   const { scale, mediumIconSize } = useAndroidControlSizing();
+  // The workspace app bar renders this field out of tree and gets the owner's new `value` one
+  // render after a keystroke. Handing that stale value to the input rewrote the native text and
+  // broke IME composition (Korean jamo stopped joining). The field keeps the text it typed and
+  // only takes `value` when the owner changes it: a cleared or closed search, another tab.
+  const [text, setText] = useState(value);
+  const [ownerValue, setOwnerValue] = useState(value);
+  if (ownerValue !== value) {
+    setOwnerValue(value);
+    setText(value);
+  }
+  const changeText = (next: string) => {
+    setText(next);
+    onChangeText(next);
+  };
   return (
     <View
       className="min-w-0 flex-1 flex-row items-center rounded-full border border-input-border bg-input"
@@ -52,16 +66,16 @@ export function SearchField({
         selectionHandleColorClassName="accent-focus"
         className="min-w-0 flex-1 font-sans text-base text-foreground"
         style={{ minHeight: Math.max(48, 42 * scale), paddingVertical: 7 * scale }}
-        value={value}
-        onChangeText={onChangeText}
+        value={text}
+        onChangeText={changeText}
       />
-      {value.length > 0 ? (
+      {text.length > 0 ? (
         <Pressable
           accessibilityLabel={clearAccessibilityLabel}
           accessibilityRole="button"
           hitSlop={10}
           onPress={() => {
-            onChangeText("");
+            changeText("");
             inputRef.current?.focus();
           }}
         >
